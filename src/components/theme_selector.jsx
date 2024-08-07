@@ -14,11 +14,6 @@ const ThemeSwitch = () => {
     const [theme, setTheme] = useState(GetTheme());
 
     useEffect(() => {
-        // if (theme === "dark") {
-        //   document.documentElement.classList.add("dark");
-        // } else {
-        //   document.documentElement.classList.remove("dark");
-        // }
         document.body.className = theme;
         localStorage.setItem("theme", theme)
     }, [theme]);

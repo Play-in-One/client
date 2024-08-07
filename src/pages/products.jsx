@@ -3,6 +3,8 @@ import axios from 'axios'
 
 const Products = () => {
 
+    const [name, setName] = useState("")
+
     const [min_price, setMinPrice] = useState(0)
     const [max_price, setMaxPrice] = useState(100_000_000)
 
@@ -14,12 +16,13 @@ const Products = () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         console.log('submit')
-        axios.get('http://localhost:8000/api/product/', {
+        axios.get('http://localhost:8000/api/products/', {
             params: {
-                min_price: min_price,
-                max_price: max_price,
-                largest: largest,
-                skip: skip
+                search: name,
+                // min_price: min_price,
+                // max_price: max_price,
+                // largest: largest,
+                // skip: skip
         }}).then(response => {
             setProduct(response.data);
             console.log(response.data);
@@ -33,6 +36,7 @@ const Products = () => {
         <div>
             <h1>Products</h1>
             <div>
+                <div>Nombre: {name}</div>
                 <div>precio minimo: {min_price}</div>
                 <div>precio maximo: {max_price}</div>
                 <div>largest: {largest}</div>
@@ -40,10 +44,12 @@ const Products = () => {
             </div>
 
             <form onSubmit={handleSubmit}>
-                <input className='bg-2 mx-2' value={min_price} onChange={(e) => setMinPrice(parseInt(e.target.value))} />
-                <input className='bg-2 mx-2' value={max_price} onChange={(e) => setMaxPrice(parseInt(e.target.value))} />
-                <input className='bg-2 mx-2' value={largest} onChange={(e) => setLargest(parseInt(e.target.value))} />
-                <input className='bg-2 mx-2' value={skip} onChange={(e) => setSkip(parseInt(e.target.value))} />
+                <input className='bg-2 mx-2' value={name} onChange={(data) => setName(data.target.value)} />
+                <input className='bg-2 mx-2' value={min_price} onChange={(data) => setMinPrice(parseInt(data.target.value))} />
+                <input className='bg-2 mx-2' value={min_price} onChange={(data) => setMinPrice(parseInt(data.target.value))} />
+                <input className='bg-2 mx-2' value={max_price} onChange={(data) => setMaxPrice(parseInt(data.target.value))} />
+                <input className='bg-2 mx-2' value={largest} onChange={(data) => setLargest(parseInt(data.target.value))} />
+                <input className='bg-2 mx-2' value={skip} onChange={(data) => setSkip(parseInt(data.target.value))} />
                 <button className='bg-4 p-2' type='submit'>Buscar</button>
             </form>
 
