@@ -30,6 +30,19 @@ export default {
         4: 'var(--bg-4)',
       },
 
+      borderColor: {
+        1: 'var(--border-1)',
+        2: 'var(--border-2)',
+      },
+
+      borderWidth : {
+        1: 'var(--border-width-1)',
+      },
+
+      borderRadius: {
+        1: 'var(--border-radius-1)',
+      },
+
     },
   },
   plugins: [],
