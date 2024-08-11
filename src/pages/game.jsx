@@ -20,13 +20,15 @@ const Game = () => {
             .then(data => setGame(data))
         fetch(import.meta.env.VITE_BACKEND_LINK + "/products/" + "?game=" + id)
             .then(response => response.json())
-            .then(data => setProducts(data))
+            .then(data => setProducts(data['results']))
     }
     , [id]);
 
     return (
         <div>
             <h1>Game {game.title}</h1>
+            {/* <h1>{game.url_image}</h1> */}
+            <img src={game.url_image} className="h-96" />
             {/* <p>{JSON.stringify(game)}</p> */}
             {products.map((product, index) => (
                 <div key={index}>

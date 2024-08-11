@@ -11,7 +11,9 @@ export const ProductLabel = ({product}) => {
                     {/* <p>{product.platform}</p> */}
                     <p>{product.price}</p>
                     <p>{product.id}</p>
-                    <p>{product.seller}</p>
+                    <p>{product.platform}</p>
+                    <p>{product.formato}</p>
+                    {product.formato === 'fisico' && <p>{product.condition}</p>}
                     {/* <p>{JSON.stringify(product)}</p> */}
                 </div>
             </a>
