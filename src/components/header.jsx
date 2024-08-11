@@ -2,9 +2,9 @@ import ThemeSwitch from "./theme_selector";
 
 const Header = () => {
     const options = [
-        { id: 1, title: "Home", link: "/", className: " rounded-tl-1" },
-        { id: 2, title: "About", link: "/about", className: "" },
-        { id: 3, title: "Products", link: "/products", className: " rounded-tr-1" },
+        { id: 1, title: "Home", link: "/"},
+        { id: 2, title: "About", link: "/about"},
+        { id: 3, title: "Products", link: "/products"},
     ];
 
     return (
@@ -16,7 +16,7 @@ const Header = () => {
                 <nav className="place-content-center">
                     <ul className="flex">
                         {options.map((option) => (
-                            <li key={option.id} className={"p-2 hover:bg-3 border-b-1"+option.className}>
+                            <li key={option.id} className={"p-2 hover:text-orange-400"}>
                                 <a href={option.link}>
                                     {option.title}
                                 </a>

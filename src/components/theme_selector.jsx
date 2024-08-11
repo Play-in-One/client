@@ -20,7 +20,7 @@ const ThemeSwitch = () => {
 
 
     return (
-        <div className="h-7 w-7 m-1">
+        <div className="h-7 w-7 m-1 place-content-center">
             {theme === "dark" ?
                 <button className="h-full w-full" type="button" onClick={() => { setTheme("light") }}>
                     <MoonIcon className="w-auto h-auto text-object-1 hover:text-object-2" />
