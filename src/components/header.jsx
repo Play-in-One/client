@@ -5,10 +5,11 @@ const Header = () => {
         { id: 1, title: "Home", link: "/"},
         { id: 2, title: "About", link: "/about"},
         { id: 3, title: "Products", link: "/products"},
+        { id: 3, title: "Games", link: "/games"},
     ];
 
     return (
-        <header className="flex justify-between bg-2 text-1 p-4">
+        <header className="flex justify-between bg-2 text-1 p-4 mb-4">
             <a href="/" className="place-content-center">
                 <h1>Play in One</h1>
             </a>
@@ -16,7 +17,7 @@ const Header = () => {
                 <nav className="place-content-center">
                     <ul className="flex">
                         {options.map((option) => (
-                            <li key={option.id} className={"p-2 hover:text-orange-400"}>
+                            <li key={option.id} className={"p-2 hover:text-acent-1"}>
                                 <a href={option.link}>
                                     {option.title}
                                 </a>

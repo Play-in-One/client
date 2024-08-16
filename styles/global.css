@@ -4,47 +4,90 @@
 
 @layer base {
 
-    :root {
-        --border-radius-1: 0.5rem;
 
-        --border-width-1: 3px;
+    :root {
+        --border-radius-1: 1rem;
+
+        --border-width-1: 2px;
+
     }
 
     :root .dark {
-        background-color: #161616;
-        color: #f1f1f1;
-        --bg-1: #1f1f1f;
-        --bg-2: #2f2f2f;
-        --bg-3: #3f3f3f;
+        --bg-1: #18171d;
+        --bg-2: #25232e;
+        --bg-3: #2f2b3d;
         --bg-4: #4f4f4f;
 
         --text-1: #f1f1f1;
         --text-2: #d1d1d1;
         --text-3: #c1c1c1;
 
-        --border-1: #3f3f3f;
+        --acent-1: #8dcfd1;
+        --acent-2: #d1d1d1;
+
+        --border-1: #322e42;
         --border-2: #4f4f4f;
 
-        --object-1: #5f5f5f;
-        --object-2: #6f6f6f;
+        --object-1: #8a8799;
+        --object-2: #625f70;
+
+        --pc-1: #254dc4;
+        --pc-2: #00a0f1;
+
+        --ps4-1: #2a4492;
+        --ps4-2: #00a0f1;
+
+        --ps5-1: #6176b6;
+        --ps5-2: #00a0f1;
+
+        --xbox-1: #0e580e;
+        --xbox-2: #00a000;
+
+        --switch-1: #b81111;
+        --switch-2: #f00000;
+
+
+        background-color: var(--bg-1);
+        color: var(--text-1);
     }
 
     :root .light {
-        background-color: #f1f1f1;
-        color: #1f1f1f;
-        --bg-1: #f1f1f1;
-        --bg-2: #e1e1e1;
-        --bg-3: #bbbbbb;
+        --bg-1: #eae9ee;
+        --bg-2: #dedae7;
+        --bg-3: #d1cae4;
         --bg-4: #c1c1c1;
 
         --text-1: #1f1f1f;
         --text-2: #2f2f2f;
         --text-3: #3f3f3f;
 
+        --acent-1: #1f1f1f;
+        --acent-2: #2f2f2f;
+
         --border-1: #d1d1d1;
         --border-2: #c1c1c1;
 
-        --object-1: #b1b1b1;
-        --object-2: #a1a1a1;
+        --object-1: #a29eb4;
+        --object-2: #87829e;
+
+        --pc-1: #254dc4;
+        --pc-2: #00a0f1;
+
+        --ps4-1: #4260bb;
+        --ps4-2: #00a0f1;
+
+        --ps5-1: #8a9cd3;
+        --ps5-2: #00a0f1;
+
+        --xbox-1: #469b46;
+        --xbox-2: #00a000;
+
+        --switch-1: #d45b5b;
+        --switch-2: #f00000;
+
+
+        background-color: var(--bg-1);
+        color: var(--text-1);
     }
+
 }

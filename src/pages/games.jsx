@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { ProductLabel } from '../components/product_label'
 
-import { id_to_platforms } from "../request";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { id_to_platforms, platforms_to_id } from "../request";
 
+const Games = () => {
 
-const Products = () => {
+    const { platform } = useParams();
+
+    console.log(platform);
 
     const [name, setName] = useState("")
 
@@ -20,7 +24,8 @@ const Products = () => {
 
     const [orden, setOrden] = useState("price")
 
-    const [platform, setPlatform] = useState("")
+    console.log(id_to_platforms);
+    console.log(platforms_to_id);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -30,7 +35,7 @@ const Products = () => {
                 page_size: page_size,
                 search: name,
                 orden: orden,
-                platform: platform
+                platform: platforms_to_id[platform]
         }}).then(response => {
             setProduct(response.data['results']);
             setMax_page(Math.trunc(1 + response.data['count'] / page_size));
@@ -51,7 +56,6 @@ const Products = () => {
             <form onSubmit={handleSubmit} className='bg-2 rounded-1 p-4 w-96 m-2 flex flex-col h-min'>
                 <div className='mb-3'>
                     <div className='flex m-1 items-center'>
-                        {/* Nombre: <input className='w-full bg-1 mx-2 rounded-1 border-1 outline-none p-2' placeholder="Buscar" value={name} onChange={(data) => setName(data.target.value)} /> */}
                         <input
                             className='w-full bg-1 rounded-1 border-1 outline-none p-2'
                             placeholder="Nombre"
@@ -69,17 +73,6 @@ const Products = () => {
                             <option value='title'>Nombre</option>
                         </select>
                     </div>
-                    <div className='flex m-1 items-center'>
-                        Platform:
-                        <select
-                            className='w-full bg-1 ml-3 rounded-1 border-1 outline-none p-2'
-                            onChange={(data) => setPlatform(data.target.value)}>
-                            <option value=''>All</option>
-                            {Object.keys(id_to_platforms).map((key, index) => (
-                                <option key={index} value={key}>{id_to_platforms[key]}</option>
-                            ))}
-                        </select>
-                    </div>
                 </div>
 
                 <button
@@ -89,7 +82,6 @@ const Products = () => {
                     Buscar
                 </button>
             </form>
-
 
             <div className='flex items-center flex-col w-[70%] rounded-1 m-2'>
                 <ul className='flex flex-wrap px-6 rounded-1 justify-center'>
@@ -123,6 +115,6 @@ const Products = () => {
     );
 }
 
-export default Products;
+export default Games;
 
 

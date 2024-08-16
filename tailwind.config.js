@@ -15,6 +15,37 @@ export default {
           1: 'var(--border-1)',
           2: 'var(--border-2)',
         },
+
+        acent: {
+          1: 'var(--acent-1)',
+          2: 'var(--acent-2)',
+        },
+
+        pc: {
+          1: 'var(--pc-1)',
+          2: 'var(--pc-2)',
+        },
+
+        ps4: {
+          1: 'var(--ps4-1)',
+          2: 'var(--ps4-2)',
+        },
+
+        ps5: {
+          1: 'var(--ps5-1)',
+          2: 'var(--ps5-2)',
+        },
+
+        xbox: {
+          1: 'var(--xbox-1)',
+          2: 'var(--xbox-2)',
+        },
+
+        switch: {
+          1: 'var(--switch-1)',
+          2: 'var(--switch-2)',
+        },
+
       },
 
       textColor: {

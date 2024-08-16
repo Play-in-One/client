@@ -1,22 +1,27 @@
 // http://127.0.0.1:8000/api/data/platform
 
-import { useEffect, useState } from 'react'
+// import { useEffect, useState } from 'react'
+import axios from 'axios'
 
 
-const Platform = () => {
-    const [platform, setPlatform] = useState([])
 
-    useEffect(() => {
-        fetch(import.meta.env.VITE_BACKEND_LINK + "/data/platform")
-            .then(response => response.json())
-            .then(data => setPlatform(data))
+const id_to_platforms = await axios.get(import.meta.env.VITE_BACKEND_LINK + "/data/platform", {
+    params:{
+        invert: true
     }
-    , [])
+})
+.then(response => response.data);
 
-    return platform
-}
+const platforms_to_id = await axios.get(import.meta.env.VITE_BACKEND_LINK + "/data/platform", {
+    params:{
+        invert: false
+    }
+})
+.then(response => response.data);
+
 
 
 export {
-    Platform
+    id_to_platforms,
+    platforms_to_id
 };

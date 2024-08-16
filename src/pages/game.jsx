@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { id_to_platforms } from "../request";
 
 const Game = () => {
     const { id } = useParams();
 
-    useEffect(() => {
-        console.log(id);
-        const sas = new URLSearchParams(location.search);
-        console.log(sas.get('search'));
-    }, [id]);
+    // useEffect(() => {
+    //     console.log(id);
+    //     const sas = new URLSearchParams(location.search);
+    //     console.log(sas.get('search'));
+    // }, [id]);
 
     const [game, setGame] = useState({});
     const [products, setProducts] = useState([]);
@@ -18,29 +19,47 @@ const Game = () => {
         fetch(import.meta.env.VITE_BACKEND_LINK + "/games/" + id + "/")
             .then(response => response.json())
             .then(data => setGame(data))
-        fetch(import.meta.env.VITE_BACKEND_LINK + "/products/" + "?game=" + id)
+        fetch(import.meta.env.VITE_BACKEND_LINK + "/products/?" + new URLSearchParams({
+                game: id
+            }))
             .then(response => response.json())
             .then(data => setProducts(data['results']))
     }
     , [id]);
 
+
     return (
-        <div>
-            <h1>Game {game.title}</h1>
-            {/* <h1>{game.url_image}</h1> */}
-            <img src={game.url_image} className="h-96" />
-            {/* <p>{JSON.stringify(game)}</p> */}
-            {products.map((product, index) => (
-                <div key={index} className="bg-2 rounded-1 m-5">
-                    <Link to={product.url}>
-                        <h2>Product {product.title}</h2>
-                        <h2>Plataforma {product.platform}</h2>
-                        <h2>Tienda {product.seller}</h2>
-                        <h2>precio {product.price}</h2>
-                    </Link>
-                    {/* <p>{JSON.stringify(product)}</p> */}
+        <div className="flex flex-col items-center">
+
+            <h1 className="text-7xl text-center m-6">
+                Game {game.title}
+            </h1>
+
+            <div className="flex flex-row">
+
+                <img
+                    className="h-[600px]"
+                    src={game.url_image}
+                />
+
+                <div className="flex flex-col m-2">
+                    {products.map((product, index) => (
+                        <div key={index} className="bg-2 hover:bg-3 rounded-1 m-5 w-[400px] p-3">
+                            <Link to={product.url}>
+                                <p>Product {product.title}</p>
+                                <p>Plataforma {id_to_platforms[product.platform]}</p>
+                                <p>Tienda {product.seller}</p>
+                                <p>{product.formato}</p>
+                                {product.formato === 'fisico' && <p>{product.condition}</p>}
+                                <p className="text-center text-2xl font-semibold">
+                                    ${product.price}
+                                </p>
+                            </Link>
+                        </div>
+                    ))}
                 </div>
-            ))}
+
+            </div>
         </div>
     );
 }
