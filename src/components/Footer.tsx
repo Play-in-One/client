@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 import {
     Box,
     Container,
@@ -10,9 +12,37 @@ import {
     TextInput,
     Button,
     Stack,
+    ActionIcon,
 } from '@mantine/core';
+import {
+    IconBrandTiktok,
+    IconBrandX,
+    IconBrandInstagram,
+    IconBrandFacebook,
+    IconBrandYoutube
+} from '@tabler/icons-react';
 
 const YEAR = new Date().getFullYear();
+
+function SocialIcon({ icon: Icon, brandColor, href }: { icon: any, brandColor: string, href: string }) {
+    const [hover, setHover] = useState(false);
+    return (
+        <ActionIcon
+            component="a"
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="subtle"
+            color={hover ? brandColor : 'gray'}
+            size="lg"
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+            style={{ transition: 'all 0.2s ease' }}
+        >
+            <Icon size={24} />
+        </ActionIcon>
+    );
+}
 
 export default function Footer() {
     return (
@@ -73,26 +103,14 @@ export default function Footer() {
 
                     {/* Newsletter */}
                     <Stack gap="xs">
-                        <Text fw={700} mb={4}>Suscríbete</Text>
-                        <Text fz="sm" c="dimmed">Recibe las mejores ofertas en tu correo.</Text>
-                        <Group gap={0}>
-                            <TextInput
-                                placeholder="Tu email"
-                                size="sm"
-                                radius="md"
-                                style={{ flex: 1 }}
-                                styles={{
-                                    input: { borderTopRightRadius: 0, borderBottomRightRadius: 0 },
-                                }}
-                            />
-                            <Button
-                                size="sm"
-                                radius="md"
-                                color="primaryRed"
-                                style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                            >
-                                OK
-                            </Button>
+                        <Text fw={700} mb={4}>Siguenos</Text>
+                        <Text fz="sm" c="dimmed">Mantente al dia de las mejores ofertas y novedades.</Text>
+                        <Group gap="xs">
+                            <SocialIcon icon={IconBrandInstagram} brandColor="#E1306C" href="https://instagram.com/" />
+                            <SocialIcon icon={IconBrandFacebook} brandColor="#1877F2" href="https://facebook.com/" />
+                            <SocialIcon icon={IconBrandX} brandColor="gray" href="https://twitter.com/" />
+                            <SocialIcon icon={IconBrandTiktok} brandColor="#ff0050" href="https://tiktok.com/" />
+                            <SocialIcon icon={IconBrandYoutube} brandColor="#FF0000" href="https://youtube.com/" />
                         </Group>
                     </Stack>
                 </SimpleGrid>

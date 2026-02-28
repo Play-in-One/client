@@ -33,6 +33,10 @@ import {
     IconChevronRight,
     IconHome,
     IconCheck,
+    IconDeviceGamepad,
+    IconDeviceGamepad2,
+    IconDeviceNintendo,
+    IconDeviceDesktop,
 } from '@tabler/icons-react';
 import {
     LineChart,
@@ -125,6 +129,24 @@ export default function GameDetailPage() {
         new: 'blue',
         used: 'yellow',
         digital: 'grape',
+    };
+
+    const platformIconMap: Record<string, any> = {
+        ps5: IconDeviceGamepad,
+        ps4: IconDeviceGamepad,
+        xbox: IconDeviceGamepad2,
+        switch: IconDeviceNintendo,
+        switch2: IconDeviceNintendo,
+        pc: IconDeviceDesktop,
+    };
+
+    const platformColorMap: Record<string, string> = {
+        ps5: 'blue',
+        ps4: 'indigo',
+        xbox: 'green',
+        switch: 'red',
+        switch2: 'red',
+        pc: 'gray',
     };
 
     return (
@@ -251,26 +273,30 @@ export default function GameDetailPage() {
                                             background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--mantine-color-gray-0)',
                                         }}
                                     >
-                                        {game.platforms.map((pl) => (
-                                            <Button
-                                                key={pl.id}
-                                                size="xs"
-                                                radius="sm"
-                                                variant={selectedPlatform === pl.name ? 'filled' : 'subtle'}
-                                                color={selectedPlatform === pl.name ? 'primaryRed' : 'gray'}
-                                                onClick={() => setSelectedPlatform(pl.name)}
-                                            >
-                                                {pl.display_name}
-                                            </Button>
-                                        ))}
+                                        {game.platforms.map((pl) => {
+                                            const Icon = platformIconMap[pl.name] || IconDeviceGamepad;
+                                            const pColor = platformColorMap[pl.name] || 'gray';
+                                            return (
+                                                <Button
+                                                    key={pl.id}
+                                                    size="xs"
+                                                    radius="sm"
+                                                    variant={selectedPlatform === pl.name ? 'filled' : 'subtle'}
+                                                    color={selectedPlatform === pl.name ? pColor : 'gray'}
+                                                    leftSection={<Icon size={20} />}
+                                                    onClick={() => setSelectedPlatform(pl.name)}
+                                                    style={{ transition: 'all 0.2s' }}
+                                                >
+                                                    {pl.display_name}
+                                                </Button>
+                                            );
+                                        })}
                                     </Box>
                                 </Group>
                             )}
 
                             <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
-                                {game.developer
-                                    ? `Juego desarrollado por ${game.developer}.`
-                                    : 'Compara precios entre distintas tiendas y encuentra la mejor oferta.'}
+                                Compara precios entre distintas tiendas y encuentra la mejor oferta.
                             </Text>
 
                             {/* Action buttons */}
@@ -507,8 +533,8 @@ export default function GameDetailPage() {
                                         <AreaChart data={chartData}>
                                             <defs>
                                                 <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#E63946" stopOpacity={0.2} />
-                                                    <stop offset="95%" stopColor="#E63946" stopOpacity={0} />
+                                                    <stop offset="5%" stopColor="var(--mantine-color-primaryRed-5)" stopOpacity={0.2} />
+                                                    <stop offset="95%" stopColor="var(--mantine-color-primaryRed-5)" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
                                             <XAxis
@@ -535,10 +561,10 @@ export default function GameDetailPage() {
                                             <Area
                                                 type="monotone"
                                                 dataKey="price"
-                                                stroke="#E63946"
+                                                stroke="var(--mantine-color-primaryRed-5)"
                                                 strokeWidth={3}
                                                 fill="url(#colorPrice)"
-                                                dot={{ r: 4, fill: '#fff', stroke: '#E63946', strokeWidth: 2 }}
+                                                dot={{ r: 4, fill: '#fff', stroke: 'var(--mantine-color-primaryRed-5)', strokeWidth: 2 }}
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>

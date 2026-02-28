@@ -1,6 +1,7 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { useState, type FormEvent } from 'react';
 import {
     Group,
@@ -33,6 +34,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
     const router = useRouter();
+    const pathname = usePathname();
     const { searchQuery, setSearchQuery } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
     const { colorScheme, toggleColorScheme } = useMantineColorScheme();
@@ -67,23 +69,13 @@ export default function Navbar() {
                 {/* Logo */}
                 <Anchor href="/" underline="never" style={{ textDecoration: 'none' }}>
                     <Group gap={8} wrap="nowrap">
-                        <Box
-                            w={44}
-                            h={44}
-                            style={{
-                                borderRadius: '50%',
-                                background: 'var(--mantine-color-primaryRed-5)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#fff',
-                                fontWeight: 800,
-                                fontSize: 20,
-                                flexShrink: 0,
-                            }}
-                        >
-                            P1
-                        </Box>
+                        <Image
+                            src="/PIO.png"
+                            alt="Play in One Logo"
+                            width={84}
+                            height={84}
+                            style={{ flexShrink: 0, borderRadius: '50%' }}
+                        />
                         <Text fw={800} fz="xl" c="inherit" visibleFrom="sm">
                             Play<Text span c="var(--mantine-color-primaryRed-5)">in</Text>One
                         </Text>
@@ -109,27 +101,29 @@ export default function Navbar() {
 
                 {/* Search + actions */}
                 <Group gap="sm" wrap="nowrap">
-                    <form onSubmit={handleSearch}>
-                        <TextInput
-                            placeholder="Buscar juegos..."
-                            leftSection={<IconSearch size={18} />}
-                            value={localQuery}
-                            onChange={(e) => setLocalQuery(e.currentTarget.value)}
-                            radius="xl"
-                            size="sm"
-                            w={{ base: 160, sm: 260, lg: 340 }}
-                            styles={{
-                                input: {
-                                    background: colorScheme === 'dark' ? 'var(--mantine-color-dark-6)' : 'var(--mantine-color-gray-1)',
-                                    border: 'none',
-                                },
-                            }}
-                        />
-                    </form>
+                    {pathname !== '/' && (
+                        <form onSubmit={handleSearch}>
+                            <TextInput
+                                placeholder="Buscar juegos..."
+                                leftSection={<IconSearch size={18} />}
+                                value={localQuery}
+                                onChange={(e) => setLocalQuery(e.currentTarget.value)}
+                                radius="xl"
+                                size="sm"
+                                w={{ base: 160, sm: 260, lg: 340 }}
+                                styles={{
+                                    input: {
+                                        background: colorScheme === 'dark' ? 'var(--mantine-color-dark-6)' : 'var(--mantine-color-gray-1)',
+                                        border: 'none',
+                                    },
+                                }}
+                            />
+                        </form>
+                    )}
 
-                    <ActionIcon variant="subtle" radius="xl" size="lg" visibleFrom="sm">
+                    {/* <ActionIcon variant="subtle" radius="xl" size="lg" visibleFrom="sm">
                         <IconUserCircle size={22} />
-                    </ActionIcon>
+                    </ActionIcon> */}
 
                     <ActionIcon variant="subtle" radius="xl" size="lg" onClick={toggleColorScheme}>
                         {colorScheme === 'dark' ? <IconSun size={22} /> : <IconMoon size={22} />}

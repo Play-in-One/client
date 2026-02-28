@@ -134,7 +134,7 @@ export default function HomePage() {
                             style={{
                                 inset: -4,
                                 borderRadius: 'var(--mantine-radius-xl)',
-                                background: 'linear-gradient(to right, #E63946, #F97316)',
+                                background: 'linear-gradient(to right, var(--mantine-color-primaryRed-5), var(--mantine-color-orange-5))',
                                 filter: 'blur(16px)',
                                 opacity: 0.2,
                                 transition: 'opacity 0.5s',
@@ -179,22 +179,6 @@ export default function HomePage() {
                         </form>
                     </Box>
 
-                    {/* Popular searches */}
-                    <Group mt="lg" justify="center" gap="xs">
-                        <Text fz="sm" c="dimmed">Popular:</Text>
-                        {['The Legend of Zelda', 'Call of Duty', 'Gift Cards', 'Consolas'].map((t) => (
-                            <Anchor
-                                key={t}
-                                href={`/search?q=${encodeURIComponent(t)}`}
-                                fz="sm"
-                                c="dimmed"
-                                td="underline"
-                                style={{ textDecorationStyle: 'dotted' }}
-                            >
-                                {t}
-                            </Anchor>
-                        ))}
-                    </Group>
                 </Container>
             </Box>
 
