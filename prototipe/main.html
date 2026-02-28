@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Play in One - Comparador de Precios de Videojuegos</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E63946", // Signature Red from the mascot
+                        "primary-dark": "#C92A37",
+                        "background-light": "#F8F9FA",
+                        "background-dark": "#121212",
+                        "surface-light": "#FFFFFF",
+                        "surface-dark": "#1E1E1E",
+                        "text-light": "#1F2937",
+                        "text-dark": "#F3F4F6",
+                        "accent-dark": "#1A1A1A",
+                    },
+                    fontFamily: {
+                        display: ["Poppins", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        .gradient-text {
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: linear-gradient(to right, #E63946, #FB7185);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-display transition-colors duration-300">
+    <nav
+        class="sticky top-0 z-50 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
+                    <div
+                        class="relative h-12 w-12 flex items-center justify-center bg-primary rounded-full text-white font-bold text-xl overflow-hidden shadow-lg">
+                        <img alt="Play in One Mascot" class="object-cover w-full h-full scale-110"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjbpgQ8AzSydZZSxjNfjK4GPhu-XhbsAZAjxtMfNqDULydh6WT_vuVe9327AIiEt6T32A7MIRivSK7KaCGntUNZLQ0ecphBE06jFvHbdhLZRHUVCeGhURixNMnbVROCZkNPTMrzwzYEdtTk2zb81ASPmXiY0kKouQ7HTHviP8Uy8uGFI6U7TEMTmEoDpeaQ-v5WLy0n6QgtXJtOIb3e2OOgKbvG6suw0qpIgA5hGEZsNF-WsNB5OqJh1jnCHydIrzVNgI2uNqzTA" />
+                    </div>
+                    <span class="font-extrabold text-2xl tracking-tight text-gray-900 dark:text-white">Play<span
+                            class="text-primary">in</span>One</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition"
+                        href="#">PS5</a>
+                    <a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition"
+                        href="#">Switch</a>
+                    <a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition"
+                        href="#">Xbox</a>
+                    <a class="text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition"
+                        href="#">PC</a>
+                    <a class="text-primary font-semibold hover:text-primary-dark transition" href="#">Ofertas</a>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button
+                        class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-600 dark:text-gray-300">
+                        <span class="material-icons-round">person_outline</span>
+                    </button>
+                    <button
+                        class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition text-gray-600 dark:text-gray-300"
+                        onclick="document.documentElement.classList.toggle('dark')">
+                        <span class="material-icons-round dark:hidden">dark_mode</span>
+                        <span class="material-icons-round hidden dark:inline">light_mode</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <header class="relative overflow-hidden bg-surface-light dark:bg-surface-dark pt-16 pb-24 lg:pt-32 lg:pb-40">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl"></div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl"></div>
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+            <div
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-8">
+                <span class="material-icons-round text-sm">local_fire_department</span>
+                Comparador #1 en Chile
+            </div>
+            <h1
+                class="text-4xl md:text-6xl font-extrabold tracking-tight mb-6 text-gray-900 dark:text-white leading-tight">
+                Encuentra tu próximo juego <br class="hidden md:block" />
+                <span class="gradient-text">al mejor precio</span>
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500 dark:text-gray-400">
+                Compara precios en tiempo real entre decenas de tiendas chilenas. Ahorra dinero y juega más.
+            </p>
+            <div class="mt-10 max-w-3xl mx-auto relative group">
+                <div
+                    class="absolute -inset-1 bg-gradient-to-r from-primary to-orange-500 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200">
+                </div>
+                <div
+                    class="relative flex items-center bg-white dark:bg-gray-800 rounded-full shadow-xl p-2 border border-gray-100 dark:border-gray-700">
+                    <span class="material-icons-round text-gray-400 ml-4 text-2xl">search</span>
+                    <input autofocus=""
+                        class="flex-grow bg-transparent border-none focus:ring-0 text-lg px-4 text-gray-900 dark:text-white placeholder-gray-400"
+                        placeholder="Ej: Elden Ring, FIFA 24, Zelda..." type="text" />
+                    <button
+                        class="bg-primary hover:bg-primary-dark text-white rounded-full px-8 py-3 font-semibold transition shadow-md">
+                        Buscar
+                    </button>
+                </div>
+            </div>
+            <div class="mt-8 flex flex-wrap justify-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                <span>Popular:</span>
+                <a class="hover:text-primary underline decoration-dotted" href="#">The Legend of Zelda</a>
+                <a class="hover:text-primary underline decoration-dotted" href="#">Call of Duty</a>
+                <a class="hover:text-primary underline decoration-dotted" href="#">Gift Cards</a>
+                <a class="hover:text-primary underline decoration-dotted" href="#">Consolas</a>
+            </div>
+        </div>
+    </header>
+    <section class="py-10 bg-gray-50 dark:bg-black/20 border-y border-gray-200 dark:border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-6">Monitoreamos tus tiendas
+                favoritas</p>
+            <div
+                class="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <div class="flex items-center gap-2 font-bold text-xl text-gray-700 dark:text-gray-300">
+                    <span class="bg-green-600 text-white rounded px-2">F</span> Falabella
+                </div>
+                <div class="flex items-center gap-2 font-bold text-xl text-gray-700 dark:text-gray-300">
+                    <span class="text-blue-600">WePlay</span>
+                </div>
+                <div class="flex items-center gap-2 font-bold text-xl text-gray-700 dark:text-gray-300">
+                    <span
+                        class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-xs">M</span>
+                    Microplay
+                </div>
+                <div class="flex items-center gap-2 font-bold text-xl text-gray-700 dark:text-gray-300">
+                    Todo<span class="text-orange-500">Juegos</span>
+                </div>
+                <div class="flex items-center gap-2 font-bold text-xl text-gray-700 dark:text-gray-300">
+                    <span class="bg-purple-600 text-white rounded px-1">Z</span> Zmart
+                </div>
+                <div class="flex items-center gap-2 font-bold text-xl text-gray-700 dark:text-gray-300">
+                    Paris
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-16 bg-background-light dark:bg-background-dark">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-end mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="material-icons-round text-primary">local_offer</span>
+                        Ofertas Destacadas
+                    </h2>
+                    <p class="mt-2 text-gray-500 dark:text-gray-400">Las mejores bajadas de precio de las últimas 24
+                        horas.</p>
+                </div>
+                <a class="hidden sm:flex items-center gap-1 text-primary font-semibold hover:text-primary-dark transition"
+                    href="#">
+                    Ver todas las ofertas <span class="material-icons-round text-sm">arrow_forward</span>
+                </a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div
+                    class="group relative bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div
+                        class="absolute top-3 right-3 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                        -35%</div>
+                    <div class="aspect-[3/4] overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="Elden Ring Cover"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuABCjY0xTruUixO1U35UvLgYLwY8TibdFPXaNe6EyhHqKITO4AOFv7g4eJIImSvylLexbBpfr2JA4X584Ie1VHdy5skCxMgqaQleqv8lzQvlUlru8amIVrlABfYT7em3vZdT8wCCQGThPFvJTgeIWtsK1VlzxlKnxx1nCdfEsWsr-s42HACpqtWjxEnaqS7lnu5QM74Nf23Mq2iVaqUr3icCosINweyJeLb7Jht2X19EoW963I75K_U7cvo2BsRpiD6NEbp0UAeng" />
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                            <div class="flex gap-2">
+                                <span
+                                    class="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">PS5</span>
+                                <span
+                                    class="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Xbox</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">
+                            Elden Ring</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">FromSoftware</p>
+                        <div
+                            class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-gray-400 line-through">$49.990</span>
+                                <span class="text-xl font-extrabold text-primary">$32.490</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[10px] text-gray-400 mb-0.5">Vendido por</span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">WePlay</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="group relative bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div
+                        class="absolute top-3 right-3 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                        -15%</div>
+                    <div class="aspect-[3/4] overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="Zelda Tears of the Kingdom Cover"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpwkDpmMa7HgGzWfFnhVLKURhvqHQyI1aFjdR0n-Ctx-17idZrL5W3e8VGlkQQV8b_4ZuRnupUmcKd1NZ_wqEIgBqnXNEdOs5hNwmq2jtQKN29JteZjbdO_WxiloBi_gI6VNIMHsVGtlKdP0ofCED6aJbkUgduRm2xMFxtBwNQwAoHTrobvHsUmVRODJRPdfIePZ5bY_OQmPF_wG018k0A8xQxm0MksIaCFyQS2gj4_Wwh20IQT-sdUP1sYyJPK8fc4hi0Yp8x-A" />
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                            <div class="flex gap-2">
+                                <span
+                                    class="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Switch</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">The
+                            Legend of Zelda: Tears of the Kingdom</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Nintendo</p>
+                        <div
+                            class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-gray-400 line-through">$59.990</span>
+                                <span class="text-xl font-extrabold text-primary">$50.990</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[10px] text-gray-400 mb-0.5">Vendido por</span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Falabella</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="group relative bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div
+                        class="absolute top-3 right-3 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                        -40%</div>
+                    <div class="aspect-[3/4] overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="God of War Ragnarok Cover"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9unEDw7mF-FhJa1MXS6RsszgLiLtg-i2SNRjByd8d3oRKpixLC0Oc4G9ZEzql-rmwZog8ZQrz36JJLZbqFRFxb-S8vl58H2xm4EYRinsKfp2Q26tP31L2LlLR-4JvayCzgttn-HP9HukzUjBWJd5xMcXGCIi_-_u4x47ZVr_78nvysUiIXeCjNz4o2w2HYysYLjK4y6je4zkEWyUZCR02h-d0vXLx3RAR0Kd5BybQkA5_qZp5OEJ2ryB6qiqONGfW6N0LvLFfpA" />
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                            <div class="flex gap-2">
+                                <span
+                                    class="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">PS5</span>
+                                <span
+                                    class="bg-blue-800 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">PS4</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">God
+                            of War Ragnarök</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Santa Monica Studio</p>
+                        <div
+                            class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-gray-400 line-through">$64.990</span>
+                                <span class="text-xl font-extrabold text-primary">$38.990</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[10px] text-gray-400 mb-0.5">Vendido por</span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">TodoJuegos</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="group relative bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div
+                        class="absolute top-3 right-3 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded shadow-sm">
+                        -25%</div>
+                    <div class="aspect-[3/4] overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="Red Dead Redemption 2 Cover"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnN72MXeFcsHKFpWwKOMbgr4s0oNzH6TM1KyUEtptW0aG4E8-ng5LsIHEmM2rqZVvA1rhTUorolZmGpu8cgE_aQdv4TlnMktrZstjrJ51lxZIJEtJK5i5vyurXOKc8y9GhceYV7IYOzIlXKJJHM84qxBvGSSWXUd7RqLRPDHo_c7751sf5XNPF1ck129bwzyp8Hqd8Tj-dUHw7t9LmzPald5XTQ_G5VMEVG5q9tbrvPzvlvIVWYdWQAt8-mpcnhh8T6iibJFdWHw" />
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                            <div class="flex gap-2">
+                                <span
+                                    class="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Xbox</span>
+                                <span
+                                    class="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">PS4</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col flex-grow">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white leading-tight mb-1 line-clamp-2">Red
+                            Dead Redemption 2</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Rockstar Games</p>
+                        <div
+                            class="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                            <div class="flex flex-col">
+                                <span class="text-xs text-gray-400 line-through">$29.990</span>
+                                <span class="text-xl font-extrabold text-primary">$22.490</span>
+                            </div>
+                            <div class="flex flex-col items-end">
+                                <span class="text-[10px] text-gray-400 mb-0.5">Vendido por</span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300">Paris</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-10 text-center sm:hidden">
+                <a class="inline-flex items-center gap-2 text-primary font-semibold hover:text-primary-dark transition border border-primary px-6 py-2 rounded-full"
+                    href="#">
+                    Ver todas las ofertas <span class="material-icons-round text-sm">arrow_forward</span>
+                </a>
+            </div>
+        </div>
+    </section>
+    <section class="py-16 bg-gray-50 dark:bg-black/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-8">Explorar por Plataforma</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <a class="flex flex-col items-center justify-center p-6 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition border border-gray-100 dark:border-gray-800 group"
+                    href="#">
+                    <span
+                        class="material-icons-round text-4xl text-blue-600 mb-3 group-hover:scale-110 transition">gamepad</span>
+                    <span class="font-bold text-gray-800 dark:text-gray-200">PlayStation</span>
+                </a>
+                <a class="flex flex-col items-center justify-center p-6 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition border border-gray-100 dark:border-gray-800 group"
+                    href="#">
+                    <span
+                        class="material-icons-round text-4xl text-green-600 mb-3 group-hover:scale-110 transition">sports_esports</span>
+                    <span class="font-bold text-gray-800 dark:text-gray-200">Xbox</span>
+                </a>
+                <a class="flex flex-col items-center justify-center p-6 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition border border-gray-100 dark:border-gray-800 group"
+                    href="#">
+                    <span
+                        class="material-icons-round text-4xl text-red-600 mb-3 group-hover:scale-110 transition">videogame_asset</span>
+                    <span class="font-bold text-gray-800 dark:text-gray-200">Nintendo</span>
+                </a>
+                <a class="flex flex-col items-center justify-center p-6 bg-surface-light dark:bg-surface-dark rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition border border-gray-100 dark:border-gray-800 group"
+                    href="#">
+                    <span
+                        class="material-icons-round text-4xl text-gray-600 dark:text-gray-400 mb-3 group-hover:scale-110 transition">desktop_windows</span>
+                    <span class="font-bold text-gray-800 dark:text-gray-200">PC / Steam</span>
+                </a>
+            </div>
+        </div>
+    </section>
+    <section class="py-16 bg-background-light dark:bg-background-dark">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-end mb-10">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <span class="material-icons-round text-primary">newspaper</span>
+                        Noticias y Comunidad
+                    </h2>
+                    <p class="mt-2 text-gray-500 dark:text-gray-400">Mantente al día con lo último de Play in One y el
+                        mundo gaming.</p>
+                </div>
+                <a class="flex items-center gap-1 text-primary font-semibold hover:text-primary-dark transition"
+                    href="#">
+                    Ver todas las noticias <span class="material-icons-round text-sm">arrow_forward</span>
+                </a>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Card 1 -->
+                <div
+                    class="group bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div class="aspect-video overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="Nuevas tiendas integradas"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9unEDw7mF-FhJa1MXS6RsszgLiLtg-i2SNRjByd8d3oRKpixLC0Oc4G9ZEzql-rmwZog8ZQrz36JJLZbqFRFxb-S8vl58H2xm4EYRinsKfp2Q26tP31L2LlLR-4JvayCzgttn-HP9HukzUjBWJd5xMcXGCIi_-_u4x47ZVr_78nvysUiIXeCjNz4o2w2HYysYLjK4y6je4zkEWyUZCR02h-d0vXLx3RAR0Kd5BybQkA5_qZp5OEJ2ryB6qiqONGfW6N0LvLFfpA" />
+                    </div>
+                    <div class="p-6">
+                        <span
+                            class="text-xs font-bold text-primary uppercase tracking-wider mb-2 block">Actualización</span>
+                        <h3
+                            class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary transition-colors">
+                            Nuevas tiendas integradas</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">Hemos añadido 5 nuevas tiendas
+                            locales para que encuentres siempre el mejor precio disponible en Chile.</p>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div
+                    class="group bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div class="aspect-video overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="Torneo de la comunidad"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuABCjY0xTruUixO1U35UvLgYLwY8TibdFPXaNe6EyhHqKITO4AOFv7g4eJIImSvylLexbBpfr2JA4X584Ie1VHdy5skCxMgqaQleqv8lzQvlUlru8amIVrlABfYT7em3vZdT8wCCQGThPFvJTgeIWtsK1VlzxlKnxx1nCdfEsWsr-s42HACpqtWjxEnaqS7lnu5QM74Nf23Mq2iVaqUr3icCosINweyJeLb7Jht2X19EoW963I75K_U7cvo2BsRpiD6NEbp0UAeng" />
+                    </div>
+                    <div class="p-6">
+                        <span
+                            class="text-xs font-bold text-primary uppercase tracking-wider mb-2 block">Comunidad</span>
+                        <h3
+                            class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary transition-colors">
+                            Torneo de la comunidad</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">Participa en nuestro próximo
+                            torneo de eSports y gana increíbles premios y Gift Cards.</p>
+                    </div>
+                </div>
+                <!-- Card 3 -->
+                <div
+                    class="group bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col">
+                    <div class="aspect-video overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+                        <img alt="Próximos lanzamientos"
+                            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnN72MXeFcsHKFpWwKOMbgr4s0oNzH6TM1KyUEtptW0aG4E8-ng5LsIHEmM2rqZVvA1rhTUorolZmGpu8cgE_aQdv4TlnMktrZstjrJ51lxZIJEtJK5i5vyurXOKc8y9GhceYV7IYOzIlXKJJHM84qxBvGSSWXUd7RqLRPDHo_c7751sf5XNPF1ck129bwzyp8Hqd8Tj-dUHw7t9LmzPald5XTQ_G5VMEVG5q9tbrvPzvlvIVWYdWQAt8-mpcnhh8T6iibJFdWHw" />
+                    </div>
+                    <div class="p-6">
+                        <span class="text-xs font-bold text-primary uppercase tracking-wider mb-2 block">Gaming</span>
+                        <h3
+                            class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary transition-colors">
+                            Lo más esperado de 2024</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">Revisamos los títulos que
+                            llegarán este año y cómo prepararte para conseguirlos al mejor precio.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <footer class="bg-white dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="col-span-1 md:col-span-1">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div
+                            class="h-8 w-8 flex items-center justify-center bg-primary rounded-full text-white font-bold text-sm overflow-hidden">
+                            <img alt="Logo" class="object-cover w-full h-full scale-110"
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeDumT9F8B8U9aInGUBuKWe6LCsLYJTNQSJVoE9QBhLr1vJdDagATvOqeI0n1S_5ZnnzW3VbjLJ19eXoy00jNIiB8upbvBFz9_zKak1NMYrvPu1kvAGCf7Wypqnu2InSnlNQ3TO_2Q_sjaHqAq0Xz2VRKNJgibg5pjT7NnfOXfdIC_4UGE_JyDjPRyaaZmGKA443XQsO5fbJkdeXQhd8syNfJi_bXRCzicxqofMKWpK2EFlpDBAvkfk1WcwQDNiBXH_EZAHFBG9w" />
+                        </div>
+                        <span class="font-bold text-xl text-gray-900 dark:text-white">Play<span
+                                class="text-primary">in</span>One</span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        La forma más inteligente de comprar videojuegos en Chile. Rastreamos precios para que tú solo te
+                        preocupes de jugar.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Categorías</h3>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a class="hover:text-primary transition" href="#">PlayStation 5</a></li>
+                        <li><a class="hover:text-primary transition" href="#">Nintendo Switch</a></li>
+                        <li><a class="hover:text-primary transition" href="#">Xbox Series X</a></li>
+                        <li><a class="hover:text-primary transition" href="#">Juegos PC</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Empresa</h3>
+                    <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+                        <li><a class="hover:text-primary transition" href="#">Sobre Nosotros</a></li>
+                        <li><a class="hover:text-primary transition" href="#">Contacto</a></li>
+                        <li><a class="hover:text-primary transition" href="#">Blog</a></li>
+                        <li><a class="hover:text-primary transition" href="#">Términos de Servicio</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white mb-4">Suscríbete</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Recibe las mejores ofertas en tu correo.
+                    </p>
+                    <div class="flex">
+                        <input
+                            class="w-full bg-gray-100 dark:bg-gray-800 border-none rounded-l-lg text-sm px-4 py-2 focus:ring-1 focus:ring-primary text-gray-900 dark:text-white"
+                            placeholder="Tu email" type="email" />
+                        <button
+                            class="bg-primary hover:bg-primary-dark text-white px-4 rounded-r-lg transition">OK</button>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
+                <p>© 2023 Play in One Chile. Todos los derechos reservados.</p>
+                <div class="flex gap-4">
+                    <span class="hover:text-primary cursor-pointer transition"><i
+                            class="material-icons-round text-lg">facebook</i></span>
+                    <span class="hover:text-primary cursor-pointer transition"><i
+                            class="material-icons-round text-lg">videocam</i></span>
+                    <span class="hover:text-primary cursor-pointer transition"><i
+                            class="material-icons-round text-lg">alternate_email</i></span>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
