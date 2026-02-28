@@ -38,9 +38,11 @@ export interface Product {
 export interface Game {
     id: number;
     name: string;
+    description: string | null;
     developer: string;
     release_date: string | null;
     platforms: Platform[];
+    genres?: { id: number; name: string; slug: string }[];
     image: string | null;
     rating: string | null;
     products?: Product[];

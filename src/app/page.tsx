@@ -1,5 +1,8 @@
 'use client';
 
+import { FaPlaystation, FaXbox } from 'react-icons/fa';
+import { BsNintendoSwitch } from 'react-icons/bs';
+
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -43,10 +46,10 @@ const STORES = [
 
 /* ── Plataformas ── */
 const PLATFORMS = [
-    { label: 'PlayStation', slug: 'ps5', icon: IconDeviceGamepad, color: '#2563EB' },
-    { label: 'Xbox', slug: 'xbox', icon: IconDeviceGamepad2, color: '#16A34A' },
-    { label: 'Nintendo', slug: 'switch', icon: IconDeviceNintendo, color: '#DC2626' },
-    { label: 'PC / Steam', slug: 'pc', icon: IconDeviceDesktop, color: '#6B7280' },
+    { label: 'PlayStation', slug: 'ps5', icon: FaPlaystation, color: '#2563EB' },
+    { label: 'Xbox', slug: 'xbox', icon: FaXbox, color: '#16A34A' },
+    { label: 'Nintendo', slug: 'switch', icon: BsNintendoSwitch, color: '#DC2626' },
+    /*     { label: 'PC / Steam', slug: 'pc', icon: IconDeviceDesktop, color: '#6B7280' }, */
 ];
 
 export default function HomePage() {
@@ -287,7 +290,7 @@ export default function HomePage() {
                         Explorar por Plataforma
                     </Title>
 
-                    <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+                    <SimpleGrid cols={{ base: 2, md: 3 }} spacing="md">
                         {PLATFORMS.map((p) => {
                             const Icon = p.icon;
                             return (

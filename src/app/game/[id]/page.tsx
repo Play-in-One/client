@@ -49,6 +49,9 @@ import {
     AreaChart,
 } from 'recharts';
 
+import { FaPlaystation, FaXbox } from 'react-icons/fa';
+import { BsNintendoSwitch } from 'react-icons/bs';
+
 import { getGame } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
@@ -132,11 +135,11 @@ export default function GameDetailPage() {
     };
 
     const platformIconMap: Record<string, any> = {
-        ps5: IconDeviceGamepad,
-        ps4: IconDeviceGamepad,
-        xbox: IconDeviceGamepad2,
-        switch: IconDeviceNintendo,
-        switch2: IconDeviceNintendo,
+        ps5: FaPlaystation,
+        ps4: FaPlaystation,
+        xbox: FaXbox,
+        switch: BsNintendoSwitch,
+        switch2: BsNintendoSwitch,
         pc: IconDeviceDesktop,
     };
 
@@ -237,6 +240,17 @@ export default function GameDetailPage() {
                                 )}
                             </Stack>
                         </Card>
+
+                        {/* Description */}
+                        {game.description && (
+                            <Card withBorder radius="lg" p="lg">
+                                <Text fw={700} mb="xs">Acerca del juego</Text>
+                                <Text fz="sm" c="dimmed" lh={1.6}>
+                                    {game.description}
+                                </Text>
+                            </Card>
+                        )}
+
                     </Stack>
                 </Box>
 
@@ -246,9 +260,13 @@ export default function GameDetailPage() {
                         {/* Title + platform tabs */}
                         <Box>
                             <Group gap="sm" mb={6}>
-                                <Badge variant="light" color="gray" size="sm">
-                                    Acción / Aventura
-                                </Badge>
+                                {game.genres && game.genres.length > 0 && (
+                                    game.genres.map((genre) => (
+                                        <Badge key={genre.id} variant="light" color="gray" size="sm">
+                                            {genre.name}
+                                        </Badge>
+                                    ))
+                                )}
                                 {game.rating && (
                                     <Group gap={4}>
                                         <IconStar size={14} color="#FACC15" fill="#FACC15" />
@@ -283,7 +301,7 @@ export default function GameDetailPage() {
                                                     radius="sm"
                                                     variant={selectedPlatform === pl.name ? 'filled' : 'subtle'}
                                                     color={selectedPlatform === pl.name ? pColor : 'gray'}
-                                                    leftSection={<Icon size={20} />}
+                                                    leftSection={<Icon size={18} />}
                                                     onClick={() => setSelectedPlatform(pl.name)}
                                                     style={{ transition: 'all 0.2s' }}
                                                 >
