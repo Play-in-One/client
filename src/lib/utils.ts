@@ -12,22 +12,24 @@ export function discountPercent(original: number | string, current: number | str
     return Math.round(((orig - cur) / orig) * 100);
 }
 
-/** Color map for platform badges */
-export const platformColors: Record<string, string> = {
-    ps5: '#2563EB',
-    ps4: '#1E40AF',
-    xbox: '#16A34A',
-    switch: '#DC2626',
-    switch2: '#EF4444',
-    pc: '#6B7280',
+/**
+ * ── Colores oficiales por consola ──
+ * Fuente única de verdad para todos los contextos.
+ *   • mantine  → para props `color` de componentes Mantine (Badge, Button…)
+ *   • hex      → para estilos inline / CSS custom que requieran hex
+ *   • cssVar   → variable CSS Mantine resuelta (ej.: cards de la home)
+ */
+export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; cssVar: string }> = {
+    ps3: { mantine: 'blue.9', hex: '#68676e', cssVar: 'var(--mantine-color-blue-9)' },
+    ps4: { mantine: 'indigo', hex: '#1E40AF', cssVar: 'var(--mantine-color-indigo-filled)' },
+    ps5: { mantine: 'blue', hex: '#2563EB', cssVar: 'var(--mantine-color-blue-filled)' },
+    xbox: { mantine: 'green', hex: '#16A34A', cssVar: 'var(--mantine-color-green-filled)' },
+    switch: { mantine: 'red', hex: '#DC2626', cssVar: 'var(--mantine-color-red-filled)' },
+    switch2: { mantine: 'red', hex: '#EF4444', cssVar: 'var(--mantine-color-red-filled)' },
+    pc: { mantine: 'gray', hex: '#6B7280', cssVar: 'var(--mantine-color-gray-filled)' },
 };
 
-/** Platform icon names (Material Icons Round) */
-export const platformIcons: Record<string, string> = {
-    ps5: 'gamepad',
-    ps4: 'gamepad',
-    xbox: 'sports_esports',
-    switch: 'videogame_asset',
-    switch2: 'videogame_asset',
-    pc: 'desktop_windows',
-};
+/** Shorthand: solo HEX (backward-compatible) */
+export const platformColors: Record<string, string> = Object.fromEntries(
+    Object.entries(PLATFORM_COLORS).map(([k, v]) => [k, v.hex]),
+);

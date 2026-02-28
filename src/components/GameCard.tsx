@@ -7,13 +7,17 @@ import type { Game, Product } from '@/lib/types';
 
 interface Props {
     game: Game;
-    /** Optional best product to show price info */
+    /** Optional best product to show price + seller info */
     bestProduct?: Product | null;
 }
 
 export default function GameCard({ game, bestProduct }: Props) {
     const imgSrc = game.image || '/placeholder-game.png';
-    const hasDiscount = bestProduct && bestProduct.current_price;
+
+    /* Resolve price: prefer min_price from annotation, fall back to product */
+    const price = game.min_price ?? bestProduct?.current_price ?? null;
+    const sellerName = bestProduct?.seller?.name ?? null;
+    const hasPrice = price !== null;
 
     return (
         <Anchor href={`/game/${game.id}`} underline="never" style={{ textDecoration: 'none' }}>
@@ -55,7 +59,7 @@ export default function GameCard({ game, bestProduct }: Props) {
                     />
 
                     {/* Discount badge */}
-                    {hasDiscount && (
+                    {hasPrice && (
                         <Badge
                             color="green"
                             variant="filled"
@@ -98,7 +102,7 @@ export default function GameCard({ game, bestProduct }: Props) {
                     </Text>
 
                     {/* Price row */}
-                    {bestProduct?.current_price && (
+                    {hasPrice && (
                         <Box
                             mt="auto"
                             pt="sm"
@@ -106,13 +110,19 @@ export default function GameCard({ game, bestProduct }: Props) {
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    <Text fz="xl" fw={800} c="var(--mantine-color-primaryRed-5)">
-                                        {formatCLP(bestProduct.current_price)}
+                                    <Text fz="26" fw={800} c="var(--mantine-color-primaryRed-5)">
+                                        {formatCLP(price)}
                                     </Text>
                                 </Box>
                                 <Box ta="right">
-                                    <Text fz={10} c="dimmed">Vendido por</Text>
-                                    <Text fz="xs" fw={700}>{bestProduct.seller.name}</Text>
+                                    {sellerName ? (
+                                        <>
+                                            <Text fz={10} c="dimmed">Vendido por</Text>
+                                            <Text fz="xs" fw={700}>{sellerName}</Text>
+                                        </>
+                                    ) : (
+                                        <Text fz={10} c="dimmed">Precio más bajo</Text>
+                                    )}
                                 </Box>
                             </Group>
                         </Box>

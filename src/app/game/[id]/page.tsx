@@ -54,7 +54,7 @@ import { BsNintendoSwitch } from 'react-icons/bs';
 
 import { getGame } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
-import { formatCLP } from '@/lib/utils';
+import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import PlatformBadge from '@/components/PlatformBadge';
 
 export default function GameDetailPage() {
@@ -63,6 +63,7 @@ export default function GameDetailPage() {
     const [loading, setLoading] = useState(true);
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
     const [conditionFilter, setConditionFilter] = useState<string | null>(null);
+    const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
     const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === 'dark';
 
@@ -137,20 +138,14 @@ export default function GameDetailPage() {
     const platformIconMap: Record<string, any> = {
         ps5: FaPlaystation,
         ps4: FaPlaystation,
+        ps3: FaPlaystation,
         xbox: FaXbox,
         switch: BsNintendoSwitch,
         switch2: BsNintendoSwitch,
         pc: IconDeviceDesktop,
     };
 
-    const platformColorMap: Record<string, string> = {
-        ps5: 'blue',
-        ps4: 'indigo',
-        xbox: 'green',
-        switch: 'red',
-        switch2: 'red',
-        pc: 'gray',
-    };
+
 
     return (
         <Container size="lg" py="xl">
@@ -164,7 +159,7 @@ export default function GameDetailPage() {
                     <Group gap={4}><IconHome size={14} /> Inicio</Group>
                 </Anchor>
                 {game.platforms[0] && (
-                    <Anchor href={`/platform/${game.platforms[0].slug}`} c="dimmed" underline="never">
+                    <Anchor href={`/search?platform=${game.platforms[0].slug}`} c="dimmed" underline="never">
                         {game.platforms[0].display_name}
                     </Anchor>
                 )}
@@ -186,28 +181,37 @@ export default function GameDetailPage() {
                                 position: 'relative',
                             }}
                         >
+                            {/* Game image (base layer) */}
                             <img
                                 src={game.image || '/placeholder-game.png'}
                                 alt={game.name}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    transition: 'opacity 0.4s ease',
+                                    opacity: hoveredProductImage ? 0.3 : 1,
+                                }}
                             />
-                            {game.platforms[0] && (
-                                <Badge
-                                    pos="absolute"
-                                    top={12}
-                                    right={12}
-                                    size="lg"
-                                    variant="filled"
-                                    color="dark"
-                                    radius="xl"
+
+                            {/* Product image (hover overlay) */}
+                            {hoveredProductImage && (
+                                <img
+                                    src={hoveredProductImage}
+                                    alt="Producto"
                                     style={{
-                                        backdropFilter: 'blur(8px)',
-                                        background: 'rgba(0,0,0,0.7)',
-                                        border: '1px solid rgba(255,255,255,0.2)',
+                                        position: 'absolute',
+                                        inset: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        transition: 'opacity 0.4s ease',
+                                        opacity: 1,
+                                        zIndex: 1,
                                     }}
-                                >
-                                    {game.platforms[0].display_name}
-                                </Badge>
+                                />
                             )}
                         </Box>
 
@@ -267,12 +271,6 @@ export default function GameDetailPage() {
                                         </Badge>
                                     ))
                                 )}
-                                {game.rating && (
-                                    <Group gap={4}>
-                                        <IconStar size={14} color="#FACC15" fill="#FACC15" />
-                                        <Text fz="xs" fw={700}>{game.rating}</Text>
-                                    </Group>
-                                )}
                             </Group>
 
                             <Title order={1} fz={{ base: 28, md: 36 }} fw={800} mb="sm">
@@ -293,7 +291,7 @@ export default function GameDetailPage() {
                                     >
                                         {game.platforms.map((pl) => {
                                             const Icon = platformIconMap[pl.name] || IconDeviceGamepad;
-                                            const pColor = platformColorMap[pl.name] || 'gray';
+                                            const pColor = PLATFORM_COLORS[pl.name]?.mantine || 'gray';
                                             return (
                                                 <Button
                                                     key={pl.id}
@@ -460,7 +458,9 @@ export default function GameDetailPage() {
                                             sorted.map((p, idx) => (
                                                 <Table.Tr
                                                     key={p.id}
-                                                    style={{ transition: 'background 0.15s' }}
+                                                    style={{ transition: 'background 0.15s', cursor: 'pointer' }}
+                                                    onMouseEnter={() => p.image ? setHoveredProductImage(p.image) : undefined}
+                                                    onMouseLeave={() => setHoveredProductImage(null)}
                                                 >
                                                     <Table.Td>
                                                         <Group gap="sm" wrap="nowrap">
@@ -477,9 +477,23 @@ export default function GameDetailPage() {
                                                                     fontSize: 12,
                                                                     color: sellerColors[idx % sellerColors.length],
                                                                     flexShrink: 0,
+                                                                    overflow: 'hidden',
                                                                 }}
                                                             >
-                                                                {p.seller.name.slice(0, 2).toUpperCase()}
+                                                                {p.seller.logo ? (
+                                                                    <img
+                                                                        src={p.seller.logo}
+                                                                        alt={p.seller.name}
+                                                                        style={{
+                                                                            width: '100%',
+                                                                            height: '100%',
+                                                                            objectFit: 'contain',
+                                                                            padding: 4,
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    p.seller.name.slice(0, 2).toUpperCase()
+                                                                )}
                                                             </Box>
                                                             <Box>
                                                                 <Text fw={700} fz="sm">{p.seller.name}</Text>

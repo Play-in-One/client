@@ -13,6 +13,7 @@ import {
     Burger,
     Drawer,
     Stack,
+    Button,
     useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -21,15 +22,16 @@ import {
     IconMoon,
     IconSun,
     IconUserCircle,
+    IconFlame,
 } from '@tabler/icons-react';
+import { FaPlaystation, FaXbox } from 'react-icons/fa';
+import { BsNintendoSwitch } from 'react-icons/bs';
 import { useApp } from '@/context/AppContext';
 
 const NAV_LINKS = [
-    { label: 'PS5', href: '/platform/ps5' },
-    { label: 'Switch', href: '/platform/switch' },
-    { label: 'Xbox', href: '/platform/xbox' },
-    { label: 'PC', href: '/platform/pc' },
-    { label: 'Ofertas', href: '/search?ordering=-current_price', accent: true },
+    { label: 'PS5', href: '/search?platform=ps5', icon: FaPlaystation, color: '#2563EB' },
+    { label: 'Switch', href: '/search?platform=switch', icon: BsNintendoSwitch, color: '#DC2626' },
+    { label: 'Xbox', href: '/search?platform=xbox', icon: FaXbox, color: '#16A34A' },
 ];
 
 export default function Navbar() {
@@ -84,19 +86,48 @@ export default function Navbar() {
 
                 {/* Desktop nav links */}
                 <Group gap="lg" visibleFrom="md">
-                    {NAV_LINKS.map((l) => (
-                        <Anchor
-                            key={l.label}
-                            href={l.href}
-                            underline="never"
-                            fw={l.accent ? 600 : 500}
-                            c={l.accent ? 'var(--mantine-color-primaryRed-5)' : undefined}
-                            fz="sm"
-                            style={{ transition: 'color 0.15s' }}
-                        >
-                            {l.label}
-                        </Anchor>
-                    ))}
+                    {NAV_LINKS.map((l) => {
+                        const Icon = l.icon;
+                        return (
+                            <Anchor
+                                key={l.label}
+                                href={l.href}
+                                underline="never"
+                                fw={600}
+                                fz="sm"
+                                c="dimmed"
+                                style={{ transition: 'color 0.15s, transform 0.15s' }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.color = l.color;
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.color = 'var(--mantine-color-dimmed)';
+                                    e.currentTarget.style.transform = '';
+                                }}
+                            >
+                                <Group gap={6}>
+                                    <Icon size={18} />
+                                    {l.label}
+                                </Group>
+                            </Anchor>
+                        );
+                    })}
+
+                    <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx="xs" />
+
+                    <Button
+                        component="a"
+                        href="/search?ordering=-current_price"
+                        variant="gradient"
+                        gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
+                        radius="xl"
+                        size="sm"
+                        leftSection={<IconFlame size={16} />}
+                        style={{ boxShadow: '0 4px 14px rgba(230,57,70,0.25)' }}
+                    >
+                        Ofertas
+                    </Button>
                 </Group>
 
                 {/* Search + actions */}
@@ -136,19 +167,41 @@ export default function Navbar() {
             {/* Mobile drawer */}
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
-                    {NAV_LINKS.map((l) => (
-                        <Anchor
-                            key={l.label}
-                            href={l.href}
-                            onClick={close}
-                            fw={l.accent ? 600 : 500}
-                            c={l.accent ? 'var(--mantine-color-primaryRed-5)' : undefined}
-                            fz="lg"
-                            underline="never"
-                        >
-                            {l.label}
-                        </Anchor>
-                    ))}
+                    {NAV_LINKS.map((l) => {
+                        const Icon = l.icon;
+                        return (
+                            <Anchor
+                                key={l.label}
+                                href={l.href}
+                                onClick={close}
+                                fw={600}
+                                fz="lg"
+                                c="inherit"
+                                underline="never"
+                            >
+                                <Group gap={12}>
+                                    <Icon size={24} color={l.color} />
+                                    {l.label}
+                                </Group>
+                            </Anchor>
+                        );
+                    })}
+
+                    <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
+
+                    <Button
+                        component="a"
+                        href="/search?ordering=-current_price"
+                        onClick={close}
+                        variant="gradient"
+                        gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
+                        radius="xl"
+                        size="md"
+                        leftSection={<IconFlame size={20} />}
+                        style={{ boxShadow: '0 4px 14px rgba(230,57,70,0.25)' }}
+                    >
+                        Ver Ofertas
+                    </Button>
                 </Stack>
             </Drawer>
         </Box>

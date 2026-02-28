@@ -30,38 +30,44 @@ import {
     IconDeviceDesktop,
     IconDeviceNintendo,
 } from '@tabler/icons-react';
-import { getGames } from '@/lib/api';
-import type { Game } from '@/lib/types';
+import { getGames, getPosts } from '@/lib/api';
+import type { Game, Post } from '@/lib/types';
+import { PLATFORM_COLORS } from '@/lib/utils';
 import GameCard from '@/components/GameCard';
 
-/* ── Tiendas monitoreadas ── */
-const STORES = [
-    { name: 'Falabella', prefix: 'F', color: '#16A34A' },
-    { name: 'WePlay', prefix: null, color: '#2563EB' },
-    { name: 'Microplay', prefix: 'M', color: '#DC2626' },
-    { name: 'TodoJuegos', prefix: null, color: '#F97316' },
-    { name: 'Zmart', prefix: 'Z', color: '#7C3AED' },
-    { name: 'Paris', prefix: null, color: '#6B7280' },
+/* ── Sagas Favoritas ── */
+const SAGAS = [
+    { name: 'Pokémon', query: 'pokemon', logo: '/logos/pokemon.svg' },
+    { name: 'Minecraft', query: 'minecraft', logo: '/logos/minecraft.svg' },
+    { name: 'Grand Theft Auto', query: 'gta', logo: '/logos/gta.svg' },
+    { name: 'Resident Evil', query: 'resident evil', logo: '/logos/resident-evil.svg' },
+    { name: 'The Legend of Zelda', query: 'zelda', logo: '/logos/zelda.svg' },
 ];
 
 /* ── Plataformas ── */
 const PLATFORMS = [
-    { label: 'PlayStation', slug: 'ps5', icon: FaPlaystation, color: '#2563EB' },
-    { label: 'Xbox', slug: 'xbox', icon: FaXbox, color: '#16A34A' },
-    { label: 'Nintendo', slug: 'switch', icon: BsNintendoSwitch, color: '#DC2626' },
-    /*     { label: 'PC / Steam', slug: 'pc', icon: IconDeviceDesktop, color: '#6B7280' }, */
+    { label: 'PlayStation', slug: 'ps3', icon: FaPlaystation, color: PLATFORM_COLORS.ps3.cssVar },
+    { label: 'PlayStation', slug: 'ps4', icon: FaPlaystation, color: PLATFORM_COLORS.ps4.cssVar },
+    { label: 'PlayStation', slug: 'ps5', icon: FaPlaystation, color: PLATFORM_COLORS.ps5.cssVar },
+    { label: 'Xbox', slug: 'xbox', icon: FaXbox, color: PLATFORM_COLORS.xbox.cssVar },
+    { label: 'Nintendo', slug: 'switch', icon: BsNintendoSwitch, color: PLATFORM_COLORS.switch.cssVar },
+    /*     { label: 'PC / Steam', slug: 'pc', icon: IconDeviceDesktop, color: PLATFORM_COLORS.pc.cssVar }, */
 ];
 
 export default function HomePage() {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [games, setGames] = useState<Game[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
     const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === 'dark';
 
     useEffect(() => {
         getGames({ page: 1 })
             .then((res) => setGames(res.results))
+            .catch(() => { });
+        getPosts({ page: 1, ordering: '-published_date' })
+            .then((res) => setPosts(res.results))
             .catch(() => { });
     }, []);
 
@@ -185,49 +191,50 @@ export default function HomePage() {
                 </Container>
             </Box>
 
-            {/* ══════ TIENDAS BANNER ══════ */}
+            {/* ══════ SAGAS BANNER ══════ */}
             <Box
-                py="lg"
+                py="xl"
                 style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)' }}
                 bg={isDark ? 'rgba(0,0,0,0.2)' : 'var(--mantine-color-gray-0)'}
             >
                 <Container size="lg">
-                    <Text fz="xs" fw={600} tt="uppercase" ta="center" c="dimmed" mb="md" style={{ letterSpacing: 2 }}>
-                        Monitoreamos tus tiendas favoritas
+                    <Text fz="sm" fw={700} tt="uppercase" ta="center" c="dimmed" mb="xl" style={{ letterSpacing: 3 }}>
+                        Explora tus sagas favoritas
                     </Text>
-                    <Group justify="center" gap={{ base: 'lg', md: 'xl' }} style={{ opacity: 0.6, filter: 'grayscale(1)' }}>
-                        {STORES.map((s) => (
-                            <Group key={s.name} gap={6}>
-                                {s.prefix && (
-                                    <Box
-                                        w={28}
-                                        h={28}
-                                        style={{
-                                            borderRadius: 4,
-                                            background: s.color,
-                                            color: '#fff',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                        }}
-                                    >
-                                        {s.prefix}
-                                    </Box>
-                                )}
-                                <Text fw={700} fz="lg">
-                                    {s.prefix ? s.name : (
-                                        <>
-                                            {s.name === 'TodoJuegos' ? (
-                                                <>Todo<Text span c={s.color}>Juegos</Text></>
-                                            ) : s.name === 'WePlay' ? (
-                                                <Text span c={s.color}>{s.name}</Text>
-                                            ) : s.name}
-                                        </>
-                                    )}
-                                </Text>
-                            </Group>
+                    <Group justify="center" gap={60} align="center" mt="xl">
+                        {SAGAS.map((s) => (
+                            <Anchor
+                                key={s.name}
+                                href={`/search?q=${encodeURIComponent(s.query)}`}
+                                style={{
+                                    display: 'block',
+                                    transition: 'all 0.3s ease',
+                                    filter: 'grayscale(1)',
+                                    opacity: 0.6,
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1.1)';
+                                    e.currentTarget.style.filter = 'grayscale(0)';
+                                    e.currentTarget.style.opacity = '1';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.filter = 'grayscale(1)';
+                                    e.currentTarget.style.opacity = '0.6';
+                                }}
+                            >
+                                <img
+                                    src={s.logo}
+                                    alt={`Logo de ${s.name}`}
+                                    style={{
+                                        height: 60,
+                                        width: 'auto',
+                                        maxWidth: 160,
+                                        objectFit: 'contain',
+                                        display: 'block'
+                                    }}
+                                />
+                            </Anchor>
                         ))}
                     </Group>
                 </Container>
@@ -294,7 +301,7 @@ export default function HomePage() {
                         {PLATFORMS.map((p) => {
                             const Icon = p.icon;
                             return (
-                                <Anchor key={p.slug} href={`/platform/${p.slug}`} underline="never">
+                                <Anchor key={p.slug} href={`/search?platform=${p.slug}`} underline="never">
                                     <Card
                                         withBorder
                                         shadow="sm"
@@ -304,6 +311,7 @@ export default function HomePage() {
                                             textAlign: 'center',
                                             transition: 'transform 0.2s, box-shadow 0.2s',
                                             cursor: 'pointer',
+                                            backgroundColor: p.color,
                                         }}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'translateY(-4px)';
@@ -315,8 +323,8 @@ export default function HomePage() {
                                         }}
                                     >
                                         <Stack align="center" gap="xs">
-                                            <Icon size={40} color={p.color} />
-                                            <Text fw={700}>{p.label}</Text>
+                                            <Icon size={40} color={'white'} />
+                                            {/* <Text fw={700}>{p.label}</Text> */}
                                         </Stack>
                                     </Card>
                                 </Anchor>
@@ -339,7 +347,7 @@ export default function HomePage() {
                             </Text>
                         </Box>
                         <Anchor
-                            href="#"
+                            href="/blog"
                             c="var(--mantine-color-primaryRed-5)"
                             fw={600}
                             fz="sm"
@@ -350,30 +358,16 @@ export default function HomePage() {
                     </Group>
 
                     <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-                        {[
-                            {
-                                cat: 'Actualización',
-                                title: 'Nuevas tiendas integradas',
-                                desc: 'Hemos añadido 5 nuevas tiendas locales para que encuentres siempre el mejor precio disponible en Chile.',
-                            },
-                            {
-                                cat: 'Comunidad',
-                                title: 'Torneo de la comunidad',
-                                desc: 'Participa en nuestro próximo torneo de eSports y gana increíbles premios y Gift Cards.',
-                            },
-                            {
-                                cat: 'Gaming',
-                                title: 'Lo más esperado de 2026',
-                                desc: 'Revisamos los títulos que llegarán este año y cómo prepararte para conseguirlos al mejor precio.',
-                            },
-                        ].map((n) => (
+                        {posts.slice(0, 3).map((n) => (
                             <Card
-                                key={n.title}
+                                key={n.id}
+                                component="a"
+                                href={`/blog/${n.id}`}
                                 withBorder
                                 shadow="sm"
                                 radius="lg"
                                 p={0}
-                                style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer' }}
+                                style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
                                 onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
                                 onMouseLeave={(e) => { e.currentTarget.style.boxShadow = ''; }}
                             >
@@ -385,16 +379,22 @@ export default function HomePage() {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        position: 'relative'
                                     }}
                                 >
-                                    <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
+                                    {n.image ? (
+                                        <img src={n.image} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
+                                    )}
                                 </Box>
                                 <Box p="lg">
                                     <Text fz="xs" fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={6} style={{ letterSpacing: 1 }}>
-                                        {n.cat}
+                                        {n.category}
                                     </Text>
-                                    <Text fw={700} fz="lg" mb={6}>{n.title}</Text>
-                                    <Text fz="sm" c="dimmed" lineClamp={2}>{n.desc}</Text>
+                                    <Text fw={700} fz="lg" mb={6} lineClamp={2}>{n.title}</Text>
+                                    <Text fz="sm" c="dimmed" lineClamp={3}>{n.description}</Text>
                                 </Box>
                             </Card>
                         ))}

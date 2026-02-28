@@ -35,6 +35,12 @@ export interface Product {
     prices?: PriceHistory[];
 }
 
+export interface Genre {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 export interface Game {
     id: number;
     name: string;
@@ -42,10 +48,20 @@ export interface Game {
     developer: string;
     release_date: string | null;
     platforms: Platform[];
-    genres?: { id: number; name: string; slug: string }[];
+    genres?: Genre[];
     image: string | null;
     rating: string | null;
+    min_price: string | null;
     products?: Product[];
+}
+
+export interface Post {
+    id: number;
+    title: string;
+    category: 'news' | 'update' | 'deals' | 'comunity' | 'gaming';
+    description: string;
+    image: string | null;
+    published_date: string;
 }
 
 /* ── Paginated response wrapper ── */

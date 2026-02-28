@@ -1,4 +1,4 @@
-import type { Game, Product, Platform, PaginatedResponse } from './types';
+import type { Game, Genre, Product, Seller, Platform, PaginatedResponse, Post } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
 
@@ -12,16 +12,28 @@ async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
     return res.json() as Promise<T>;
 }
 
-function qs(params: Record<string, string | number | undefined>): string {
-    const entries = Object.entries(params).filter(([, v]) => v !== undefined);
-    if (!entries.length) return '';
-    return '?' + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString();
+function qs(params: Record<string, string | number | number[] | undefined>): string {
+    const usp = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+        if (v === undefined) continue;
+        if (Array.isArray(v)) {
+            v.forEach((val) => usp.append(k, String(val)));
+        } else {
+            usp.set(k, String(v));
+        }
+    }
+    const s = usp.toString();
+    return s ? `?${s}` : '';
 }
 
 /* ── Games ── */
 export async function getGames(params?: {
     search?: string;
-    platforms?: number;
+    platforms?: number[];
+    genres?: number;
+    seller?: number;
+    price_min?: number;
+    price_max?: number;
     ordering?: string;
     page?: number;
 }) {
@@ -57,4 +69,28 @@ export async function getProductPrices(productId: number | string) {
 /* ── Platforms ── */
 export async function getPlatforms() {
     return fetcher<PaginatedResponse<Platform>>('/platforms/');
+}
+
+/* ── Genres ── */
+export async function getGenres() {
+    return fetcher<PaginatedResponse<Genre>>('/genres/');
+}
+
+/* ── Sellers ── */
+export async function getSellers() {
+    return fetcher<PaginatedResponse<Seller>>('/sellers/');
+}
+
+/* ── Posts ── */
+export async function getPosts(params?: {
+    category?: string;
+    search?: string;
+    ordering?: string;
+    page?: number;
+}) {
+    return fetcher<PaginatedResponse<Post>>(`/posts/${qs(params ?? {})}`);
+}
+
+export async function getPost(id: number | string) {
+    return fetcher<Post>(`/posts/${id}/`);
 }

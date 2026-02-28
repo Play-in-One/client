@@ -86,19 +86,19 @@ export default function Footer() {
                     {/* Categorías */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Categorías</Text>
-                        <Anchor href="/platform/ps5" fz="sm" c="dimmed" underline="never">PlayStation 5</Anchor>
-                        <Anchor href="/platform/switch" fz="sm" c="dimmed" underline="never">Nintendo Switch</Anchor>
-                        <Anchor href="/platform/xbox" fz="sm" c="dimmed" underline="never">Xbox Series X</Anchor>
-                        <Anchor href="/platform/pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
+                        <Anchor href="/search?platform=ps5" fz="sm" c="dimmed" underline="never">PlayStation 5</Anchor>
+                        <Anchor href="/search?platform=switch" fz="sm" c="dimmed" underline="never">Nintendo Switch</Anchor>
+                        <Anchor href="/search?platform=xbox" fz="sm" c="dimmed" underline="never">Xbox Series X</Anchor>
+                        <Anchor href="/search?platform=pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
                     </Stack>
 
                     {/* Empresa */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Empresa</Text>
-                        <Anchor href="#" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
-                        <Anchor href="#" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
-                        <Anchor href="#" fz="sm" c="dimmed" underline="never">Blog</Anchor>
-                        <Anchor href="#" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
+                        <Anchor href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
+                        <Anchor href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
+                        <Anchor href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
+                        <Anchor href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
                     </Stack>
 
                     {/* Newsletter */}
