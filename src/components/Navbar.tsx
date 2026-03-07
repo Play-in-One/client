@@ -51,6 +51,7 @@ export default function Navbar() {
     return (
         <Box
             component="nav"
+            className="navbar-bg"
             style={{
                 position: 'sticky',
                 top: 0,
@@ -58,7 +59,6 @@ export default function Navbar() {
                 backdropFilter: 'blur(12px)',
                 borderBottom: '1px solid var(--mantine-color-default-border)',
             }}
-            bg={colorScheme === 'dark' ? 'rgba(30,30,30,0.9)' : 'rgba(255,255,255,0.9)'}
         >
             <Group
                 justify="space-between"
@@ -142,9 +142,9 @@ export default function Navbar() {
                                 radius="xl"
                                 size="sm"
                                 w={{ base: 160, sm: 260, lg: 340 }}
+                                classNames={{ input: 'search-input' }}
                                 styles={{
                                     input: {
-                                        background: colorScheme === 'dark' ? 'var(--mantine-color-dark-6)' : 'var(--mantine-color-gray-1)',
                                         border: 'none',
                                     },
                                 }}

@@ -45,3 +45,18 @@ body {
 [data-mantine-color-scheme='dark'] ::-webkit-scrollbar-thumb {
   background-color: #4b5563;
 }
+
+/* Navbar utilities for SSR/ hydration-safe dark mode */
+.navbar-bg {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+[data-mantine-color-scheme='dark'] .navbar-bg {
+  background-color: rgba(30, 30, 30, 0.9);
+}
+
+.search-input {
+  background-color: var(--mantine-color-gray-1) !important;
+}
+[data-mantine-color-scheme='dark'] .search-input {
+  background-color: var(--mantine-color-dark-6) !important;
+}
