@@ -383,7 +383,7 @@ export default function GameDetailPage() {
                                         </Text>
                                     </Box>
 
-                                    <Stack align={{ base: 'stretch', md: 'flex-end' }} justify="center" gap="sm">
+                                    <Stack align="stretch" justify="center" gap="sm">
                                         <Button
                                             component="a"
                                             href={bestProduct.url}
