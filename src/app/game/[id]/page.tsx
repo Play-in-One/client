@@ -143,6 +143,10 @@ export default function GameDetailPage() {
         switch: BsNintendoSwitch,
         switch2: BsNintendoSwitch,
         pc: IconDeviceDesktop,
+        wii: IconDeviceNintendo,
+        nds: IconDeviceGamepad2,
+        '3ds': IconDeviceGamepad2,
+        wiiu: IconDeviceNintendo,
     };
 
 

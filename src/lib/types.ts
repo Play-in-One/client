@@ -2,7 +2,7 @@
 
 export interface Platform {
     id: number;
-    name: string;        // "ps5" | "ps4" | "xbox" | "switch" | "switch2" | "pc"
+    name: string;        // "ps5" | "ps4" | "ps3" | "xbox" | "switch" | "switch2" | "pc" | "wii" | "nds" | "3ds" | "wiiu"
     slug: string;
     display_name: string; // "PS5" | "PS4" | "Xbox" | "Switch" | "Switch 2" | "PC"
 }

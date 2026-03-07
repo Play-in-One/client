@@ -27,6 +27,10 @@ export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; css
     switch: { mantine: 'red', hex: '#DC2626', cssVar: 'var(--mantine-color-red-filled)' },
     switch2: { mantine: 'red', hex: '#EF4444', cssVar: 'var(--mantine-color-red-filled)' },
     pc: { mantine: 'gray', hex: '#6B7280', cssVar: 'var(--mantine-color-gray-filled)' },
+    wii: { mantine: 'cyan', hex: '#00AEEF', cssVar: 'var(--mantine-color-cyan-filled)' },
+    nds: { mantine: 'gray.7', hex: '#4B4B4B', cssVar: 'var(--mantine-color-gray-7)' },
+    '3ds': { mantine: 'red.8', hex: '#C0001B', cssVar: 'var(--mantine-color-red-8)' },
+    wiiu: { mantine: 'teal', hex: '#009AC7', cssVar: 'var(--mantine-color-teal-filled)' },
 };
 
 /** Shorthand: solo HEX (backward-compatible) */

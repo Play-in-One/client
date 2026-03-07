@@ -2,6 +2,7 @@
 
 import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
+import type { ComponentType } from 'react';
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -30,8 +31,8 @@ import {
     IconDeviceDesktop,
     IconDeviceNintendo,
 } from '@tabler/icons-react';
-import { getGames, getPosts } from '@/lib/api';
-import type { Game, Post } from '@/lib/types';
+import { getGames, getPosts, getPlatforms } from '@/lib/api';
+import type { Game, Post, Platform } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/utils';
 import GameCard from '@/components/GameCard';
 
@@ -44,21 +45,27 @@ const SAGAS = [
     { name: 'The Legend of Zelda', query: 'zelda', logo: '/logos/zelda.svg' },
 ];
 
-/* ── Plataformas ── */
-const PLATFORMS = [
-    { label: 'PlayStation', slug: 'ps3', icon: FaPlaystation, color: PLATFORM_COLORS.ps3.cssVar },
-    { label: 'PlayStation', slug: 'ps4', icon: FaPlaystation, color: PLATFORM_COLORS.ps4.cssVar },
-    { label: 'PlayStation', slug: 'ps5', icon: FaPlaystation, color: PLATFORM_COLORS.ps5.cssVar },
-    { label: 'Xbox', slug: 'xbox', icon: FaXbox, color: PLATFORM_COLORS.xbox.cssVar },
-    { label: 'Nintendo', slug: 'switch', icon: BsNintendoSwitch, color: PLATFORM_COLORS.switch.cssVar },
-    /*     { label: 'PC / Steam', slug: 'pc', icon: IconDeviceDesktop, color: PLATFORM_COLORS.pc.cssVar }, */
-];
+/* ── Mapa de iconos por slug de plataforma ── */
+const PLATFORM_ICON_MAP: Record<string, ComponentType<{ size?: number; color?: string }>> = {
+    ps3: FaPlaystation,
+    ps4: FaPlaystation,
+    ps5: FaPlaystation,
+    xbox: FaXbox,
+    switch: BsNintendoSwitch,
+    switch2: BsNintendoSwitch,
+    pc: IconDeviceDesktop,
+    wii: IconDeviceNintendo,
+    nds: IconDeviceGamepad2,
+    '3ds': IconDeviceGamepad2,
+    wiiu: IconDeviceNintendo,
+};
 
 export default function HomePage() {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const [games, setGames] = useState<Game[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
+    const [platforms, setPlatforms] = useState<Platform[]>([]);
     const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === 'dark';
 
@@ -68,6 +75,9 @@ export default function HomePage() {
             .catch(() => { });
         getPosts({ page: 1, ordering: '-published_date' })
             .then((res) => setPosts(res.results))
+            .catch(() => { });
+        getPlatforms()
+            .then((res) => setPlatforms(res.results))
             .catch(() => { });
     }, []);
 
@@ -298,8 +308,9 @@ export default function HomePage() {
                     </Title>
 
                     <SimpleGrid cols={{ base: 2, md: 3 }} spacing="md">
-                        {PLATFORMS.map((p) => {
-                            const Icon = p.icon;
+                        {platforms.map((p) => {
+                            const Icon = PLATFORM_ICON_MAP[p.name] || IconDeviceGamepad2;
+                            const pColor = PLATFORM_COLORS[p.name]?.cssVar || 'var(--mantine-color-gray-filled)';
                             return (
                                 <Anchor key={p.slug} href={`/search?platform=${p.slug}`} underline="never">
                                     <Card
@@ -311,7 +322,7 @@ export default function HomePage() {
                                             textAlign: 'center',
                                             transition: 'transform 0.2s, box-shadow 0.2s',
                                             cursor: 'pointer',
-                                            backgroundColor: p.color,
+                                            backgroundColor: pColor,
                                         }}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'translateY(-4px)';
@@ -324,7 +335,7 @@ export default function HomePage() {
                                     >
                                         <Stack align="center" gap="xs">
                                             <Icon size={40} color={'white'} />
-                                            {/* <Text fw={700}>{p.label}</Text> */}
+                                            <Text fw={700} fz="sm" c="white">{p.display_name}</Text>
                                         </Stack>
                                     </Card>
                                 </Anchor>
