@@ -56,6 +56,7 @@ export default function GameCard({ game, bestProduct }: Props) {
                         }}
                         onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
                         onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = ''; }}
+                        onError={(e) => { e.currentTarget.src = '/placeholder-game.png'; }}
                     />
 
                     {/* Discount badge */}

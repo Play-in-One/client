@@ -8,7 +8,11 @@ async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
         ...init,
         headers: { 'Content-Type': 'application/json', ...init?.headers },
     });
-    if (!res.ok) throw new Error(`API ${res.status}: ${res.statusText}`);
+    if (!res.ok) {
+        let body = '';
+        try { body = await res.text(); } catch { /* ignore */ }
+        throw new Error(`API ${res.status}: ${res.statusText}${body ? ` — ${body}` : ''}`);
+    }
     return res.json() as Promise<T>;
 }
 
