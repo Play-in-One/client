@@ -1,6 +1,6 @@
 import type { Game, Genre, Product, Seller, Platform, PaginatedResponse, Post } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api';
 
 /* ── helpers ── */
 async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
