@@ -1,45 +1,96 @@
-# Play in One - Frontend (Client)
+# Play in One — Frontend
 
-Este es el frontend de la plataforma **Play in One**, un comparador de precios de videojuegos enfocado en el mercado chileno.
+Interfaz web del comparador de precios de videojuegos para Chile. Construida con Next.js 15 (App Router) y Mantine 7.
 
-## 🚀 Tecnologías
+## Tecnologías
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **UI Library**: [Mantine v7](https://mantine.dev/)
-- **Lenguaje**: [TypeScript](https://www.typescriptlang.org/)
-- **Estilos**: PostCSS + Mantine Theme
-- **Gráficos**: [Recharts](https://recharts.org/) (para el historial de precios)
-- **Íconos**: [Tabler Icons](https://tabler.io/icons) y Material Icons Round
+- **Next.js 15** (App Router)
+- **React 19**
+- **Mantine 7** — componentes UI + tema (`src/theme.ts`)
+- **Tabler Icons** + **react-icons** (íconos de plataformas)
+- **Recharts** — gráfico de comparativa de precios en detalle de juego
+- **Playwright** — tests E2E
+- **TypeScript 5**
 
-## 📦 Requisitos Previos
+## Requisitos
 
-- **Node.js**: v22 LTS (recomendado instalar vía [nvm](https://github.com/nvm-sh/nvm))
-- El backend en Django debe estar corriendo localmente en `http://localhost:8000` (con configuración de CORS apropiada).
+- Node.js v22 LTS
+- Backend Django corriendo en `http://localhost:8001` (ver `backend/`)
 
-## 🛠️ Instalación y Uso
+## Instalación
 
-1. Instalar las dependencias del proyecto:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+cp .env.example .env.local
+```
 
-2. Iniciar el servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
+Editar `.env.local`:
+```
+NEXT_PUBLIC_API_URL=http://localhost:8001/api
+```
 
-3. Abrir la aplicación:
-   Visita [http://localhost:3000](http://localhost:3000) en tu navegador.
+## Comandos
 
-## 📁 Estructura del Proyecto
+```bash
+npm run dev           # desarrollo en http://localhost:3001
+npm run build         # build de producción
+npm run start         # servidor de producción
+npm run lint          # ESLint
+npm run test:e2e      # tests E2E con Playwright (auto-arranca el servidor)
+npm run test:e2e:ui   # Playwright con interfaz interactiva
+```
 
-- `src/app/` - Páginas (Rutas) de Next.js (Home, Búsqueda, Detalle del juego, Plataforma).
-- `src/components/` - Componentes de interfaz compartidos (Navbar, Footer, GameCard, etc.).
-- `src/context/` - Estado global (AppContext) para la gestión del carrito, plataforma actual, y tema claro/oscuro.
-- `src/lib/` - Utilidades generales, tipos TypeScript (interfaces), y cliente API para consumir endpoints de Django.
-- `src/theme.ts` - Configuración principal del diseño (colores corporativos, tipografías, etc.).
+## Variables de Entorno
 
-## 📝 Notas de Integración
+| Variable               | Descripción                 | Default                     |
+|------------------------|-----------------------------|-----------------------------|
+| `NEXT_PUBLIC_API_URL`  | URL base de la API Django   | `http://localhost:8001/api` |
 
-- Asegúrate de tener el backend expuesto. Las llamadas se hacen usando las credenciales predeterminadas para desarrollo local (`http://localhost:8000/api`).
-- Variables de entorno: Dependiendo de tu configuración en producción, es probable que quieras configurar un alias central en `.env` (por ejemplo, `NEXT_PUBLIC_API_URL`).
+## Páginas
+
+| Ruta              | Descripción                                               |
+|-------------------|-----------------------------------------------------------|
+| `/`               | Home: buscador, plataformas, últimas noticias             |
+| `/search`         | Búsqueda con filtros: plataforma, género, vendedor, precio|
+| `/game/[id]`      | Detalle: tabla comparativa de precios + gráfico           |
+| `/blog`           | Listado de artículos y noticias                           |
+| `/blog/[id]`      | Artículo individual                                       |
+| `/about`          | Acerca de PIO                                             |
+| `/contact`        | Formulario de contacto                                    |
+| `/terms`          | Términos y condiciones                                    |
+
+## Estructura
+
+```
+src/
+├── app/                  # Páginas (Next.js App Router)
+├── components/
+│   ├── Navbar.tsx        # Navegación sticky con búsqueda y dark/light toggle
+│   ├── Footer.tsx
+│   ├── GameCard.tsx      # Tarjeta de juego con imagen, precio mínimo y vendedor
+│   └── PlatformBadge.tsx
+├── context/
+│   └── AppContext.tsx    # Estado global: searchQuery, selectedPlatform
+├── lib/
+│   ├── api.ts            # Cliente fetch tipado para todos los endpoints Django
+│   ├── types.ts          # Interfaces TypeScript espejo de los serializers
+│   └── utils.ts          # formatCLP(), PLATFORM_COLORS, PLATFORM_ICON_MAP
+└── theme.ts              # Tema Mantine (primaryRed, Poppins)
+```
+
+## Tests E2E
+
+Los tests viven en `tests/e2e/` y usan Playwright con mocks de API (`page.route()`).
+No requieren backend activo para correr.
+
+```bash
+npm run test:e2e        # todos los tests
+npm run test:e2e:ui     # modo interactivo con inspector
+```
+
+Cobertura:
+- `home.spec.ts` — carga home, Navbar, tarjetas, preview blog
+- `search.spec.ts` — búsqueda por texto, filtros de plataforma, paginación, params URL
+- `game-detail.spec.ts` — tabla comparativa, gráfico condicional, estado vacío, badges condición
+- `blog.spec.ts` — listado posts, navegación a detalle, badges categoría
+- `navigation.spec.ts` — links Navbar, dark/light toggle, menú mobile
