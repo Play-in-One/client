@@ -1,6 +1,8 @@
-import type { Game, Genre, Product, Seller, Platform, PaginatedResponse, Post } from './types';
+import type { Game, Genre, Seller, Platform, PaginatedResponse, Post } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api';
+const API_BASE = typeof window === 'undefined'
+    ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api')
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api');
 
 /* ── helpers ── */
 async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
@@ -46,28 +48,6 @@ export async function getGames(params?: {
 
 export async function getGame(id: number | string) {
     return fetcher<Game>(`/games/${id}/`);
-}
-
-/* ── Products ── */
-export async function getProducts(params?: {
-    game?: number;
-    platform?: number;
-    seller?: number;
-    condition?: string;
-    search?: string;
-    page?: number;
-}) {
-    return fetcher<PaginatedResponse<Product>>(`/products/${qs(params ?? {})}`);
-}
-
-export async function getProduct(id: number | string) {
-    return fetcher<Product>(`/products/${id}/`);
-}
-
-export async function getProductPrices(productId: number | string) {
-    return fetcher<PaginatedResponse<import('./types').PriceHistory>>(
-        `/products/${productId}/prices/`
-    );
 }
 
 /* ── Platforms ── */
