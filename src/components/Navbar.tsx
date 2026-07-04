@@ -27,8 +27,8 @@ import {
     IconSearch,
     IconMoon,
     IconSun,
-    IconUserCircle,
     IconFlame,
+    IconBookmark,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import type { ConditionFilter } from '@/context/AppContext';
@@ -92,7 +92,7 @@ export default function Navbar() {
                 </Anchor>
 
                 {/* Desktop nav links */}
-                <Group gap="lg" visibleFrom="md" wrap="nowrap">
+                <Group gap="lg" visibleFrom="lg" wrap="nowrap">
                     {PLATFORM_GROUPS.map((group) => {
                         const Icon = group.icon;
                         const groupHref = `/search?platform=${group.options.map((o) => o.slug).join(',')}`;
@@ -117,7 +117,7 @@ export default function Navbar() {
                                     >
                                         <Group gap={6} wrap="nowrap">
                                             <Icon size={18} />
-                                            <Box component="span" visibleFrom="lg">
+                                            <Box component="span">
                                                 {group.label}
                                             </Box>
                                         </Group>
@@ -185,15 +185,23 @@ export default function Navbar() {
                         </form>
                     )}
 
-                    {/* <ActionIcon variant="subtle" radius="xl" size="lg" visibleFrom="sm">
-                        <IconUserCircle size={22} />
-                    </ActionIcon> */}
+                    <ActionIcon
+                        component={Link}
+                        href="/saved"
+                        variant="subtle"
+                        radius="xl"
+                        size="lg"
+                        visibleFrom="sm"
+                        aria-label="Juegos guardados"
+                    >
+                        <IconBookmark size={22} />
+                    </ActionIcon>
 
                     <ActionIcon variant="subtle" radius="xl" size="lg" onClick={toggleColorScheme}>
                         {computedColorScheme === 'dark' ? <IconSun size={22} /> : <IconMoon size={22} />}
                     </ActionIcon>
 
-                    <Burger opened={opened} onClick={toggle} hiddenFrom="md" size="sm" />
+                    <Burger opened={opened} onClick={toggle} hiddenFrom="lg" size="sm" />
                 </Group>
             </Group>
 
@@ -261,6 +269,18 @@ export default function Navbar() {
                         style={{ boxShadow: '0 4px 14px rgba(230,57,70,0.25)' }}
                     >
                         Ver Ofertas
+                    </Button>
+
+                    <Button
+                        component={Link}
+                        href="/saved"
+                        onClick={close}
+                        variant="light"
+                        radius="xl"
+                        size="md"
+                        leftSection={<IconBookmark size={20} />}
+                    >
+                        Mis Guardados
                     </Button>
                 </Stack>
             </Drawer>

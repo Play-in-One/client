@@ -86,14 +86,14 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
                 </Box>
 
                 {/* Info */}
-                <Box p="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Box p={{ base: 'xs', sm: 'sm' }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <Group gap={4} mb="xs">
                         {game.platforms.map((p) => (
                             <PlatformBadge key={p.id} platform={p} />
                         ))}
                     </Group>
 
-                    <Text fw={700} fz="md" lineClamp={2} mb={2}>
+                    <Text fw={700} fz={{ base: 'sm', sm: 'md' }} lineClamp={2} mb={2}>
                         {game.name}
                     </Text>
                     <Text fz="xs" c="dimmed" mb="sm">
@@ -109,7 +109,7 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    <Text fz="26" fw={800} c="var(--mantine-color-primaryRed-5)">
+                                    <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                         {formatCLP(price)}
                                     </Text>
                                 </Box>

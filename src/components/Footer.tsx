@@ -98,6 +98,7 @@ export default function Footer() {
                         <Anchor href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
                         <Anchor href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
                         <Anchor href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
+                        <Anchor href="/saved" fz="sm" c="dimmed" underline="never">Juegos Guardados</Anchor>
                         <Anchor href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
                     </Stack>
 

@@ -524,7 +524,7 @@ function SearchContent() {
                         </Stack>
                     ) : (
                         <>
-                            <SimpleGrid cols={{ base: 1, xs: 2, sm: 2, md: 3 }} spacing="lg">
+                            <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
                                 {games.map((g) => (
                                     <GameCard key={g.id} game={g} platformSlug={activePlatformSlug} />
                                 ))}

@@ -21,10 +21,13 @@ import {
     SimpleGrid,
     Select,
     useMantineColorScheme,
+    Tooltip as MantineTooltip,
 } from '@mantine/core';
 import {
     IconBookmark,
+    IconBookmarkFilled,
     IconShare,
+    IconLink,
     IconExternalLink,
     IconTag,
     IconChartLine,
@@ -58,14 +61,20 @@ import { useApp } from '@/context/AppContext';
 export default function GameDetailPage() {
     const { id } = useParams<{ id: string }>();
     const searchParams = useSearchParams();
-    const { condition } = useApp();
+    const { condition, isSaved, toggleSaved } = useApp();
     const [game, setGame] = useState<Game | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
     const [conditionFilter, setConditionFilter] = useState<string | null>(null);
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+    const [canNativeShare, setCanNativeShare] = useState(false);
     const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === 'dark';
+
+    useEffect(() => {
+        setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+    }, []);
 
     useEffect(() => {
         if (!id) return;
@@ -117,6 +126,37 @@ export default function GameDetailPage() {
 
     const bestProduct = sorted[0] ?? null;
     const bestPrice = bestProduct ? parseFloat(bestProduct.current_price ?? '0') : 0;
+
+    const handleToggleSave = () => {
+        toggleSaved({
+            id: game.id,
+            name: game.name,
+            image: game.image,
+            min_price: game.min_price,
+            platforms: game.platforms,
+            savedAt: new Date().toISOString(),
+        });
+    };
+
+    const handleShare = async () => {
+        const shareUrl = `${window.location.origin}/game/${game.id}`;
+        const shareData = { title: game.name, text: `Mira el precio de ${game.name} en PlayInOne`, url: shareUrl };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch {
+                // user cancelled the share sheet
+            }
+        } else if (navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } catch {
+                // clipboard write blocked
+            }
+        }
+    };
 
     // Build mock price history chart data from products (demonstration)
     const chartData = sorted.map((p, i) => ({
@@ -183,35 +223,27 @@ export default function GameDetailPage() {
                     <Box
                         style={{
                             position: 'sticky',
-                            top: 88,
+                            top: 73,
                             zIndex: 5,
-                            borderRadius: 'var(--mantine-radius-lg)',
-                            overflow: 'hidden',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-                            aspectRatio: '3/4',
+                            paddingTop: 15,
+                            marginTop: -15,
+                            background: 'var(--mantine-color-body)',
                         }}
                     >
-                        {/* Game image (base layer) */}
-                        <img
-                            src={game.image || '/placeholder-game.png'}
-                            alt={game.name}
+                        <Box
+                            maw={{ base: '85%', lg: '100%' }}
+                            mx={{ base: 'auto', lg: 0 }}
                             style={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                transition: 'opacity 0.4s ease',
-                                opacity: hoveredProductImage ? 0.3 : 1,
+                                borderRadius: 'var(--mantine-radius-lg)',
+                                overflow: 'hidden',
+                                boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+                                aspectRatio: '3/4',
                             }}
-                            onError={handleImageError('/placeholder-game.png')}
-                        />
-
-                        {/* Product image (hover overlay) */}
-                        {hoveredProductImage && (
+                        >
+                            {/* Game image (base layer) */}
                             <img
-                                src={hoveredProductImage}
-                                alt="Producto"
+                                src={game.image || '/placeholder-game.png'}
+                                alt={game.name}
                                 style={{
                                     position: 'absolute',
                                     inset: 0,
@@ -219,11 +251,29 @@ export default function GameDetailPage() {
                                     height: '100%',
                                     objectFit: 'cover',
                                     transition: 'opacity 0.4s ease',
-                                    opacity: 1,
-                                    zIndex: 1,
+                                    opacity: hoveredProductImage ? 0.3 : 1,
                                 }}
+                                onError={handleImageError('/placeholder-game.png')}
                             />
-                        )}
+
+                            {/* Product image (hover overlay) */}
+                            {hoveredProductImage && (
+                                <img
+                                    src={hoveredProductImage}
+                                    alt="Producto"
+                                    style={{
+                                        position: 'absolute',
+                                        inset: 0,
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        transition: 'opacity 0.4s ease',
+                                        opacity: 1,
+                                        zIndex: 1,
+                                    }}
+                                />
+                            )}
+                        </Box>
                     </Box>
 
                     <Stack gap="md" mt="md">
@@ -277,9 +327,11 @@ export default function GameDetailPage() {
                         <Box
                             style={{
                                 position: 'sticky',
-                                top: 88,
+                                top: 73,
                                 zIndex: 5,
                                 background: 'var(--mantine-color-body)',
+                                paddingTop: 15,
+                                marginTop: -15,
                                 paddingBottom: 8,
                             }}
                         >
@@ -337,12 +389,30 @@ export default function GameDetailPage() {
 
                             {/* Action buttons */}
                             <Group gap="xs" mt="sm">
-                                <ActionIcon variant="default" size="lg" radius="xl">
-                                    <IconBookmark size={18} />
+                                <ActionIcon
+                                    variant={isSaved(game.id) ? 'filled' : 'default'}
+                                    color={isSaved(game.id) ? 'primaryRed' : undefined}
+                                    size="lg"
+                                    radius="xl"
+                                    onClick={handleToggleSave}
+                                    aria-label={isSaved(game.id) ? 'Quitar de guardados' : 'Guardar juego'}
+                                >
+                                    {isSaved(game.id) ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
                                 </ActionIcon>
-                                <ActionIcon variant="default" size="lg" radius="xl">
-                                    <IconShare size={18} />
-                                </ActionIcon>
+                                <MantineTooltip
+                                    label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
+                                    withArrow
+                                >
+                                    <ActionIcon
+                                        variant="default"
+                                        size="lg"
+                                        radius="xl"
+                                        onClick={handleShare}
+                                        aria-label={copied ? 'Enlace copiado' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
+                                    >
+                                        {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
+                                    </ActionIcon>
+                                </MantineTooltip>
                             </Group>
                         </Box>
 

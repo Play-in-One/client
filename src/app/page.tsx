@@ -248,7 +248,7 @@ export default function HomePage() {
                         </Anchor>
                     </Group>
 
-                    <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }} spacing="lg">
+                    <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
                         {games.slice(0, 8).map((g) => {
                             const best = g.products?.[0] ?? null;
                             return <GameCard key={g.id} game={g} bestProduct={best} />;
