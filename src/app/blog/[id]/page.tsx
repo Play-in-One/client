@@ -19,7 +19,7 @@ export default function BlogPostPage() {
         if (!id) return;
         getPost(id as string)
             .then(setPost)
-            .catch(console.error)
+            .catch(() => {})
             .finally(() => setLoading(false));
     }, [id]);
 

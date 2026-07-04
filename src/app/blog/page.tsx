@@ -15,7 +15,7 @@ export default function BlogPage() {
     useEffect(() => {
         getPosts({ ordering: '-published_date' })
             .then((res) => setPosts(res.results))
-            .catch(console.error);
+            .catch(() => {});
     }, []);
 
     return (

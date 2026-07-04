@@ -1,31 +1,42 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { Platform } from '@/lib/types';
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+
+export type ConditionFilter = 'all' | 'new' | 'used';
+
+const CONDITION_STORAGE_KEY = 'pio_condition';
 
 interface AppState {
     searchQuery: string;
     setSearchQuery: (q: string) => void;
-    selectedPlatform: Platform | null;
-    setSelectedPlatform: (p: Platform | null) => void;
+    condition: ConditionFilter;
+    setCondition: (c: ConditionFilter) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
+    const [condition, setConditionState] = useState<ConditionFilter>('all');
 
-    const setSearch = useCallback((q: string) => setSearchQuery(q), []);
-    const setPlatform = useCallback((p: Platform | null) => setSelectedPlatform(p), []);
+    // Read persisted value after mount only, so server/client markup match on hydration.
+    useEffect(() => {
+        const stored = window.localStorage.getItem(CONDITION_STORAGE_KEY);
+        if (stored === 'new' || stored === 'used') setConditionState(stored);
+    }, []);
+
+    const setCondition = (c: ConditionFilter) => {
+        setConditionState(c);
+        window.localStorage.setItem(CONDITION_STORAGE_KEY, c);
+    };
 
     return (
         <AppContext.Provider
             value={{
                 searchQuery,
-                setSearchQuery: setSearch,
-                selectedPlatform,
-                setSelectedPlatform: setPlatform,
+                setSearchQuery,
+                condition,
+                setCondition,
             }}
         >
             {children}

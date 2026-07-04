@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { type ComponentType, useEffect, useState } from 'react';
+import { handleImageError } from '@/lib/imageFallback';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
     Container,
     Title,
@@ -25,8 +26,6 @@ import {
     IconBookmark,
     IconShare,
     IconExternalLink,
-    IconTruck,
-    IconStar,
     IconTag,
     IconChartLine,
     IconTableColumn,
@@ -39,8 +38,6 @@ import {
     IconDeviceDesktop,
 } from '@tabler/icons-react';
 import {
-    LineChart,
-    Line,
     XAxis,
     YAxis,
     Tooltip,
@@ -56,9 +53,12 @@ import { getGame } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import PlatformBadge from '@/components/PlatformBadge';
+import { useApp } from '@/context/AppContext';
 
 export default function GameDetailPage() {
     const { id } = useParams<{ id: string }>();
+    const searchParams = useSearchParams();
+    const { condition } = useApp();
     const [game, setGame] = useState<Game | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
@@ -73,10 +73,14 @@ export default function GameDetailPage() {
         getGame(id)
             .then((g) => {
                 setGame(g);
-                if (g.platforms.length > 0) setSelectedPlatform(g.platforms[0].name);
+                const requestedSlug = searchParams.get('platform');
+                const requested = requestedSlug ? g.platforms.find((p) => p.slug === requestedSlug) : null;
+                setSelectedPlatform(requested?.name ?? g.platforms[0]?.name ?? null);
+                setConditionFilter(condition !== 'all' ? condition : null);
             })
             .catch(() => { })
             .finally(() => setLoading(false));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     if (loading) {
@@ -135,7 +139,7 @@ export default function GameDetailPage() {
         digital: 'grape',
     };
 
-    const platformIconMap: Record<string, any> = {
+    const platformIconMap: Record<string, ComponentType<{ size?: number; className?: string }>> = {
         ps5: FaPlaystation,
         ps4: FaPlaystation,
         ps3: FaPlaystation,
@@ -149,6 +153,7 @@ export default function GameDetailPage() {
         wiiu: IconDeviceNintendo,
     };
 
+    const breadcrumbPlatform = game.platforms.find((p) => p.name === selectedPlatform) ?? game.platforms[0];
 
 
     return (
@@ -162,9 +167,9 @@ export default function GameDetailPage() {
                 <Anchor href="/" c="dimmed" underline="never">
                     <Group gap={4}><IconHome size={14} /> Inicio</Group>
                 </Anchor>
-                {game.platforms[0] && (
-                    <Anchor href={`/search?platform=${game.platforms[0].slug}`} c="dimmed" underline="never">
-                        {game.platforms[0].display_name}
+                {breadcrumbPlatform && (
+                    <Anchor href={`/search?platform=${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
+                        {breadcrumbPlatform.display_name}
                     </Anchor>
                 )}
                 <Text fw={500}>{game.name}</Text>
@@ -174,21 +179,39 @@ export default function GameDetailPage() {
             <SimpleGrid cols={{ base: 1, lg: 12 }} spacing="xl">
                 {/* ── Sidebar: Cover + info ── */}
                 <Box style={{ gridColumn: 'span 4' }}>
-                    <Stack gap="md">
-                        {/* Cover art */}
-                        <Box
+                    {/* Cover art (sticky) */}
+                    <Box
+                        style={{
+                            position: 'sticky',
+                            top: 88,
+                            zIndex: 5,
+                            borderRadius: 'var(--mantine-radius-lg)',
+                            overflow: 'hidden',
+                            boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+                            aspectRatio: '3/4',
+                        }}
+                    >
+                        {/* Game image (base layer) */}
+                        <img
+                            src={game.image || '/placeholder-game.png'}
+                            alt={game.name}
                             style={{
-                                borderRadius: 'var(--mantine-radius-lg)',
-                                overflow: 'hidden',
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-                                aspectRatio: '3/4',
-                                position: 'relative',
+                                position: 'absolute',
+                                inset: 0,
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'opacity 0.4s ease',
+                                opacity: hoveredProductImage ? 0.3 : 1,
                             }}
-                        >
-                            {/* Game image (base layer) */}
+                            onError={handleImageError('/placeholder-game.png')}
+                        />
+
+                        {/* Product image (hover overlay) */}
+                        {hoveredProductImage && (
                             <img
-                                src={game.image || '/placeholder-game.png'}
-                                alt={game.name}
+                                src={hoveredProductImage}
+                                alt="Producto"
                                 style={{
                                     position: 'absolute',
                                     inset: 0,
@@ -196,29 +219,14 @@ export default function GameDetailPage() {
                                     height: '100%',
                                     objectFit: 'cover',
                                     transition: 'opacity 0.4s ease',
-                                    opacity: hoveredProductImage ? 0.3 : 1,
+                                    opacity: 1,
+                                    zIndex: 1,
                                 }}
                             />
+                        )}
+                    </Box>
 
-                            {/* Product image (hover overlay) */}
-                            {hoveredProductImage && (
-                                <img
-                                    src={hoveredProductImage}
-                                    alt="Producto"
-                                    style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        transition: 'opacity 0.4s ease',
-                                        opacity: 1,
-                                        zIndex: 1,
-                                    }}
-                                />
-                            )}
-                        </Box>
-
+                    <Stack gap="md" mt="md">
                         {/* Info card */}
                         <Card withBorder radius="lg" p="lg">
                             <Stack gap="xs">
@@ -266,7 +274,15 @@ export default function GameDetailPage() {
                 <Box style={{ gridColumn: 'span 8' }}>
                     <Stack gap="xl">
                         {/* Title + platform tabs */}
-                        <Box>
+                        <Box
+                            style={{
+                                position: 'sticky',
+                                top: 88,
+                                zIndex: 5,
+                                background: 'var(--mantine-color-body)',
+                                paddingBottom: 8,
+                            }}
+                        >
                             <Group gap="sm" mb={6}>
                                 {game.genres && game.genres.length > 0 && (
                                     game.genres.map((genre) => (
@@ -375,7 +391,7 @@ export default function GameDetailPage() {
                                         </Group>
 
                                         <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
-                                            <Text>Vendido por <Text span fw={700} c="#fff">{bestProduct.seller.name}</Text></Text>
+                                            <Text>Vendido por <Anchor href={`/store/${bestProduct.seller.id}`} fw={700} c="#fff" underline="hover">{bestProduct.seller.name}</Anchor></Text>
                                             <Text c="rgba(255,255,255,0.4)">•</Text>
                                             <Group gap={4} c="green.4" fz="xs">
                                                 <IconCheck size={14} /> Stock Disponible
@@ -467,45 +483,54 @@ export default function GameDetailPage() {
                                                     onMouseLeave={() => setHoveredProductImage(null)}
                                                 >
                                                     <Table.Td>
-                                                        <Group gap="sm" wrap="nowrap">
-                                                            <Box
-                                                                w={40}
-                                                                h={40}
-                                                                style={{
-                                                                    borderRadius: 'var(--mantine-radius-sm)',
-                                                                    background: isDark ? 'var(--mantine-color-dark-5)' : 'var(--mantine-color-gray-1)',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    fontWeight: 700,
-                                                                    fontSize: 12,
-                                                                    color: sellerColors[idx % sellerColors.length],
-                                                                    flexShrink: 0,
-                                                                    overflow: 'hidden',
-                                                                }}
-                                                            >
-                                                                {p.seller.logo ? (
-                                                                    <img
-                                                                        src={p.seller.logo}
-                                                                        alt={p.seller.name}
-                                                                        style={{
-                                                                            width: '100%',
-                                                                            height: '100%',
-                                                                            objectFit: 'contain',
-                                                                            padding: 4,
-                                                                        }}
-                                                                    />
-                                                                ) : (
-                                                                    p.seller.name.slice(0, 2).toUpperCase()
-                                                                )}
-                                                            </Box>
-                                                            <Box>
-                                                                <Text fw={700} fz="sm">{p.seller.name}</Text>
-                                                                <Text fz="xs" c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
-                                                                    {p.title}
-                                                                </Text>
-                                                            </Box>
-                                                        </Group>
+                                                        <Anchor href={`/store/${p.seller.id}`} underline="never" c="inherit">
+                                                            <Group gap="sm" wrap="nowrap">
+                                                                <Box
+                                                                    w={40}
+                                                                    h={40}
+                                                                    style={{
+                                                                        borderRadius: 'var(--mantine-radius-sm)',
+                                                                        background: isDark ? 'var(--mantine-color-dark-5)' : 'var(--mantine-color-gray-1)',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        fontWeight: 700,
+                                                                        fontSize: 12,
+                                                                        color: sellerColors[idx % sellerColors.length],
+                                                                        flexShrink: 0,
+                                                                        overflow: 'hidden',
+                                                                    }}
+                                                                >
+                                                                    {(p.seller.favicon || p.seller.logo) ? (
+                                                                        <img
+                                                                            src={p.seller.favicon || p.seller.logo || ''}
+                                                                            alt={p.seller.name}
+                                                                            style={{
+                                                                                width: '100%',
+                                                                                height: '100%',
+                                                                                objectFit: 'contain',
+                                                                                padding: 4,
+                                                                            }}
+                                                                            onError={(e) => {
+                                                                                if (p.seller.logo && e.currentTarget.src !== p.seller.logo) {
+                                                                                    e.currentTarget.src = p.seller.logo;
+                                                                                } else {
+                                                                                    e.currentTarget.style.display = 'none';
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    ) : (
+                                                                        p.seller.name.slice(0, 2).toUpperCase()
+                                                                    )}
+                                                                </Box>
+                                                                <Box>
+                                                                    <Text fw={700} fz="sm">{p.seller.name}</Text>
+                                                                    <Text fz="xs" c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
+                                                                        {p.title}
+                                                                    </Text>
+                                                                </Box>
+                                                            </Group>
+                                                        </Anchor>
                                                     </Table.Td>
                                                     <Table.Td>
                                                         <Text

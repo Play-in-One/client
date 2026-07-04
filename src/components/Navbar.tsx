@@ -14,7 +14,12 @@ import {
     Drawer,
     Stack,
     Button,
+    SegmentedControl,
     useMantineColorScheme,
+    useComputedColorScheme,
+    Menu,
+    UnstyledButton,
+    Accordion,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -24,22 +29,23 @@ import {
     IconUserCircle,
     IconFlame,
 } from '@tabler/icons-react';
-import { FaPlaystation, FaXbox } from 'react-icons/fa';
-import { BsNintendoSwitch } from 'react-icons/bs';
 import { useApp } from '@/context/AppContext';
+import type { ConditionFilter } from '@/context/AppContext';
+import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 
-const NAV_LINKS = [
-    { label: 'PS5', href: '/search?platform=ps5', icon: FaPlaystation, color: '#2563EB' },
-    { label: 'Switch', href: '/search?platform=switch', icon: BsNintendoSwitch, color: '#DC2626' },
-    { label: 'Xbox', href: '/search?platform=xbox', icon: FaXbox, color: '#16A34A' },
+const CONDITION_OPTIONS = [
+    { label: 'Usados', value: 'used' },
+    { label: 'Todos', value: 'all' },
+    { label: 'Nuevos', value: 'new' },
 ];
 
 export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
-    const { searchQuery, setSearchQuery } = useApp();
+    const { searchQuery, setSearchQuery, condition, setCondition } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
-    const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+    const { toggleColorScheme } = useMantineColorScheme();
+    const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
     const [opened, { toggle, close }] = useDisclosure(false);
 
     const handleSearch = (e: FormEvent) => {
@@ -85,40 +91,66 @@ export default function Navbar() {
                 </Anchor>
 
                 {/* Desktop nav links */}
-                <Group gap="lg" visibleFrom="md">
-                    {NAV_LINKS.map((l) => {
-                        const Icon = l.icon;
+                <Group gap="lg" visibleFrom="md" wrap="nowrap">
+                    {PLATFORM_GROUPS.map((group) => {
+                        const Icon = group.icon;
+                        const groupHref = `/search?platform=${group.options.map((o) => o.slug).join(',')}`;
                         return (
-                            <Anchor
-                                key={l.label}
-                                href={l.href}
-                                underline="never"
-                                fw={600}
-                                fz="sm"
-                                c="dimmed"
-                                style={{ transition: 'color 0.15s, transform 0.15s' }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.color = l.color;
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.color = 'var(--mantine-color-dimmed)';
-                                    e.currentTarget.style.transform = '';
-                                }}
-                            >
-                                <Group gap={6}>
-                                    <Icon size={18} />
-                                    {l.label}
-                                </Group>
-                            </Anchor>
+                            <Menu key={group.label} trigger="hover" position="bottom" openDelay={0} closeDelay={150}>
+                                <Menu.Target>
+                                    <UnstyledButton
+                                        component="a"
+                                        href={groupHref}
+                                        fw={600}
+                                        fz="sm"
+                                        c="dimmed"
+                                        style={{ transition: 'color 0.15s, transform 0.15s' }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = group.color;
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = 'var(--mantine-color-dimmed)';
+                                            e.currentTarget.style.transform = '';
+                                        }}
+                                    >
+                                        <Group gap={6} wrap="nowrap">
+                                            <Icon size={18} />
+                                            <Box component="span" visibleFrom="lg">
+                                                {group.label}
+                                            </Box>
+                                        </Group>
+                                    </UnstyledButton>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                    {group.options.map((opt) => (
+                                        <Menu.Item
+                                            key={opt.slug}
+                                            component="a"
+                                            href={`/search?platform=${opt.slug}`}
+                                        >
+                                            {opt.label}
+                                        </Menu.Item>
+                                    ))}
+                                </Menu.Dropdown>
+                            </Menu>
                         );
                     })}
 
                     <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx="xs" />
 
+                    <SegmentedControl
+                        data={CONDITION_OPTIONS}
+                        value={condition}
+                        onChange={(v) => setCondition(v as ConditionFilter)}
+                        radius="xl"
+                        size="sm"
+                        classNames={{ root: 'condition-switch' }}
+                    />
+
                     <Button
                         component="a"
-                        href="/search?ordering=-current_price"
+                        href="/search?on_sale=true"
                         variant="gradient"
                         gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
                         radius="xl"
@@ -157,7 +189,7 @@ export default function Navbar() {
                     </ActionIcon> */}
 
                     <ActionIcon variant="subtle" radius="xl" size="lg" onClick={toggleColorScheme}>
-                        {colorScheme === 'dark' ? <IconSun size={22} /> : <IconMoon size={22} />}
+                        {computedColorScheme === 'dark' ? <IconSun size={22} /> : <IconMoon size={22} />}
                     </ActionIcon>
 
                     <Burger opened={opened} onClick={toggle} hiddenFrom="md" size="sm" />
@@ -167,31 +199,57 @@ export default function Navbar() {
             {/* Mobile drawer */}
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
-                    {NAV_LINKS.map((l) => {
-                        const Icon = l.icon;
-                        return (
-                            <Anchor
-                                key={l.label}
-                                href={l.href}
-                                onClick={close}
-                                fw={600}
-                                fz="lg"
-                                c="inherit"
-                                underline="never"
-                            >
-                                <Group gap={12}>
-                                    <Icon size={24} color={l.color} />
-                                    {l.label}
-                                </Group>
-                            </Anchor>
-                        );
-                    })}
+                    <Accordion variant="filled">
+                        {PLATFORM_GROUPS.map((group) => {
+                            const Icon = group.icon;
+                            return (
+                                <Accordion.Item key={group.label} value={group.label}>
+                                    <Accordion.Control>
+                                        <Group gap={12}>
+                                            <Icon size={24} color={group.color} />
+                                            <Text fw={600} fz="lg">
+                                                {group.label}
+                                            </Text>
+                                        </Group>
+                                    </Accordion.Control>
+                                    <Accordion.Panel>
+                                        <Stack gap="sm">
+                                            {group.options.map((opt) => (
+                                                <Anchor
+                                                    key={opt.slug}
+                                                    href={`/search?platform=${opt.slug}`}
+                                                    onClick={close}
+                                                    fw={600}
+                                                    fz="md"
+                                                    c="inherit"
+                                                    underline="never"
+                                                    pl="lg"
+                                                >
+                                                    {opt.label}
+                                                </Anchor>
+                                            ))}
+                                        </Stack>
+                                    </Accordion.Panel>
+                                </Accordion.Item>
+                            );
+                        })}
+                    </Accordion>
 
                     <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 
+                    <SegmentedControl
+                        data={CONDITION_OPTIONS}
+                        value={condition}
+                        onChange={(v) => setCondition(v as ConditionFilter)}
+                        radius="xl"
+                        size="md"
+                        classNames={{ root: 'condition-switch' }}
+                        fullWidth
+                    />
+
                     <Button
                         component="a"
-                        href="/search?ordering=-current_price"
+                        href="/search?on_sale=true"
                         onClick={close}
                         variant="gradient"
                         gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}

@@ -12,6 +12,16 @@ export interface Seller {
     name: string;
     url: string;
     logo: string | null;
+    favicon?: string;
+    banner?: string;       // only present on the store detail response
+    description?: string;  // only present on the store detail response
+    addresses?: SellerAddress[]; // only present on the store detail response
+}
+
+export interface SellerAddress {
+    id: number;
+    label: string;
+    address: string;
 }
 
 export interface PriceHistory {
@@ -52,15 +62,16 @@ export interface Game {
     image: string | null;
     rating: string | null;
     min_price: string | null;
+    on_sale: boolean;
     products?: Product[];
 }
 
 export interface Post {
     id: number;
     title: string;
-    category: 'news' | 'update' | 'deals' | 'comunity' | 'gaming';
+    category: 'news' | 'update' | 'deals' | 'community' | 'gaming';
     description: string;
-    image: string | null;
+    image: string;
     published_date: string;
 }
 

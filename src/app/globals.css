@@ -1,4 +1,5 @@
 @import '@mantine/core/styles.css';
+@import '@mantine/core/styles/ScrollArea.css';
 
 /* ── Google Fonts ── */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
@@ -59,4 +60,33 @@ body {
 }
 [data-mantine-color-scheme='dark'] .search-input {
   background-color: var(--mantine-color-dark-6) !important;
+}
+
+/* Condition filter switch — adapts to site theme, keeps the neon cyan indicator */
+.condition-switch.mantine-SegmentedControl-root {
+  background-color: var(--mantine-color-gray-1);
+  border: 1px solid var(--mantine-color-gray-3);
+  padding: 3px;
+}
+
+[data-mantine-color-scheme='dark'] .condition-switch.mantine-SegmentedControl-root {
+  background-color: #2a2a32;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.condition-switch .mantine-SegmentedControl-indicator {
+  background-color: #2dd4e5;
+  box-shadow: 0 0 14px rgba(45, 212, 229, 0.65), 0 0 0 1px rgba(45, 212, 229, 0.35);
+}
+
+.condition-switch .mantine-SegmentedControl-label {
+  color: var(--mantine-color-gray-7);
+}
+
+[data-mantine-color-scheme='dark'] .condition-switch .mantine-SegmentedControl-label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.condition-switch .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label {
+  color: #06282d;
 }

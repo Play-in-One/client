@@ -1,26 +1,31 @@
 'use client';
 
 import { Card, Text, Group, Badge, Box, Anchor } from '@mantine/core';
+import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import { formatCLP } from '@/lib/utils';
+import { handleImageError } from '@/lib/imageFallback';
 import type { Game, Product } from '@/lib/types';
 
 interface Props {
     game: Game;
     /** Optional best product to show price + seller info */
     bestProduct?: Product | null;
+    /** Active console filter slug; if set, deep-links the game detail page to that console's panel */
+    platformSlug?: string;
 }
 
-export default function GameCard({ game, bestProduct }: Props) {
+export default function GameCard({ game, bestProduct, platformSlug }: Props) {
+    const router = useRouter();
     const imgSrc = game.image || '/placeholder-game.png';
 
     /* Resolve price: prefer min_price from annotation, fall back to product */
     const price = game.min_price ?? bestProduct?.current_price ?? null;
-    const sellerName = bestProduct?.seller?.name ?? null;
+    const seller = bestProduct?.seller ?? null;
     const hasPrice = price !== null;
 
     return (
-        <Anchor href={`/game/${game.id}`} underline="never" style={{ textDecoration: 'none' }}>
+        <Anchor href={`/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`} underline="never" style={{ textDecoration: 'none' }}>
             <Card
                 shadow="sm"
                 radius="lg"
@@ -56,45 +61,38 @@ export default function GameCard({ game, bestProduct }: Props) {
                         }}
                         onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
                         onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = ''; }}
-                        onError={(e) => { e.currentTarget.src = '/placeholder-game.png'; }}
+                        onError={handleImageError('/placeholder-game.png')}
                     />
 
                     {/* Discount badge */}
                     {hasPrice && (
                         <Badge
-                            color="green"
-                            variant="filled"
-                            size="sm"
+                            variant="gradient"
+                            gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
+                            size="lg"
+                            radius="xl"
                             pos="absolute"
                             top={12}
                             right={12}
-                            style={{ zIndex: 2, fontWeight: 700 }}
+                            style={{
+                                zIndex: 2,
+                                fontWeight: 700,
+                                boxShadow: '0 4px 14px rgba(230,57,70,0.4)',
+                            }}
                         >
                             Oferta
                         </Badge>
                     )}
-
-                    {/* Platform badges overlay */}
-                    <Box
-                        pos="absolute"
-                        bottom={0}
-                        left={0}
-                        right={0}
-                        p="sm"
-                        style={{
-                            background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)',
-                        }}
-                    >
-                        <Group gap={4}>
-                            {game.platforms.map((p) => (
-                                <PlatformBadge key={p.id} platform={p} />
-                            ))}
-                        </Group>
-                    </Box>
                 </Box>
 
                 {/* Info */}
                 <Box p="sm" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <Group gap={4} mb="xs">
+                        {game.platforms.map((p) => (
+                            <PlatformBadge key={p.id} platform={p} />
+                        ))}
+                    </Group>
+
                     <Text fw={700} fz="md" lineClamp={2} mb={2}>
                         {game.name}
                     </Text>
@@ -116,10 +114,32 @@ export default function GameCard({ game, bestProduct }: Props) {
                                     </Text>
                                 </Box>
                                 <Box ta="right">
-                                    {sellerName ? (
+                                    {seller ? (
                                         <>
                                             <Text fz={10} c="dimmed">Vendido por</Text>
-                                            <Text fz="xs" fw={700}>{sellerName}</Text>
+                                            <Group
+                                                gap={4}
+                                                justify="flex-end"
+                                                wrap="nowrap"
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    router.push(`/store/${seller.id}`);
+                                                }}
+                                            >
+                                                {(seller.favicon || seller.logo) && (
+                                                    <img
+                                                        src={seller.favicon || seller.logo || ''}
+                                                        alt={seller.name}
+                                                        style={{ width: 14, height: 14, objectFit: 'contain', flexShrink: 0 }}
+                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                                    />
+                                                )}
+                                                <Text fz="xs" fw={700}>
+                                                    {seller.name}
+                                                </Text>
+                                            </Group>
                                         </>
                                     ) : (
                                         <Text fz={10} c="dimmed">Precio más bajo</Text>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { type ComponentType, useState } from 'react';
 
 import {
     Box,
@@ -24,7 +24,7 @@ import {
 
 const YEAR = new Date().getFullYear();
 
-function SocialIcon({ icon: Icon, brandColor, href }: { icon: any, brandColor: string, href: string }) {
+function SocialIcon({ icon: Icon, brandColor, href }: { icon: ComponentType<{ size?: number; className?: string }>, brandColor: string, href: string }) {
     const [hover, setHover] = useState(false);
     return (
         <ActionIcon

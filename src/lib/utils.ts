@@ -4,14 +4,6 @@ export function formatCLP(value: number | string): string {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(num);
 }
 
-/** Compute discount percentage between two prices */
-export function discountPercent(original: number | string, current: number | string): number {
-    const orig = typeof original === 'string' ? parseFloat(original) : original;
-    const cur = typeof current === 'string' ? parseFloat(current) : current;
-    if (orig <= 0) return 0;
-    return Math.round(((orig - cur) / orig) * 100);
-}
-
 /**
  * ── Colores oficiales por consola ──
  * Fuente única de verdad para todos los contextos.
@@ -24,6 +16,9 @@ export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; css
     ps4: { mantine: 'indigo', hex: '#1E40AF', cssVar: 'var(--mantine-color-indigo-filled)' },
     ps5: { mantine: 'blue', hex: '#2563EB', cssVar: 'var(--mantine-color-blue-filled)' },
     xbox: { mantine: 'green', hex: '#16A34A', cssVar: 'var(--mantine-color-green-filled)' },
+    xbox360: { mantine: 'green', hex: '#16A34A', cssVar: 'var(--mantine-color-green-filled)' },
+    xboxone: { mantine: 'green', hex: '#16A34A', cssVar: 'var(--mantine-color-green-filled)' },
+    xboxseries: { mantine: 'green', hex: '#16A34A', cssVar: 'var(--mantine-color-green-filled)' },
     switch: { mantine: 'red', hex: '#DC2626', cssVar: 'var(--mantine-color-red-filled)' },
     switch2: { mantine: 'red', hex: '#EF4444', cssVar: 'var(--mantine-color-red-filled)' },
     pc: { mantine: 'gray', hex: '#6B7280', cssVar: 'var(--mantine-color-gray-filled)' },
@@ -32,8 +27,3 @@ export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; css
     '3ds': { mantine: 'red.8', hex: '#C0001B', cssVar: 'var(--mantine-color-red-8)' },
     wiiu: { mantine: 'teal', hex: '#009AC7', cssVar: 'var(--mantine-color-teal-filled)' },
 };
-
-/** Shorthand: solo HEX (backward-compatible) */
-export const platformColors: Record<string, string> = Object.fromEntries(
-    Object.entries(PLATFORM_COLORS).map(([k, v]) => [k, v.hex]),
-);

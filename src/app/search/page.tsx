@@ -21,6 +21,7 @@ import {
     Collapse,
     Paper,
     NumberInput,
+    ScrollArea,
 } from '@mantine/core';
 import {
     IconSearch,
@@ -32,6 +33,7 @@ import {
 import { getGames, getPlatforms, getGenres, getSellers } from '@/lib/api';
 import type { Game, Platform, Genre, Seller } from '@/lib/types';
 import GameCard from '@/components/GameCard';
+import { useApp } from '@/context/AppContext';
 
 /* ── Collapsible Filter Section ── */
 function FilterSection({
@@ -74,6 +76,7 @@ function FilterSection({
 
 function SearchContent() {
     const params = useSearchParams();
+    const { condition } = useApp();
     const q = params.get('q') ?? '';
     const platformSlug = params.get('platform') ?? '';
     const [games, setGames] = useState<Game[]>([]);
@@ -91,18 +94,23 @@ function SearchContent() {
 
     /* ── Active filter selections ── */
     const [selectedPlatforms, setSelectedPlatforms] = useState<number[]>([]);
+    const activePlatformSlug = selectedPlatforms.length === 1
+        ? platforms.find((p) => p.id === selectedPlatforms[0])?.slug
+        : undefined;
     const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
     const [selectedSeller, setSelectedSeller] = useState<number | null>(null);
     const [priceMin, setPriceMin] = useState<number | undefined>(undefined);
     const [priceMax, setPriceMax] = useState<number | undefined>(undefined);
     const [priceMinInput, setPriceMinInput] = useState<string | number>('');
     const [priceMaxInput, setPriceMaxInput] = useState<string | number>('');
+    const [onSale, setOnSale] = useState(false);
 
     /* ── Collapsible section states ── */
     const [platformsOpen, setPlatformsOpen] = useState(true);
     const [genresOpen, setGenresOpen] = useState(true);
     const [sellersOpen, setSellersOpen] = useState(true);
     const [priceOpen, setPriceOpen] = useState(true);
+    const [onSaleOpen, setOnSaleOpen] = useState(true);
 
     /* ── Mobile sidebar toggle ── */
     const [filtersOpen, setFiltersOpen] = useState(false);
@@ -112,10 +120,11 @@ function SearchContent() {
         getPlatforms()
             .then((res) => {
                 setPlatforms(res.results);
-                // Auto-select platform from URL param
+                // Auto-select platform(s) from URL param (comma-separated slugs supported)
                 if (platformSlug) {
-                    const found = res.results.find((p) => p.slug === platformSlug);
-                    if (found) setSelectedPlatforms([found.id]);
+                    const slugs = platformSlug.split(',').map((s) => s.trim()).filter(Boolean);
+                    const matched = res.results.filter((p) => slugs.includes(p.slug));
+                    if (matched.length) setSelectedPlatforms(matched.map((p) => p.id));
                 }
             })
             .catch(() => { });
@@ -140,8 +149,10 @@ function SearchContent() {
             platforms: selectedPlatforms.length > 0 ? selectedPlatforms : undefined,
             genres: selectedGenre ?? undefined,
             seller: selectedSeller ?? undefined,
+            condition: condition !== 'all' ? condition : undefined,
             price_min: priceMin,
             price_max: priceMax,
+            on_sale: onSale || undefined,
             ordering,
             page,
         })
@@ -151,7 +162,7 @@ function SearchContent() {
             })
             .catch(() => setGames([]))
             .finally(() => setLoading(false));
-    }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, priceMin, priceMax]);
+    }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
 
     const totalPages = Math.ceil(total / 50);
 
@@ -168,6 +179,7 @@ function SearchContent() {
         setPriceMax(undefined);
         setPriceMinInput('');
         setPriceMaxInput('');
+        setOnSale(false);
         setPage(1);
     };
 
@@ -186,11 +198,69 @@ function SearchContent() {
         selectedGenre !== null ||
         selectedSeller !== null ||
         priceMin !== undefined ||
-        priceMax !== undefined;
+        priceMax !== undefined ||
+        onSale;
 
     /* ── Filter Sidebar Content ── */
     const filterContent = (
         <Stack gap="sm">
+
+            {/* Price */}
+            <FilterSection title="Precio" open={priceOpen} onToggle={() => setPriceOpen((v) => !v)}>
+                <Group gap="xs" grow>
+                    <NumberInput
+                        placeholder="Mín"
+                        value={priceMinInput}
+                        onChange={setPriceMinInput}
+                        onBlur={applyPriceMin}
+                        onKeyDown={(e) => e.key === 'Enter' && applyPriceMin()}
+                        min={0}
+                        size="xs"
+                        radius="md"
+                        prefix="$"
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        hideControls
+                    />
+                    <NumberInput
+                        placeholder="Máx"
+                        value={priceMaxInput}
+                        onChange={setPriceMaxInput}
+                        onBlur={applyPriceMax}
+                        onKeyDown={(e) => e.key === 'Enter' && applyPriceMax()}
+                        min={0}
+                        size="xs"
+                        radius="md"
+                        prefix="$"
+                        thousandSeparator="."
+                        decimalSeparator=","
+                        hideControls
+                    />
+                </Group>
+            </FilterSection>
+
+            <Divider />
+
+            {/* Ofertas */}
+            <FilterSection title="Ofertas" open={onSaleOpen} onToggle={() => setOnSaleOpen((v) => !v)}>
+                <Checkbox
+                    label="En oferta"
+                    checked={onSale}
+                    onChange={() => {
+                        setOnSale((v) => !v);
+                        setPage(1);
+                    }}
+                    color="primaryRed"
+                    radius="sm"
+                    styles={{
+                        label: { cursor: 'pointer', fontSize: 14 },
+                        input: { cursor: 'pointer' },
+                    }}
+                />
+            </FilterSection>
+
+            <Divider />
+
             {/* Platforms */}
             <FilterSection title="Plataforma" open={platformsOpen} onToggle={() => setPlatformsOpen((v) => !v)}>
                 <Stack gap={6}>
@@ -268,41 +338,6 @@ function SearchContent() {
                 </Stack>
             </FilterSection>
 
-            <Divider />
-
-            {/* Price */}
-            <FilterSection title="Precio" open={priceOpen} onToggle={() => setPriceOpen((v) => !v)}>
-                <Group gap="xs" grow>
-                    <NumberInput
-                        placeholder="Mín"
-                        value={priceMinInput}
-                        onChange={setPriceMinInput}
-                        onBlur={applyPriceMin}
-                        onKeyDown={(e) => e.key === 'Enter' && applyPriceMin()}
-                        min={0}
-                        size="xs"
-                        radius="md"
-                        prefix="$"
-                        thousandSeparator="."
-                        decimalSeparator=","
-                        hideControls
-                    />
-                    <NumberInput
-                        placeholder="Máx"
-                        value={priceMaxInput}
-                        onChange={setPriceMaxInput}
-                        onBlur={applyPriceMax}
-                        onKeyDown={(e) => e.key === 'Enter' && applyPriceMax()}
-                        min={0}
-                        size="xs"
-                        radius="md"
-                        prefix="$"
-                        thousandSeparator="."
-                        decimalSeparator=","
-                        hideControls
-                    />
-                </Group>
-            </FilterSection>
 
             {hasActiveFilters && (
                 <>
@@ -430,6 +465,10 @@ function SearchContent() {
                         flexShrink: 0,
                         position: 'sticky',
                         top: 'calc(var(--mantine-spacing-xl) + 60px)',
+                        maxHeight: 'calc(100vh - var(--mantine-spacing-xl) - 60px - var(--mantine-spacing-xl))',
+                        display: 'grid',
+                        gridTemplateRows: 'auto 1fr',
+                        overflow: 'hidden',
                         borderColor: hasActiveFilters
                             ? 'var(--mantine-color-primaryRed-5)'
                             : undefined,
@@ -453,7 +492,9 @@ function SearchContent() {
                             </ActionIcon>
                         )}
                     </Group>
-                    {filterContent}
+                    <ScrollArea style={{ minHeight: 0 }} offsetScrollbars>
+                        {filterContent}
+                    </ScrollArea>
                 </Paper>
 
                 {/* Results */}
@@ -473,7 +514,7 @@ function SearchContent() {
                         <>
                             <SimpleGrid cols={{ base: 1, xs: 2, sm: 2, md: 3 }} spacing="lg">
                                 {games.map((g) => (
-                                    <GameCard key={g.id} game={g} />
+                                    <GameCard key={g.id} game={g} platformSlug={activePlatformSlug} />
                                 ))}
                             </SimpleGrid>
 

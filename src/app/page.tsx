@@ -1,9 +1,5 @@
 'use client';
 
-import { FaPlaystation, FaXbox } from 'react-icons/fa';
-import { BsNintendoSwitch } from 'react-icons/bs';
-import type { ComponentType } from 'react';
-
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -19,7 +15,6 @@ import {
     Anchor,
     Badge,
     Stack,
-    useMantineColorScheme,
 } from '@mantine/core';
 import {
     IconSearch,
@@ -27,14 +22,12 @@ import {
     IconTag,
     IconArrowRight,
     IconDeviceGamepad,
-    IconDeviceGamepad2,
-    IconDeviceDesktop,
-    IconDeviceNintendo,
 } from '@tabler/icons-react';
-import { getGames, getPosts, getPlatforms } from '@/lib/api';
-import type { Game, Post, Platform } from '@/lib/types';
-import { PLATFORM_COLORS } from '@/lib/utils';
+import { getGames, getPosts } from '@/lib/api';
+import type { Game, Post } from '@/lib/types';
+import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import GameCard from '@/components/GameCard';
+import { useApp } from '@/context/AppContext';
 
 /* ── Sagas Favoritas ── */
 const SAGAS = [
@@ -45,41 +38,20 @@ const SAGAS = [
     { name: 'The Legend of Zelda', query: 'zelda', logo: '/logos/zelda.svg' },
 ];
 
-/* ── Mapa de iconos por slug de plataforma ── */
-const PLATFORM_ICON_MAP: Record<string, ComponentType<{ size?: number; color?: string }>> = {
-    ps3: FaPlaystation,
-    ps4: FaPlaystation,
-    ps5: FaPlaystation,
-    xbox: FaXbox,
-    switch: BsNintendoSwitch,
-    switch2: BsNintendoSwitch,
-    pc: IconDeviceDesktop,
-    wii: IconDeviceNintendo,
-    nds: IconDeviceGamepad2,
-    '3ds': IconDeviceGamepad2,
-    wiiu: IconDeviceNintendo,
-};
-
 export default function HomePage() {
     const router = useRouter();
+    const { condition } = useApp();
     const [query, setQuery] = useState('');
     const [games, setGames] = useState<Game[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
-    const [platforms, setPlatforms] = useState<Platform[]>([]);
-    const { colorScheme } = useMantineColorScheme();
-    const isDark = colorScheme === 'dark';
-
     useEffect(() => {
-        getGames({ page: 1 })
+        getGames({ page: 1, condition: condition !== 'all' ? condition : undefined })
             .then((res) => setGames(res.results))
             .catch(() => { });
         getPosts({ page: 1, ordering: '-published_date' })
             .then((res) => setPosts(res.results))
             .catch(() => { });
-        getPlatforms()
-            .then((res) => setPlatforms(res.results))
-            .catch(() => { });
-    }, []);
+    }, [condition]);
 
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();
@@ -167,9 +139,9 @@ export default function HomePage() {
                                 p={6}
                                 style={{
                                     borderRadius: 'var(--mantine-radius-xl)',
-                                    background: isDark ? 'var(--mantine-color-dark-6)' : '#fff',
+                                    background: 'light-dark(#fff, var(--mantine-color-dark-6))',
                                     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-                                    border: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-2)'}`,
+                                    border: '1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))',
                                 }}
                             >
                                 <TextInput
@@ -204,8 +176,7 @@ export default function HomePage() {
             {/* ══════ SAGAS BANNER ══════ */}
             <Box
                 py="xl"
-                style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)' }}
-                bg={isDark ? 'rgba(0,0,0,0.2)' : 'var(--mantine-color-gray-0)'}
+                style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)', background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.2))' }}
             >
                 <Container size="lg">
                     <Text fz="sm" fw={700} tt="uppercase" ta="center" c="dimmed" mb="xl" style={{ letterSpacing: 3 }}>
@@ -301,18 +272,18 @@ export default function HomePage() {
             </Box>
 
             {/* ══════ EXPLORAR POR PLATAFORMA ══════ */}
-            <Box py={60} bg={isDark ? 'rgba(0,0,0,0.2)' : 'var(--mantine-color-gray-0)'}>
+            <Box py={60} style={{ background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.2))' }}>
                 <Container size="lg">
                     <Title order={2} fz={24} fw={700} mb="xl">
                         Explorar por Plataforma
                     </Title>
 
-                    <SimpleGrid cols={{ base: 2, md: 3 }} spacing="md">
-                        {platforms.map((p) => {
-                            const Icon = PLATFORM_ICON_MAP[p.name] || IconDeviceGamepad2;
-                            const pColor = PLATFORM_COLORS[p.name]?.cssVar || 'var(--mantine-color-gray-filled)';
+                    <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+                        {PLATFORM_GROUPS.map((group) => {
+                            const Icon = group.icon;
+                            const href = `/search?platform=${group.options.map((o) => o.slug).join(',')}`;
                             return (
-                                <Anchor key={p.slug} href={`/search?platform=${p.slug}`} underline="never">
+                                <Anchor key={group.label} href={href} underline="never">
                                     <Card
                                         withBorder
                                         shadow="sm"
@@ -322,7 +293,7 @@ export default function HomePage() {
                                             textAlign: 'center',
                                             transition: 'transform 0.2s, box-shadow 0.2s',
                                             cursor: 'pointer',
-                                            backgroundColor: pColor,
+                                            backgroundColor: group.color,
                                         }}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.transform = 'translateY(-4px)';
@@ -335,7 +306,7 @@ export default function HomePage() {
                                     >
                                         <Stack align="center" gap="xs">
                                             <Icon size={40} color={'white'} />
-                                            <Text fw={700} fz="sm" c="white">{p.display_name}</Text>
+                                            <Text fw={700} fz="sm" c="white">{group.label}</Text>
                                         </Stack>
                                     </Card>
                                 </Anchor>
@@ -385,8 +356,8 @@ export default function HomePage() {
                                 {/* Placeholder image area */}
                                 <Box
                                     h={180}
-                                    bg={isDark ? 'var(--mantine-color-dark-5)' : 'var(--mantine-color-gray-2)'}
                                     style={{
+                                        background: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
