@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import {
     Group,
@@ -99,7 +100,7 @@ export default function Navbar() {
                             <Menu key={group.label} trigger="hover" position="bottom" openDelay={0} closeDelay={150}>
                                 <Menu.Target>
                                     <UnstyledButton
-                                        component="a"
+                                        component={Link}
                                         href={groupHref}
                                         fw={600}
                                         fz="sm"
@@ -126,7 +127,7 @@ export default function Navbar() {
                                     {group.options.map((opt) => (
                                         <Menu.Item
                                             key={opt.slug}
-                                            component="a"
+                                            component={Link}
                                             href={`/search?platform=${opt.slug}`}
                                         >
                                             {opt.label}
@@ -149,7 +150,7 @@ export default function Navbar() {
                     />
 
                     <Button
-                        component="a"
+                        component={Link}
                         href="/search?on_sale=true"
                         variant="gradient"
                         gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
@@ -217,6 +218,7 @@ export default function Navbar() {
                                             {group.options.map((opt) => (
                                                 <Anchor
                                                     key={opt.slug}
+                                                    component={Link}
                                                     href={`/search?platform=${opt.slug}`}
                                                     onClick={close}
                                                     fw={600}
@@ -248,7 +250,7 @@ export default function Navbar() {
                     />
 
                     <Button
-                        component="a"
+                        component={Link}
                         href="/search?on_sale=true"
                         onClick={close}
                         variant="gradient"

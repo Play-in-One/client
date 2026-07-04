@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, Suspense, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Container,
     Title,
@@ -75,6 +75,7 @@ function FilterSection({
 }
 
 function SearchContent() {
+    const router = useRouter();
     const params = useSearchParams();
     const { condition } = useApp();
     const q = params.get('q') ?? '';
@@ -93,10 +94,25 @@ function SearchContent() {
     const [sellers, setSellers] = useState<Seller[]>([]);
 
     /* ── Active filter selections ── */
-    const [selectedPlatforms, setSelectedPlatforms] = useState<number[]>([]);
+    /* Platform is derived from the URL — the URL is the single source of truth,
+       so header links and the sidebar selector stay in sync automatically. */
+    const selectedPlatforms = useMemo(() => {
+        if (!platformSlug) return [];
+        const slugs = platformSlug.split(',').map((s) => s.trim()).filter(Boolean);
+        return platforms.filter((p) => slugs.includes(p.slug)).map((p) => p.id);
+    }, [platformSlug, platforms]);
     const activePlatformSlug = selectedPlatforms.length === 1
         ? platforms.find((p) => p.id === selectedPlatforms[0])?.slug
         : undefined;
+
+    const setPlatformFilter = (nextIds: number[]) => {
+        const nextSlugs = platforms.filter((p) => nextIds.includes(p.id)).map((p) => p.slug);
+        const usp = new URLSearchParams(params.toString());
+        if (nextSlugs.length) usp.set('platform', nextSlugs.join(',')); else usp.delete('platform');
+        router.replace(`/search?${usp.toString()}`, { scroll: false });
+        setPage(1);
+    };
+
     const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
     const [selectedSeller, setSelectedSeller] = useState<number | null>(null);
     const [priceMin, setPriceMin] = useState<number | undefined>(undefined);
@@ -115,18 +131,12 @@ function SearchContent() {
     /* ── Mobile sidebar toggle ── */
     const [filtersOpen, setFiltersOpen] = useState(false);
 
-    /* Fetch filter options */
+    /* Fetch filter options once on mount — platform selection itself is derived
+       from the URL (see `selectedPlatforms` above), so this no longer needs to
+       depend on `platformSlug`. */
     useEffect(() => {
         getPlatforms()
-            .then((res) => {
-                setPlatforms(res.results);
-                // Auto-select platform(s) from URL param (comma-separated slugs supported)
-                if (platformSlug) {
-                    const slugs = platformSlug.split(',').map((s) => s.trim()).filter(Boolean);
-                    const matched = res.results.filter((p) => slugs.includes(p.slug));
-                    if (matched.length) setSelectedPlatforms(matched.map((p) => p.id));
-                }
-            })
+            .then((res) => setPlatforms(res.results))
             .catch(() => { });
         getGenres()
             .then((res) => setGenres(res.results))
@@ -134,7 +144,7 @@ function SearchContent() {
         getSellers()
             .then((res) => setSellers(res.results))
             .catch(() => { });
-    }, [platformSlug]);
+    }, []);
 
     useEffect(() => {
         setActiveQuery(q);
@@ -143,6 +153,7 @@ function SearchContent() {
     }, [q]);
 
     useEffect(() => {
+        const controller = new AbortController();
         setLoading(true);
         getGames({
             search: activeQuery || undefined,
@@ -155,13 +166,15 @@ function SearchContent() {
             on_sale: onSale || undefined,
             ordering,
             page,
+            signal: controller.signal,
         })
             .then((res) => {
                 setGames(res.results);
                 setTotal(res.count);
             })
-            .catch(() => setGames([]))
-            .finally(() => setLoading(false));
+            .catch((err) => { if (err?.name !== 'AbortError') setGames([]); })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        return () => controller.abort();
     }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
 
     const totalPages = Math.ceil(total / 50);
@@ -172,7 +185,7 @@ function SearchContent() {
     };
 
     const handleClearFilters = () => {
-        setSelectedPlatforms([]);
+        setPlatformFilter([]);
         setSelectedGenre(null);
         setSelectedSeller(null);
         setPriceMin(undefined);
@@ -270,12 +283,11 @@ function SearchContent() {
                             label={p.display_name}
                             checked={selectedPlatforms.includes(p.id)}
                             onChange={() => {
-                                setSelectedPlatforms((prev) =>
-                                    prev.includes(p.id)
-                                        ? prev.filter((id) => id !== p.id)
-                                        : [...prev, p.id]
+                                setPlatformFilter(
+                                    selectedPlatforms.includes(p.id)
+                                        ? selectedPlatforms.filter((id) => id !== p.id)
+                                        : [...selectedPlatforms, p.id]
                                 );
-                                setPage(1);
                             }}
                             color="primaryRed"
                             radius="sm"
