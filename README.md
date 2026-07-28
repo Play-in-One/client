@@ -32,7 +32,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8001/api
 ## Comandos
 
 ```bash
-npm run dev           # desarrollo en http://localhost:3001
+npm run dev           # desarrollo en http://localhost:3001 (default)
 npm run build         # build de producción
 npm run start         # servidor de producción
 npm run lint          # ESLint
@@ -45,6 +45,9 @@ npm run test:e2e:ui   # Playwright con interfaz interactiva
 | Variable               | Descripción                 | Default                     |
 |------------------------|-----------------------------|-----------------------------|
 | `NEXT_PUBLIC_API_URL`  | URL base de la API Django   | `http://localhost:8001/api` |
+| `FRONTEND_PORT`        | Puerto del dev server (`npm run dev`) y de Playwright | `3001` |
+
+> `FRONTEND_PORT` se expande con `sh` en el script `dev` (`next dev -p ${FRONTEND_PORT:-3001}`), por lo que requiere un shell POSIX (Linux/macOS/WSL). `NEXT_PUBLIC_API_URL` también define el `remotePattern` de imágenes `/media/` en `next.config.mjs`, y se hornea en build time.
 
 ## Páginas
 

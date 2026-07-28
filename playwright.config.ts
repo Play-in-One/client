@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const PORT = process.env.FRONTEND_PORT ?? '3001';
+
 export default defineConfig({
     testDir: './tests/e2e',
     fullyParallel: true,
@@ -9,7 +11,7 @@ export default defineConfig({
     reporter: 'list',
     timeout: 30_000,
     use: {
-        baseURL: 'http://localhost:3001',
+        baseURL: `http://localhost:${PORT}`,
         trace: 'on-first-retry',
     },
     projects: [
@@ -20,7 +22,7 @@ export default defineConfig({
     ],
     webServer: {
         command: 'npm run dev',
-        url: 'http://localhost:3001',
+        url: `http://localhost:${PORT}`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
     },

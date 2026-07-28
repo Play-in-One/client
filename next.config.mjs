@@ -1,3 +1,5 @@
+const apiUrl = new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: 'standalone',
@@ -5,9 +7,9 @@ const nextConfig = {
     images: {
         remotePatterns: [
             {
-                protocol: 'http',
-                hostname: 'localhost',
-                port: '8001',
+                protocol: apiUrl.protocol.replace(':', ''),
+                hostname: apiUrl.hostname,
+                port: apiUrl.port,
                 pathname: '/media/**',
             },
             {
