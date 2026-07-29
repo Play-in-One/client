@@ -1,20 +1,19 @@
-'use client';
+import type { Metadata } from 'next';
+import { Container, Title, Box, Text } from '@mantine/core';
+import { buildMetadata } from '@/lib/seo';
 
-import { Container, Title, Box, Text, useMantineColorScheme } from '@mantine/core';
+export const metadata: Metadata = buildMetadata({
+    title: 'Términos de Servicio',
+    description: 'Términos y condiciones de uso de la plataforma Play in One.',
+    path: '/terms',
+});
 
 export default function TermsPage() {
-    const { colorScheme } = useMantineColorScheme();
-    const isDark = colorScheme === 'dark';
-
     return (
         <Container size="md" py={60}>
             <Title order={1} mb="xl" ta="center">Términos de Servicio</Title>
 
-            <Box
-                bg={isDark ? 'var(--mantine-color-dark-6)' : 'white'}
-                p="xl"
-                style={{ borderRadius: 'var(--mantine-radius-lg)', border: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-2)'}` }}
-            >
+            <Box className="content-card" p="xl">
                 <Text fw={700} mb="xs">1. Aceptación de los Términos</Text>
                 <Text fz="md" c="dimmed" mb="lg">
                     Al acceder a Play in One, aceptas estar sujeto a estos términos y condiciones. Si no estás de acuerdo, te rogamos no uses la plataforma.

@@ -1,22 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Container, Title, SimpleGrid, Card, Box, Text, useMantineColorScheme, Badge } from '@mantine/core';
 import { IconDeviceGamepad } from '@tabler/icons-react';
-import { getPosts } from '@/lib/api';
 import type { Post } from '@/lib/types';
 import Link from 'next/link';
 
-export default function BlogPage() {
-    const [posts, setPosts] = useState<Post[]>([]);
+export default function BlogListClient({ initialPosts }: { initialPosts: Post[] }) {
+    const posts = initialPosts;
     const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === 'dark';
-
-    useEffect(() => {
-        getPosts({ ordering: '-published_date' })
-            .then((res) => setPosts(res.results))
-            .catch(() => {});
-    }, []);
 
     return (
         <Container size="lg" py={60}>
@@ -56,7 +48,7 @@ export default function BlogPage() {
                             <Badge color="primaryRed" mb="sm">{post.category}</Badge>
                             <Text fw={700} fz="lg" mb="xs" lineClamp={2}>{post.title}</Text>
                             <Text fz="sm" c="dimmed" lineClamp={3}>{post.description}</Text>
-                            <Text fz="xs" c="dimmed" mt="md">
+                            <Text fz="xs" c="dimmed" mt="md" component="time" dateTime={post.published_date}>
                                 {new Date(post.published_date).toLocaleDateString()}
                             </Text>
                         </Box>

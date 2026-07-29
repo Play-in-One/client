@@ -1,8 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { handleImageError } from '@/lib/imageFallback';
-import { useParams } from 'next/navigation';
 import {
     Container,
     Title,
@@ -12,46 +9,14 @@ import {
     Card,
     Anchor,
     Breadcrumbs,
-    Loader,
     Stack,
 } from '@mantine/core';
 import { IconExternalLink, IconChevronRight, IconHome, IconMapPin } from '@tabler/icons-react';
 
-import { getSeller } from '@/lib/api';
 import type { Seller } from '@/lib/types';
 
-export default function StoreDetailPage() {
-    const { id } = useParams<{ id: string }>();
-    const [seller, setSeller] = useState<Seller | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        if (!id) return;
-        setLoading(true);
-        getSeller(id)
-            .then(setSeller)
-            .catch(() => { })
-            .finally(() => setLoading(false));
-    }, [id]);
-
-    if (loading) {
-        return (
-            <Container size="lg" py={80}>
-                <Stack align="center"><Loader color="primaryRed" size="lg" /></Stack>
-            </Container>
-        );
-    }
-
-    if (!seller) {
-        return (
-            <Container size="lg" py={80}>
-                <Stack align="center">
-                    <Text fw={600} fz="lg">Tienda no encontrada</Text>
-                </Stack>
-            </Container>
-        );
-    }
-
+export default function StoreClient({ initialSeller }: { initialSeller: Seller }) {
+    const seller = initialSeller;
     const addresses = seller.addresses ?? [];
 
     return (
@@ -66,24 +31,6 @@ export default function StoreDetailPage() {
                 </Anchor>
                 <Text fw={500}>{seller.name}</Text>
             </Breadcrumbs>
-
-            {/* Banner */}
-            <Box
-                style={{
-                    borderRadius: 'var(--mantine-radius-lg)',
-                    overflow: 'hidden',
-                    aspectRatio: '16/5',
-                    background: 'var(--mantine-color-gray-1)',
-                }}
-                mb="lg"
-            >
-                <img
-                    src={seller.banner || '/placeholder-store.png'}
-                    alt={seller.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={handleImageError('/placeholder-store.png')}
-                />
-            </Box>
 
             {/* Header: icon + name */}
             <Group gap="md" mb="lg" align="center">

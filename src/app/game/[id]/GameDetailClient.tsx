@@ -1,8 +1,8 @@
 'use client';
 
-import { type ComponentType, useEffect, useState } from 'react';
+import { Fragment, type ComponentType, useEffect, useState } from 'react';
 import { handleImageError } from '@/lib/imageFallback';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import {
     Container,
     Title,
@@ -15,12 +15,11 @@ import {
     Card,
     Anchor,
     Breadcrumbs,
-    Loader,
     Stack,
     ActionIcon,
+    Grid,
     SimpleGrid,
     Select,
-    useMantineColorScheme,
     Tooltip as MantineTooltip,
 } from '@mantine/core';
 import {
@@ -30,7 +29,6 @@ import {
     IconLink,
     IconExternalLink,
     IconTag,
-    IconChartLine,
     IconTableColumn,
     IconChevronRight,
     IconHome,
@@ -40,75 +38,36 @@ import {
     IconDeviceNintendo,
     IconDeviceDesktop,
 } from '@tabler/icons-react';
-import {
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    Area,
-    AreaChart,
-} from 'recharts';
-
 import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
 
-import { getGame } from '@/lib/api';
+import { trackEvent } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import PlatformBadge from '@/components/PlatformBadge';
+import ProductPriceChart from '@/components/ProductPriceChart';
 import { useApp } from '@/context/AppContext';
 
-export default function GameDetailPage() {
-    const { id } = useParams<{ id: string }>();
+export default function GameDetailClient({ initialGame }: { initialGame: Game }) {
     const searchParams = useSearchParams();
     const { condition, isSaved, toggleSaved } = useApp();
-    const [game, setGame] = useState<Game | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-    const [conditionFilter, setConditionFilter] = useState<string | null>(null);
+    // Server-rendered: the game is always present on first paint (page.tsx guards 404).
+    const game = initialGame;
+    const [selectedPlatform, setSelectedPlatform] = useState<string | null>(() => {
+        const requestedSlug = searchParams.get('platform');
+        const requested = requestedSlug ? game.platforms.find((p) => p.slug === requestedSlug) : null;
+        return requested?.name ?? game.platforms[0]?.name ?? null;
+    });
+    const [conditionFilter, setConditionFilter] = useState<string | null>(
+        condition !== 'all' ? condition : null,
+    );
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
+    const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
     const [canNativeShare, setCanNativeShare] = useState(false);
-    const { colorScheme } = useMantineColorScheme();
-    const isDark = colorScheme === 'dark';
-
     useEffect(() => {
         setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
     }, []);
-
-    useEffect(() => {
-        if (!id) return;
-        setLoading(true);
-        getGame(id)
-            .then((g) => {
-                setGame(g);
-                const requestedSlug = searchParams.get('platform');
-                const requested = requestedSlug ? g.platforms.find((p) => p.slug === requestedSlug) : null;
-                setSelectedPlatform(requested?.name ?? g.platforms[0]?.name ?? null);
-                setConditionFilter(condition !== 'all' ? condition : null);
-            })
-            .catch(() => { })
-            .finally(() => setLoading(false));
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
-
-    if (loading) {
-        return (
-            <Container size="lg" py={80}>
-                <Stack align="center"><Loader color="primaryRed" size="lg" /></Stack>
-            </Container>
-        );
-    }
-
-    if (!game) {
-        return (
-            <Container size="lg" py={80}>
-                <Stack align="center">
-                    <Text fw={600} fz="lg">Juego no encontrado</Text>
-                </Stack>
-            </Container>
-        );
-    }
 
     // Filter products
     const products = (game.products ?? []).filter((p) => {
@@ -128,6 +87,7 @@ export default function GameDetailPage() {
     const bestPrice = bestProduct ? parseFloat(bestProduct.current_price ?? '0') : 0;
 
     const handleToggleSave = () => {
+        const willSave = !isSaved(game.id);
         toggleSaved({
             id: game.id,
             name: game.name,
@@ -136,6 +96,8 @@ export default function GameDetailPage() {
             platforms: game.platforms,
             savedAt: new Date().toISOString(),
         });
+        // Track only the save action (not un-saving) — popularity of saved games.
+        if (willSave) trackEvent({ event_type: 'game_save', game: game.id });
     };
 
     const handleShare = async () => {
@@ -157,12 +119,6 @@ export default function GameDetailPage() {
             }
         }
     };
-
-    // Build mock price history chart data from products (demonstration)
-    const chartData = sorted.map((p, i) => ({
-        name: p.seller.name,
-        price: parseFloat(p.current_price ?? '0'),
-    }));
 
     // Seller initials color map
     const sellerColors = ['#7C3AED', '#2563EB', '#6366F1', '#6B7280', '#F97316'];
@@ -216,9 +172,9 @@ export default function GameDetailPage() {
             </Breadcrumbs>
 
             {/* Main layout: sidebar + content */}
-            <SimpleGrid cols={{ base: 1, lg: 12 }} spacing="xl">
+            <Grid gutter="xl">
                 {/* ── Sidebar: Cover + info ── */}
-                <Box style={{ gridColumn: 'span 4' }}>
+                <Grid.Col span={{ base: 12, lg: 4 }}>
                     {/* Cover art (sticky) */}
                     <Box
                         style={{
@@ -231,12 +187,14 @@ export default function GameDetailPage() {
                         }}
                     >
                         <Box
+                            pos="relative"
                             maw={{ base: '85%', lg: '100%' }}
                             mx={{ base: 'auto', lg: 0 }}
                             style={{
                                 borderRadius: 'var(--mantine-radius-lg)',
                                 overflow: 'hidden',
                                 boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+                                border: '1px solid var(--mantine-color-default-border)',
                                 aspectRatio: '3/4',
                             }}
                         >
@@ -260,7 +218,7 @@ export default function GameDetailPage() {
                             {hoveredProductImage && (
                                 <img
                                     src={hoveredProductImage}
-                                    alt="Producto"
+                                    alt={`Oferta de ${game.name}`}
                                     style={{
                                         position: 'absolute',
                                         inset: 0,
@@ -310,18 +268,18 @@ export default function GameDetailPage() {
                         {/* Description */}
                         {game.description && (
                             <Card withBorder radius="lg" p="lg">
-                                <Text fw={700} mb="xs">Acerca del juego</Text>
-                                <Text fz="sm" c="dimmed" lh={1.6}>
+                                <Text fw={700} mb="xs" ta={{ base: 'center', lg: 'left' }}>Acerca del juego</Text>
+                                <Text fz="sm" c="dimmed" lh={1.6} ta={{ base: 'center', lg: 'left' }}>
                                     {game.description}
                                 </Text>
                             </Card>
                         )}
 
                     </Stack>
-                </Box>
+                </Grid.Col>
 
                 {/* ── Main content ── */}
-                <Box style={{ gridColumn: 'span 8' }}>
+                <Grid.Col span={{ base: 12, lg: 8 }}>
                     <Stack gap="xl">
                         {/* Title + platform tabs */}
                         <Box
@@ -358,7 +316,7 @@ export default function GameDetailPage() {
                                             display: 'inline-flex',
                                             borderRadius: 'var(--mantine-radius-md)',
                                             border: '1px solid var(--mantine-color-default-border)',
-                                            background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--mantine-color-gray-0)',
+                                            background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.3))',
                                         }}
                                     >
                                         {game.platforms.map((pl) => {
@@ -479,6 +437,7 @@ export default function GameDetailPage() {
                                             href={bestProduct.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
+                                            onClick={() => trackEvent({ event_type: 'offer_click', product: bestProduct.id, game: game.id, platform: bestProduct.platform?.id })}
                                             color="primaryRed"
                                             size="lg"
                                             radius="lg"
@@ -531,6 +490,7 @@ export default function GameDetailPage() {
                                         <Table.Tr>
                                             <Table.Th>Tienda & Producto</Table.Th>
                                             <Table.Th>Precio</Table.Th>
+                                            <Table.Th>Tendencia</Table.Th>
                                             <Table.Th>Estado</Table.Th>
                                             <Table.Th ta="right">Acción</Table.Th>
                                         </Table.Tr>
@@ -538,7 +498,7 @@ export default function GameDetailPage() {
                                     <Table.Tbody>
                                         {sorted.length === 0 ? (
                                             <Table.Tr>
-                                                <Table.Td colSpan={4}>
+                                                <Table.Td colSpan={5}>
                                                     <Text c="dimmed" ta="center" py="lg">
                                                         No hay productos disponibles con estos filtros
                                                     </Text>
@@ -546,9 +506,9 @@ export default function GameDetailPage() {
                                             </Table.Tr>
                                         ) : (
                                             sorted.map((p, idx) => (
+                                            <Fragment key={p.id}>
                                                 <Table.Tr
-                                                    key={p.id}
-                                                    style={{ transition: 'background 0.15s', cursor: 'pointer' }}
+                                                    style={{ transition: 'background 0.15s' }}
                                                     onMouseEnter={() => p.image ? setHoveredProductImage(p.image) : undefined}
                                                     onMouseLeave={() => setHoveredProductImage(null)}
                                                 >
@@ -560,7 +520,7 @@ export default function GameDetailPage() {
                                                                     h={40}
                                                                     style={{
                                                                         borderRadius: 'var(--mantine-radius-sm)',
-                                                                        background: isDark ? 'var(--mantine-color-dark-5)' : 'var(--mantine-color-gray-1)',
+                                                                        background: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
                                                                         display: 'flex',
                                                                         alignItems: 'center',
                                                                         justifyContent: 'center',
@@ -612,6 +572,17 @@ export default function GameDetailPage() {
                                                         </Text>
                                                     </Table.Td>
                                                     <Table.Td>
+                                                        <ProductPriceChart
+                                                            prices={p.prices ?? []}
+                                                            size="sm"
+                                                            onClick={
+                                                                (p.prices?.length ?? 0) >= 2
+                                                                    ? () => setExpandedProductId((id) => (id === p.id ? null : p.id))
+                                                                    : undefined
+                                                            }
+                                                        />
+                                                    </Table.Td>
+                                                    <Table.Td>
                                                         <Badge
                                                             color={conditionBadgeColor[p.condition] ?? 'gray'}
                                                             variant="light"
@@ -626,6 +597,7 @@ export default function GameDetailPage() {
                                                             href={p.url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
+                                                            onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
                                                             size="xs"
                                                             radius="md"
                                                             variant={idx === 0 ? 'filled' : 'default'}
@@ -635,76 +607,23 @@ export default function GameDetailPage() {
                                                         </Button>
                                                     </Table.Td>
                                                 </Table.Tr>
+                                                {expandedProductId === p.id && (
+                                                    <Table.Tr>
+                                                        <Table.Td colSpan={5} p="md">
+                                                            <ProductPriceChart prices={p.prices ?? []} size="lg" />
+                                                        </Table.Td>
+                                                    </Table.Tr>
+                                                )}
+                                            </Fragment>
                                             ))
                                         )}
                                     </Table.Tbody>
                                 </Table>
                             </Table.ScrollContainer>
                         </Card>
-
-                        {/* ══════ Price chart ══════ */}
-                        {chartData.length > 1 && (
-                            <Card withBorder radius="xl" p="lg">
-                                <Group justify="space-between" mb="lg">
-                                    <Title order={3} fz="lg" fw={700}>
-                                        <Group gap={8}>
-                                            <IconChartLine size={20} color="var(--mantine-color-primaryRed-5)" />
-                                            Comparativa de Precios por Tienda
-                                        </Group>
-                                    </Title>
-                                    {bestProduct && (
-                                        <Badge variant="light" color="gray" radius="xl" size="sm">
-                                            Mínimo: {formatCLP(bestPrice)}
-                                        </Badge>
-                                    )}
-                                </Group>
-
-                                <Box h={200}>
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData}>
-                                            <defs>
-                                                <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="var(--mantine-color-primaryRed-5)" stopOpacity={0.2} />
-                                                    <stop offset="95%" stopColor="var(--mantine-color-primaryRed-5)" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <XAxis
-                                                dataKey="name"
-                                                tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                            />
-                                            <YAxis
-                                                tick={{ fontSize: 12, fill: '#9CA3AF' }}
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
-                                            />
-                                            <Tooltip
-                                                formatter={(v: number) => [formatCLP(v), 'Precio']}
-                                                contentStyle={{
-                                                    background: isDark ? '#1F2937' : '#fff',
-                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                    borderRadius: 8,
-                                                    color: isDark ? '#fff' : '#1F2937',
-                                                }}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="price"
-                                                stroke="var(--mantine-color-primaryRed-5)"
-                                                strokeWidth={3}
-                                                fill="url(#colorPrice)"
-                                                dot={{ r: 4, fill: '#fff', stroke: 'var(--mantine-color-primaryRed-5)', strokeWidth: 2 }}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </Box>
-                            </Card>
-                        )}
                     </Stack>
-                </Box>
-            </SimpleGrid>
+                </Grid.Col>
+            </Grid>
         </Container>
     );
 }

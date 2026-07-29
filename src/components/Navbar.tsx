@@ -17,7 +17,6 @@ import {
     Button,
     SegmentedControl,
     useMantineColorScheme,
-    useComputedColorScheme,
     Menu,
     UnstyledButton,
     Accordion,
@@ -27,7 +26,6 @@ import {
     IconSearch,
     IconMoon,
     IconSun,
-    IconFlame,
     IconBookmark,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
@@ -46,7 +44,6 @@ export default function Navbar() {
     const { searchQuery, setSearchQuery, condition, setCondition } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
     const { toggleColorScheme } = useMantineColorScheme();
-    const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
     const [opened, { toggle, close }] = useDisclosure(false);
 
     const handleSearch = (e: FormEvent) => {
@@ -118,7 +115,7 @@ export default function Navbar() {
                                         <Group gap={6} wrap="nowrap">
                                             <Icon size={18} />
                                             <Box component="span">
-                                                {group.label}
+                                                {group.brand}
                                             </Box>
                                         </Group>
                                     </UnstyledButton>
@@ -149,18 +146,6 @@ export default function Navbar() {
                         classNames={{ root: 'condition-switch' }}
                     />
 
-                    <Button
-                        component={Link}
-                        href="/search?on_sale=true"
-                        variant="gradient"
-                        gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
-                        radius="xl"
-                        size="sm"
-                        leftSection={<IconFlame size={16} />}
-                        style={{ boxShadow: '0 4px 14px rgba(230,57,70,0.25)' }}
-                    >
-                        Ofertas
-                    </Button>
                 </Group>
 
                 {/* Search + actions */}
@@ -198,7 +183,8 @@ export default function Navbar() {
                     </ActionIcon>
 
                     <ActionIcon variant="subtle" radius="xl" size="lg" onClick={toggleColorScheme}>
-                        {computedColorScheme === 'dark' ? <IconSun size={22} /> : <IconMoon size={22} />}
+                        <IconSun className="theme-icon theme-icon-sun" size={22} />
+                        <IconMoon className="theme-icon theme-icon-moon" size={22} />
                     </ActionIcon>
 
                     <Burger opened={opened} onClick={toggle} hiddenFrom="lg" size="sm" />
@@ -217,7 +203,7 @@ export default function Navbar() {
                                         <Group gap={12}>
                                             <Icon size={24} color={group.color} />
                                             <Text fw={600} fz="lg">
-                                                {group.label}
+                                                {group.brand}
                                             </Text>
                                         </Group>
                                     </Accordion.Control>
@@ -256,20 +242,6 @@ export default function Navbar() {
                         classNames={{ root: 'condition-switch' }}
                         fullWidth
                     />
-
-                    <Button
-                        component={Link}
-                        href="/search?on_sale=true"
-                        onClick={close}
-                        variant="gradient"
-                        gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
-                        radius="xl"
-                        size="md"
-                        leftSection={<IconFlame size={20} />}
-                        style={{ boxShadow: '0 4px 14px rgba(230,57,70,0.25)' }}
-                    >
-                        Ver Ofertas
-                    </Button>
 
                     <Button
                         component={Link}

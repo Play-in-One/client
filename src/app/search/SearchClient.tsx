@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Container,
@@ -30,8 +30,8 @@ import {
     IconAdjustmentsHorizontal,
     IconChevronDown,
 } from '@tabler/icons-react';
-import { getGames, getPlatforms, getGenres, getSellers } from '@/lib/api';
-import type { Game, Platform, Genre, Seller } from '@/lib/types';
+import { getGames, getGameFacets, getPlatforms, getGenres, getSellers, trackEvent } from '@/lib/api';
+import type { Game, Platform, Genre, Seller, GameFacets } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
 
@@ -74,6 +74,17 @@ function FilterSection({
     );
 }
 
+function CheckboxLabel({ text, count }: { text: string; count?: number }) {
+    return (
+        <Group gap={6} wrap="nowrap">
+            <Text fz="sm" span>{text}</Text>
+            {count !== undefined && (
+                <Text fz="xs" c="dimmed" span>({count})</Text>
+            )}
+        </Group>
+    );
+}
+
 function SearchContent() {
     const router = useRouter();
     const params = useSearchParams();
@@ -81,6 +92,7 @@ function SearchContent() {
     const q = params.get('q') ?? '';
     const platformSlug = params.get('platform') ?? '';
     const [games, setGames] = useState<Game[]>([]);
+    const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(true);
@@ -126,7 +138,6 @@ function SearchContent() {
     const [genresOpen, setGenresOpen] = useState(true);
     const [sellersOpen, setSellersOpen] = useState(true);
     const [priceOpen, setPriceOpen] = useState(true);
-    const [onSaleOpen, setOnSaleOpen] = useState(true);
 
     /* ── Mobile sidebar toggle ── */
     const [filtersOpen, setFiltersOpen] = useState(false);
@@ -152,6 +163,26 @@ function SearchContent() {
         setPage(1);
     }, [q]);
 
+    /* ── Popularity tracking ──
+       All searches (Navbar, home, saga links) converge on /search?q=, and all
+       console selections (header menu, home cards, sidebar) converge on the
+       ?platform= param — so these two effects capture every entry point. */
+    useEffect(() => {
+        const query = q.trim();
+        if (query) trackEvent({ event_type: 'search', search_query: query });
+    }, [q]);
+
+    const trackedPlatforms = useRef<Set<number>>(new Set());
+    useEffect(() => {
+        // Track only newly-added consoles so re-renders / removals don't inflate counts.
+        for (const id of selectedPlatforms) {
+            if (!trackedPlatforms.current.has(id)) {
+                trackedPlatforms.current.add(id);
+                trackEvent({ event_type: 'platform_select', platform: id });
+            }
+        }
+    }, [selectedPlatforms]);
+
     useEffect(() => {
         const controller = new AbortController();
         setLoading(true);
@@ -176,6 +207,27 @@ function SearchContent() {
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
     }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
+
+    /* ── Facet counts (how many games each filter option would yield, given
+       every other currently active filter) — recomputed whenever the active
+       filters change, independent of pagination/ordering. ── */
+    useEffect(() => {
+        const controller = new AbortController();
+        getGameFacets({
+            search: activeQuery || undefined,
+            platforms: selectedPlatforms.length > 0 ? selectedPlatforms : undefined,
+            genres: selectedGenre ?? undefined,
+            seller: selectedSeller ?? undefined,
+            condition: condition !== 'all' ? condition : undefined,
+            price_min: priceMin,
+            price_max: priceMax,
+            on_sale: onSale || undefined,
+            signal: controller.signal,
+        })
+            .then(setFacets)
+            .catch((err) => { if (err?.name !== 'AbortError') setFacets({ platforms: {}, genres: {}, sellers: {} }); });
+        return () => controller.abort();
+    }, [activeQuery, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
 
     const totalPages = Math.ceil(total / 50);
 
@@ -254,33 +306,24 @@ function SearchContent() {
 
             <Divider />
 
-            {/* Ofertas */}
-            <FilterSection title="Ofertas" open={onSaleOpen} onToggle={() => setOnSaleOpen((v) => !v)}>
-                <Checkbox
-                    label="En oferta"
-                    checked={onSale}
-                    onChange={() => {
-                        setOnSale((v) => !v);
-                        setPage(1);
-                    }}
-                    color="primaryRed"
-                    radius="sm"
-                    styles={{
-                        label: { cursor: 'pointer', fontSize: 14 },
-                        input: { cursor: 'pointer' },
-                    }}
-                />
-            </FilterSection>
-
-            <Divider />
-
             {/* Platforms */}
             <FilterSection title="Plataforma" open={platformsOpen} onToggle={() => setPlatformsOpen((v) => !v)}>
                 <Stack gap={6}>
+                    <Checkbox
+                        label="Todos"
+                        checked={selectedPlatforms.length === 0}
+                        onChange={() => setPlatformFilter([])}
+                        color="primaryRed"
+                        radius="sm"
+                        styles={{
+                            label: { cursor: 'pointer', fontSize: 14 },
+                            input: { cursor: 'pointer' },
+                        }}
+                    />
                     {platforms.map((p) => (
                         <Checkbox
                             key={p.id}
-                            label={p.display_name}
+                            label={<CheckboxLabel text={p.display_name} count={facets.platforms[p.id] ?? 0} />}
                             checked={selectedPlatforms.includes(p.id)}
                             onChange={() => {
                                 setPlatformFilter(
@@ -305,10 +348,24 @@ function SearchContent() {
             {/* Genres */}
             <FilterSection title="Género" open={genresOpen} onToggle={() => setGenresOpen((v) => !v)}>
                 <Stack gap={6}>
+                    <Checkbox
+                        label="Todos"
+                        checked={selectedGenre === null}
+                        onChange={() => {
+                            setSelectedGenre(null);
+                            setPage(1);
+                        }}
+                        color="primaryRed"
+                        radius="sm"
+                        styles={{
+                            label: { cursor: 'pointer', fontSize: 14 },
+                            input: { cursor: 'pointer' },
+                        }}
+                    />
                     {genres.map((g) => (
                         <Checkbox
                             key={g.id}
-                            label={g.name}
+                            label={<CheckboxLabel text={g.name} count={facets.genres[g.id] ?? 0} />}
                             checked={selectedGenre === g.id}
                             onChange={() => {
                                 setSelectedGenre(selectedGenre === g.id ? null : g.id);
@@ -330,10 +387,24 @@ function SearchContent() {
             {/* Sellers */}
             <FilterSection title="Tienda" open={sellersOpen} onToggle={() => setSellersOpen((v) => !v)}>
                 <Stack gap={6}>
+                    <Checkbox
+                        label="Todos"
+                        checked={selectedSeller === null}
+                        onChange={() => {
+                            setSelectedSeller(null);
+                            setPage(1);
+                        }}
+                        color="primaryRed"
+                        radius="sm"
+                        styles={{
+                            label: { cursor: 'pointer', fontSize: 14 },
+                            input: { cursor: 'pointer' },
+                        }}
+                    />
                     {sellers.map((s) => (
                         <Checkbox
                             key={s.id}
-                            label={s.name}
+                            label={<CheckboxLabel text={s.name} count={facets.sellers[s.id] ?? 0} />}
                             checked={selectedSeller === s.id}
                             onChange={() => {
                                 setSelectedSeller(selectedSeller === s.id ? null : s.id);
@@ -549,7 +620,7 @@ function SearchContent() {
     );
 }
 
-export default function SearchPage() {
+export default function SearchClient() {
     return (
         <Suspense fallback={<Container py="xl"><Loader color="primaryRed" /></Container>}>
             <SearchContent />

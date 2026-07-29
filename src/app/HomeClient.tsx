@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Container,
@@ -19,15 +19,12 @@ import {
 import {
     IconSearch,
     IconFlame,
-    IconTag,
     IconArrowRight,
     IconDeviceGamepad,
 } from '@tabler/icons-react';
-import { getGames, getPosts } from '@/lib/api';
-import type { Game, Post } from '@/lib/types';
+import type { Post, Game } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import GameCard from '@/components/GameCard';
-import { useApp } from '@/context/AppContext';
 
 /* ── Sagas Favoritas ── */
 const SAGAS = [
@@ -38,20 +35,16 @@ const SAGAS = [
     { name: 'The Legend of Zelda', query: 'zelda', logo: '/logos/zelda.svg' },
 ];
 
-export default function HomePage() {
+export default function HomeClient({
+    initialPosts,
+    initialTrending,
+}: {
+    initialPosts: Post[];
+    initialTrending: Game[];
+}) {
     const router = useRouter();
-    const { condition } = useApp();
     const [query, setQuery] = useState('');
-    const [games, setGames] = useState<Game[]>([]);
-    const [posts, setPosts] = useState<Post[]>([]);
-    useEffect(() => {
-        getGames({ page: 1, condition: condition !== 'all' ? condition : undefined })
-            .then((res) => setGames(res.results))
-            .catch(() => { });
-        getPosts({ page: 1, ordering: '-published_date' })
-            .then((res) => setPosts(res.results))
-            .catch(() => { });
-    }, [condition]);
+    const posts = initialPosts;
 
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();
@@ -221,55 +214,38 @@ export default function HomePage() {
                 </Container>
             </Box>
 
-            {/* ══════ OFERTAS DESTACADAS ══════ */}
-            <Box py={60}>
-                <Container size="lg">
-                    <Group justify="space-between" align="flex-end" mb="xl">
-                        <Box>
-                            <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                <Group gap={8} component="span">
-                                    <IconTag size={28} color="var(--mantine-color-primaryRed-5)" />
-                                    Ofertas Destacadas
-                                </Group>
-                            </Title>
-                            <Text c="dimmed" mt={6}>
-                                Las mejores bajadas de precio de las últimas 24 horas.
-                            </Text>
-                        </Box>
-                        <Anchor
-                            href="/search"
-                            c="var(--mantine-color-primaryRed-5)"
-                            fw={600}
-                            fz="sm"
-                            visibleFrom="sm"
-                            underline="never"
-                        >
-                            Ver todas las ofertas <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
-                        </Anchor>
-                    </Group>
+            {/* ══════ POPULARES ESTA SEMANA ══════ */}
+            {initialTrending.length > 0 && (
+                <Box py={60}>
+                    <Container size="lg">
+                        <Group justify="space-between" align="flex-end" mb="xl">
+                            <Box>
+                                <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
+                                    Populares esta semana
+                                </Title>
+                                <Text c="dimmed" mt={6}>
+                                    Los juegos con más movimiento en los últimos 7 días.
+                                </Text>
+                            </Box>
+                            <Anchor
+                                href="/search"
+                                c="var(--mantine-color-primaryRed-5)"
+                                fw={600}
+                                fz="sm"
+                                underline="never"
+                            >
+                                Ver todos los juegos <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
+                            </Anchor>
+                        </Group>
 
-                    <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                        {games.slice(0, 8).map((g) => {
-                            const best = g.products?.[0] ?? null;
-                            return <GameCard key={g.id} game={g} bestProduct={best} />;
-                        })}
-                    </SimpleGrid>
-
-                    {/* Mobile CTA */}
-                    <Box ta="center" mt="xl" hiddenFrom="sm">
-                        <Button
-                            component="a"
-                            href="/search"
-                            variant="outline"
-                            color="primaryRed"
-                            radius="xl"
-                            rightSection={<IconArrowRight size={16} />}
-                        >
-                            Ver todas las ofertas
-                        </Button>
-                    </Box>
-                </Container>
-            </Box>
+                        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                            {initialTrending.slice(0, 8).map((g) => (
+                                <GameCard key={g.id} game={g} />
+                            ))}
+                        </SimpleGrid>
+                    </Container>
+                </Box>
+            )}
 
             {/* ══════ EXPLORAR POR PLATAFORMA ══════ */}
             <Box py={60} style={{ background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.2))' }}>

@@ -4,12 +4,14 @@ import { BsNintendoSwitch } from 'react-icons/bs';
 
 export const PLATFORM_GROUPS: {
     label: string;
+    brand: string;
     icon: ComponentType<{ size?: number; color?: string }>;
     color: string;
     options: { label: string; slug: string }[];
 }[] = [
     {
         label: 'PlayStation 4 / 5',
+        brand: 'PlayStation',
         icon: FaPlaystation,
         color: '#2563EB',
         options: [
@@ -19,6 +21,7 @@ export const PLATFORM_GROUPS: {
     },
     {
         label: 'Xbox 360 / One / Series',
+        brand: 'Xbox',
         icon: FaXbox,
         color: '#16A34A',
         options: [
@@ -29,6 +32,7 @@ export const PLATFORM_GROUPS: {
     },
     {
         label: 'Switch / Switch 2',
+        brand: 'Switch',
         icon: BsNintendoSwitch,
         color: '#DC2626',
         options: [

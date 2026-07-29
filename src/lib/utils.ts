@@ -12,7 +12,7 @@ export function formatCLP(value: number | string): string {
  *   • cssVar   → variable CSS Mantine resuelta (ej.: cards de la home)
  */
 export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; cssVar: string }> = {
-    ps3: { mantine: 'blue.9', hex: '#68676e', cssVar: 'var(--mantine-color-blue-9)' },
+    ps3: { mantine: 'gray.7', hex: '#52525B', cssVar: 'var(--mantine-color-gray-7)' },
     ps4: { mantine: 'indigo', hex: '#1E40AF', cssVar: 'var(--mantine-color-indigo-filled)' },
     ps5: { mantine: 'blue', hex: '#2563EB', cssVar: 'var(--mantine-color-blue-filled)' },
     xbox: { mantine: 'green', hex: '#16A34A', cssVar: 'var(--mantine-color-green-filled)' },

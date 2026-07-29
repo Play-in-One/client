@@ -1,10 +1,11 @@
 'use client';
 
-import { Card, Text, Group, Badge, Box, Anchor } from '@mantine/core';
+import { Card, Text, Group, Box, Anchor } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import { formatCLP } from '@/lib/utils';
 import { handleImageError } from '@/lib/imageFallback';
+import { trackEvent } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
 
 interface Props {
@@ -24,8 +25,15 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
     const seller = bestProduct?.seller ?? null;
     const hasPrice = price !== null;
 
+    const trackGameClick = () => {
+        const platformId = platformSlug
+            ? game.platforms?.find((p) => p.slug === platformSlug)?.id
+            : undefined;
+        trackEvent({ event_type: 'game_click', game: game.id, platform: platformId });
+    };
+
     return (
-        <Anchor href={`/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`} underline="never" style={{ textDecoration: 'none' }}>
+        <Anchor href={`/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`} underline="never" style={{ textDecoration: 'none' }} onClick={trackGameClick}>
             <Card
                 shadow="sm"
                 radius="lg"
@@ -64,25 +72,6 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
                         onError={handleImageError('/placeholder-game.png')}
                     />
 
-                    {/* Discount badge */}
-                    {hasPrice && (
-                        <Badge
-                            variant="gradient"
-                            gradient={{ from: 'primaryRed', to: 'orange', deg: 90 }}
-                            size="lg"
-                            radius="xl"
-                            pos="absolute"
-                            top={12}
-                            right={12}
-                            style={{
-                                zIndex: 2,
-                                fontWeight: 700,
-                                boxShadow: '0 4px 14px rgba(230,57,70,0.4)',
-                            }}
-                        >
-                            Oferta
-                        </Badge>
-                    )}
                 </Box>
 
                 {/* Info */}

@@ -1,21 +1,20 @@
-'use client';
+import type { Metadata } from 'next';
+import { Container, Title, Text, Box, SimpleGrid, Card } from '@mantine/core';
+import { buildMetadata } from '@/lib/seo';
 
-import { Container, Title, Text, Box, useMantineColorScheme, SimpleGrid, Card } from '@mantine/core';
+export const metadata: Metadata = buildMetadata({
+    title: 'Sobre Nosotros',
+    description:
+        'Play in One ayuda a los gamers de Chile a encontrar los mejores precios comparando decenas de tiendas en tiempo real.',
+    path: '/about',
+});
 
 export default function AboutPage() {
-    const { colorScheme } = useMantineColorScheme();
-    const isDark = colorScheme === 'dark';
-
     return (
         <Container size="md" py={60}>
             <Title order={1} mb="xl" ta="center">Sobre Nosotros</Title>
 
-            <Box
-                bg={isDark ? 'var(--mantine-color-dark-6)' : 'white'}
-                p="xl"
-                mb="xl"
-                style={{ borderRadius: 'var(--mantine-radius-lg)', border: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-2)'}` }}
-            >
+            <Box className="content-card" p="xl" mb="xl">
                 <Text fz="lg" mb="md">
                     En <strong>Play in One</strong>, nuestra misión es ayudar a los gamers de todo Chile a encontrar los mejores precios para sus juegos favoritos.
                     Sabemos que el hobby puede ser costoso y que a veces es difícil comparar precios entre tantas tiendas.

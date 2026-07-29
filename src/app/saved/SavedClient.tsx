@@ -15,7 +15,7 @@ import { IconBookmark, IconX } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
 
-export default function SavedGamesPage() {
+export default function SavedClient() {
     const { savedGames, removeSaved } = useApp();
 
     return (

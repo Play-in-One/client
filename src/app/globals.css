@@ -90,3 +90,25 @@ body {
 .condition-switch .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label {
   color: #06282d;
 }
+
+/* Static content card (about/contact/terms) — hydration-safe dark mode via CSS, not JS */
+.content-card {
+  background-color: white;
+  border-radius: var(--mantine-radius-lg);
+  border: 1px solid var(--mantine-color-gray-2);
+}
+[data-mantine-color-scheme='dark'] .content-card {
+  background-color: var(--mantine-color-dark-6);
+  border-color: var(--mantine-color-dark-4);
+}
+
+/* Theme toggle icon — both icons render on server/client, CSS picks which is visible */
+.theme-icon-sun {
+  display: none;
+}
+[data-mantine-color-scheme='dark'] .theme-icon-sun {
+  display: block;
+}
+[data-mantine-color-scheme='dark'] .theme-icon-moon {
+  display: none;
+}

@@ -5,6 +5,7 @@ export interface Platform {
     name: string;        // "ps5" | "ps4" | "ps3" | "xbox" | "switch" | "switch2" | "pc" | "wii" | "nds" | "3ds" | "wiiu"
     slug: string;
     display_name: string; // "PS5" | "PS4" | "Xbox" | "Switch" | "Switch 2" | "PC"
+    game_count?: number;
 }
 
 export interface Seller {
@@ -13,9 +14,9 @@ export interface Seller {
     url: string;
     logo: string | null;
     favicon?: string;
-    banner?: string;       // only present on the store detail response
     description?: string;  // only present on the store detail response
     addresses?: SellerAddress[]; // only present on the store detail response
+    game_count?: number;
 }
 
 export interface SellerAddress {
@@ -49,6 +50,13 @@ export interface Genre {
     id: number;
     name: string;
     slug: string;
+    game_count?: number;
+}
+
+export interface GameFacets {
+    platforms: Record<number, number>;
+    genres: Record<number, number>;
+    sellers: Record<number, number>;
 }
 
 export interface Game {
@@ -73,6 +81,14 @@ export interface Post {
     description: string;
     image: string;
     published_date: string;
+}
+
+export interface Contact {
+    id: number;
+    name: string;
+    email: string;
+    message: string;
+    created_at: string;
 }
 
 /* ── Paginated response wrapper ── */
