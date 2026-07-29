@@ -9,6 +9,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8001/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# URL pública del sitio, usada por el SEO/SSR (canonical, OG, sitemap). Horneada en build.
+ARG NEXT_PUBLIC_SITE_URL=http://localhost:3001
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner
