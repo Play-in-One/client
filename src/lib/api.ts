@@ -42,8 +42,10 @@ async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
         let data: unknown;
         try { data = body ? JSON.parse(body) : undefined; } catch { /* not JSON */ }
         const error = new ApiError(`API ${res.status}: ${res.statusText}${body ? ` — ${body}` : ''}`, res.status, data);
-        if (!isMutation) {
-            // Cache this failure for the cooldown period
+        // Only cache stable failures (404s). Transient errors (5xx, rate limits) would
+        // otherwise get replayed to every other visitor hitting this path for 10s, turning
+        // a momentary backend hiccup into a shared outage across unrelated requests.
+        if (!isMutation && res.status === 404) {
             failedRequestsCache.set(path, {
                 error,
                 expireAt: Date.now() + FAILED_REQUEST_COOLDOWN_MS,

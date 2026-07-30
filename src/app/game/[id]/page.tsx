@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getGame } from '@/lib/api';
+import { ApiError, getGame } from '@/lib/api';
 import type { Game } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, gameJsonLd, breadcrumbJsonLd } from '@/lib/seo';
@@ -11,8 +11,12 @@ import GameDetailClient from './GameDetailClient';
 async function fetchGame(id: string): Promise<Game | null> {
     try {
         return await getGame(id);
-    } catch {
-        return null;
+    } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        // Non-404 errors (network failure, 5xx, misconfigured API URL) are not
+        // "game doesn't exist" — surface them instead of silently rendering notFound().
+        console.error(`Failed to fetch game ${id}:`, err);
+        throw err;
     }
 }
 
