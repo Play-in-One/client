@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev -p ${FRONTEND_PORT:-3001}",
+        "dev:prod": "NEXT_PUBLIC_API_URL=https://api.playinone.cl/api API_URL=https://api.playinone.cl/api next dev -p 3001",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
