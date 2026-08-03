@@ -76,13 +76,24 @@ export default function Navbar() {
                 <Anchor href="/" underline="never" style={{ textDecoration: 'none' }}>
                     <Group gap={8} wrap="nowrap">
                         <Image
-                            src="/PIO.png"
+                            src="/PIO-punto-negro.svg"
                             alt="Play in One Logo"
-                            width={84}
-                            height={84}
-                            style={{ flexShrink: 0, borderRadius: '50%' }}
+                            width={36}
+                            height={44}
+                            unoptimized
+                            className="logo-mark-light"
+                            style={{ flexShrink: 0 }}
                         />
-                        <Text fw={800} fz="xl" c="inherit" visibleFrom="sm">
+                        <Image
+                            src="/PIO.svg"
+                            alt="Play in One Logo"
+                            width={36}
+                            height={44}
+                            unoptimized
+                            className="logo-mark-dark"
+                            style={{ flexShrink: 0 }}
+                        />
+                        <Text fw={700} fz="lg" visibleFrom="sm">
                             Play<Text span c="var(--mantine-color-primaryRed-5)">in</Text>One
                         </Text>
                     </Group>

@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
         theme_color: '#E63946',
         lang: 'es-CL',
         icons: [
-            { src: '/PIO.png', sizes: 'any', type: 'image/png' },
+            { src: '/PIO-punto-negro.svg', sizes: 'any', type: 'image/svg+xml' },
         ],
     };
 }

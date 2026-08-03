@@ -55,6 +55,17 @@ body {
   background-color: rgba(30, 30, 30, 0.9);
 }
 
+/* Logo mark: swap light/dark-background SVG variant with the theme, SSR/hydration-safe */
+.logo-mark-dark {
+  display: none;
+}
+[data-mantine-color-scheme='dark'] .logo-mark-light {
+  display: none;
+}
+[data-mantine-color-scheme='dark'] .logo-mark-dark {
+  display: block;
+}
+
 .search-input {
   background-color: var(--mantine-color-gray-1) !important;
 }

@@ -95,7 +95,7 @@ export default function HomeClient({
                         leftSection={<IconFlame size={14} />}
                         mb="lg"
                     >
-                        Comparador #1 en Chile
+                        Ya estamos aquí!!
                     </Badge>
 
                     <Title order={1} fz={{ base: 32, md: 52 }} fw={800} lh={1.15} mb="md">

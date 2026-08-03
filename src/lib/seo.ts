@@ -100,7 +100,7 @@ export function organizationJsonLd(): JsonLdObject {
         '@type': 'Organization',
         name: siteConfig.name,
         url: SITE_URL,
-        logo: absoluteUrl('/PIO.png'),
+        logo: absoluteUrl('/PIO-punto-negro.svg'),
         description: siteConfig.description,
     };
 }
@@ -207,7 +207,7 @@ export function articleJsonLd(post: Post): JsonLdObject {
         publisher: {
             '@type': 'Organization',
             name: siteConfig.name,
-            logo: { '@type': 'ImageObject', url: absoluteUrl('/PIO.png') },
+            logo: { '@type': 'ImageObject', url: absoluteUrl('/PIO-punto-negro.svg') },
         },
     };
 }

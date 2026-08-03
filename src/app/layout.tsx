@@ -40,7 +40,10 @@ export const metadata: Metadata = {
         description: siteConfig.description,
     },
     icons: {
-        icon: '/PIO.png',
+        icon: [
+            { url: '/PIO-punto-negro.svg', media: '(prefers-color-scheme: light)' },
+            { url: '/PIO.svg', media: '(prefers-color-scheme: dark)' },
+        ],
         apple: '/PIO.png',
     },
 };

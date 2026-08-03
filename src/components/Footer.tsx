@@ -2,6 +2,7 @@
 
 import { type ComponentType, useState } from 'react';
 
+import Image from 'next/image';
 import {
     Box,
     Container,
@@ -57,22 +58,24 @@ export default function Footer() {
                     {/* Brand */}
                     <Stack gap="sm">
                         <Group gap={8}>
-                            <Box
-                                w={32}
-                                h={32}
-                                style={{
-                                    borderRadius: '50%',
-                                    background: 'var(--mantine-color-primaryRed-5)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: '#fff',
-                                    fontWeight: 800,
-                                    fontSize: 12,
-                                }}
-                            >
-                                P1
-                            </Box>
+                            <Image
+                                src="/PIO-punto-negro.svg"
+                                alt="Play in One Logo"
+                                width={26}
+                                height={32}
+                                unoptimized
+                                className="logo-mark-light"
+                                style={{ flexShrink: 0 }}
+                            />
+                            <Image
+                                src="/PIO.svg"
+                                alt="Play in One Logo"
+                                width={26}
+                                height={32}
+                                unoptimized
+                                className="logo-mark-dark"
+                                style={{ flexShrink: 0 }}
+                            />
                             <Text fw={700} fz="lg">
                                 Play<Text span c="var(--mantine-color-primaryRed-5)">in</Text>One
                             </Text>
