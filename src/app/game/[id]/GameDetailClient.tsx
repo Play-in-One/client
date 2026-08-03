@@ -37,6 +37,7 @@ import {
     IconDeviceGamepad2,
     IconDeviceNintendo,
     IconDeviceDesktop,
+    IconPencil,
 } from '@tabler/icons-react';
 import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
@@ -44,13 +45,17 @@ import { BsNintendoSwitch } from 'react-icons/bs';
 import { trackEvent } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
+import { surfaces, decorative } from '@/lib/colors';
 import PlatformBadge from '@/components/PlatformBadge';
 import ProductPriceChart from '@/components/ProductPriceChart';
 import { useApp } from '@/context/AppContext';
+import { useAdmin } from '@/context/AdminContext';
+import { AdminGameControls, AdminProductEditor } from './AdminControls';
 
 export default function GameDetailClient({ initialGame }: { initialGame: Game }) {
     const searchParams = useSearchParams();
     const { condition, isSaved, toggleSaved } = useApp();
+    const { isAdmin } = useAdmin();
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
     const game = initialGame;
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(() => {
@@ -63,6 +68,9 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     );
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
     const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
+    // Edición admin: toggles independientes para el panel del juego y por producto.
+    const [editingGame, setEditingGame] = useState(false);
+    const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
     const [canNativeShare, setCanNativeShare] = useState(false);
     useEffect(() => {
@@ -316,7 +324,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                             display: 'inline-flex',
                                             borderRadius: 'var(--mantine-radius-md)',
                                             border: '1px solid var(--mantine-color-default-border)',
-                                            background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.3))',
+                                            background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTintStrong})`,
                                         }}
                                     >
                                         {game.platforms.map((pl) => {
@@ -371,8 +379,23 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                         {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
                                     </ActionIcon>
                                 </MantineTooltip>
+                                {isAdmin && (
+                                    <Button
+                                        size="sm"
+                                        radius="xl"
+                                        variant={editingGame ? 'filled' : 'default'}
+                                        color={editingGame ? 'yellow' : undefined}
+                                        leftSection={<IconPencil size={16} />}
+                                        onClick={() => setEditingGame((v) => !v)}
+                                    >
+                                        {editingGame ? 'Cerrar edición' : 'Editar juego'}
+                                    </Button>
+                                )}
                             </Group>
                         </Box>
+
+                        {/* ══════ Panel admin: nombre, imagen, fusión (tras "Editar juego") ══════ */}
+                        {isAdmin && editingGame && <AdminGameControls game={game} />}
 
                         {/* ══════ Best price hero card ══════ */}
                         {bestProduct && (
@@ -380,7 +403,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                 p={{ base: 'lg', md: 'xl' }}
                                 style={{
                                     borderRadius: 'var(--mantine-radius-xl)',
-                                    background: 'linear-gradient(135deg, #1F2937, #111827)',
+                                    background: `linear-gradient(135deg, light-dark(${decorative.bestPriceCardGradient.light.from}, ${decorative.bestPriceCardGradient.dark.from}), light-dark(${decorative.bestPriceCardGradient.light.to}, ${decorative.bestPriceCardGradient.dark.to}))`,
                                     color: '#fff',
                                     position: 'relative',
                                     overflow: 'hidden',
@@ -592,25 +615,48 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                         </Badge>
                                                     </Table.Td>
                                                     <Table.Td ta="right">
-                                                        <Button
-                                                            component="a"
-                                                            href={p.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
-                                                            size="xs"
-                                                            radius="md"
-                                                            variant={idx === 0 ? 'filled' : 'default'}
-                                                            color={idx === 0 ? 'dark' : undefined}
-                                                        >
-                                                            Ver en Tienda
-                                                        </Button>
+                                                        <Group gap={6} justify="flex-end" wrap="nowrap">
+                                                            <Button
+                                                                component="a"
+                                                                href={p.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
+                                                                size="xs"
+                                                                radius="md"
+                                                                variant={idx === 0 ? 'filled' : 'default'}
+                                                                color={idx === 0 ? 'dark' : undefined}
+                                                            >
+                                                                Ver en Tienda
+                                                            </Button>
+                                                            {isAdmin && (
+                                                                <MantineTooltip label="Editar producto" withArrow>
+                                                                    <ActionIcon
+                                                                        variant={editingProductId === p.id ? 'filled' : 'subtle'}
+                                                                        color="yellow"
+                                                                        size="lg"
+                                                                        radius="md"
+                                                                        aria-label="Editar producto"
+                                                                        onClick={() => setEditingProductId((id) => (id === p.id ? null : p.id))}
+                                                                    >
+                                                                        <IconPencil size={16} />
+                                                                    </ActionIcon>
+                                                                </MantineTooltip>
+                                                            )}
+                                                        </Group>
                                                     </Table.Td>
                                                 </Table.Tr>
                                                 {expandedProductId === p.id && (
                                                     <Table.Tr>
                                                         <Table.Td colSpan={5} p="md">
                                                             <ProductPriceChart prices={p.prices ?? []} size="lg" />
+                                                        </Table.Td>
+                                                    </Table.Tr>
+                                                )}
+                                                {isAdmin && editingProductId === p.id && (
+                                                    <Table.Tr>
+                                                        <Table.Td colSpan={5} p="md">
+                                                            <AdminProductEditor product={p} />
                                                         </Table.Td>
                                                     </Table.Tr>
                                                 )}

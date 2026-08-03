@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { siteConfig } from '@/lib/seo';
+import { pwa } from '@/lib/colors';
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
@@ -8,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
         description: siteConfig.description,
         start_url: '/',
         display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: '#E63946',
+        background_color: pwa.backgroundColor,
+        theme_color: pwa.themeColor,
         lang: 'es-CL',
         icons: [
             { src: '/PIO-punto-negro.svg', sizes: 'any', type: 'image/svg+xml' },

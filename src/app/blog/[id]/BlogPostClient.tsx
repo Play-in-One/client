@@ -1,12 +1,10 @@
 'use client';
 
-import { Container, Title, Box, Text, Badge, Image, useMantineColorScheme } from '@mantine/core';
+import { Container, Title, Box, Text, Badge, Image } from '@mantine/core';
 import type { Post } from '@/lib/types';
 
 export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
     const post = initialPost;
-    const { colorScheme } = useMantineColorScheme();
-    const isDark = colorScheme === 'dark';
 
     return (
         <Container size="md" py={60}>
@@ -22,11 +20,7 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
                 </Box>
             )}
 
-            <Box
-                bg={isDark ? 'var(--mantine-color-dark-6)' : 'white'}
-                p="xl"
-                style={{ borderRadius: 'var(--mantine-radius-lg)', border: `1px solid ${isDark ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-2)'}` }}
-            >
+            <Box className="content-card" p="xl">
                 {post.description.split('\n').map((paragraph, idx) => (
                     <Text key={idx} mb="md" style={{ whiteSpace: 'pre-wrap' }}>
                         {paragraph}

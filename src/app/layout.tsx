@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { MantineProvider, ColorSchemeScript } from '@mantine/core';
-import { theme } from '@/theme';
+import { ColorSchemeScript } from '@mantine/core';
+import { Providers } from './providers';
 import { AppProvider } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </head>
             <body>
                 <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
-                <MantineProvider theme={theme} defaultColorScheme="auto">
+                <Providers>
                     <AppProvider>
                         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                             <Navbar />
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <Footer />
                         </div>
                     </AppProvider>
-                </MantineProvider>
+                </Providers>
             </body>
         </html>
     );

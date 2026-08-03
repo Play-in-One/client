@@ -22,6 +22,8 @@ import {
     Paper,
     NumberInput,
     ScrollArea,
+    Affix,
+    Alert,
 } from '@mantine/core';
 import {
     IconSearch,
@@ -29,11 +31,13 @@ import {
     IconX,
     IconAdjustmentsHorizontal,
     IconChevronDown,
+    IconGitMerge,
 } from '@tabler/icons-react';
-import { getGames, getGameFacets, getPlatforms, getGenres, getSellers, trackEvent } from '@/lib/api';
+import { getGames, getGameFacets, getPlatforms, getGenres, getSellers, trackEvent, mergeGames, ApiError } from '@/lib/api';
 import type { Game, Platform, Genre, Seller, GameFacets } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
+import { useAdmin } from '@/context/AdminContext';
 
 /* ── Collapsible Filter Section ── */
 function FilterSection({
@@ -89,6 +93,7 @@ function SearchContent() {
     const router = useRouter();
     const params = useSearchParams();
     const { condition } = useApp();
+    const { isAdmin } = useAdmin();
     const q = params.get('q') ?? '';
     const platformSlug = params.get('platform') ?? '';
     const [games, setGames] = useState<Game[]>([]);
@@ -141,6 +146,60 @@ function SearchContent() {
 
     /* ── Mobile sidebar toggle ── */
     const [filtersOpen, setFiltersOpen] = useState(false);
+
+    /* ── Selección/fusión admin ── */
+    const [selectionMode, setSelectionMode] = useState(false);
+    const [selected, setSelected] = useState<{ id: number; name: string }[]>([]);
+    const [targetId, setTargetId] = useState<number | null>(null);
+    const [merging, setMerging] = useState(false);
+    const [mergeError, setMergeError] = useState<string | null>(null);
+    // Se incrementa tras una fusión para re-consultar la lista de juegos.
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const toggleSelect = (id: number) => {
+        setMergeError(null);
+        setSelected((prev) => {
+            if (prev.some((s) => s.id === id)) {
+                const next = prev.filter((s) => s.id !== id);
+                setTargetId((t) => (t === id ? next[0]?.id ?? null : t));
+                return next;
+            }
+            const g = games.find((x) => x.id === id);
+            const next = [...prev, { id, name: g?.name ?? `#${id}` }];
+            setTargetId((t) => t ?? id); // por defecto, el primero es el destino
+            return next;
+        });
+    };
+
+    const exitSelection = () => {
+        setSelectionMode(false);
+        setSelected([]);
+        setTargetId(null);
+        setMergeError(null);
+    };
+
+    const effectiveTarget = targetId ?? selected[0]?.id ?? null;
+
+    const handleMerge = async () => {
+        if (!effectiveTarget || selected.length < 2) return;
+        const sources = selected.filter((s) => s.id !== effectiveTarget).map((s) => s.id);
+        setMerging(true);
+        setMergeError(null);
+        try {
+            await mergeGames(effectiveTarget, sources);
+            exitSelection();
+            setPage(1);
+            setRefreshKey((k) => k + 1); // recarga la galería con los cambios
+        } catch (e) {
+            if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+                setMergeError('Tu sesión de administrador expiró. Vuelve a entrar en /staff.');
+            } else {
+                setMergeError(e instanceof Error ? e.message : 'No se pudo fusionar.');
+            }
+        } finally {
+            setMerging(false);
+        }
+    };
 
     /* Fetch filter options once on mount — platform selection itself is derived
        from the URL (see `selectedPlatforms` above), so this no longer needs to
@@ -206,7 +265,7 @@ function SearchContent() {
             .catch((err) => { if (err?.name !== 'AbortError') setGames([]); })
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
-    }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
+    }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale, refreshKey]);
 
     /* ── Facet counts (how many games each filter option would yield, given
        every other currently active filter) — recomputed whenever the active
@@ -497,6 +556,20 @@ function SearchContent() {
                     leftSection={<IconFilter size={16} />}
                 />
 
+                {/* Admin: activar selección para fusionar juegos */}
+                {isAdmin && (
+                    <Button
+                        size="sm"
+                        radius="md"
+                        variant={selectionMode ? 'filled' : 'default'}
+                        color={selectionMode ? 'yellow' : undefined}
+                        leftSection={<IconGitMerge size={16} />}
+                        onClick={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
+                    >
+                        {selectionMode ? 'Cancelar selección' : 'Fusionar juegos'}
+                    </Button>
+                )}
+
                 {/* Mobile filter toggle */}
                 <ActionIcon
                     variant={hasActiveFilters ? 'filled' : 'default'}
@@ -597,7 +670,14 @@ function SearchContent() {
                         <>
                             <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
                                 {games.map((g) => (
-                                    <GameCard key={g.id} game={g} platformSlug={activePlatformSlug} />
+                                    <GameCard
+                                        key={g.id}
+                                        game={g}
+                                        platformSlug={activePlatformSlug}
+                                        selectable={selectionMode}
+                                        selected={selected.some((s) => s.id === g.id)}
+                                        onToggleSelect={toggleSelect}
+                                    />
                                 ))}
                             </SimpleGrid>
 
@@ -616,6 +696,56 @@ function SearchContent() {
                     )}
                 </Box>
             </Box>
+
+            {/* ── Barra flotante de fusión (solo admin, modo selección) ── */}
+            {isAdmin && selectionMode && selected.length > 0 && (
+                <Affix position={{ bottom: 20, left: 0, right: 0 }}>
+                    <Group justify="center" px="md">
+                        <Paper withBorder shadow="md" radius="md" p="md" maw={720} w="100%">
+                            <Stack gap="xs">
+                                {mergeError && (
+                                    <Alert color="red" variant="light" py={6}>{mergeError}</Alert>
+                                )}
+                                <Group justify="space-between" wrap="wrap" gap="md">
+                                    <Text fw={600} fz="sm">
+                                        {selected.length} seleccionado{selected.length !== 1 ? 's' : ''}
+                                    </Text>
+                                    <Group gap="sm" wrap="wrap">
+                                        <Select
+                                            label={undefined}
+                                            placeholder="Juego destino"
+                                            data={selected.map((s) => ({ value: String(s.id), label: s.name }))}
+                                            value={effectiveTarget ? String(effectiveTarget) : null}
+                                            onChange={(v) => setTargetId(v ? Number(v) : null)}
+                                            size="xs"
+                                            radius="md"
+                                            w={240}
+                                            comboboxProps={{ withinPortal: true }}
+                                        />
+                                        <Button
+                                            size="xs"
+                                            color="orange"
+                                            leftSection={<IconGitMerge size={16} />}
+                                            loading={merging}
+                                            disabled={selected.length < 2 || !effectiveTarget}
+                                            onClick={handleMerge}
+                                        >
+                                            Fusionar {Math.max(selected.length - 1, 0)} en el destino
+                                        </Button>
+                                        <Button size="xs" variant="subtle" color="gray" onClick={exitSelection}>
+                                            Cancelar
+                                        </Button>
+                                    </Group>
+                                </Group>
+                                <Text fz="xs" c="dimmed">
+                                    El destino conserva sus datos; los demás juegos se fusionan en él
+                                    (sus productos se mueven) y luego se eliminan.
+                                </Text>
+                            </Stack>
+                        </Paper>
+                    </Group>
+                </Affix>
+            )}
         </Container>
     );
 }

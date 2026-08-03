@@ -22,6 +22,7 @@ import {
     IconBrandFacebook,
     IconBrandYoutube
 } from '@tabler/icons-react';
+import { social } from '@/lib/colors';
 
 const YEAR = new Date().getFullYear();
 
@@ -110,11 +111,11 @@ export default function Footer() {
                         <Text fw={700} mb={4}>Siguenos</Text>
                         <Text fz="sm" c="dimmed">Mantente al dia de las mejores ofertas y novedades.</Text>
                         <Group gap="xs">
-                            <SocialIcon icon={IconBrandInstagram} brandColor="#E1306C" href="https://instagram.com/" />
-                            <SocialIcon icon={IconBrandFacebook} brandColor="#1877F2" href="https://facebook.com/" />
+                            <SocialIcon icon={IconBrandInstagram} brandColor={social.instagram} href="https://instagram.com/" />
+                            <SocialIcon icon={IconBrandFacebook} brandColor={social.facebook} href="https://facebook.com/" />
                             <SocialIcon icon={IconBrandX} brandColor="gray" href="https://twitter.com/" />
-                            <SocialIcon icon={IconBrandTiktok} brandColor="#ff0050" href="https://tiktok.com/" />
-                            <SocialIcon icon={IconBrandYoutube} brandColor="#FF0000" href="https://youtube.com/" />
+                            <SocialIcon icon={IconBrandTiktok} brandColor={social.tiktok} href="https://tiktok.com/" />
+                            <SocialIcon icon={IconBrandYoutube} brandColor={social.youtube} href="https://youtube.com/" />
                         </Group>
                     </Stack>
                 </SimpleGrid>

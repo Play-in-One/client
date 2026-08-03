@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { siteConfig } from '@/lib/seo';
+import { og } from '@/lib/colors';
 
 export const alt = siteConfig.title;
 export const size = { width: 1200, height: 630 };
@@ -17,7 +18,7 @@ export default function OpengraphImage() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #7f1d1d 100%)',
+                    background: `linear-gradient(135deg, ${og.gradient.from} 0%, ${og.gradient.via} 55%, ${og.gradient.to} 100%)`,
                     color: 'white',
                     fontFamily: 'sans-serif',
                     padding: 80,

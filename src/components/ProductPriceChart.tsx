@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import type { PriceHistory } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
+import { chart } from '@/lib/colors';
 
 interface ProductPriceChartProps {
     prices: PriceHistory[];
@@ -90,7 +91,7 @@ export default function ProductPriceChart({ prices, size = 'sm', onClick }: Prod
                         formatter={(v: number) => [formatCLP(v), 'Precio']}
                         labelFormatter={(v: string) => new Date(v).toLocaleDateString('es-CL')}
                         contentStyle={{
-                            background: isDark ? '#1F2937' : '#fff',
+                            background: isDark ? chart.tooltipBg.dark : chart.tooltipBg.light,
                             border: '1px solid rgba(255,255,255,0.1)',
                             borderRadius: 8,
                             color: isDark ? '#fff' : '#1F2937',

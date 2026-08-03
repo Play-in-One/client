@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, Text, Group, Box, Anchor } from '@mantine/core';
+import { Card, Text, Group, Box, Anchor, Checkbox } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import { formatCLP } from '@/lib/utils';
@@ -14,9 +14,13 @@ interface Props {
     bestProduct?: Product | null;
     /** Active console filter slug; if set, deep-links the game detail page to that console's panel */
     platformSlug?: string;
+    /** Admin selection mode: click toggles selection instead of navigating. */
+    selectable?: boolean;
+    selected?: boolean;
+    onToggleSelect?: (id: number) => void;
 }
 
-export default function GameCard({ game, bestProduct, platformSlug }: Props) {
+export default function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect }: Props) {
     const router = useRouter();
     const imgSrc = game.image || '/placeholder-game.png';
 
@@ -33,7 +37,19 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
     };
 
     return (
-        <Anchor href={`/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`} underline="never" style={{ textDecoration: 'none' }} onClick={trackGameClick}>
+        <Anchor
+            href={selectable ? undefined : `/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`}
+            underline="never"
+            style={{ textDecoration: 'none' }}
+            onClick={(e) => {
+                if (selectable) {
+                    e.preventDefault();
+                    onToggleSelect?.(game.id);
+                    return;
+                }
+                trackGameClick();
+            }}
+        >
             <Card
                 shadow="sm"
                 radius="lg"
@@ -46,6 +62,8 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
                     flexDirection: 'column',
                     height: '100%',
                     cursor: 'pointer',
+                    borderColor: selected ? 'var(--mantine-color-primaryRed-5)' : undefined,
+                    boxShadow: selected ? '0 0 0 2px var(--mantine-color-primaryRed-5)' : undefined,
                 }}
                 onMouseEnter={(e) => {
                     e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.15)';
@@ -72,6 +90,20 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
                         onError={handleImageError('/placeholder-game.png')}
                     />
 
+                    {/* Overlay de selección (solo admin en modo fusión); visual, el
+                        click de la tarjeta gestiona el toggle. */}
+                    {selectable && (
+                        <Box pos="absolute" top={8} left={8} style={{ zIndex: 2, pointerEvents: 'none' }}>
+                            <Checkbox
+                                checked={!!selected}
+                                readOnly
+                                color="primaryRed"
+                                radius="sm"
+                                size="md"
+                                styles={{ input: { cursor: 'pointer' } }}
+                            />
+                        </Box>
+                    )}
                 </Box>
 
                 {/* Info */}
@@ -114,6 +146,10 @@ export default function GameCard({ game, bestProduct, platformSlug }: Props) {
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
+                                                    if (selectable) {
+                                                        onToggleSelect?.(game.id);
+                                                        return;
+                                                    }
                                                     router.push(`/store/${seller.id}`);
                                                 }}
                                             >

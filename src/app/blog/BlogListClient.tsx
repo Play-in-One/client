@@ -1,14 +1,12 @@
 'use client';
 
-import { Container, Title, SimpleGrid, Card, Box, Text, useMantineColorScheme, Badge } from '@mantine/core';
+import { Container, Title, SimpleGrid, Card, Box, Text, Badge } from '@mantine/core';
 import { IconDeviceGamepad } from '@tabler/icons-react';
 import type { Post } from '@/lib/types';
 import Link from 'next/link';
 
 export default function BlogListClient({ initialPosts }: { initialPosts: Post[] }) {
     const posts = initialPosts;
-    const { colorScheme } = useMantineColorScheme();
-    const isDark = colorScheme === 'dark';
 
     return (
         <Container size="lg" py={60}>
@@ -29,7 +27,7 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                     >
                         <Box
                             h={180}
-                            bg={isDark ? 'var(--mantine-color-dark-5)' : 'var(--mantine-color-gray-2)'}
+                            bg="light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',

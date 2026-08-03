@@ -1,8 +1,26 @@
-import type { Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets } from './types';
+import type { Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory } from './types';
 
 const API_BASE = typeof window === 'undefined'
     ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api')
     : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api');
+
+/* ── Admin auth token (single injection point) ──
+ * Set by AdminContext on login/logout. Only present in the browser; SSR reads
+ * stay anonymous (all read endpoints are public). Kept as a module-level var so
+ * every request through fetcher() picks it up without threading it as an arg. */
+let adminToken: string | null = null;
+export function setAdminToken(token: string | null) {
+    adminToken = token;
+}
+
+/* Callback que AdminContext registra para reaccionar cuando el token deja de ser
+ * válido (expirado/revocado): una petición AUTENTICADA que es denegada (401/403)
+ * significa que la sesión ya no sirve, así que se limpia. Un staff válido nunca
+ * recibe 401/403 en una escritura, de modo que esto no desloguea por accidente. */
+let onAuthError: (() => void) | null = null;
+export function setOnAuthError(fn: (() => void) | null) {
+    onAuthError = fn;
+}
 
 /* ── Rate-limit failed requests ── */
 const failedRequestsCache = new Map<string, { error: Error; expireAt: number }>();
@@ -34,9 +52,19 @@ async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
 
     const res = await fetch(`${API_BASE}${path}`, {
         ...init,
-        headers: { 'Content-Type': 'application/json', ...init?.headers },
+        headers: {
+            'Content-Type': 'application/json',
+            ...(adminToken ? { Authorization: `Token ${adminToken}` } : {}),
+            ...init?.headers,
+        },
     });
     if (!res.ok) {
+        // Sesión admin inválida: si habíamos adjuntado un token y nos deniegan
+        // (401/403), el token expiró o fue revocado → limpiar y avisar.
+        if (adminToken && (res.status === 401 || res.status === 403)) {
+            adminToken = null;
+            onAuthError?.();
+        }
         let body = '';
         try { body = await res.text(); } catch { /* ignore */ }
         let data: unknown;
@@ -210,5 +238,71 @@ export async function submitContact(data: ContactPayload) {
     return fetcher<Contact>('/contact/', {
         method: 'POST',
         body: JSON.stringify(data),
+    });
+}
+
+/* ── Admin auth + edición (requieren token de staff, ver AdminContext) ── */
+export interface LoginResponse {
+    token: string;
+    username: string;
+    is_staff: boolean;
+}
+
+export async function login(username: string, password: string) {
+    return fetcher<LoginResponse>('/auth/login/', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+    });
+}
+
+export async function logout() {
+    return fetcher<void>('/auth/logout/', { method: 'POST' });
+}
+
+/** Edita campos del juego (nombre, imagen, etc.). PATCH /api/games/{id}/ */
+export async function updateGame(id: number, patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating'>>) {
+    return fetcher<Game>(`/games/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+    });
+}
+
+/** Edita un producto: plataforma (consola), url (link), imagen, condición o
+ * reasignar a otro juego (game). PATCH /api/products/{id}/ */
+export interface ProductPatch {
+    title?: string;
+    platform?: number;   // Platform id
+    url?: string;
+    image?: string;
+    condition?: 'new' | 'used' | 'digital';
+    game?: number;       // reasignar a otro juego
+}
+
+export async function updateProduct(id: number, patch: ProductPatch) {
+    return fetcher<Product>(`/products/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+    });
+}
+
+/** Agrega un punto de precio (append-only). POST /api/products/{id}/prices/ */
+export async function addProductPrice(productId: number, price: number | string) {
+    return fetcher<PriceHistory>(`/products/${productId}/prices/`, {
+        method: 'POST',
+        body: JSON.stringify({ price }),
+    });
+}
+
+export interface MergeResponse {
+    target: number;
+    products_moved: number;
+    games_deleted: number;
+}
+
+/** Fusiona `sourceIds` dentro de `targetId`. POST /api/games/{id}/merge/ */
+export async function mergeGames(targetId: number, sourceIds: number[]) {
+    return fetcher<MergeResponse>(`/games/${targetId}/merge/`, {
+        method: 'POST',
+        body: JSON.stringify({ sources: sourceIds }),
     });
 }

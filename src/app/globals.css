@@ -44,15 +44,12 @@ body {
 }
 
 [data-mantine-color-scheme='dark'] ::-webkit-scrollbar-thumb {
-  background-color: #4b5563;
+  background-color: #2e2e2e;
 }
 
 /* Navbar utilities for SSR/ hydration-safe dark mode */
 .navbar-bg {
-  background-color: rgba(255, 255, 255, 0.9);
-}
-[data-mantine-color-scheme='dark'] .navbar-bg {
-  background-color: rgba(30, 30, 30, 0.9);
+  background-color: var(--pio-navbar-bg);
 }
 
 /* Logo mark: swap light/dark-background SVG variant with the theme, SSR/hydration-safe */
@@ -81,13 +78,13 @@ body {
 }
 
 [data-mantine-color-scheme='dark'] .condition-switch.mantine-SegmentedControl-root {
-  background-color: #2a2a32;
+  background-color: var(--pio-condition-switch-bg);
   border-color: rgba(255, 255, 255, 0.18);
 }
 
 .condition-switch .mantine-SegmentedControl-indicator {
-  background-color: #2dd4e5;
-  box-shadow: 0 0 14px rgba(45, 212, 229, 0.65), 0 0 0 1px rgba(45, 212, 229, 0.35);
+  background-color: var(--pio-condition-indicator);
+  box-shadow: var(--pio-condition-glow);
 }
 
 .condition-switch .mantine-SegmentedControl-label {
@@ -99,7 +96,7 @@ body {
 }
 
 .condition-switch .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label {
-  color: #06282d;
+  color: #fff;
 }
 
 /* Static content card (about/contact/terms) — hydration-safe dark mode via CSS, not JS */

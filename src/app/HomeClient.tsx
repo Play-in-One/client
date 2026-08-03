@@ -24,6 +24,7 @@ import {
 } from '@tabler/icons-react';
 import type { Post, Game } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
+import { surfaces, decorative } from '@/lib/colors';
 import GameCard from '@/components/GameCard';
 
 /* ── Sagas Favoritas ── */
@@ -68,7 +69,7 @@ export default function HomeClient({
                     h={380}
                     style={{
                         borderRadius: '50%',
-                        background: 'rgba(230,57,70,0.1)',
+                        background: decorative.heroBlobRed,
                         filter: 'blur(60px)',
                         pointerEvents: 'none',
                     }}
@@ -81,7 +82,7 @@ export default function HomeClient({
                     h={320}
                     style={{
                         borderRadius: '50%',
-                        background: 'rgba(59,130,246,0.1)',
+                        background: decorative.heroBlobBlue,
                         filter: 'blur(60px)',
                         pointerEvents: 'none',
                     }}
@@ -132,7 +133,7 @@ export default function HomeClient({
                                 p={6}
                                 style={{
                                     borderRadius: 'var(--mantine-radius-xl)',
-                                    background: 'light-dark(#fff, var(--mantine-color-dark-6))',
+                                    background: `light-dark(${surfaces.light.heroSearchBar}, ${surfaces.dark.heroSearchBar})`,
                                     boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
                                     border: '1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))',
                                 }}
@@ -169,7 +170,7 @@ export default function HomeClient({
             {/* ══════ SAGAS BANNER ══════ */}
             <Box
                 py="xl"
-                style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)', background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.2))' }}
+                style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)', background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}
             >
                 <Container size="lg">
                     <Text fz="sm" fw={700} tt="uppercase" ta="center" c="dimmed" mb="xl" style={{ letterSpacing: 3 }}>
@@ -248,7 +249,7 @@ export default function HomeClient({
             )}
 
             {/* ══════ EXPLORAR POR PLATAFORMA ══════ */}
-            <Box py={60} style={{ background: 'light-dark(var(--mantine-color-gray-0), rgba(0,0,0,0.2))' }}>
+            <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
                 <Container size="lg">
                     <Title order={2} fz={24} fw={700} mb="xl">
                         Explorar por Plataforma

@@ -79,7 +79,7 @@ export default function Navbar() {
                             src="/PIO-punto-negro.svg"
                             alt="Play in One Logo"
                             width={36}
-                            height={44}
+                            height={36}
                             unoptimized
                             className="logo-mark-light"
                             style={{ flexShrink: 0 }}
@@ -88,7 +88,7 @@ export default function Navbar() {
                             src="/PIO.svg"
                             alt="Play in One Logo"
                             width={36}
-                            height={44}
+                            height={36}
                             unoptimized
                             className="logo-mark-dark"
                             style={{ flexShrink: 0 }}
@@ -113,14 +113,12 @@ export default function Navbar() {
                                         fw={600}
                                         fz="sm"
                                         c="dimmed"
-                                        style={{ transition: 'color 0.15s, transform 0.15s' }}
+                                        style={{ transition: 'color 0.15s' }}
                                         onMouseEnter={(e) => {
                                             e.currentTarget.style.color = group.color;
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
                                         }}
                                         onMouseLeave={(e) => {
                                             e.currentTarget.style.color = 'var(--mantine-color-dimmed)';
-                                            e.currentTarget.style.transform = '';
                                         }}
                                     >
                                         <Group gap={6} wrap="nowrap">

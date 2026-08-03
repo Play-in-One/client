@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
+import { platforms } from '@/lib/colors';
 
 export const PLATFORM_GROUPS: {
     label: string;
@@ -10,32 +11,39 @@ export const PLATFORM_GROUPS: {
     options: { label: string; slug: string }[];
 }[] = [
     {
-        label: 'PlayStation 4 / 5',
+        label: 'PlayStation 3 / 4 / 5 / Vita',
         brand: 'PlayStation',
         icon: FaPlaystation,
-        color: '#2563EB',
+        color: platforms.ps5,
         options: [
+            { label: 'PS3', slug: 'ps3' },
             { label: 'PS4', slug: 'ps4' },
             { label: 'PS5', slug: 'ps5' },
+            { label: 'PS Vita', slug: 'psvita' },
         ],
     },
     {
-        label: 'Xbox 360 / One / Series',
+        label: 'Xbox / 360 / One / Series',
         brand: 'Xbox',
         icon: FaXbox,
-        color: '#16A34A',
+        color: platforms.xbox,
         options: [
+            { label: 'Xbox', slug: 'xbox' },
             { label: 'Xbox 360', slug: 'xbox360' },
             { label: 'Xbox One', slug: 'xboxone' },
             { label: 'Xbox Series', slug: 'xboxseries' },
         ],
     },
     {
-        label: 'Switch / Switch 2',
-        brand: 'Switch',
+        label: 'Nintendo Switch / Wii / DS / 3DS',
+        brand: 'Nintendo',
         icon: BsNintendoSwitch,
-        color: '#DC2626',
+        color: platforms.switch,
         options: [
+            { label: 'Nintendo DS', slug: 'nds' },
+            { label: 'Wii', slug: 'wii' },
+            { label: 'Nintendo 3DS', slug: '3ds' },
+            { label: 'Wii U', slug: 'wiiu' },
             { label: 'Switch', slug: 'switch' },
             { label: 'Switch 2', slug: 'switch2' },
         ],
