@@ -87,6 +87,11 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         fill
                         sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 300px"
                         priority={priority}
+                        /* Las portadas son URLs de CDNs externos de tiendas; varios
+                           bloquean la descarga server-side del optimizador (403).
+                           `unoptimized` las carga directo desde el navegador, como
+                           el <img> original, conservando lazy-load y layout estable. */
+                        unoptimized
                         style={{
                             objectFit: 'cover',
                             transition: 'transform 0.5s',
