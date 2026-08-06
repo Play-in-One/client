@@ -53,7 +53,10 @@ async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
         ...init,
         headers: {
-            'Content-Type': 'application/json',
+            // Solo en mutaciones: un GET con Content-Type deja de ser "simple
+            // request" y fuerza un preflight CORS (OPTIONS) por cada llamada.
+            // Omitirlo en GETs anónimos evita ese round-trip extra.
+            ...(isMutation ? { 'Content-Type': 'application/json' } : {}),
             ...(adminToken ? { Authorization: `Token ${adminToken}` } : {}),
             ...init?.headers,
         },
