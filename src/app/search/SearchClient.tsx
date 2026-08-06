@@ -93,38 +93,26 @@ function CheckboxLabel({ text, count }: { text: string; count?: number }) {
     );
 }
 
-function SearchContent({
-    initialGames,
-    initialTotal,
-    initialPlatforms,
-    initialGenres,
-    initialSellers,
-}: SearchInitialData) {
+function SearchContent() {
     const router = useRouter();
     const params = useSearchParams();
     const { condition } = useApp();
     const { isAdmin } = useAdmin();
     const q = params.get('q') ?? '';
     const platformSlug = params.get('platform') ?? '';
-    const [games, setGames] = useState<Game[]>(initialGames ?? []);
+    const [games, setGames] = useState<Game[]>([]);
     const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
-    const [total, setTotal] = useState(initialTotal ?? 0);
+    const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(!initialGames);
+    const [loading, setLoading] = useState(true);
     const [searchInput, setSearchInput] = useState(q);
     const [activeQuery, setActiveQuery] = useState(q);
     const [ordering, setOrdering] = useState<string>('name');
 
-    /* ── Filter options (pre-cargadas en SSR cuando existen) ── */
-    const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms ?? []);
-    const [genres, setGenres] = useState<Genre[]>(initialGenres ?? []);
-    const [sellers, setSellers] = useState<Seller[]>(initialSellers ?? []);
-
-    /* Salta el primer fetch de la galería cuando el servidor ya entregó la
-       primera página (solo aplica a la entrada limpia /search sin filtros). */
-    const skipFirstGamesFetch = useRef(
-        !!initialGames && !q && !platformSlug && condition === 'all',
-    );
+    /* ── Filter options (fetched once on mount, no bloquean el shell) ── */
+    const [platforms, setPlatforms] = useState<Platform[]>([]);
+    const [genres, setGenres] = useState<Genre[]>([]);
+    const [sellers, setSellers] = useState<Seller[]>([]);
 
     /* ── Active filter selections ── */
     /* Platform is derived from the URL — the URL is the single source of truth,
@@ -221,8 +209,6 @@ function SearchContent({
        from the URL (see `selectedPlatforms` above), so this no longer needs to
        depend on `platformSlug`. */
     useEffect(() => {
-        // Si el SSR ya entregó las opciones de filtro, no hace falta re-consultarlas.
-        if (initialPlatforms && initialGenres && initialSellers) return;
         getPlatforms()
             .then((res) => setPlatforms(res.results))
             .catch(() => { });
@@ -232,7 +218,7 @@ function SearchContent({
         getSellers()
             .then((res) => setSellers(res.results))
             .catch(() => { });
-    }, [initialPlatforms, initialGenres, initialSellers]);
+    }, []);
 
     useEffect(() => {
         setActiveQuery(q);
@@ -261,11 +247,6 @@ function SearchContent({
     }, [selectedPlatforms]);
 
     useEffect(() => {
-        if (skipFirstGamesFetch.current) {
-            // El servidor ya entregó esta primera página; no re-consultar en el montaje.
-            skipFirstGamesFetch.current = false;
-            return;
-        }
         const controller = new AbortController();
         setLoading(true);
         getGames({
@@ -774,20 +755,10 @@ function SearchContent({
     );
 }
 
-export interface SearchInitialData {
-    /** Primera página de la galería, pre-renderizada en el servidor (solo entrada limpia /search sin filtros). */
-    initialGames?: Game[];
-    initialTotal?: number;
-    /** Opciones de filtro pre-cargadas en el servidor (evita 3 fetch en el cliente). */
-    initialPlatforms?: Platform[];
-    initialGenres?: Genre[];
-    initialSellers?: Seller[];
-}
-
-export default function SearchClient(props: SearchInitialData) {
+export default function SearchClient() {
     return (
         <Suspense fallback={<Container py="xl"><Loader color="primaryRed" /></Container>}>
-            <SearchContent {...props} />
+            <SearchContent />
         </Suspense>
     );
 }
