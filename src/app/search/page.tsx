@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { buildMetadata } from '@/lib/seo';
+import { getGames, getPlatforms, getGenres, getSellers } from '@/lib/api';
 import SearchClient from './SearchClient';
 
 export async function generateMetadata({
@@ -22,6 +23,33 @@ export async function generateMetadata({
     return buildMetadata({ title, description, path: '/search', noIndex });
 }
 
-export default function SearchPage() {
-    return <SearchClient />;
+export default async function SearchPage({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+    const sp = await searchParams;
+    const hasParams = Object.keys(sp).length > 0;
+
+    // Opciones de filtro (independientes de los filtros) siempre desde el
+    // servidor; la primera página de juegos solo para la entrada limpia /search
+    // (las permutaciones con filtros conservan el fetch en el cliente).
+    const [platforms, genres, sellers, games] = await Promise.all([
+        getPlatforms().then((r) => r.results).catch(() => undefined),
+        getGenres().then((r) => r.results).catch(() => undefined),
+        getSellers().then((r) => r.results).catch(() => undefined),
+        hasParams
+            ? Promise.resolve(undefined)
+            : getGames({ ordering: 'name', page: 1 }).catch(() => undefined),
+    ]);
+
+    return (
+        <SearchClient
+            initialPlatforms={platforms}
+            initialGenres={genres}
+            initialSellers={sellers}
+            initialGames={games?.results}
+            initialTotal={games?.count}
+        />
+    );
 }

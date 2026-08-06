@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef, Suspense } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
     Container,
@@ -38,6 +38,10 @@ import type { Game, Platform, Genre, Seller, GameFacets } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
+
+/* Debe coincidir con API_PAGE_SIZE del backend (default 24). El backend no
+   expone page_size como query param, así que el frontend fija el mismo valor. */
+const GAMES_PAGE_SIZE = 24;
 
 /* ── Collapsible Filter Section ── */
 function FilterSection({
@@ -89,26 +93,38 @@ function CheckboxLabel({ text, count }: { text: string; count?: number }) {
     );
 }
 
-function SearchContent() {
+function SearchContent({
+    initialGames,
+    initialTotal,
+    initialPlatforms,
+    initialGenres,
+    initialSellers,
+}: SearchInitialData) {
     const router = useRouter();
     const params = useSearchParams();
     const { condition } = useApp();
     const { isAdmin } = useAdmin();
     const q = params.get('q') ?? '';
     const platformSlug = params.get('platform') ?? '';
-    const [games, setGames] = useState<Game[]>([]);
+    const [games, setGames] = useState<Game[]>(initialGames ?? []);
     const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
-    const [total, setTotal] = useState(0);
+    const [total, setTotal] = useState(initialTotal ?? 0);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!initialGames);
     const [searchInput, setSearchInput] = useState(q);
     const [activeQuery, setActiveQuery] = useState(q);
     const [ordering, setOrdering] = useState<string>('name');
 
-    /* ── Filter options (fetched once) ── */
-    const [platforms, setPlatforms] = useState<Platform[]>([]);
-    const [genres, setGenres] = useState<Genre[]>([]);
-    const [sellers, setSellers] = useState<Seller[]>([]);
+    /* ── Filter options (pre-cargadas en SSR cuando existen) ── */
+    const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms ?? []);
+    const [genres, setGenres] = useState<Genre[]>(initialGenres ?? []);
+    const [sellers, setSellers] = useState<Seller[]>(initialSellers ?? []);
+
+    /* Salta el primer fetch de la galería cuando el servidor ya entregó la
+       primera página (solo aplica a la entrada limpia /search sin filtros). */
+    const skipFirstGamesFetch = useRef(
+        !!initialGames && !q && !platformSlug && condition === 'all',
+    );
 
     /* ── Active filter selections ── */
     /* Platform is derived from the URL — the URL is the single source of truth,
@@ -156,7 +172,7 @@ function SearchContent() {
     // Se incrementa tras una fusión para re-consultar la lista de juegos.
     const [refreshKey, setRefreshKey] = useState(0);
 
-    const toggleSelect = (id: number) => {
+    const toggleSelect = useCallback((id: number) => {
         setMergeError(null);
         setSelected((prev) => {
             if (prev.some((s) => s.id === id)) {
@@ -169,7 +185,7 @@ function SearchContent() {
             setTargetId((t) => t ?? id); // por defecto, el primero es el destino
             return next;
         });
-    };
+    }, [games]);
 
     const exitSelection = () => {
         setSelectionMode(false);
@@ -205,6 +221,8 @@ function SearchContent() {
        from the URL (see `selectedPlatforms` above), so this no longer needs to
        depend on `platformSlug`. */
     useEffect(() => {
+        // Si el SSR ya entregó las opciones de filtro, no hace falta re-consultarlas.
+        if (initialPlatforms && initialGenres && initialSellers) return;
         getPlatforms()
             .then((res) => setPlatforms(res.results))
             .catch(() => { });
@@ -214,7 +232,7 @@ function SearchContent() {
         getSellers()
             .then((res) => setSellers(res.results))
             .catch(() => { });
-    }, []);
+    }, [initialPlatforms, initialGenres, initialSellers]);
 
     useEffect(() => {
         setActiveQuery(q);
@@ -243,6 +261,11 @@ function SearchContent() {
     }, [selectedPlatforms]);
 
     useEffect(() => {
+        if (skipFirstGamesFetch.current) {
+            // El servidor ya entregó esta primera página; no re-consultar en el montaje.
+            skipFirstGamesFetch.current = false;
+            return;
+        }
         const controller = new AbortController();
         setLoading(true);
         getGames({
@@ -288,7 +311,7 @@ function SearchContent() {
         return () => controller.abort();
     }, [activeQuery, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
 
-    const totalPages = Math.ceil(total / 50);
+    const totalPages = Math.ceil(total / GAMES_PAGE_SIZE);
 
     const handleLocalSearch = () => {
         setActiveQuery(searchInput);
@@ -669,7 +692,7 @@ function SearchContent() {
                     ) : (
                         <>
                             <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                                {games.map((g) => (
+                                {games.map((g, i) => (
                                     <GameCard
                                         key={g.id}
                                         game={g}
@@ -677,6 +700,7 @@ function SearchContent() {
                                         selectable={selectionMode}
                                         selected={selected.some((s) => s.id === g.id)}
                                         onToggleSelect={toggleSelect}
+                                        priority={i < 4}
                                     />
                                 ))}
                             </SimpleGrid>
@@ -750,10 +774,20 @@ function SearchContent() {
     );
 }
 
-export default function SearchClient() {
+export interface SearchInitialData {
+    /** Primera página de la galería, pre-renderizada en el servidor (solo entrada limpia /search sin filtros). */
+    initialGames?: Game[];
+    initialTotal?: number;
+    /** Opciones de filtro pre-cargadas en el servidor (evita 3 fetch en el cliente). */
+    initialPlatforms?: Platform[];
+    initialGenres?: Genre[];
+    initialSellers?: Seller[];
+}
+
+export default function SearchClient(props: SearchInitialData) {
     return (
         <Suspense fallback={<Container py="xl"><Loader color="primaryRed" /></Container>}>
-            <SearchContent />
+            <SearchContent {...props} />
         </Suspense>
     );
 }

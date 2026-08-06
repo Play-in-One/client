@@ -1,12 +1,15 @@
 'use client';
 
+import { useState, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox } from '@mantine/core';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import { formatCLP } from '@/lib/utils';
-import { handleImageError } from '@/lib/imageFallback';
 import { trackEvent } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
+
+const PLACEHOLDER = '/placeholder-game.png';
 
 interface Props {
     game: Game;
@@ -18,11 +21,13 @@ interface Props {
     selectable?: boolean;
     selected?: boolean;
     onToggleSelect?: (id: number) => void;
+    /** Eager-load the image (LCP): set on the first few above-the-fold cards. */
+    priority?: boolean;
 }
 
-export default function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect }: Props) {
+function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority }: Props) {
     const router = useRouter();
-    const imgSrc = game.image || '/placeholder-game.png';
+    const [imgSrc, setImgSrc] = useState(game.image || PLACEHOLDER);
 
     /* Resolve price: prefer min_price from annotation, fall back to product */
     const price = game.min_price ?? bestProduct?.current_price ?? null;
@@ -76,18 +81,19 @@ export default function GameCard({ game, bestProduct, platformSlug, selectable, 
             >
                 {/* Image */}
                 <Box pos="relative" style={{ aspectRatio: '3/4', overflow: 'hidden' }}>
-                    <img
+                    <Image
                         src={imgSrc}
                         alt={game.name}
+                        fill
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 300px"
+                        priority={priority}
                         style={{
-                            width: '100%',
-                            height: '100%',
                             objectFit: 'cover',
                             transition: 'transform 0.5s',
                         }}
                         onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
                         onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = ''; }}
-                        onError={handleImageError('/placeholder-game.png')}
+                        onError={() => { if (imgSrc !== PLACEHOLDER) setImgSrc(PLACEHOLDER); }}
                     />
 
                     {/* Overlay de selección (solo admin en modo fusión); visual, el
@@ -178,3 +184,5 @@ export default function GameCard({ game, bestProduct, platformSlug, selectable, 
         </Anchor>
     );
 }
+
+export default memo(GameCard);

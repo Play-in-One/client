@@ -1,8 +1,8 @@
 @import '@mantine/core/styles.css';
 @import '@mantine/core/styles/ScrollArea.css';
 
-/* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+/* Poppins se carga con next/font (ver layout.tsx) y se expone como
+   --font-poppins; ya no se importa vía Google Fonts (request bloqueante). */
 
 /* ── Global resets ── */
 *,

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Poppins } from 'next/font/google';
 import { ColorSchemeScript } from '@mantine/core';
 import { Providers } from './providers';
 import { AppProvider } from '@/context/AppContext';
@@ -7,6 +8,13 @@ import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import { SITE_URL, siteConfig, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import './globals.css';
+
+const poppins = Poppins({
+    subsets: ['latin'],
+    weight: ['300', '400', '500', '600', '700', '800'],
+    display: 'swap',
+    variable: '--font-poppins',
+});
 
 export const metadata: Metadata = {
     metadataBase: new URL(SITE_URL),
@@ -50,7 +58,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="es" suppressHydrationWarning>
+        <html lang="es" className={poppins.variable} suppressHydrationWarning>
             <head>
                 <ColorSchemeScript defaultColorScheme="auto" />
             </head>

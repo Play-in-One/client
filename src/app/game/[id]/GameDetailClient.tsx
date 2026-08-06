@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, type ComponentType, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { handleImageError } from '@/lib/imageFallback';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -47,7 +48,9 @@ import type { Game, Product } from '@/lib/types';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { surfaces, decorative } from '@/lib/colors';
 import PlatformBadge from '@/components/PlatformBadge';
-import ProductPriceChart from '@/components/ProductPriceChart';
+// recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
+// (fuera del bundle inicial del detalle) y solo en el cliente.
+const ProductPriceChart = dynamic(() => import('@/components/ProductPriceChart'), { ssr: false });
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
 import { AdminGameControls, AdminProductEditor } from './AdminControls';
