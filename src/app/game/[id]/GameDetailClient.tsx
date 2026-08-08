@@ -445,7 +445,16 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                         </Group>
 
                                         <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
-                                            <Text>Vendido por <Anchor href={`/store/${bestProduct.seller.id}`} fw={700} c="#fff" underline="hover">{bestProduct.seller.name}</Anchor></Text>
+                                            <Text>Vendido por <Anchor
+                                                component="a"
+                                                href={bestProduct.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={() => trackEvent({ event_type: 'offer_click', product: bestProduct.id, game: game.id, platform: bestProduct.platform?.id })}
+                                                fw={700}
+                                                c="#fff"
+                                                underline="hover"
+                                            >{bestProduct.seller.name}</Anchor></Text>
                                             <Text c="rgba(255,255,255,0.4)">•</Text>
                                             <Group gap={4} c="green.4" fz="xs">
                                                 <IconCheck size={14} /> Stock Disponible
@@ -517,8 +526,8 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                             <Table.Th>Tienda & Producto</Table.Th>
                                             <Table.Th>Precio</Table.Th>
                                             <Table.Th>Tendencia</Table.Th>
-                                            <Table.Th>Estado</Table.Th>
-                                            <Table.Th ta="right">Acción</Table.Th>
+                                            <Table.Th miw={100} style={{ whiteSpace: 'nowrap' }}>Estado</Table.Th>
+                                            <Table.Th ta="right"></Table.Th>
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
@@ -539,8 +548,8 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                     onMouseLeave={() => setHoveredProductImage(null)}
                                                 >
                                                     <Table.Td>
-                                                        <Anchor href={`/store/${p.seller.id}`} underline="never" c="inherit">
-                                                            <Group gap="sm" wrap="nowrap">
+                                                        <Group gap="sm" wrap="nowrap">
+                                                            <Anchor href={`/store/${p.seller.id}`} underline="never" c="inherit">
                                                                 <Box
                                                                     w={40}
                                                                     h={40}
@@ -579,14 +588,24 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                                         p.seller.name.slice(0, 2).toUpperCase()
                                                                     )}
                                                                 </Box>
+                                                            </Anchor>
+                                                            <Anchor
+                                                                component="a"
+                                                                href={p.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
+                                                                underline="never"
+                                                                c="inherit"
+                                                            >
                                                                 <Box>
                                                                     <Text fw={700} fz="sm">{p.seller.name}</Text>
                                                                     <Text fz="xs" c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
                                                                         {p.title}
                                                                     </Text>
                                                                 </Box>
-                                                            </Group>
-                                                        </Anchor>
+                                                            </Anchor>
+                                                        </Group>
                                                     </Table.Td>
                                                     <Table.Td>
                                                         <Text
@@ -608,30 +627,34 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                             }
                                                         />
                                                     </Table.Td>
-                                                    <Table.Td>
+                                                    <Table.Td style={{ whiteSpace: 'nowrap' }}>
                                                         <Badge
                                                             color={conditionBadgeColor[p.condition] ?? 'gray'}
                                                             variant="light"
                                                             size="sm"
+                                                            styles={{ label: { overflow: 'visible' } }}
                                                         >
                                                             {conditionLabel[p.condition] ?? p.condition}
                                                         </Badge>
                                                     </Table.Td>
                                                     <Table.Td ta="right">
                                                         <Group gap={6} justify="flex-end" wrap="nowrap">
-                                                            <Button
-                                                                component="a"
-                                                                href={p.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
-                                                                size="xs"
-                                                                radius="md"
-                                                                variant={idx === 0 ? 'filled' : 'default'}
-                                                                color={idx === 0 ? 'dark' : undefined}
-                                                            >
-                                                                Ver en Tienda
-                                                            </Button>
+                                                            <MantineTooltip label="Ver en Tienda" withArrow>
+                                                                <ActionIcon
+                                                                    component="a"
+                                                                    href={p.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
+                                                                    size="lg"
+                                                                    radius="md"
+                                                                    variant={idx === 0 ? 'filled' : 'default'}
+                                                                    color={idx === 0 ? 'dark' : undefined}
+                                                                    aria-label="Ver en Tienda"
+                                                                >
+                                                                    <IconExternalLink size={16} />
+                                                                </ActionIcon>
+                                                            </MantineTooltip>
                                                             {isAdmin && (
                                                                 <MantineTooltip label="Editar producto" withArrow>
                                                                     <ActionIcon
