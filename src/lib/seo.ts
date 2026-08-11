@@ -26,6 +26,16 @@ export const siteConfig = {
         'juegos baratos Chile',
         'Play in One',
     ],
+    social: {
+        instagram: 'https://www.instagram.com/playinone.cl/',
+        linkedin: 'https://www.linkedin.com/company/playinonecl/',
+        facebook: 'https://www.facebook.com/people/Play-in-One/61586254222483/',
+        twitter: 'https://x.com/playinonecl',
+        youtube: 'https://www.youtube.com/@PlayinOne-cl',
+        reddit: 'https://www.reddit.com/user/playinonecl/',
+        /** Cuenta real pendiente de creación — link genérico como placeholder. */
+        tiktok: 'https://tiktok.com/',
+    },
 } as const;
 
 /** Absolute URL from a site-relative path (or a passthrough if already absolute). */
@@ -102,6 +112,14 @@ export function organizationJsonLd(): JsonLdObject {
         url: SITE_URL,
         logo: absoluteUrl('/PIO-punto-negro.svg'),
         description: siteConfig.description,
+        sameAs: [
+            siteConfig.social.instagram,
+            siteConfig.social.linkedin,
+            siteConfig.social.facebook,
+            siteConfig.social.twitter,
+            siteConfig.social.youtube,
+            siteConfig.social.reddit,
+        ],
     };
 }
 

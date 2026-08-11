@@ -20,9 +20,12 @@ import {
     IconBrandX,
     IconBrandInstagram,
     IconBrandFacebook,
-    IconBrandYoutube
+    IconBrandYoutube,
+    IconBrandLinkedin,
+    IconBrandReddit,
 } from '@tabler/icons-react';
 import { social } from '@/lib/colors';
+import { siteConfig } from '@/lib/seo';
 
 const YEAR = new Date().getFullYear();
 
@@ -111,11 +114,13 @@ export default function Footer() {
                         <Text fw={700} mb={4}>Siguenos</Text>
                         <Text fz="sm" c="dimmed">Mantente al dia de las mejores ofertas y novedades.</Text>
                         <Group gap="xs">
-                            <SocialIcon icon={IconBrandInstagram} brandColor={social.instagram} href="https://instagram.com/" />
-                            <SocialIcon icon={IconBrandFacebook} brandColor={social.facebook} href="https://facebook.com/" />
-                            <SocialIcon icon={IconBrandX} brandColor="gray" href="https://twitter.com/" />
-                            <SocialIcon icon={IconBrandTiktok} brandColor={social.tiktok} href="https://tiktok.com/" />
-                            <SocialIcon icon={IconBrandYoutube} brandColor={social.youtube} href="https://youtube.com/" />
+                            <SocialIcon icon={IconBrandInstagram} brandColor={social.instagram} href={siteConfig.social.instagram} />
+                            <SocialIcon icon={IconBrandFacebook} brandColor={social.facebook} href={siteConfig.social.facebook} />
+                            <SocialIcon icon={IconBrandX} brandColor="gray" href={siteConfig.social.twitter} />
+                            <SocialIcon icon={IconBrandLinkedin} brandColor={social.linkedin} href={siteConfig.social.linkedin} />
+                            <SocialIcon icon={IconBrandReddit} brandColor={social.reddit} href={siteConfig.social.reddit} />
+                            <SocialIcon icon={IconBrandTiktok} brandColor={social.tiktok} href={siteConfig.social.tiktok} />
+                            <SocialIcon icon={IconBrandYoutube} brandColor={social.youtube} href={siteConfig.social.youtube} />
                         </Group>
                     </Stack>
                 </SimpleGrid>

@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
-import { Container, Title, Text, Box, SimpleGrid, Card } from '@mantine/core';
+import { Container, Title, Text, Box, Card } from '@mantine/core';
 import { buildMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
     title: 'Sobre Nosotros',
     description:
-        'Play in One ayuda a los gamers de Chile a encontrar los mejores precios comparando decenas de tiendas en tiempo real.',
+        'Play in One es una plataforma web que te permite comparar los precios de videojuegos entre 50+ tiendas a nivel nacional.',
     path: '/about',
 });
 
@@ -16,29 +16,33 @@ export default function AboutPage() {
 
             <Box className="content-card" p="xl" mb="xl">
                 <Text fz="lg" mb="md">
-                    En <strong>Play in One</strong>, nuestra misión es ayudar a los gamers de todo Chile a encontrar los mejores precios para sus juegos favoritos.
+                    En <strong>Play in One</strong> (codename PIO), nuestra misión es ayudarte a cotizar los mejores precios para tus juegos favoritos.
                     Sabemos que el hobby puede ser costoso y que a veces es difícil comparar precios entre tantas tiendas.
                 </Text>
                 <Text fz="lg" mb="md">
-                    Por eso creamos un comparador en tiempo real que te permite encontrar rápidamente dónde está más barato el juego que buscas.
+                    Por eso, creamos un comparador actualizado a diario que te permite encontrar rápidamente dónde está más barato el juego que buscas.
                     Además, recopilamos los datos y ofertas diarias para que no te pierdas de nada.
                 </Text>
                 <Text fz="lg">
-                    ¡Gracias por usar Play in One! Esperamos que esta herramienta te ayude a ahorrar dinero y disfrutar de más y mejores juegos.
+                    ¡Gracias por usar Play in One! Esperamos que esta herramienta te ayude a ahorrar aunque sea un poco y a disfrutar de más y mejores juegos.
                 </Text>
             </Box>
 
-            <Title order={2} ta="center" mt={60} mb="xl">Nuestro Equipo</Title>
-            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xl">
-                <Card withBorder radius="lg" padding="xl" ta="center">
-                    <Title order={4} mb="xs">Fundadores</Title>
-                    <Text c="dimmed">Un grupo de gamers apasionados por el desarrollo web y los videojuegos, comprometidos en crear la mejor plataforma para la comunidad en Chile.</Text>
-                </Card>
-                <Card withBorder radius="lg" padding="xl" ta="center">
-                    <Title order={4} mb="xs">Nuestra Visión</Title>
-                    <Text c="dimmed">Convertirnos en el lugar de referencia número 1 en todo Latinoamérica para cotizar videojuegos y productos de gaming.</Text>
-                </Card>
-            </SimpleGrid>
+            <Title order={2} ta="center" mt={60} mb="md">¿Qué es PIO?</Title>
+            <Box className="content-card" p="xl" mb="xl">
+                <Text fz="lg" ta="center">
+                    Play in One es una plataforma web que te permite comparar los precios de videojuegos entre 50+ tiendas a nivel nacional.
+                    Nuestro objetivo es que encuentres el juego que quieras al mejor precio, siempre.
+                </Text>
+            </Box>
+
+            <Title order={2} ta="center" mt={60} mb="xl">Fundadores</Title>
+            <Card withBorder radius="lg" padding="xl" ta="center">
+                <Text c="dimmed">
+                    Dos egresados de ingeniería apasionados por el mundo start up, el desarrollo web, la tecnología y los videojuegos (entre otros).
+                    Estamos comprometidos en crear la mejor plataforma para la comunidad en Chile.
+                </Text>
+            </Card>
         </Container>
     );
 }

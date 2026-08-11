@@ -103,6 +103,8 @@ export const social = {
     facebook: '#1877F2',
     tiktok: '#ff0050',
     youtube: '#FF0000',
+    linkedin: '#0A66C2',
+    reddit: '#FF4500',
 };
 
 export const og = {
