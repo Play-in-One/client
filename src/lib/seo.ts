@@ -172,26 +172,26 @@ export function gameJsonLd(game: Game): JsonLdObject {
         ...(game.developer ? { brand: { '@type': 'Brand', name: game.developer } } : {}),
     };
 
-    if (lowPrice != null) {
+    // Solo se emiten offers cuando hay productos reales: el API público ya
+    // excluye los ocultos (out of stock), así que cada oferta emitida está
+    // efectivamente disponible y el InStock es veraz. Sin ofertas, no se
+    // fabrica un AggregateOffer.
+    if (lowPrice != null && offers.length > 0) {
         data.offers = {
             '@type': 'AggregateOffer',
             priceCurrency: 'CLP',
             lowPrice,
             ...(prices.length ? { highPrice: String(Math.max(...prices)) } : {}),
-            offerCount: offers.length || 1,
-            ...(offers.length
-                ? {
-                      offers: offers.map((p) => ({
-                          '@type': 'Offer',
-                          price: p.current_price,
-                          priceCurrency: 'CLP',
-                          itemCondition: conditionToSchema(p.condition),
-                          availability: 'https://schema.org/InStock',
-                          url: p.url,
-                          seller: { '@type': 'Organization', name: p.seller.name },
-                      })),
-                  }
-                : {}),
+            offerCount: offers.length,
+            offers: offers.map((p) => ({
+                '@type': 'Offer',
+                price: p.current_price,
+                priceCurrency: 'CLP',
+                itemCondition: conditionToSchema(p.condition),
+                availability: 'https://schema.org/InStock',
+                url: p.url,
+                seller: { '@type': 'Organization', name: p.seller.name },
+            })),
         };
     }
 

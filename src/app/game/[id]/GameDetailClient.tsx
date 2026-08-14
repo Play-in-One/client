@@ -44,7 +44,7 @@ import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
 
 import { trackEvent } from '@/lib/api';
-import type { Game, Product } from '@/lib/types';
+import type { Game, Platform, Product } from '@/lib/types';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { surfaces, decorative } from '@/lib/colors';
 import PlatformBadge from '@/components/PlatformBadge';
@@ -55,16 +55,34 @@ import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
 import { AdminGameControls, AdminProductEditor } from './AdminControls';
 
+/** Consolas del juego con al menos un producto disponible.
+ * `game.platforms` puede traer consolas cuyo stock desapareció (la M2M del
+ * backend se poda al finalizar cada scrape, pero puede quedar desfasada);
+ * derivar de los productos embebidos garantiza que no se muestren tabs vacíos. */
+function availablePlatforms(game: Game): Platform[] {
+    const products = game.products ?? [];
+    if (products.length === 0) return game.platforms;
+    const withStock = new Set(products.map((p) => p.platform.name));
+    const fromGame = game.platforms.filter((pl) => withStock.has(pl.name));
+    if (fromGame.length > 0) return fromGame;
+    const unique: Platform[] = [];
+    for (const p of products) {
+        if (!unique.some((pl) => pl.name === p.platform.name)) unique.push(p.platform);
+    }
+    return unique;
+}
+
 export default function GameDetailClient({ initialGame }: { initialGame: Game }) {
     const searchParams = useSearchParams();
     const { condition, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
     const game = initialGame;
+    const platformOptions = availablePlatforms(game);
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(() => {
         const requestedSlug = searchParams.get('platform');
-        const requested = requestedSlug ? game.platforms.find((p) => p.slug === requestedSlug) : null;
-        return requested?.name ?? game.platforms[0]?.name ?? null;
+        const requested = requestedSlug ? platformOptions.find((p) => p.slug === requestedSlug) : null;
+        return requested?.name ?? platformOptions[0]?.name ?? null;
     });
     const [conditionFilter, setConditionFilter] = useState<string | null>(
         condition !== 'all' ? condition : null,
@@ -318,8 +336,8 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                 {game.name}
                             </Title>
 
-                            {/* Platform selector */}
-                            {game.platforms.length > 1 && (
+                            {/* Platform selector (solo consolas con productos disponibles) */}
+                            {platformOptions.length > 1 && (
                                 <Group gap={4} mb="sm">
                                     <Box
                                         p={4}
@@ -330,7 +348,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                             background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTintStrong})`,
                                         }}
                                     >
-                                        {game.platforms.map((pl) => {
+                                        {platformOptions.map((pl) => {
                                             const Icon = platformIconMap[pl.name] || IconDeviceGamepad;
                                             const pColor = PLATFORM_COLORS[pl.name]?.mantine || 'gray';
                                             return (
