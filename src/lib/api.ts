@@ -174,8 +174,15 @@ export async function getGames(params?: {
 }
 
 /** Juegos con más tráfico en los últimos 7 días (con relleno por rating). */
-export async function getTrendingGames() {
-    return fetcher<PaginatedResponse<Game>>(`/games/trending/`);
+export async function getTrendingGames(params?: { condition?: string; signal?: AbortSignal }) {
+    const { signal, ...qsParams } = params ?? {};
+    return fetcher<PaginatedResponse<Game>>(`/games/trending/${qs(qsParams)}`, { signal });
+}
+
+/** Juegos destacados curados a mano por el admin (orden manual). */
+export async function getFeaturedGames(params?: { condition?: string; signal?: AbortSignal }) {
+    const { signal, ...qsParams } = params ?? {};
+    return fetcher<PaginatedResponse<Game>>(`/games/featured/${qs(qsParams)}`, { signal });
 }
 
 export async function getGameFacets(params?: {
@@ -263,7 +270,7 @@ export async function logout() {
 }
 
 /** Edita campos del juego (nombre, imagen, etc.). PATCH /api/games/{id}/ */
-export async function updateGame(id: number, patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating'>>) {
+export async function updateGame(id: number, patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating' | 'is_featured' | 'featured_order' | 'featured_description'>>) {
     return fetcher<Game>(`/games/${id}/`, {
         method: 'PATCH',
         body: JSON.stringify(patch),

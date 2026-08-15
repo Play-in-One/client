@@ -73,7 +73,7 @@ export default function Navbar() {
                 wrap="nowrap"
             >
                 {/* Logo */}
-                <Anchor href="/" underline="never" style={{ textDecoration: 'none' }}>
+                <Anchor component={Link} href="/" underline="never" style={{ textDecoration: 'none' }}>
                     <Group gap={8} wrap="nowrap">
                         <Image
                             src="/PIO-punto-negro.svg"
@@ -93,8 +93,14 @@ export default function Navbar() {
                             className="logo-mark-dark"
                             style={{ flexShrink: 0 }}
                         />
-                        <Text fw={700} fz="lg" visibleFrom="sm">
-                            Play<Text span c="var(--mantine-color-primaryRed-5)">in</Text>One
+                        <Text
+                            fw={800}
+                            fz="lg"
+                            visibleFrom="sm"
+                            className="logo-wordmark"
+                            style={{ letterSpacing: '-0.02em' }}
+                        >
+                            Play<Text span fw={800} c="var(--mantine-color-primaryRed-5)">in</Text>One
                         </Text>
                     </Group>
                 </Anchor>

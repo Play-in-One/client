@@ -3,6 +3,7 @@
 import { useState, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox } from '@mantine/core';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import { formatCLP } from '@/lib/utils';
@@ -41,9 +42,19 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
         trackEvent({ event_type: 'game_click', game: game.id, platform: platformId });
     };
 
+    // component={Link} usa el router de Next.js (transición client-side, sin
+    // recarga completa). Un <a> plano forzaba un hard reload al abrir un
+    // juego, que remonta AppProvider y muestra un instante sin el filtro de
+    // condición mientras se relee de localStorage — de ahí el flash de
+    // "todos los juegos". En modo selectable el click nunca navega
+    // (preventDefault cancela la navegación de Link), así que el href es
+    // solo un placeholder.
+    const gameHref = `/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`;
+
     return (
         <Anchor
-            href={selectable ? undefined : `/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`}
+            component={Link}
+            href={selectable ? '#' : gameHref}
             underline="never"
             style={{ textDecoration: 'none' }}
             onClick={(e) => {

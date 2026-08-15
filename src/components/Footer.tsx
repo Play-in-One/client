@@ -1,6 +1,7 @@
 'use client';
 
 import { type ComponentType, useState } from 'react';
+import Link from 'next/link';
 
 import Image from 'next/image';
 import {
@@ -80,8 +81,13 @@ export default function Footer() {
                                 className="logo-mark-dark"
                                 style={{ flexShrink: 0 }}
                             />
-                            <Text fw={700} fz="lg">
-                                Play<Text span c="var(--mantine-color-primaryRed-5)">in</Text>One
+                            <Text
+                                fw={800}
+                                fz="lg"
+                                className="logo-wordmark"
+                                style={{ letterSpacing: '-0.02em' }}
+                            >
+                                Play<Text span fw={800} c="var(--mantine-color-primaryRed-5)">in</Text>One
                             </Text>
                         </Group>
                         <Text fz="sm" c="dimmed" maw={280}>
@@ -93,20 +99,20 @@ export default function Footer() {
                     {/* Categorías */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Categorías</Text>
-                        <Anchor href="/search?platform=ps5" fz="sm" c="dimmed" underline="never">PlayStation 5</Anchor>
-                        <Anchor href="/search?platform=switch" fz="sm" c="dimmed" underline="never">Nintendo Switch</Anchor>
-                        <Anchor href="/search?platform=xbox" fz="sm" c="dimmed" underline="never">Xbox Series X</Anchor>
-                        <Anchor href="/search?platform=pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
+                        <Anchor component={Link} href="/search?platform=ps5" fz="sm" c="dimmed" underline="never">PlayStation 5</Anchor>
+                        <Anchor component={Link} href="/search?platform=switch" fz="sm" c="dimmed" underline="never">Nintendo Switch</Anchor>
+                        <Anchor component={Link} href="/search?platform=xbox" fz="sm" c="dimmed" underline="never">Xbox Series X</Anchor>
+                        <Anchor component={Link} href="/search?platform=pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
                     </Stack>
 
                     {/* Empresa */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Empresa</Text>
-                        <Anchor href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
-                        <Anchor href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
-                        <Anchor href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
-                        <Anchor href="/saved" fz="sm" c="dimmed" underline="never">Juegos Guardados</Anchor>
-                        <Anchor href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
+                        <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
+                        <Anchor component={Link} href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
+                        <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
+                        <Anchor component={Link} href="/saved" fz="sm" c="dimmed" underline="never">Juegos Guardados</Anchor>
+                        <Anchor component={Link} href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
                     </Stack>
 
                     {/* Newsletter */}

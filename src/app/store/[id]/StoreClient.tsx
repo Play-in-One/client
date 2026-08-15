@@ -12,6 +12,7 @@ import {
     Stack,
 } from '@mantine/core';
 import { IconExternalLink, IconChevronRight, IconHome, IconMapPin } from '@tabler/icons-react';
+import Link from 'next/link';
 
 import type { Seller } from '@/lib/types';
 
@@ -26,7 +27,7 @@ export default function StoreClient({ initialSeller }: { initialSeller: Seller }
                 mb="xl"
                 fz="sm"
             >
-                <Anchor href="/" c="dimmed" underline="never">
+                <Anchor component={Link} href="/" c="dimmed" underline="never">
                     <Group gap={4}><IconHome size={14} /> Inicio</Group>
                 </Anchor>
                 <Text fw={500}>{seller.name}</Text>

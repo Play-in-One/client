@@ -12,9 +12,11 @@
         "test:e2e:ui": "playwright test --ui"
     },
     "dependencies": {
+        "@mantine/carousel": "^7.17.8",
         "@mantine/core": "^7.17.0",
         "@mantine/hooks": "^7.17.0",
         "@tabler/icons-react": "^3.30.0",
+        "embla-carousel-react": "^8.6.0",
         "next": "^15.3.0",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",

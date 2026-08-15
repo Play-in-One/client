@@ -122,9 +122,16 @@ function SearchContent() {
         const slugs = platformSlug.split(',').map((s) => s.trim()).filter(Boolean);
         return platforms.filter((p) => slugs.includes(p.slug)).map((p) => p.id);
     }, [platformSlug, platforms]);
-    const activePlatformSlug = selectedPlatforms.length === 1
-        ? platforms.find((p) => p.id === selectedPlatforms[0])?.slug
-        : undefined;
+    /* Deep-link del detalle a la pestaña de consola correcta: con 2+
+       plataformas filtradas, cada juego puede tener stock en solo una de
+       ellas, así que la pestaña se resuelve por juego (intersección de sus
+       plataformas con las filtradas), no con un único slug global — si no,
+       el detalle abría en la primera plataforma del juego (a veces sin
+       stock) en vez de la que realmente coincide con el filtro/tarjeta. */
+    const platformSlugFor = (game: Game) => {
+        if (selectedPlatforms.length === 0) return undefined;
+        return game.platforms.find((p) => selectedPlatforms.includes(p.id))?.slug;
+    };
 
     const setPlatformFilter = (nextIds: number[]) => {
         const nextSlugs = platforms.filter((p) => nextIds.includes(p.id)).map((p) => p.slug);
@@ -677,7 +684,7 @@ function SearchContent() {
                                     <GameCard
                                         key={g.id}
                                         game={g}
-                                        platformSlug={activePlatformSlug}
+                                        platformSlug={platformSlugFor(g)}
                                         selectable={selectionMode}
                                         selected={selected.some((s) => s.id === g.id)}
                                         onToggleSelect={toggleSelect}

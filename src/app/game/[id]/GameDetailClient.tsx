@@ -2,6 +2,7 @@
 
 import { Fragment, type ComponentType, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -36,12 +37,12 @@ import {
     IconCheck,
     IconDeviceGamepad,
     IconDeviceGamepad2,
-    IconDeviceNintendo,
     IconDeviceDesktop,
     IconPencil,
 } from '@tabler/icons-react';
 import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
+import { WiiULogo, WiiLogo, NintendoDSLogo } from '@/components/icons/PlatformLogos';
 
 import { trackEvent } from '@/lib/api';
 import type { Game, Platform, Product } from '@/lib/types';
@@ -87,6 +88,14 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     const [conditionFilter, setConditionFilter] = useState<string | null>(
         condition !== 'all' ? condition : null,
     );
+    const [conditionManuallySet, setConditionManuallySet] = useState(false);
+    // El switch del header manda mientras el usuario no elija manualmente
+    // una condición en el Select local de la tabla de precios.
+    useEffect(() => {
+        if (!conditionManuallySet) {
+            setConditionFilter(condition !== 'all' ? condition : null);
+        }
+    }, [condition, conditionManuallySet]);
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
     const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
     // Edición admin: toggles independientes para el panel del juego y por producto.
@@ -172,10 +181,23 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
         switch: BsNintendoSwitch,
         switch2: BsNintendoSwitch,
         pc: IconDeviceDesktop,
-        wii: IconDeviceNintendo,
-        nds: IconDeviceGamepad2,
+        wii: WiiLogo,
+        nds: NintendoDSLogo,
         '3ds': IconDeviceGamepad2,
-        wiiu: IconDeviceNintendo,
+        wiiu: WiiULogo,
+    };
+
+    /** Nombres cortos solo para el selector de plataforma de esta página (no afecta
+     * breadcrumbs, badges ni otras vistas, que siguen usando `display_name` tal cual). */
+    const platformSelectorLabel: Record<string, string> = {
+        switch: 'NS1',
+        switch2: 'NS2',
+        wiiu: 'WiiU',
+        nds: 'DS',
+        '3ds': '3DS',
+        xbox360: 'X360',
+        xboxone: 'XOne',
+        xboxseries: 'XSeries',
     };
 
     const breadcrumbPlatform = game.platforms.find((p) => p.name === selectedPlatform) ?? game.platforms[0];
@@ -189,11 +211,11 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                 mb="xl"
                 fz="sm"
             >
-                <Anchor href="/" c="dimmed" underline="never">
+                <Anchor component={Link} href="/" c="dimmed" underline="never">
                     <Group gap={4}><IconHome size={14} /> Inicio</Group>
                 </Anchor>
                 {breadcrumbPlatform && (
-                    <Anchor href={`/search?platform=${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
+                    <Anchor component={Link} href={`/search?platform=${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
                         {breadcrumbPlatform.display_name}
                     </Anchor>
                 )}
@@ -362,7 +384,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                     onClick={() => setSelectedPlatform(pl.name)}
                                                     style={{ transition: 'all 0.2s' }}
                                                 >
-                                                    {pl.display_name}
+                                                    {platformSelectorLabel[pl.name] || pl.display_name}
                                                 </Button>
                                             );
                                         })}
@@ -529,7 +551,10 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                             { value: 'digital', label: 'Digital' },
                                         ]}
                                         value={conditionFilter ?? ''}
-                                        onChange={(v) => setConditionFilter(v || null)}
+                                        onChange={(v) => {
+                                            setConditionManuallySet(true);
+                                            setConditionFilter(v || null);
+                                        }}
                                         size="xs"
                                         radius="md"
                                         w={160}
@@ -567,7 +592,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                 >
                                                     <Table.Td>
                                                         <Group gap="sm" wrap="nowrap">
-                                                            <Anchor href={`/store/${p.seller.id}`} underline="never" c="inherit">
+                                                            <Anchor component={Link} href={`/store/${p.seller.id}`} underline="never" c="inherit">
                                                                 <Box
                                                                     w={40}
                                                                     h={40}

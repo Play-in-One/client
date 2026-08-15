@@ -24,8 +24,8 @@ export default function OpengraphImage() {
                     padding: 80,
                 }}
             >
-                <div style={{ fontSize: 34, fontWeight: 700, color: '#f87171', letterSpacing: 4 }}>
-                    PLAY IN ONE
+                <div style={{ display: 'flex', fontSize: 34, fontWeight: 800, letterSpacing: 2 }}>
+                    PLAY<span style={{ color: '#f02f68' }}> IN </span>ONE
                 </div>
                 <div
                     style={{

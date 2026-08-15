@@ -72,6 +72,9 @@ export interface Game {
     min_price: string | null;
     on_sale: boolean;
     products?: Product[];
+    is_featured?: boolean;
+    featured_order?: number | null;
+    featured_description?: string | null;
 }
 
 export interface Post {

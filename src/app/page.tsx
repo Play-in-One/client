@@ -1,4 +1,4 @@
-import { getPosts, getTrendingGames } from '@/lib/api';
+import { getPosts, getTrendingGames, getFeaturedGames } from '@/lib/api';
 import type { Post, Game } from '@/lib/types';
 import HomeClient from './HomeClient';
 
@@ -21,5 +21,12 @@ export default async function HomePage() {
         /* render home without the trending panel on API failure */
     }
 
-    return <HomeClient initialPosts={posts} initialTrending={trending} />;
+    let featured: Game[] = [];
+    try {
+        featured = (await getFeaturedGames()).results;
+    } catch {
+        /* render home without the featured section on API failure */
+    }
+
+    return <HomeClient initialPosts={posts} initialTrending={trending} initialFeatured={featured} />;
 }

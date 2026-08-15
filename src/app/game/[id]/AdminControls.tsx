@@ -14,7 +14,9 @@ import {
     NumberInput,
     Select,
     Stack,
+    Switch,
     Text,
+    Textarea,
     TextInput,
     Title,
 } from '@mantine/core';
@@ -102,6 +104,9 @@ export function AdminGameControls({ game }: { game: Game }) {
     const router = useRouter();
     const [name, setName] = useState(game.name);
     const [image, setImage] = useState(game.image ?? '');
+    const [isFeatured, setIsFeatured] = useState(game.is_featured ?? false);
+    const [featuredOrder, setFeaturedOrder] = useState<number | ''>(game.featured_order ?? '');
+    const [featuredDescription, setFeaturedDescription] = useState(game.featured_description ?? '');
     const [sources, setSources] = useState<{ id: number; name: string }[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -162,6 +167,66 @@ export function AdminGameControls({ game }: { game: Game }) {
                         Guardar
                     </Button>
                 </Group>
+
+                <Divider label="Destacado en home" labelPosition="left" />
+
+                <Group align="center" gap="sm">
+                    <Switch
+                        label="Mostrar en 'Juegos Destacados'"
+                        checked={isFeatured}
+                        onChange={(e) => setIsFeatured(e.currentTarget.checked)}
+                    />
+                    <Button
+                        disabled={busy || isFeatured === (game.is_featured ?? false)}
+                        onClick={() => run(() => updateGame(game.id, { is_featured: isFeatured }), 'Destacado actualizado.')}
+                    >
+                        Guardar
+                    </Button>
+                </Group>
+
+                <Group align="flex-end" gap="sm" wrap="nowrap">
+                    <NumberInput
+                        label="Orden en destacados (menor = primero)"
+                        value={featuredOrder}
+                        onChange={(v) => setFeaturedOrder(v === '' ? '' : Number(v))}
+                        min={0}
+                        style={{ flex: 1 }}
+                    />
+                    <Button
+                        disabled={busy || featuredOrder === (game.featured_order ?? '')}
+                        onClick={() =>
+                            run(
+                                () => updateGame(game.id, { featured_order: featuredOrder === '' ? null : featuredOrder }),
+                                'Orden actualizado.'
+                            )
+                        }
+                    >
+                        Guardar
+                    </Button>
+                </Group>
+
+                <Stack gap={4}>
+                    <Textarea
+                        label="Mini-descripción para la tarjeta de destacados"
+                        value={featuredDescription}
+                        onChange={(e) => setFeaturedDescription(e.currentTarget.value)}
+                        maxLength={240}
+                        autosize
+                        minRows={2}
+                    />
+                    <Button
+                        disabled={busy || featuredDescription === (game.featured_description ?? '')}
+                        onClick={() =>
+                            run(
+                                () => updateGame(game.id, { featured_description: featuredDescription }),
+                                'Mini-descripción actualizada.'
+                            )
+                        }
+                        style={{ alignSelf: 'flex-start' }}
+                    >
+                        Guardar
+                    </Button>
+                </Stack>
 
                 <Divider label="Fusionar juegos" labelPosition="left" />
                 <Text fz="xs" c="dimmed">

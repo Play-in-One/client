@@ -1,5 +1,6 @@
 @import '@mantine/core/styles.css';
 @import '@mantine/core/styles/ScrollArea.css';
+@import '@mantine/carousel/styles.css';
 
 /* Poppins se carga con next/font (ver layout.tsx) y se expone como
    --font-poppins; ya no se importa vía Google Fonts (request bloqueante). */
@@ -61,6 +62,15 @@ body {
 }
 [data-mantine-color-scheme='dark'] .logo-mark-dark {
   display: block;
+}
+
+/* Logo wordmark: black text on light bg, pure white on dark bg (Mantine's
+   default text color resolves to dark.0 = #C9C9C9, not white) */
+.logo-wordmark {
+  color: var(--mantine-color-black);
+}
+[data-mantine-color-scheme='dark'] .logo-wordmark {
+  color: var(--mantine-color-white);
 }
 
 .search-input {
