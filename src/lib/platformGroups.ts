@@ -11,7 +11,7 @@ export const PLATFORM_GROUPS: {
     options: { label: string; slug: string }[];
 }[] = [
     {
-        label: 'PlayStation 3 / 4 / 5 / Vita',
+        label: 'PS4 / PS5',
         brand: 'PlayStation',
         icon: FaPlaystation,
         color: platforms.ps5,
@@ -23,19 +23,18 @@ export const PLATFORM_GROUPS: {
         ],
     },
     {
-        label: 'Xbox / 360 / One / Series',
+        label: 'Xbox 360 / One / Series',
         brand: 'Xbox',
         icon: FaXbox,
         color: platforms.xbox,
         options: [
-            { label: 'Xbox', slug: 'xbox' },
             { label: 'Xbox 360', slug: 'xbox360' },
             { label: 'Xbox One', slug: 'xboxone' },
             { label: 'Xbox Series', slug: 'xboxseries' },
         ],
     },
     {
-        label: 'Nintendo Switch / Wii / DS / 3DS',
+        label: 'Switch / Switch 2',
         brand: 'Nintendo',
         icon: BsNintendoSwitch,
         color: platforms.switch,
