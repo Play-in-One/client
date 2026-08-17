@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type ConditionFilter = 'all' | 'new' | 'used';
 
@@ -52,50 +52,53 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     }, []);
 
-    const setCondition = (c: ConditionFilter) => {
+    // Callbacks estables + value memoizado: el Provider envuelve toda la app
+    // (layout.tsx), así que un value nuevo en cada render re-renderizaba el
+    // árbol completo en cada tecla de búsqueda o clic del toggle de condición,
+    // bloqueando el hilo antes de que saliera el fetch.
+    const setCondition = useCallback((c: ConditionFilter) => {
         setConditionState(c);
         window.localStorage.setItem(CONDITION_STORAGE_KEY, c);
-    };
+    }, []);
 
-    const persistSavedGames = (games: SavedGame[]) => {
+    const persistSavedGames = useCallback((games: SavedGame[]) => {
         setSavedGamesState(games);
         try {
             window.localStorage.setItem(SAVED_GAMES_STORAGE_KEY, JSON.stringify(games));
         } catch {
             // private browsing / quota exceeded — state still updates in-memory for this session
         }
-    };
+    }, []);
 
-    const isSaved = (gameId: number) => savedGames.some((g) => g.id === gameId);
+    const isSaved = useCallback((gameId: number) => savedGames.some((g) => g.id === gameId), [savedGames]);
 
-    const toggleSaved = (game: SavedGame) => {
-        if (isSaved(game.id)) {
+    const toggleSaved = useCallback((game: SavedGame) => {
+        if (savedGames.some((g) => g.id === game.id)) {
             persistSavedGames(savedGames.filter((g) => g.id !== game.id));
         } else {
             persistSavedGames([game, ...savedGames]);
         }
-    };
+    }, [savedGames, persistSavedGames]);
 
-    const removeSaved = (gameId: number) => {
+    const removeSaved = useCallback((gameId: number) => {
         persistSavedGames(savedGames.filter((g) => g.id !== gameId));
-    };
+    }, [savedGames, persistSavedGames]);
 
-    return (
-        <AppContext.Provider
-            value={{
-                searchQuery,
-                setSearchQuery,
-                condition,
-                setCondition,
-                savedGames,
-                isSaved,
-                toggleSaved,
-                removeSaved,
-            }}
-        >
-            {children}
-        </AppContext.Provider>
+    const value = useMemo(
+        () => ({
+            searchQuery,
+            setSearchQuery,
+            condition,
+            setCondition,
+            savedGames,
+            isSaved,
+            toggleSaved,
+            removeSaved,
+        }),
+        [searchQuery, condition, setCondition, savedGames, isSaved, toggleSaved, removeSaved],
     );
+
+    return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
 export function useApp() {

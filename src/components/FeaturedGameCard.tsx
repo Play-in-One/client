@@ -20,6 +20,7 @@ function FeaturedGameCard({
     game,
     isActive,
     side,
+    priority,
 }: {
     game: Game;
     isActive: boolean;
@@ -28,6 +29,8 @@ function FeaturedGameCard({
      * comprimida, para que quede junto a la tarjeta central en vez de
      * flotar centrada con un hueco vacío de cada lado. */
     side: 'before' | 'active' | 'after';
+    /** Eager-load de la carátula (LCP): activarlo en la tarjeta visible al centro. */
+    priority?: boolean;
 }) {
     const [imgSrc, setImgSrc] = useState(game.image || PLACEHOLDER);
     const hasPrice = game.min_price !== null;
@@ -118,6 +121,7 @@ function FeaturedGameCard({
                             alt={game.name}
                             fill
                             sizes={`${IMAGE_WIDTH}px`}
+                            priority={priority}
                             unoptimized
                             style={{ objectFit: 'cover' }}
                             onError={() => { if (imgSrc !== PLACEHOLDER) setImgSrc(PLACEHOLDER); }}

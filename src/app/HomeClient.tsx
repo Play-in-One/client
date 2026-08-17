@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { startTransition, useEffect, useRef, useState, type FormEvent } from 'react';
 import type { EmblaCarouselType } from 'embla-carousel';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ import {
     Anchor,
     Badge,
     Stack,
+    Skeleton,
 } from '@mantine/core';
 import { Carousel } from '@mantine/carousel';
 import {
@@ -29,9 +30,43 @@ import type { Post, Game } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames } from '@/lib/api';
-import { useApp } from '@/context/AppContext';
+import { useApp, type ConditionFilter } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import FeaturedGameCard from '@/components/FeaturedGameCard';
+
+/* Skeleton con la silueta del carrusel de Destacados: tarjeta activa
+   expandida (carátula 200px + panel de info) al centro y carátulas
+   comprimidas a los lados. Mismas alturas que FeaturedGameCard (300px) y
+   mismo padding vertical que el track del carrusel, para que el reemplazo
+   skeleton ↔ carrusel no mueva el layout. */
+function FeaturedCarouselSkeleton() {
+    return (
+        <Group justify="center" align="center" gap={70} wrap="nowrap" pt={12} pb={8} style={{ overflow: 'hidden' }}>
+            <Skeleton radius="lg" height={300} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
+            <Skeleton radius="lg" height={300} style={{ width: 'min(520px, 100%)', flexShrink: 0 }} />
+            <Skeleton radius="lg" height={300} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
+        </Group>
+    );
+}
+
+/* Skeleton de la grilla de Populares — mismas proporciones que GameCard,
+   mismo patrón visual que search/loading.tsx. */
+function TrendingGridSkeleton() {
+    return (
+        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+            {Array.from({ length: 8 }).map((_, i) => (
+                <Box key={i}>
+                    <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
+                    <Stack gap={6} mt="sm">
+                        <Skeleton height={10} width="40%" radius="sm" />
+                        <Skeleton height={14} width="80%" radius="sm" />
+                        <Skeleton height={22} width="55%" radius="sm" mt={4} />
+                    </Stack>
+                </Box>
+            ))}
+        </SimpleGrid>
+    );
+}
 
 /* ── Sagas Favoritas ── */
 const SAGAS = [
@@ -61,8 +96,14 @@ export default function HomeClient({
        ocultan con un fade breve para no mostrar ese salto. */
     const [carouselsReady, setCarouselsReady] = useState(false);
     useEffect(() => {
-        const id = requestAnimationFrame(() => requestAnimationFrame(() => setCarouselsReady(true)));
-        return () => cancelAnimationFrame(id);
+        let idInner: number | null = null;
+        const idOuter = requestAnimationFrame(() => {
+            idInner = requestAnimationFrame(() => setCarouselsReady(true));
+        });
+        return () => {
+            cancelAnimationFrame(idOuter);
+            if (idInner !== null) cancelAnimationFrame(idInner);
+        };
     }, []);
 
     /* Efecto "coverflow": solo la tarjeta centrada del carrusel de Destacados
@@ -165,22 +206,54 @@ export default function HomeClient({
        (AppContext), así que este efecto corre de nuevo apenas eso ocurre. */
     const [trending, setTrending] = useState<Game[]>(initialTrending);
     const [featured, setFeatured] = useState<Game[]>(initialFeatured);
+    /* `filtering` alimenta los skeletons de Destacados/Populares mientras el
+       refetch por condición está en vuelo — sin él, la UI mostraba los datos
+       viejos sin ninguna señal y el toggle se sentía trabado. */
+    const [filtering, setFiltering] = useState(false);
+    /* Respuestas ya vistas en esta sesión, por condición: alternar de vuelta
+       a un filtro visitado es instantáneo, sin red. Staleness de segundos,
+       aceptable — el backend cachea estos endpoints de todos modos. */
+    const conditionCache = useRef(new Map<ConditionFilter, { trending: Game[]; featured: Game[] }>());
     useEffect(() => {
         if (condition === 'all') {
             setTrending(initialTrending);
             setFeatured(initialFeatured);
+            setFiltering(false);
+            return;
+        }
+        const cached = conditionCache.current.get(condition);
+        if (cached) {
+            setTrending(cached.trending);
+            setFeatured(cached.featured);
+            setFiltering(false);
             return;
         }
         const controller = new AbortController();
+        setFiltering(true);
         Promise.all([
             getTrendingGames({ condition, signal: controller.signal }),
             getFeaturedGames({ condition, signal: controller.signal }),
         ])
             .then(([t, f]) => {
-                setTrending(t.results);
-                setFeatured(f.results);
+                conditionCache.current.set(condition, { trending: t.results, featured: f.results });
+                /* startTransition marca el swap de contenido como no urgente:
+                   la animación del SegmentedControl y el resto de la UI no
+                   quedan bloqueados por el re-render del carrusel + grilla. */
+                startTransition(() => {
+                    setTrending(t.results);
+                    setFeatured(f.results);
+                    setFiltering(false);
+                });
             })
-            .catch((err) => { if (err?.name !== 'AbortError') { setTrending([]); setFeatured([]); } });
+            .catch((err) => {
+                /* En abort no se toca `filtering`: la corrida del efecto que
+                   causó el abort ya dejó el estado correcto. */
+                if (err?.name !== 'AbortError') {
+                    setTrending([]);
+                    setFeatured([]);
+                    setFiltering(false);
+                }
+            });
         return () => controller.abort();
     }, [condition, initialTrending, initialFeatured]);
 
@@ -369,7 +442,7 @@ export default function HomeClient({
             </Box>
 
             {/* ══════ JUEGOS DESTACADOS ══════ */}
-            {featured.length > 0 && (
+            {(featured.length > 0 || filtering) && (
                 <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
                     <Container size="lg">
                         <Box mb="xl">
@@ -381,7 +454,17 @@ export default function HomeClient({
                             </Text>
                         </Box>
 
-                        <Box pos="relative" style={{ opacity: carouselsReady ? 1 : 0, transition: 'opacity 0.25s ease' }}>
+                        <Box pos="relative">
+                            {/* Skeleton superpuesto (no reemplaza al carrusel en el
+                                árbol: desmontarlo re-inicializaría Embla y volvería
+                                el salto de centrado que este gating evita). Cubre la
+                                espera de hidratación inicial y el refetch del toggle. */}
+                            {(!carouselsReady || filtering) && (
+                                <Box pos="absolute" style={{ inset: 0, zIndex: 2 }}>
+                                    <FeaturedCarouselSkeleton />
+                                </Box>
+                            )}
+                            <Box style={{ opacity: carouselsReady && !filtering ? 1 : 0, transition: 'opacity 0.25s ease' }}>
                             <Carousel
                                 slideSize={{ base: '82%', md: '58%' }}
                                 slideGap="70px"
@@ -421,6 +504,7 @@ export default function HomeClient({
                                             <FeaturedGameCard
                                                 game={g}
                                                 isActive={realIndex === activeFeaturedIndex}
+                                                priority={realIndex === activeFeaturedIndex}
                                                 /* Distancia circular (no un simple index < active): con loop,
                                                    comparar índices lineales clasifica mal a la tarjeta que da
                                                    la vuelta (ej. si la activa es la 0, la última técnicamente
@@ -439,13 +523,14 @@ export default function HomeClient({
                                     );
                                 })}
                             </Carousel>
+                            </Box>
                         </Box>
                     </Container>
                 </Box>
             )}
 
             {/* ══════ POPULARES ESTA SEMANA ══════ */}
-            {trending.length > 0 && (
+            {(trending.length > 0 || filtering) && (
                 <Box py={60}>
                     <Container size="lg">
                         <Group justify="space-between" align="flex-end" mb="xl">
@@ -469,11 +554,15 @@ export default function HomeClient({
                             </Anchor>
                         </Group>
 
-                        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                            {trending.slice(0, 8).map((g) => (
-                                <GameCard key={g.id} game={g} />
-                            ))}
-                        </SimpleGrid>
+                        {filtering ? (
+                            <TrendingGridSkeleton />
+                        ) : (
+                            <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                                {trending.slice(0, 8).map((g, i) => (
+                                    <GameCard key={g.id} game={g} priority={i < 4} />
+                                ))}
+                            </SimpleGrid>
+                        )}
                     </Container>
                 </Box>
             )}
