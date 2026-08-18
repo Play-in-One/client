@@ -128,7 +128,7 @@ export default function Navbar() {
                                         }}
                                     >
                                         <Group gap={6} wrap="nowrap">
-                                            <Icon size={18} />
+                                            <Icon size={group.brand === 'PlayStation' ? 22 : 18} />
                                             <Box component="span">
                                                 {group.brand}
                                             </Box>

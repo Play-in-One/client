@@ -19,6 +19,7 @@ import {
     Stack,
     Skeleton,
 } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { Carousel } from '@mantine/carousel';
 import {
     IconSearch,
@@ -32,19 +33,21 @@ import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames } from '@/lib/api';
 import { useApp, type ConditionFilter } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
-import FeaturedGameCard from '@/components/FeaturedGameCard';
+import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
 
 /* Skeleton con la silueta del carrusel de Destacados: tarjeta activa
    expandida (carátula 200px + panel de info) al centro y carátulas
-   comprimidas a los lados. Mismas alturas que FeaturedGameCard (300px) y
-   mismo padding vertical que el track del carrusel, para que el reemplazo
-   skeleton ↔ carrusel no mueva el layout. */
-function FeaturedCarouselSkeleton() {
+   comprimidas a los lados. Mismas alturas que FeaturedGameCard y mismo
+   padding vertical que el track del carrusel, para que el reemplazo
+   skeleton ↔ carrusel no mueva el layout — de ahí el `compact`, que en
+   mobile baja el alto al de la tarjeta compacta. */
+function FeaturedCarouselSkeleton({ compact }: { compact: boolean }) {
+    const height = compact ? CARD_HEIGHT_COMPACT : CARD_HEIGHT;
     return (
         <Group justify="center" align="center" gap={70} wrap="nowrap" pt={12} pb={8} style={{ overflow: 'hidden' }}>
-            <Skeleton radius="lg" height={300} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
-            <Skeleton radius="lg" height={300} style={{ width: 'min(520px, 100%)', flexShrink: 0 }} />
-            <Skeleton radius="lg" height={300} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
+            <Skeleton radius="lg" height={height} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
+            <Skeleton radius="lg" height={height} style={{ width: 'min(520px, 100%)', flexShrink: 0 }} />
+            <Skeleton radius="lg" height={height} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
         </Group>
     );
 }
@@ -90,6 +93,18 @@ export default function HomeClient({
     const [query, setQuery] = useState('');
     const posts = initialPosts;
     const { condition } = useApp();
+
+    /* El efecto coverflow del carrusel de Destacados (tarjeta activa expandida
+       de 520px, laterales comprimidas a la carátula) está construido con anchos
+       fijos y no cabe en el slot de mobile, donde la tarjeta activa terminaba
+       desbordando la pantalla y la animación "se pasaba" de posición. Bajo `md`
+       se usa el layout compacto: una tarjeta por pantalla, siempre expandida y
+       sin animaciones de ancho ni translateX. Es una decisión de layout que vive
+       en JS (no alcanza con visibleFrom/hiddenFrom), de ahí el media query.
+       `undefined` en SSR y en el primer render → desktop; ese frame queda tapado
+       por el skeleton (`carouselsReady`). */
+    const isDesktop = useMediaQuery('(min-width: 62em)');
+    const compactFeatured = isDesktop === false;
 
     /* Los carruseles (Embla) miden su contenedor y recién ahí centran la
        tarjeta activa; hasta entonces se ven alineados a la izquierda. Se
@@ -461,17 +476,24 @@ export default function HomeClient({
                                 espera de hidratación inicial y el refetch del toggle. */}
                             {(!carouselsReady || filtering) && (
                                 <Box pos="absolute" style={{ inset: 0, zIndex: 2 }}>
-                                    <FeaturedCarouselSkeleton />
+                                    <FeaturedCarouselSkeleton compact={compactFeatured} />
                                 </Box>
                             )}
                             <Box style={{ opacity: carouselsReady && !filtering ? 1 : 0, transition: 'opacity 0.25s ease' }}>
                             <Carousel
-                                slideSize={{ base: '82%', md: '58%' }}
-                                slideGap="70px"
+                                /* En mobile: una tarjeta completa por pantalla y un gap
+                                   normal — 70px era ~20% del ancho de un teléfono. */
+                                slideSize={{ base: '100%', md: '58%' }}
+                                slideGap={{ base: 'md', md: '70px' }}
                                 align="center"
                                 loop={false}
                                 initialSlide={featured.length > 1 ? FEATURED_CLONE_COUNT : 0}
                                 withIndicators={false}
+                                /* Sin flechas en mobile: se navega con swipe, y así
+                                   tampoco se activa la transición CSS del track (ver
+                                   `triggerFeaturedTransition`), cuyo apagado por timer
+                                   se veía como un salto seco en pantallas chicas. */
+                                withControls={!compactFeatured}
                                 controlsOffset="-20px"
                                 getEmblaApi={handleFeaturedEmblaApi}
                                 onSlideChange={handleFeaturedSlideChange}
@@ -481,7 +503,10 @@ export default function HomeClient({
                                     container: {
                                         paddingTop: 12,
                                         paddingBottom: 8,
-                                        transition: featuredTransitioning ? 'transform 0.7s ease' : 'none',
+                                        transition:
+                                            !compactFeatured && featuredTransitioning
+                                                ? 'transform 0.7s ease'
+                                                : 'none',
                                     },
                                     controls: { zIndex: 3 },
                                 }}
@@ -503,6 +528,7 @@ export default function HomeClient({
                                         <Carousel.Slide key={`${g.id}-${paddedIndex}`}>
                                             <FeaturedGameCard
                                                 game={g}
+                                                compact={compactFeatured}
                                                 isActive={realIndex === activeFeaturedIndex}
                                                 priority={realIndex === activeFeaturedIndex}
                                                 /* Distancia circular (no un simple index < active): con loop,

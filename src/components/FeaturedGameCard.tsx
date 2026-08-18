@@ -12,8 +12,15 @@ import { decorative } from '@/lib/colors';
 import type { Game } from '@/lib/types';
 
 const PLACEHOLDER = '/placeholder-game.png';
-const CARD_HEIGHT = 300;
+export const CARD_HEIGHT = 300;
+/** Alto en mobile: la tarjeta va a ancho completo del slot, así que necesita
+ *  menos alto para no quedar desproporcionada (y para que la carátula fluida
+ *  no se recorte de más). */
+export const CARD_HEIGHT_COMPACT = 260;
 const IMAGE_WIDTH = 200;
+/** En mobile la carátula es fluida (% del ancho del slot), no un fijo de 200px
+ *  que en una pantalla de ~360px se comería la tarjeta entera. */
+const IMAGE_WIDTH_COMPACT = '40%';
 const INFO_WIDTH = 320;
 
 function FeaturedGameCard({
@@ -21,6 +28,7 @@ function FeaturedGameCard({
     isActive,
     side,
     priority,
+    compact,
 }: {
     game: Game;
     isActive: boolean;
@@ -31,6 +39,13 @@ function FeaturedGameCard({
     side: 'before' | 'active' | 'after';
     /** Eager-load de la carátula (LCP): activarlo en la tarjeta visible al centro. */
     priority?: boolean;
+    /** Layout mobile: la tarjeta ocupa todo el slot y siempre se ve expandida.
+     *  El efecto coverflow (comprimir/expandir + translateX) es de anchos fijos
+     *  — 200px de carátula + 320px de info = 520px — y no cabe en el slot de
+     *  mobile (~223px útiles), así que la tarjeta activa desbordaba la pantalla
+     *  y la animación terminaba fuera de lugar. En compacto no hay ni
+     *  compresión ni desplazamiento: `isActive` y `side` se ignoran. */
+    compact?: boolean;
 }) {
     const [imgSrc, setImgSrc] = useState(game.image || PLACEHOLDER);
     const hasPrice = game.min_price !== null;
@@ -46,6 +61,7 @@ function FeaturedGameCard({
     const anchorRef = useRef<HTMLAnchorElement>(null);
     const [slotWidth, setSlotWidth] = useState(0);
     useLayoutEffect(() => {
+        if (compact) return;
         const slot = anchorRef.current?.parentElement;
         if (!slot) return;
         const update = () => setSlotWidth(slot.getBoundingClientRect().width);
@@ -53,14 +69,18 @@ function FeaturedGameCard({
         const observer = new ResizeObserver(update);
         observer.observe(slot);
         return () => observer.disconnect();
-    }, []);
+    }, [compact]);
 
     const shiftPx =
-        side === 'active' || !slotWidth
+        compact || side === 'active' || !slotWidth
             ? 0
             : side === 'before'
                 ? (slotWidth - IMAGE_WIDTH) / 2
                 : (IMAGE_WIDTH - slotWidth) / 2;
+
+    /* En compacto la info nunca se comprime: la tarjeta ya ocupa el slot
+       completo y es la única visible (slideSize 100%). */
+    const infoOpen = compact || isActive;
 
     return (
         <Anchor
@@ -72,8 +92,9 @@ function FeaturedGameCard({
                 textDecoration: 'none',
                 display: 'flex',
                 justifyContent: 'center',
-                transform: `translateX(${shiftPx}px)`,
-                transition: 'transform 0.7s ease',
+                width: compact ? '100%' : undefined,
+                transform: compact ? undefined : `translateX(${shiftPx}px)`,
+                transition: compact ? undefined : 'transform 0.7s ease',
             }}
             onClick={() => trackEvent({ event_type: 'game_click', game: game.id })}
         >
@@ -85,15 +106,17 @@ function FeaturedGameCard({
                 pos="relative"
                 style={{
                     overflow: 'hidden',
-                    height: CARD_HEIGHT,
+                    width: compact ? '100%' : undefined,
+                    height: compact ? CARD_HEIGHT_COMPACT : CARD_HEIGHT,
                     cursor: 'pointer',
                     transition: 'box-shadow 0.3s, transform 0.3s',
                 }}
-                onMouseEnter={(e) => {
+                /* El hover no aplica en touch y deja el estado pegado tras el tap. */
+                onMouseEnter={compact ? undefined : (e) => {
                     e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
                     e.currentTarget.style.transform = 'translateY(-3px)';
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={compact ? undefined : (e) => {
                     e.currentTarget.style.boxShadow = '';
                     e.currentTarget.style.transform = '';
                 }}
@@ -115,12 +138,12 @@ function FeaturedGameCard({
 
                 <Box pos="relative" style={{ zIndex: 1, display: 'flex', flexDirection: 'row', height: '100%' }}>
                     {/* Carátula: siempre visible, ancho fijo */}
-                    <Box pos="relative" style={{ width: IMAGE_WIDTH, flexShrink: 0, height: '100%' }}>
+                    <Box pos="relative" style={{ width: compact ? IMAGE_WIDTH_COMPACT : IMAGE_WIDTH, flexShrink: 0, height: '100%' }}>
                         <Image
                             src={imgSrc}
                             alt={game.name}
                             fill
-                            sizes={`${IMAGE_WIDTH}px`}
+                            sizes={compact ? '45vw' : `${IMAGE_WIDTH}px`}
                             priority={priority}
                             unoptimized
                             style={{ objectFit: 'cover' }}
@@ -133,15 +156,23 @@ function FeaturedGameCard({
                         carátula. Anima al pasar de una a otra. */}
                     <Box
                         style={{
-                            width: isActive ? INFO_WIDTH : 0,
-                            padding: isActive ? 'var(--mantine-spacing-lg)' : 0,
-                            opacity: isActive ? 1 : 0,
+                            width: compact ? 'auto' : infoOpen ? INFO_WIDTH : 0,
+                            flex: compact ? 1 : undefined,
+                            padding: compact
+                                ? 'var(--mantine-spacing-md)'
+                                : infoOpen ? 'var(--mantine-spacing-lg)' : 0,
+                            opacity: infoOpen ? 1 : 0,
                             overflow: 'hidden',
-                            flexShrink: 0,
+                            flexShrink: compact ? 1 : 0,
                             display: 'flex',
                             flexDirection: 'column',
                             minWidth: 0,
-                            transition: 'width 0.7s ease, padding 0.7s ease, opacity 0.5s ease',
+                            /* Sin transición en compacto: no hay estado comprimido del
+                               que animar, y animar anchos acá era justo lo que dejaba
+                               la tarjeta corriéndose fuera de lugar en mobile. */
+                            transition: compact
+                                ? undefined
+                                : 'width 0.7s ease, padding 0.7s ease, opacity 0.5s ease',
                         }}
                     >
                         <Group gap={6} mb={10} wrap="nowrap" style={{ whiteSpace: 'nowrap' }}>
@@ -159,18 +190,18 @@ function FeaturedGameCard({
                             )}
                         </Group>
 
-                        <Text fw={700} fz="xl" lineClamp={2} style={{ whiteSpace: 'normal' }}>
+                        <Text fw={700} fz={compact ? 'lg' : 'xl'} lineClamp={2} style={{ whiteSpace: 'normal' }}>
                             {game.name}
                         </Text>
-                        <Text fz="sm" c="dimmed" mb={10} style={{ whiteSpace: 'nowrap' }}>
+                        <Text fz="sm" c="dimmed" mb={10} lineClamp={1} style={{ whiteSpace: 'nowrap' }}>
                             {game.developer || 'Desarrollador desconocido'}
                         </Text>
-                        <Text fz="sm" c="dimmed" lineClamp={3} style={{ flex: 1, whiteSpace: 'normal' }}>
+                        <Text fz="sm" c="dimmed" lineClamp={compact ? 2 : 3} style={{ flex: 1, whiteSpace: 'normal' }}>
                             {game.featured_description}
                         </Text>
 
                         {hasPrice && (
-                            <Text fz={24} fw={800} c="var(--mantine-color-primaryRed-5)" mt="auto" style={{ whiteSpace: 'nowrap' }}>
+                            <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" mt="auto" style={{ whiteSpace: 'nowrap' }}>
                                 {formatCLP(game.min_price as string)}
                             </Text>
                         )}

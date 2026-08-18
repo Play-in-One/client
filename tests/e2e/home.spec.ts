@@ -90,3 +90,30 @@ test('la sección de blog preview muestra el post más reciente', async ({ page 
     await page.goto('/');
     await expect(page.getByText('Las mejores ofertas de junio')).toBeVisible();
 });
+
+/* Regresión: el carrusel de Destacados usaba anchos fijos de desktop (carátula
+   200px + info 320px = 520px) también en mobile, donde el slot mide bastante
+   menos — la tarjeta activa desbordaba la pantalla y su animación terminaba
+   fuera de lugar. En mobile la tarjeta debe caber en el ancho visible. */
+test.describe('carrusel de Destacados en mobile', () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test('la tarjeta destacada cabe en el ancho de la pantalla y no hay flechas', async ({ page }) => {
+        await page.goto('/');
+        const viewport = page.locator('.mantine-Carousel-viewport');
+        await expect(viewport).toBeVisible();
+        const carouselBox = await viewport.boundingBox();
+        expect(carouselBox).not.toBeNull();
+
+        const cards = page.locator('.mantine-Carousel-slide a > div');
+        const count = await cards.count();
+        expect(count).toBeGreaterThan(0);
+        for (let i = 0; i < count; i++) {
+            const box = await cards.nth(i).boundingBox();
+            if (!box) continue;
+            expect(box.width).toBeLessThanOrEqual(carouselBox!.width + 1);
+        }
+
+        await expect(page.locator('.mantine-Carousel-control')).toHaveCount(0);
+    });
+});

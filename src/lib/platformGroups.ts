@@ -19,7 +19,7 @@ export const PLATFORM_GROUPS: {
             { label: 'PS3', slug: 'ps3' },
             { label: 'PS4', slug: 'ps4' },
             { label: 'PS5', slug: 'ps5' },
-            { label: 'PS Vita', slug: 'psvita' },
+            { label: 'PSV', slug: 'psvita' },
         ],
     },
     {

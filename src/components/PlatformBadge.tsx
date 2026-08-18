@@ -2,7 +2,7 @@
 
 import { Badge } from '@mantine/core';
 import type { Platform } from '@/lib/types';
-import { PLATFORM_COLORS } from '@/lib/utils';
+import { PLATFORM_COLORS, PLATFORM_LABEL_OVERRIDES } from '@/lib/utils';
 
 interface Props {
     platform: Platform;
@@ -18,7 +18,7 @@ export default function PlatformBadge({ platform, size = 'xs' }: Props) {
             radius="sm"
             styles={{ root: { textTransform: 'uppercase', fontWeight: 700, fontSize: 10 } }}
         >
-            {platform.display_name}
+            {PLATFORM_LABEL_OVERRIDES[platform.name] ?? platform.display_name}
         </Badge>
     );
 }

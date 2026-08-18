@@ -27,6 +27,16 @@ export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; css
     wii: { mantine: 'cyan', hex: platforms.wii, cssVar: 'var(--mantine-color-cyan-filled)' },
     nds: { mantine: 'gray.7', hex: platforms.nds, cssVar: 'var(--mantine-color-gray-7)' },
     '3ds': { mantine: 'red.8', hex: platforms['3ds'], cssVar: 'var(--mantine-color-red-8)' },
-    wiiu: { mantine: 'teal', hex: platforms.wiiu, cssVar: 'var(--mantine-color-teal-filled)' },
-    psvita: { mantine: 'violet', hex: platforms.psvita, cssVar: 'var(--mantine-color-violet-filled)' },
+    wiiu: { mantine: 'cyan', hex: platforms.wii, cssVar: 'var(--mantine-color-cyan-filled)' },
+    psvita: { mantine: 'indigo', hex: platforms.ps4, cssVar: 'var(--mantine-color-indigo-filled)' },
+};
+
+/** Alias corto para labels de plataforma (ej. badges de la galería) cuando difiere del display_name del backend */
+export const PLATFORM_LABEL_OVERRIDES: Record<string, string> = {
+    psvita: 'PSV',
+    xbox360: 'X360',
+    xboxone: 'XOne',
+    xboxseries: 'XSeries',
+    nds: 'NDS',
+    '3ds': 'N3DS',
 };

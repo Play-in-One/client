@@ -32,11 +32,10 @@ export function WiiULogo({ size = 18, className }: LogoProps) {
     );
 }
 
-/** Wordmark oficial "Wii" (public/platform-logos/wii.png) aplicado como máscara CSS
+/** Logo oficial "Wii" con círculo (public/platform-logos/wii.png) aplicado como máscara CSS
  * para poder teñirlo con currentColor igual que los íconos vectoriales del mapa. */
 export function WiiLogo({ size = 18, className }: LogoProps) {
     const maskImage = 'url(/platform-logos/wii.png)';
-    const height = size * 0.62;
     return (
         <span
             className={className}
@@ -44,8 +43,8 @@ export function WiiLogo({ size = 18, className }: LogoProps) {
             aria-label="Wii"
             style={{
                 display: 'inline-block',
-                width: height * 2.23,
-                height,
+                width: size,
+                height: size,
                 backgroundColor: 'currentColor',
                 WebkitMaskImage: maskImage,
                 maskImage,

@@ -177,7 +177,11 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
         ps5: FaPlaystation,
         ps4: FaPlaystation,
         ps3: FaPlaystation,
+        psvita: FaPlaystation,
         xbox: FaXbox,
+        xbox360: FaXbox,
+        xboxone: FaXbox,
+        xboxseries: FaXbox,
         switch: BsNintendoSwitch,
         switch2: BsNintendoSwitch,
         pc: IconDeviceDesktop,
@@ -192,6 +196,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     const platformSelectorLabel: Record<string, string> = {
         switch: 'NS1',
         switch2: 'NS2',
+        psvita: 'PSV',
         wiiu: 'WiiU',
         nds: 'DS',
         '3ds': '3DS',
@@ -380,7 +385,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                     radius="sm"
                                                     variant={selectedPlatform === pl.name ? 'filled' : 'subtle'}
                                                     color={selectedPlatform === pl.name ? pColor : 'gray'}
-                                                    leftSection={<Icon size={18} />}
+                                                    leftSection={<Icon size={pl.name === 'switch' || pl.name === 'switch2' ? 15 : pl.name === 'xbox360' || pl.name === 'xboxone' || pl.name === 'xboxseries' ? 16 : 18} />}
                                                     onClick={() => setSelectedPlatform(pl.name)}
                                                     style={{ transition: 'all 0.2s' }}
                                                 >
