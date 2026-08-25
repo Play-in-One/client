@@ -32,6 +32,19 @@ export interface PriceHistory {
     timestamp: string;   // ISO date-time
 }
 
+/** Un punto de la serie del precio mínimo por consola.
+ *  price = null marca "sin stock": el gráfico corta la línea en vez de
+ *  interpolar sobre el hueco. */
+export interface MinPricePoint {
+    price: string | null;
+    timestamp: string;
+}
+
+/** {[Platform.name]: {[condición]: puntos}}. La condición "" es la serie
+ *  agregada (mínimo entre nuevo/usado/digital). Orden: del más reciente al
+ *  más antiguo, igual que PriceHistory. */
+export type MinPriceHistory = Record<string, Record<string, MinPricePoint[]>>;
+
 export interface Product {
     id: number;
     title: string;
@@ -68,8 +81,15 @@ export interface Game {
     platforms: Platform[];
     genres?: Genre[];
     image: string | null;
+    /** true = portada fija puesta a mano; false = derivada del producto más
+     *  barato (y por tanto recalculable en cliente al cambiar de filtro).
+     *  Solo lo envía el detalle: la galería resuelve la portada en el servidor. */
+    image_is_custom?: boolean;
     rating: string | null;
     min_price: string | null;
+    /** Historial del precio mínimo por consola y condición. Solo lo envía el
+     *  detalle, acotado a los últimos meses. */
+    min_price_history?: MinPriceHistory;
     on_sale: boolean;
     products?: Product[];
     is_featured?: boolean;

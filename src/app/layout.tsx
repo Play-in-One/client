@@ -6,6 +6,7 @@ import { AppProvider } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
+import PageViewTracker from '@/components/PageViewTracker';
 import { SITE_URL, siteConfig, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import './globals.css';
 
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
                 <Providers>
                     <AppProvider>
+                        <PageViewTracker />
                         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                             <Navbar />
                             <main style={{ flex: 1 }}>

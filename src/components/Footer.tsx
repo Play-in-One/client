@@ -24,6 +24,12 @@ import {
     IconBrandYoutube,
     IconBrandLinkedin,
     IconBrandReddit,
+    IconBrandPinterest,
+    IconBrandGmail,
+    IconBrandDiscord,
+    IconBrandSpotify,
+    IconBrandWhatsapp,
+    IconBrandThreads,
 } from '@tabler/icons-react';
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
@@ -127,6 +133,12 @@ export default function Footer() {
                             <SocialIcon icon={IconBrandReddit} brandColor={social.reddit} href={siteConfig.social.reddit} />
                             <SocialIcon icon={IconBrandTiktok} brandColor={social.tiktok} href={siteConfig.social.tiktok} />
                             <SocialIcon icon={IconBrandYoutube} brandColor={social.youtube} href={siteConfig.social.youtube} />
+                            <SocialIcon icon={IconBrandPinterest} brandColor={social.pinterest} href={siteConfig.social.pinterest} />
+                            <SocialIcon icon={IconBrandGmail} brandColor={social.gmail} href={siteConfig.social.gmail} />
+                            <SocialIcon icon={IconBrandDiscord} brandColor={social.discord} href={siteConfig.social.discord} />
+                            <SocialIcon icon={IconBrandSpotify} brandColor={social.spotify} href={siteConfig.social.spotify} />
+                            <SocialIcon icon={IconBrandWhatsapp} brandColor={social.whatsapp} href={siteConfig.social.whatsapp} />
+                            <SocialIcon icon={IconBrandThreads} brandColor={social.threads} href={siteConfig.social.threads} />
                         </Group>
                     </Stack>
                 </SimpleGrid>

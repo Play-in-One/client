@@ -1,10 +1,21 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { Container, Title, Box, Text, Badge, Image } from '@mantine/core';
 import type { Post } from '@/lib/types';
+import { trackEvent } from '@/lib/api';
 
 export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
     const post = initialPost;
+    // Mide la lectura, no el click: cuenta también las llegadas por buscador o
+    // link directo. El ref evita el doble disparo de StrictMode en dev.
+    const trackedPostId = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (trackedPostId.current === post.id) return;
+        trackedPostId.current = post.id;
+        trackEvent({ event_type: 'post_view', post: post.id });
+    }, [post.id]);
 
     return (
         <Container size="md" py={60}>

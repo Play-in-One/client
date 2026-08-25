@@ -43,6 +43,22 @@ const MOCK_GAME = {
             prices: [],
         },
     ],
+    // Serie del mínimo por consola: clave externa = Platform.name, interna =
+    // condición ("" = agregada). price null marca un tramo sin stock.
+    min_price_history: {
+        ps5: {
+            '': [
+                { price: '18990.00', timestamp: '2026-03-01T10:00:00Z' },
+                { price: null, timestamp: '2026-02-20T10:00:00Z' },
+                { price: '24990.00', timestamp: '2026-02-10T10:00:00Z' },
+                { price: '29990.00', timestamp: '2026-02-01T10:00:00Z' },
+            ],
+            used: [
+                { price: '18990.00', timestamp: '2026-03-01T10:00:00Z' },
+                { price: '21990.00', timestamp: '2026-02-10T10:00:00Z' },
+            ],
+        },
+    },
 };
 
 const MOCK_GAME_NO_PRODUCTS = {
@@ -51,6 +67,7 @@ const MOCK_GAME_NO_PRODUCTS = {
     name: 'Juego Sin Stock',
     products: [],
     min_price: null,
+    min_price_history: {},
 };
 
 test.beforeEach(async ({ page }) => {
@@ -89,6 +106,47 @@ test('el botón de ir a la tienda apunta a la URL del producto', async ({ page }
     const btn = page.getByRole('link', { name: /tienda|comprar/i }).first();
     const href = await btn.getAttribute('href');
     expect(href).toBeTruthy();
+});
+
+test('el historial de precio mínimo se muestra entre el mejor precio y la comparativa', async ({ page }) => {
+    await page.goto('/game/1');
+    const minHistory = page.getByRole('heading', { name: /historial de precio mínimo/i });
+    const comparison = page.getByRole('heading', { name: /comparativa de precios/i });
+    await expect(minHistory).toBeVisible();
+    await expect(comparison).toBeVisible();
+
+    const bestPrice = page.getByText(/mejor precio/i).first();
+    const [historyBox, comparisonBox, bestPriceBox] = await Promise.all([
+        minHistory.boundingBox(),
+        comparison.boundingBox(),
+        bestPrice.boundingBox(),
+    ]);
+    expect(historyBox!.y).toBeGreaterThan(bestPriceBox!.y);
+    expect(historyBox!.y).toBeLessThan(comparisonBox!.y);
+});
+
+test('el historial sigue al filtro de condición sin recargar', async ({ page }) => {
+    await page.goto('/game/1');
+    const heading = page.getByRole('heading', { name: /historial de precio mínimo/i });
+    await expect(heading).toBeVisible();
+
+    // El Select de condición vive en la comparativa; el card del historial
+    // debe reaccionar sin pedir datos nuevos (la serie viaja embebida).
+    let apiCalls = 0;
+    await page.route('**/api/games/**', (route) => {
+        apiCalls += 1;
+        route.continue();
+    });
+    await page.locator('input[value="Cualquier Estado"]').click();
+    await page.getByRole('option', { name: 'Usado' }).click();
+
+    await expect(heading).toBeVisible();
+    expect(apiCalls).toBe(0);
+});
+
+test('el historial muestra estado vacío sin datos suficientes', async ({ page }) => {
+    await page.goto('/game/2');
+    await expect(page.getByText(/aún no hay suficiente historial/i)).toBeVisible();
 });
 
 test('se muestra estado vacío cuando no hay productos', async ({ page }) => {

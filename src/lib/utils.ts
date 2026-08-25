@@ -39,4 +39,6 @@ export const PLATFORM_LABEL_OVERRIDES: Record<string, string> = {
     xboxseries: 'XSeries',
     nds: 'NDS',
     '3ds': 'N3DS',
+    switch: 'sw',
+    switch2: 'sw2',
 };

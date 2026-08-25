@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useRef, useState, memo } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
@@ -47,7 +47,14 @@ function FeaturedGameCard({
      *  compresión ni desplazamiento: `isActive` y `side` se ignoran. */
     compact?: boolean;
 }) {
-    const [imgSrc, setImgSrc] = useState(game.image || PLACEHOLDER);
+    // Derivada del prop, no copiada a estado: la portada sale del producto más
+    // barato y cambia al cambiar el filtro de nuevo/usado. Con `useState` el
+    // valor solo se leía en el primer render y quedaba congelado, porque el
+    // carrusel reusa las tarjetas en vez de remontarlas. El estado guarda solo
+    // el fallo de carga, y se resetea cuando llega una portada distinta.
+    const [failed, setFailed] = useState(false);
+    useEffect(() => setFailed(false), [game.image]);
+    const imgSrc = failed || !game.image ? PLACEHOLDER : game.image;
     const hasPrice = game.min_price !== null;
 
     /* `justify-content` no es animable (cambiarlo saltaba en seco), así que
@@ -147,7 +154,7 @@ function FeaturedGameCard({
                             priority={priority}
                             unoptimized
                             style={{ objectFit: 'cover' }}
-                            onError={() => { if (imgSrc !== PLACEHOLDER) setImgSrc(PLACEHOLDER); }}
+                            onError={() => setFailed(true)}
                         />
                     </Box>
 

@@ -3,6 +3,7 @@
 import { Container, Title, SimpleGrid, Card, Box, Text, Badge } from '@mantine/core';
 import { IconDeviceGamepad } from '@tabler/icons-react';
 import type { Post } from '@/lib/types';
+import { trackEvent } from '@/lib/api';
 import Link from 'next/link';
 
 export default function BlogListClient({ initialPosts }: { initialPosts: Post[] }) {
@@ -22,6 +23,7 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                         radius="lg"
                         p={0}
                         style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                        onClick={() => trackEvent({ event_type: 'post_click', post: post.id })}
                         onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.boxShadow = ''; }}
                     >

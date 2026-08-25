@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox } from '@mantine/core';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,7 +28,15 @@ interface Props {
 
 function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority }: Props) {
     const router = useRouter();
-    const [imgSrc, setImgSrc] = useState(game.image || PLACEHOLDER);
+    // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
+    // producto más barato, cambia cuando el usuario cambia de filtro. Con
+    // `useState(game.image)` el valor solo se leía en el primer render y la
+    // imagen quedaba congelada, porque al re-fetchear la galería el juego
+    // conserva su key y el componente no se remonta. El estado guarda solo el
+    // fallo de carga, y se resetea cuando llega una portada distinta.
+    const [failed, setFailed] = useState(false);
+    useEffect(() => setFailed(false), [game.image]);
+    const imgSrc = failed || !game.image ? PLACEHOLDER : game.image;
 
     /* Resolve price: prefer min_price from annotation, fall back to product */
     const price = game.min_price ?? bestProduct?.current_price ?? null;
@@ -109,7 +117,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         }}
                         onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
                         onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = ''; }}
-                        onError={() => { if (imgSrc !== PLACEHOLDER) setImgSrc(PLACEHOLDER); }}
+                        onError={() => setFailed(true)}
                     />
 
                     {/* Overlay de selección (solo admin en modo fusión); visual, el

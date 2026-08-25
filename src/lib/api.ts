@@ -104,13 +104,23 @@ function qs(params: Record<string, string | number | boolean | number[] | undefi
 }
 
 /* ── Popularity tracking (fire-and-forget) ── */
-export type EventType = 'game_click' | 'offer_click' | 'search' | 'platform_select' | 'game_save';
+export type EventType =
+    | 'game_click'
+    | 'offer_click'
+    | 'search'
+    | 'platform_select'
+    | 'game_save'
+    | 'post_click'
+    | 'post_view'
+    | 'page_view';
 
 interface EventPayload {
     event_type: EventType;
     game?: number;
     product?: number;
     platform?: number;
+    post?: number;
+    page_path?: string;
     search_query?: string;
 }
 
@@ -144,6 +154,8 @@ export function trackEvent(payload: EventPayload): void {
         if (payload.game != null) fd.append('game', String(payload.game));
         if (payload.product != null) fd.append('product', String(payload.product));
         if (payload.platform != null) fd.append('platform', String(payload.platform));
+        if (payload.post != null) fd.append('post', String(payload.post));
+        if (payload.page_path) fd.append('page_path', payload.page_path);
         if (payload.search_query) fd.append('search_query', payload.search_query);
         fd.append('session_id', getSessionId());
 

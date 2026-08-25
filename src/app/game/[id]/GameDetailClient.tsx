@@ -52,6 +52,7 @@ import PlatformBadge from '@/components/PlatformBadge';
 // recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
 // (fuera del bundle inicial del detalle) y solo en el cliente.
 const ProductPriceChart = dynamic(() => import('@/components/ProductPriceChart'), { ssr: false });
+const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), { ssr: false });
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
 import { AdminGameControls, AdminProductEditor } from './AdminControls';
@@ -124,6 +125,23 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     const bestProduct = sorted[0] ?? null;
     const bestPrice = bestProduct ? parseFloat(bestProduct.current_price ?? '0') : 0;
 
+    // Serie histórica del mínimo de la consola/condición activas. Viene toda
+    // embebida en el detalle, así que cambiar de tab no dispara un request.
+    // La clave "" del backend es la serie agregada (todas las condiciones).
+    const minPriceSeries =
+        game.min_price_history?.[selectedPlatform ?? '']?.[conditionFilter ?? ''] ?? [];
+
+    // Portada: la fija (puesta a mano) manda; si no, sale del producto más
+    // barato de los que pasan los filtros ACTIVOS de esta pantalla, así que
+    // cambia con el selector de consola y el de nuevo/usado. Si el más barato
+    // no tiene foto se busca el siguiente que sí la tenga.
+    // game.image cubre el render inicial/SSR: es la portada que ya derivó el
+    // backend sin filtros, útil mientras ningún producto pase el filtro activo.
+    const coverImage =
+        (game.image_is_custom
+            ? game.image
+            : sorted.find((p) => p.image)?.image ?? game.image) || '/placeholder-game.png';
+
     const handleToggleSave = () => {
         const willSave = !isSaved(game.id);
         toggleSaved({
@@ -194,7 +212,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     /** Nombres cortos solo para el selector de plataforma de esta página (no afecta
      * breadcrumbs, badges ni otras vistas, que siguen usando `display_name` tal cual). */
     const platformSelectorLabel: Record<string, string> = {
-        switch: 'NS1',
+        switch: 'NS',
         switch2: 'NS2',
         psvita: 'PSV',
         wiiu: 'WiiU',
@@ -256,7 +274,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                         >
                             {/* Game image (base layer) */}
                             <img
-                                src={game.image || '/placeholder-game.png'}
+                                src={coverImage}
                                 alt={game.name}
                                 style={{
                                     position: 'absolute',
@@ -532,6 +550,19 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                     </Stack>
                                 </SimpleGrid>
                             </Box>
+                        )}
+
+                        {/* ══════ Historial del precio mínimo de la consola ══════ */}
+                        {selectedPlatform && (
+                            <MinPriceChartCard
+                                series={minPriceSeries}
+                                platformLabel={
+                                    platformSelectorLabel[selectedPlatform] ??
+                                    platformOptions.find((pl) => pl.name === selectedPlatform)?.display_name ??
+                                    selectedPlatform
+                                }
+                                conditionLabel={conditionFilter ? conditionLabel[conditionFilter] : null}
+                            />
                         )}
 
                         {/* ══════ Price comparison table ══════ */}

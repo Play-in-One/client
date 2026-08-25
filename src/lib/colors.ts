@@ -105,6 +105,12 @@ export const social = {
     youtube: '#FF0000',
     linkedin: '#0A66C2',
     reddit: '#FF4500',
+    pinterest: '#E60023',
+    gmail: '#EA4335',
+    discord: '#5865F2',
+    spotify: '#1DB954',
+    whatsapp: '#25D366',
+    threads: '#000000',
 };
 
 export const og = {

@@ -30,7 +30,7 @@ import {
 import type { Post, Game } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
-import { getTrendingGames, getFeaturedGames } from '@/lib/api';
+import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
 import { useApp, type ConditionFilter } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
@@ -555,6 +555,76 @@ export default function HomeClient({
                 </Box>
             )}
 
+            {/* ══════ NOTICIAS Y COMUNIDAD ══════ */}
+            <Box py={60}>
+                <Container size="lg">
+                    <Group justify="space-between" align="flex-end" mb="xl">
+                        <Box>
+                            <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
+                                Noticias y Comunidad
+                            </Title>
+                            <Text c="dimmed" mt={6}>
+                                Mantente al día con lo último de Play in One y el mundo gaming.
+                            </Text>
+                        </Box>
+                        <Anchor
+                            component={Link}
+                            href="/blog"
+                            c="var(--mantine-color-primaryRed-5)"
+                            fw={600}
+                            fz="sm"
+                            underline="never"
+                        >
+                            Ver todas las noticias <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
+                        </Anchor>
+                    </Group>
+
+                    <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+                        {posts.slice(0, 3).map((n) => (
+                            <Card
+                                key={n.id}
+                                component="a"
+                                href={`/blog/${n.id}`}
+                                withBorder
+                                shadow="sm"
+                                radius="lg"
+                                p={0}
+                                style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                                onClick={() => trackEvent({ event_type: 'post_click', post: n.id })}
+                                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = ''; }}
+                            >
+                                {/* Placeholder image area */}
+                                <Box
+                                    h={180}
+                                    style={{
+                                        background: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
+                                        position: 'relative'
+                                    }}
+                                >
+                                    {n.image ? (
+                                        <img src={n.image} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    ) : (
+                                        <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
+                                    )}
+                                </Box>
+                                <Box p="lg">
+                                    <Text fz="xs" fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={6} style={{ letterSpacing: 1 }}>
+                                        {n.category}
+                                    </Text>
+                                    <Text fw={700} fz="lg" mb={6} lineClamp={2}>{n.title}</Text>
+                                    <Text fz="sm" c="dimmed" lineClamp={3}>{n.description}</Text>
+                                </Box>
+                            </Card>
+                        ))}
+                    </SimpleGrid>
+                </Container>
+            </Box>
+
             {/* ══════ POPULARES ESTA SEMANA ══════ */}
             {(trending.length > 0 || filtering) && (
                 <Box py={60}>
@@ -634,75 +704,6 @@ export default function HomeClient({
                                 </Anchor>
                             );
                         })}
-                    </SimpleGrid>
-                </Container>
-            </Box>
-
-            {/* ══════ NOTICIAS Y COMUNIDAD ══════ */}
-            <Box py={60}>
-                <Container size="lg">
-                    <Group justify="space-between" align="flex-end" mb="xl">
-                        <Box>
-                            <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                Noticias y Comunidad
-                            </Title>
-                            <Text c="dimmed" mt={6}>
-                                Mantente al día con lo último de Play in One y el mundo gaming.
-                            </Text>
-                        </Box>
-                        <Anchor
-                            component={Link}
-                            href="/blog"
-                            c="var(--mantine-color-primaryRed-5)"
-                            fw={600}
-                            fz="sm"
-                            underline="never"
-                        >
-                            Ver todas las noticias <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
-                        </Anchor>
-                    </Group>
-
-                    <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-                        {posts.slice(0, 3).map((n) => (
-                            <Card
-                                key={n.id}
-                                component="a"
-                                href={`/blog/${n.id}`}
-                                withBorder
-                                shadow="sm"
-                                radius="lg"
-                                p={0}
-                                style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
-                                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = ''; }}
-                            >
-                                {/* Placeholder image area */}
-                                <Box
-                                    h={180}
-                                    style={{
-                                        background: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        position: 'relative'
-                                    }}
-                                >
-                                    {n.image ? (
-                                        <img src={n.image} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    ) : (
-                                        <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
-                                    )}
-                                </Box>
-                                <Box p="lg">
-                                    <Text fz="xs" fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={6} style={{ letterSpacing: 1 }}>
-                                        {n.category}
-                                    </Text>
-                                    <Text fw={700} fz="lg" mb={6} lineClamp={2}>{n.title}</Text>
-                                    <Text fz="sm" c="dimmed" lineClamp={3}>{n.description}</Text>
-                                </Box>
-                            </Card>
-                        ))}
                     </SimpleGrid>
                 </Container>
             </Box>

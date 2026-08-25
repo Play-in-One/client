@@ -16,10 +16,10 @@ export const PLATFORM_GROUPS: {
         icon: FaPlaystation,
         color: platforms.ps5,
         options: [
-            { label: 'PS3', slug: 'ps3' },
-            { label: 'PS4', slug: 'ps4' },
-            { label: 'PS5', slug: 'ps5' },
-            { label: 'PSV', slug: 'psvita' },
+            { label: 'PlayStation 3', slug: 'ps3' },
+            { label: 'PlayStation 4', slug: 'ps4' },
+            { label: 'PlayStation 5', slug: 'ps5' },
+            { label: 'PlayStation Vita', slug: 'psvita' },
         ],
     },
     {
