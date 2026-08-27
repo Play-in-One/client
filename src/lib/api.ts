@@ -38,10 +38,11 @@ export class ApiError extends Error {
 }
 
 /* ── helpers ── */
-async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
+async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }): Promise<T> {
     // Mutations (POST/PUT/PATCH/DELETE) carry request-specific outcomes (e.g. validation
     // errors tied to the submitted data) — never cache/replay those by path like GETs.
     const isMutation = !!init?.method && init.method.toUpperCase() !== 'GET';
+    const { admin, ...requestInit } = init ?? {};
 
     if (!isMutation) {
         const cached = failedRequestsCache.get(path);
@@ -50,15 +51,25 @@ async function fetcher<T>(path: string, init?: RequestInit): Promise<T> {
         }
     }
 
+    // El backend usa "¿el request está autenticado como staff?" para decidir si
+    // muestra catálogo oculto (juegos sin productos visibles) en list/trending/
+    // featured/facets. Adjuntar el token siempre —incluso en GETs públicos—
+    // filtraba ese catálogo oculto a cualquier visitante con sesión admin
+    // abierta en el buscador normal. Las mutaciones SIEMPRE lo llevan (las
+    // requiere el permiso de escritura); un GET solo lo lleva si el llamador
+    // pide explícitamente `admin: true` (p. ej. el buscador de duplicados al
+    // fusionar juegos, que sí necesita ver ocultos).
+    const attachToken = isMutation || admin;
+
     const res = await fetch(`${API_BASE}${path}`, {
-        ...init,
+        ...requestInit,
         headers: {
             // Solo en mutaciones: un GET con Content-Type deja de ser "simple
             // request" y fuerza un preflight CORS (OPTIONS) por cada llamada.
             // Omitirlo en GETs anónimos evita ese round-trip extra.
             ...(isMutation ? { 'Content-Type': 'application/json' } : {}),
-            ...(adminToken ? { Authorization: `Token ${adminToken}` } : {}),
-            ...init?.headers,
+            ...(attachToken && adminToken ? { Authorization: `Token ${adminToken}` } : {}),
+            ...requestInit.headers,
         },
     });
     if (!res.ok) {
@@ -180,9 +191,12 @@ export async function getGames(params?: {
     ordering?: string;
     page?: number;
     signal?: AbortSignal;
+    /** Solo para herramientas de admin (buscador de duplicados al fusionar):
+     * incluye juegos sin productos visibles, ocultos al público. */
+    admin?: boolean;
 }) {
-    const { signal, ...qsParams } = params ?? {};
-    return fetcher<PaginatedResponse<Game>>(`/games/${qs(qsParams)}`, { signal });
+    const { signal, admin, ...qsParams } = params ?? {};
+    return fetcher<PaginatedResponse<Game>>(`/games/${qs(qsParams)}`, { signal, admin });
 }
 
 /** Juegos con más tráfico en los últimos 7 días (con relleno por rating). */

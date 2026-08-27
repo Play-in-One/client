@@ -60,7 +60,7 @@ function GameSearchPicker({
         }
         let active = true;
         setLoading(true);
-        getGames({ search: q })
+        getGames({ search: q, admin: true })
             .then((res) => {
                 if (active) setResults(res.results.filter((g) => g.id !== excludeId).slice(0, 6));
             })
