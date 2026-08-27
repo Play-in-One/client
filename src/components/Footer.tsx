@@ -15,6 +15,7 @@ import {
     Button,
     Stack,
     ActionIcon,
+    useComputedColorScheme,
 } from '@mantine/core';
 import {
     IconBrandTiktok,
@@ -30,6 +31,8 @@ import {
     IconBrandSpotify,
     IconBrandWhatsapp,
     IconBrandThreads,
+    IconBrandTumblr,
+    IconBrandTelegram,
 } from '@tabler/icons-react';
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
@@ -38,6 +41,9 @@ const YEAR = new Date().getFullYear();
 
 function SocialIcon({ icon: Icon, brandColor, href }: { icon: ComponentType<{ size?: number; className?: string }>, brandColor: string, href: string }) {
     const [hover, setHover] = useState(false);
+    const colorScheme = useComputedColorScheme('light');
+    // Threads es negro puro: en modo oscuro sería invisible sobre el fondo, así que se invierte.
+    const resolvedColor = brandColor === '#000000' && colorScheme === 'dark' ? '#ffffff' : brandColor;
     return (
         <ActionIcon
             component="a"
@@ -45,7 +51,7 @@ function SocialIcon({ icon: Icon, brandColor, href }: { icon: ComponentType<{ si
             target="_blank"
             rel="noopener noreferrer"
             variant="subtle"
-            color={hover ? brandColor : 'gray'}
+            color={hover ? resolvedColor : 'gray'}
             size="lg"
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
@@ -108,17 +114,16 @@ export default function Footer() {
                         <Anchor component={Link} href="/search?platform=ps5" fz="sm" c="dimmed" underline="never">PlayStation 5</Anchor>
                         <Anchor component={Link} href="/search?platform=switch" fz="sm" c="dimmed" underline="never">Nintendo Switch</Anchor>
                         <Anchor component={Link} href="/search?platform=xbox" fz="sm" c="dimmed" underline="never">Xbox Series X</Anchor>
-                        <Anchor component={Link} href="/search?platform=pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
+                        {/* <Anchor component={Link} href="/search?platform=pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor> */}
                     </Stack>
 
                     {/* Empresa */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Empresa</Text>
-                        <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
                         <Anchor component={Link} href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
-                        <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
-                        <Anchor component={Link} href="/saved" fz="sm" c="dimmed" underline="never">Juegos Guardados</Anchor>
+                        <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
                         <Anchor component={Link} href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
+                        <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
                     </Stack>
 
                     {/* Newsletter */}
@@ -139,6 +144,8 @@ export default function Footer() {
                             <SocialIcon icon={IconBrandSpotify} brandColor={social.spotify} href={siteConfig.social.spotify} />
                             <SocialIcon icon={IconBrandWhatsapp} brandColor={social.whatsapp} href={siteConfig.social.whatsapp} />
                             <SocialIcon icon={IconBrandThreads} brandColor={social.threads} href={siteConfig.social.threads} />
+                            <SocialIcon icon={IconBrandTumblr} brandColor={social.tumblr} href={siteConfig.social.tumblr} />
+                            <SocialIcon icon={IconBrandTelegram} brandColor={social.telegram} href={siteConfig.social.telegram} />
                         </Group>
                     </Stack>
                 </SimpleGrid>

@@ -42,6 +42,8 @@ export const siteConfig = {
         spotify: 'https://open.spotify.com/',
         whatsapp: 'https://wa.me/',
         threads: 'https://www.threads.net/',
+        tumblr: 'https://www.tumblr.com/',
+        telegram: 'https://t.me/',
     },
 } as const;
 

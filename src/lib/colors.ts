@@ -111,6 +111,8 @@ export const social = {
     spotify: '#1DB954',
     whatsapp: '#25D366',
     threads: '#000000',
+    tumblr: '#36465D',
+    telegram: '#26A5E4',
 };
 
 export const og = {
