@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { IconChartHistogram } from '@tabler/icons-react';
 import {
     Alert,
     Badge,
@@ -61,6 +63,14 @@ export default function StaffLoginPage() {
                             Conectado como <b>{username}</b>. Ya puedes editar juegos y
                             productos directamente en sus páginas.
                         </Text>
+                        <Button
+                            component={Link}
+                            href="/staff/analytics"
+                            variant="light"
+                            leftSection={<IconChartHistogram size={18} />}
+                        >
+                            Ver analítica
+                        </Button>
                         <Button variant="light" color="red" onClick={logout}>
                             Cerrar sesión
                         </Button>

@@ -1,4 +1,7 @@
-import type { Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory } from './types';
+import type {
+    Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
+    AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport,
+} from './types';
 
 const API_BASE = typeof window === 'undefined'
     ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api')
@@ -117,6 +120,7 @@ function qs(params: Record<string, string | number | boolean | number[] | undefi
 /* ── Popularity tracking (fire-and-forget) ── */
 export type EventType =
     | 'game_click'
+    | 'game_view'
     | 'offer_click'
     | 'search'
     | 'platform_select'
@@ -133,17 +137,27 @@ interface EventPayload {
     post?: number;
     page_path?: string;
     search_query?: string;
+    result_count?: number;
 }
 
-// Anonymous, per-browser id (no PII) so events can be grouped by visitor.
-function getSessionId(): string {
-    const KEY = 'pio_session_id';
-    let id = localStorage.getItem(KEY);
-    if (!id) {
-        id = (crypto?.randomUUID?.() ?? String(Date.now()) + Math.random().toString(36).slice(2)).slice(0, 64);
-        localStorage.setItem(KEY, id);
-    }
-    return id;
+/* Identidad del visitante y permiso para medir, ambos inyectados por
+   ConsentContext al montar y en cada cambio de preferencia.
+
+   El identificador ya no lo genera el navegador: lo emite y lo firma el
+   servidor (src/app/api/consent/route.ts) y solo existe si la persona aceptó
+   la cookie de analítica. Sin él, el backend agrupa el evento bajo un hash
+   diario que no se guarda en el dispositivo y no permite seguir a nadie de un
+   día para otro. */
+let visitorToken: string | null = null;
+let measurementEnabled = true;
+
+export function setVisitorToken(token: string | null): void {
+    visitorToken = token;
+}
+
+/** `false` = opt-out total desde /cookies: no se envía ni un evento anónimo. */
+export function setMeasurementEnabled(enabled: boolean): void {
+    measurementEnabled = enabled;
 }
 
 /**
@@ -158,7 +172,7 @@ function getSessionId(): string {
  * Deliberately bypasses fetcher() to avoid its failure-cache and error propagation.
  */
 export function trackEvent(payload: EventPayload): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !measurementEnabled) return;
     try {
         const fd = new FormData();
         fd.append('event_type', payload.event_type);
@@ -168,7 +182,8 @@ export function trackEvent(payload: EventPayload): void {
         if (payload.post != null) fd.append('post', String(payload.post));
         if (payload.page_path) fd.append('page_path', payload.page_path);
         if (payload.search_query) fd.append('search_query', payload.search_query);
-        fd.append('session_id', getSessionId());
+        if (payload.result_count != null) fd.append('result_count', String(payload.result_count));
+        if (visitorToken) fd.append('visitor_id', visitorToken);
 
         const url = `${API_BASE}/events/`;
         // sendBeacon returns false if it couldn't queue the request → fall back to fetch.
@@ -341,4 +356,28 @@ export async function mergeGames(targetId: number, sourceIds: number[]) {
         method: 'POST',
         body: JSON.stringify({ sources: sourceIds }),
     });
+}
+
+/* ── Analítica (solo staff) ──
+   Todas pasan `admin: true` para que fetcher adjunte el token también en GET:
+   los endpoints exigen is_staff y sin él responden 403. */
+
+export async function getAnalyticsSummary(days = 30) {
+    return fetcher<AnalyticsSummary>(`/analytics/summary/?days=${days}`, { admin: true });
+}
+
+export async function getAnalyticsTraffic(days = 30) {
+    return fetcher<TrafficReport>(`/analytics/traffic/?days=${days}`, { admin: true });
+}
+
+export async function getAnalyticsFunnel(days = 30, top = 10) {
+    return fetcher<FunnelReport>(`/analytics/funnel/?days=${days}&top=${top}`, { admin: true });
+}
+
+export async function getAnalyticsSearch(days = 30, top = 20) {
+    return fetcher<SearchReport>(`/analytics/search/?days=${days}&top=${top}`, { admin: true });
+}
+
+export async function getAnalyticsRetention(weeks = 12) {
+    return fetcher<RetentionReport>(`/analytics/retention/?weeks=${weeks}`, { admin: true });
 }

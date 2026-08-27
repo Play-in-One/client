@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import PageViewTracker from '@/components/PageViewTracker';
+import { CookieBanner } from '@/components/CookieBanner';
 import { SITE_URL, siteConfig, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import './globals.css';
 
@@ -75,6 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             </main>
                             <Footer />
                         </div>
+                        <CookieBanner />
                     </AppProvider>
                 </Providers>
             </body>

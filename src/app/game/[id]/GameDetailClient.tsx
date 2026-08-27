@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, type ComponentType, useEffect, useState } from 'react';
+import { Fragment, type ComponentType, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
@@ -107,6 +107,19 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     useEffect(() => {
         setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
     }, []);
+
+    /* ── Popularity tracking ──
+       El page_view del layout ya registra la ruta, pero normalizada a
+       `/game/[id]`: no dice QUÉ juego se vio. Este evento es el escalón
+       intermedio del embudo (clic en la tarjeta → ver el detalle → salir a la
+       tienda) y sin él no se puede saber cuántas visitas a una ficha acaban
+       en un clic a un vendedor. */
+    const viewedGame = useRef<number | null>(null);
+    useEffect(() => {
+        if (viewedGame.current === game.id) return;
+        viewedGame.current = game.id;
+        trackEvent({ event_type: 'game_view', game: game.id });
+    }, [game.id]);
 
     // Filter products
     const products = (game.products ?? []).filter((p) => {

@@ -236,11 +236,13 @@ function SearchContent() {
     /* ── Popularity tracking ──
        All searches (Navbar, home, saga links) converge on /search?q=, and all
        console selections (header menu, home cards, sidebar) converge on the
-       ?platform= param — so these two effects capture every entry point. */
-    useEffect(() => {
-        const query = q.trim();
-        if (query) trackEvent({ event_type: 'search', search_query: query });
-    }, [q]);
+       ?platform= param — so these two effects capture every entry point.
+
+       La búsqueda no se emite aquí sino al llegar los resultados (más abajo),
+       porque el dato que la hace accionable es cuántos devolvió: una búsqueda
+       con cero resultados dice qué le falta al catálogo, y eso no se sabe
+       hasta que responde la API. */
+    const trackedSearch = useRef<string | null>(null);
 
     const trackedPlatforms = useRef<Set<number>>(new Set());
     useEffect(() => {
@@ -272,6 +274,13 @@ function SearchContent() {
             .then((res) => {
                 setGames(res.results);
                 setTotal(res.count);
+                // Una búsqueda por término, no una por página ni por cambio de
+                // filtro: el ref evita que paginar dispare el mismo evento otra vez.
+                const query = activeQuery.trim();
+                if (query && trackedSearch.current !== query) {
+                    trackedSearch.current = query;
+                    trackEvent({ event_type: 'search', search_query: query, result_count: res.count });
+                }
             })
             .catch((err) => { if (err?.name !== 'AbortError') setGames([]); })
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });

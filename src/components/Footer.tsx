@@ -123,6 +123,8 @@ export default function Footer() {
                         <Anchor component={Link} href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
                         <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
                         <Anchor component={Link} href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
+                        <Anchor component={Link} href="/privacy" fz="sm" c="dimmed" underline="never">Política de Privacidad</Anchor>
+                        <Anchor component={Link} href="/cookies" fz="sm" c="dimmed" underline="never">Cookies</Anchor>
                         <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
                     </Stack>
 

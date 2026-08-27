@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { Container, Title, Box, Text } from '@mantine/core';
+import Link from 'next/link';
+import { Anchor, Container, Title, Box, Text } from '@mantine/core';
 import { buildMetadata } from '@/lib/seo';
 
 export const metadata: Metadata = buildMetadata({
@@ -41,7 +42,9 @@ export default function TermsPage() {
 
                 <Text fw={700} mb="xs">6. Privacidad</Text>
                 <Text fz="md" c="dimmed">
-                    Los datos recopilados por nosotros se rigen bajo altos estándares de confidencialidad. Los datos personales provistos directa o indirectamente solo serán usados para las funcionalidades de la página web.
+                    No pedimos registro ni creamos cuentas de usuario, y no compartimos datos con terceros. Qué medimos exactamente, con qué base legal, cuánto tiempo lo conservamos y cómo ejercer tus derechos está detallado en la{' '}
+                    <Anchor component={Link} href="/privacy">Política de Privacidad</Anchor>. Las cookies que usamos y el panel para cambiar tus preferencias están en{' '}
+                    <Anchor component={Link} href="/cookies">Cookies y preferencias</Anchor>.
                 </Text>
             </Box>
         </Container>

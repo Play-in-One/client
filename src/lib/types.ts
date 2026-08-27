@@ -114,6 +114,133 @@ export interface Contact {
     created_at: string;
 }
 
+/* ── Analítica (solo staff) ──
+   Espejo de analytics/serializers.py. Todas las cifras vienen de las tablas de
+   agregado diario, nunca de los eventos en crudo. */
+
+export interface DailyTraffic {
+    date: string;
+    /** Únicos del día, sumando identificados y anónimos. */
+    visitors: number;
+    /** Subconjunto con consentimiento: los únicos de los que se sabe si vuelven. */
+    visitors_known: number;
+    visitors_new: number;
+    visitors_returning: number;
+    visits: number;
+    page_views: number;
+    events: number;
+    bounces: number;
+    bounce_rate: number;
+    avg_visit_seconds: number;
+    desktop_visits: number;
+    mobile_visits: number;
+    tablet_visits: number;
+}
+
+export interface DailyFunnel {
+    date: string;
+    game_clicks: number;
+    game_views: number;
+    offer_clicks: number;
+    searches: number;
+    game_saves: number;
+    view_to_offer_rate: number;
+}
+
+export interface GameStat {
+    game: number | null;
+    name: string;
+    views: number;
+    clicks: number;
+    offer_clicks: number;
+    saves: number;
+}
+
+export interface SellerStat {
+    seller: number | null;
+    name: string;
+    offer_clicks: number;
+}
+
+export interface SearchStat {
+    query: string;
+    searches: number;
+    avg_results: number | null;
+}
+
+export interface RetentionCohortRow {
+    cohort_week: string;
+    week_offset: number;
+    visitors: number;
+    cohort_size: number;
+    rate: number;
+}
+
+export interface AnalyticsPeriod {
+    visitors: number;
+    visitors_new: number;
+    visits: number;
+    page_views: number;
+    bounces: number;
+    bounce_rate: number;
+    avg_visit_seconds: number;
+    game_views: number;
+    offer_clicks: number;
+    searches: number;
+    view_to_offer_rate: number;
+}
+
+export interface AnalyticsSummary {
+    start: string;
+    end: string;
+    current: AnalyticsPeriod;
+    previous: AnalyticsPeriod;
+    /** `false` = el rollup no ha corrido hoy; las cifras no incluyen el día. */
+    rollup_ran_today: boolean;
+}
+
+export interface TrafficReport {
+    start: string;
+    end: string;
+    series: DailyTraffic[];
+    totals: {
+        visitors: number;
+        visitors_new: number;
+        visits: number;
+        page_views: number;
+        avg_visit_seconds: number;
+    };
+}
+
+export interface FunnelReport {
+    start: string;
+    end: string;
+    series: DailyFunnel[];
+    totals: {
+        game_clicks: number;
+        game_views: number;
+        offer_clicks: number;
+        searches: number;
+        game_saves: number;
+        view_to_offer_rate: number;
+    };
+    top_games: GameStat[];
+    top_sellers: SellerStat[];
+}
+
+export interface SearchReport {
+    start: string;
+    end: string;
+    top_queries: SearchStat[];
+    /** Lo que se buscó y no se encontró: la lista de la compra del catálogo. */
+    zero_results: SearchStat[];
+}
+
+export interface RetentionReport {
+    first_cohort: string;
+    cohorts: RetentionCohortRow[];
+}
+
 /* ── Paginated response wrapper ── */
 export interface PaginatedResponse<T> {
     count: number;
