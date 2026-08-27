@@ -37,8 +37,8 @@ export const siteConfig = {
         tiktok: 'https://tiktok.com/',
         /** Cuentas/enlaces reales pendientes de creación — placeholders genéricos. */
         pinterest: 'https://www.pinterest.com/',
-        gmail: 'mailto:contacto@playinone.cl',
-        discord: 'https://discord.com/',
+        gmail: 'mailto:pl4y1n0ne@gmail.com',
+        discord: 'https://discord.gg/tuDjFGZnEF',
         spotify: 'https://open.spotify.com/',
         whatsapp: 'https://wa.me/',
         threads: 'https://www.threads.net/',
