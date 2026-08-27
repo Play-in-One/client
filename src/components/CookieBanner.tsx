@@ -44,10 +44,12 @@ export function CookieBanner() {
                     >
                         <Stack gap="sm" maw={1100} mx="auto">
                             <Text fz="sm">
-                                Usamos una cookie propia para saber cuánta gente visita Play in One y si
-                                vuelve. No la comparte nadie más: no hay analítica de terceros ni
-                                publicidad. Si prefieres que no, seguimos contando visitas de forma
-                                anónima y agregada, sin guardar nada en tu dispositivo.{' '}
+                                Cumpliendo con la Ley N° 19.628 sobre Protección de la Vida Privada, te
+                                contamos que usamos una
+                                cookie propia para entender cómo se usa Play in One y así mejorar nuestras
+                                recomendaciones y ofrecerte un mejor servicio. Si prefieres que no, seguimos
+                                contando visitas de forma anónima y agregada, sin guardar nada en tu
+                                dispositivo.{' '}
                                 <Anchor component={Link} href="/cookies" fz="sm">
                                     Más detalle y opciones
                                 </Anchor>

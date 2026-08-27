@@ -52,6 +52,11 @@ const TOOLTIP_STYLE = {
     border: '1px solid var(--mantine-color-default-border)',
     borderRadius: 8,
     fontSize: 12,
+    color: 'var(--mantine-color-text)',
+};
+
+const TOOLTIP_LABEL_STYLE = {
+    color: 'var(--mantine-color-text)',
 };
 
 export function VisitorsChart({ series }: { series: DailyTraffic[] }) {
@@ -68,7 +73,7 @@ export function VisitorsChart({ series }: { series: DailyTraffic[] }) {
                 <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} />
                 <XAxis dataKey="date" tickFormatter={shortDate} stroke={axis} fontSize={11} />
                 <YAxis stroke={axis} fontSize={11} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelFormatter={shortDate} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} labelFormatter={shortDate} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area
                     type="monotone" dataKey="visitors" name="Visitantes únicos"
@@ -89,7 +94,7 @@ export function FunnelChart({ series }: { series: DailyFunnel[] }) {
                 <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} />
                 <XAxis dataKey="date" tickFormatter={shortDate} stroke={axis} fontSize={11} />
                 <YAxis stroke={axis} fontSize={11} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelFormatter={shortDate} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} labelFormatter={shortDate} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Line type="monotone" dataKey="game_clicks" name="Clics en tarjeta" stroke={COLORS.clicks} strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="game_views" name="Fichas vistas" stroke={COLORS.views} strokeWidth={2} dot={false} />
@@ -108,7 +113,7 @@ export function SellersChart({ sellers }: { sellers: SellerStat[] }) {
                 <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} horizontal={false} />
                 <XAxis type="number" stroke={axis} fontSize={11} allowDecimals={false} />
                 <YAxis type="category" dataKey="name" stroke={axis} fontSize={11} width={130} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
                 <Bar dataKey="offer_clicks" name="Clics a tienda" radius={[0, 4, 4, 0]}>
                     {sellers.map((seller, index) => (
                         <Cell key={seller.name} fill={palette[index % palette.length]} />
@@ -127,7 +132,7 @@ export function DevicesChart({ series }: { series: DailyTraffic[] }) {
                 <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} />
                 <XAxis dataKey="date" tickFormatter={shortDate} stroke={axis} fontSize={11} />
                 <YAxis stroke={axis} fontSize={11} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelFormatter={shortDate} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} labelFormatter={shortDate} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="desktop_visits" name="Escritorio" stackId="d" fill={COLORS.known} />
                 <Bar dataKey="mobile_visits" name="Móvil" stackId="d" fill={COLORS.visitors} />
