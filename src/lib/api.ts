@@ -1,6 +1,6 @@
 import type {
     Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
-    AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport,
+    AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
 } from './types';
 
 const API_BASE = typeof window === 'undefined'
@@ -380,4 +380,8 @@ export async function getAnalyticsSearch(days = 30, top = 20) {
 
 export async function getAnalyticsRetention(weeks = 12) {
     return fetcher<RetentionReport>(`/analytics/retention/?weeks=${weeks}`, { admin: true });
+}
+
+export async function getAnalyticsActivity(days = 30) {
+    return fetcher<ActivityReport>(`/analytics/activity/?days=${days}`, { admin: true });
 }

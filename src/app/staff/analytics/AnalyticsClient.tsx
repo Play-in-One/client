@@ -23,6 +23,7 @@ import {
 import { IconAlertTriangle, IconArrowDownRight, IconArrowUpRight, IconMinus } from '@tabler/icons-react';
 
 import {
+    getAnalyticsActivity,
     getAnalyticsFunnel,
     getAnalyticsRetention,
     getAnalyticsSearch,
@@ -30,6 +31,7 @@ import {
     getAnalyticsTraffic,
 } from '@/lib/api';
 import type {
+    ActivityReport,
     AnalyticsPeriod,
     AnalyticsSummary,
     FunnelReport,
@@ -39,6 +41,7 @@ import type {
 } from '@/lib/types';
 import { useAdmin } from '@/context/AdminContext';
 import { RetentionLegend, RetentionMatrix } from './RetentionMatrix';
+import { ActivityHeatmap } from './ActivityHeatmap';
 
 // Recharts pesa: se carga aparte y solo en el cliente, igual que en el detalle
 // de juego. El dashboard es interno y no necesita renderizarse en el servidor.
@@ -119,6 +122,7 @@ interface Reports {
     funnel: FunnelReport;
     search: SearchReport;
     retention: RetentionReport;
+    activity: ActivityReport;
 }
 
 export function AnalyticsClient() {
@@ -132,14 +136,15 @@ export function AnalyticsClient() {
         setLoading(true);
         setError(null);
         try {
-            const [summary, traffic, funnel, search, retention] = await Promise.all([
+            const [summary, traffic, funnel, search, retention, activity] = await Promise.all([
                 getAnalyticsSummary(range),
                 getAnalyticsTraffic(range),
                 getAnalyticsFunnel(range),
                 getAnalyticsSearch(range),
                 getAnalyticsRetention(12),
+                getAnalyticsActivity(range),
             ]);
-            setReports({ summary, traffic, funnel, search, retention });
+            setReports({ summary, traffic, funnel, search, retention, activity });
         } catch {
             setError('No se pudieron cargar las métricas. Revisa que la sesión siga activa.');
         } finally {
@@ -239,6 +244,13 @@ export function AnalyticsClient() {
                         subtitle="Únicos por día. «Nuevos» y «recurrentes» solo cuentan a quien aceptó la cookie: sin ella no se puede saber si alguien vuelve."
                     >
                         <VisitorsChart series={reports.traffic.series} />
+                    </Panel>
+
+                    <Panel
+                        title="Horarios de uso"
+                        subtitle="Cuándo se usa la plataforma, por día de la semana y hora. Útil para elegir cuándo publicar, cuándo lanzar una oferta y a qué hora conviene desplegar."
+                    >
+                        <ActivityHeatmap report={reports.activity} />
                     </Panel>
 
                     <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">

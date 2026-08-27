@@ -57,6 +57,23 @@ const SEARCH = {
     zero_results: [{ query: 'silksong', searches: 44, avg_results: 0 }],
 };
 
+/* Matriz de actividad: madrugada vacía y pico el martes a las 21, para que el
+   test compruebe que la hora punta sale del dato y no de un valor por defecto. */
+const ACTIVITY = {
+    start: '2026-07-29', end: TODAY,
+    timezone: 'America/Santiago',
+    matrix: Array.from({ length: 7 * 24 }, (_, index) => {
+        const weekday = Math.floor(index / 24);
+        const hour = index % 24;
+        const events = hour < 7 ? 0 : (weekday === 1 && hour === 21 ? 90 : hour * 2);
+        return { weekday, hour, events, visitors: Math.round(events / 3), avg_events: events / 4 };
+    }),
+    max_events: 90,
+    by_hour: Array.from({ length: 24 }, (_, hour) => ({ hour, events: hour * 14 })),
+    by_weekday: Array.from({ length: 7 }, (_, weekday) => ({ weekday, events: 300 })),
+    peak: { weekday: 1, hour: 21, events: 90, visitors: 30, avg_events: 22.5 },
+};
+
 const RETENTION = {
     first_cohort: '2026-06-01',
     cohorts: [
@@ -72,6 +89,7 @@ async function mockAnalytics(page: import('@playwright/test').Page) {
         ['**/api/analytics/funnel/**', FUNNEL],
         ['**/api/analytics/search/**', SEARCH],
         ['**/api/analytics/retention/**', RETENTION],
+        ['**/api/analytics/activity/**', ACTIVITY],
     ];
     for (const [pattern, body] of routes) {
         await page.route(pattern, (route) =>
@@ -133,6 +151,41 @@ test('los paneles de detalle se rellenan', async ({ page }) => {
     const retention = page.locator('.mantine-Card-root').filter({ hasText: 'Retención por cohorte' });
     await expect(retention.getByRole('cell', { name: '100%' })).toBeVisible();
     await expect(retention.getByRole('cell', { name: '30%' })).toBeVisible();
+});
+
+test('el mapa de calor muestra la hora punta y rotula la zona horaria', async ({ page }) => {
+    await signInAsStaff(page);
+    await mockAnalytics(page);
+    await page.goto('/staff/analytics');
+
+    const panel = page.locator('.mantine-Card-root').filter({ hasText: 'Horarios de uso' });
+    await expect(panel).toBeVisible();
+    // La hora punta sale del dato, no de un valor por defecto.
+    await expect(panel).toContainText('Martes a las 21:00');
+    // Sin rotular la zona, un "pico a las 21" no significa nada.
+    await expect(panel).toContainText('America/Santiago');
+    // 7 filas de dias x 24 horas, celdas vacias incluidas.
+    await expect(panel.getByText('Lun', { exact: true })).toBeVisible();
+    await expect(panel.getByText('Dom', { exact: true })).toBeVisible();
+});
+
+test('el mapa de calor avisa cuando no hay actividad', async ({ page }) => {
+    await signInAsStaff(page);
+    await mockAnalytics(page);
+    await page.route('**/api/analytics/activity/**', (route) =>
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ ...ACTIVITY, max_events: 0, peak: null }),
+        }),
+    );
+
+    await page.goto('/staff/analytics');
+
+    const panel = page.locator('.mantine-Card-root').filter({ hasText: 'Horarios de uso' });
+    await expect(panel).toContainText('Todavía no hay actividad');
+    // No debe inventarse una hora punta sobre una matriz de ceros.
+    await expect(panel).not.toContainText('Hora punta');
 });
 
 test('avisa cuando el agregado diario no ha corrido', async ({ page }) => {

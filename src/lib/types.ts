@@ -236,6 +236,32 @@ export interface SearchReport {
     zero_results: SearchStat[];
 }
 
+export interface ActivityCell {
+    /** 0 = lunes, 6 = domingo (como `date.weekday()` de Python). */
+    weekday: number;
+    /** Hora local del sitio (ver `ActivityReport.timezone`), 0-23. */
+    hour: number;
+    events: number;
+    visitors: number;
+    /** Media por ocurrencia de ese día en el rango: hace comparables los días. */
+    avg_events: number;
+}
+
+export interface ActivityReport {
+    start: string;
+    end: string;
+    /** Zona en la que están expresadas las horas. Sin rotularla, un «pico a las
+     *  21» no significa nada. */
+    timezone: string;
+    /** Siempre 7×24 celdas, incluidas las vacías. */
+    matrix: ActivityCell[];
+    max_events: number;
+    by_hour: { hour: number; events: number }[];
+    by_weekday: { weekday: number; events: number }[];
+    /** `null` cuando no hay actividad: no se anuncia una hora punta inventada. */
+    peak: ActivityCell | null;
+}
+
 export interface RetentionReport {
     first_cohort: string;
     cohorts: RetentionCohortRow[];
