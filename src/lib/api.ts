@@ -277,6 +277,25 @@ export async function getGame(id: number | string) {
     return fetcher<Game>(`/games/${id}/`);
 }
 
+/** Entrada del catálogo indexable: lo mínimo que necesita un `<url>` del sitemap. */
+export interface GameSitemapEntry {
+    id: number;
+    /** Ausente si el juego todavía no tiene serie de precios. */
+    lastmod?: string;
+}
+
+/**
+ * El catálogo indexable entero en UNA petición, para `app/sitemap.ts`.
+ *
+ * No es `getGames()` con un page_size grande: la API pagina de a 24 y no acepta
+ * `page_size`, así que recorrerla eran ~410 peticiones que además pagaban las
+ * subconsultas de precio para usar solo el id. El endpoint devuelve id + fecha
+ * y nada más.
+ */
+export async function getGamesForSitemap() {
+    return fetcher<{ results: GameSitemapEntry[] }>('/games/sitemap/');
+}
+
 /* ── Platforms ── */
 export async function getPlatforms() {
     return fetcher<PaginatedResponse<Platform>>('/platforms/');
@@ -288,8 +307,10 @@ export async function getGenres() {
 }
 
 /* ── Sellers ── */
-export async function getSellers() {
-    return fetcher<PaginatedResponse<Seller>>('/sellers/');
+// `page` existe para que el sitemap pueda recorrer las 76 tiendas: sin él se
+// quedaba en la primera página de 24 y publicaba un tercio de las fichas.
+export async function getSellers(params?: { page?: number }) {
+    return fetcher<PaginatedResponse<Seller>>(`/sellers/${qs(params ?? {})}`);
 }
 
 export async function getSeller(id: number | string) {

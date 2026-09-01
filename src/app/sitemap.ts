@@ -1,11 +1,16 @@
 import type { MetadataRoute } from 'next';
-import { getGames, getPlatforms, getPosts, getSellers } from '@/lib/api';
+import { getGameFacets, getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
 import { absoluteUrl } from '@/lib/seo';
+import { PAGE_SIZE as GAMES_PER_PAGE } from './juegos/[slug]/landing';
 
 // Regenerate at most hourly so new games/posts appear without a redeploy.
 export const revalidate = 3600;
 
-const MAX_PAGES = 60; // safety cap (50 items/page → up to 3000 entries per type)
+// Tope de seguridad para los bloques que SÍ se recorren paginados (posts y
+// tiendas, decenas de filas). La API pagina de a 24, no de a 50 como decía este
+// comentario, y el catálogo de juegos —que son miles— ya no pasa por aquí: lo
+// resuelve `/api/games/sitemap/` de una sola vez.
+const MAX_PAGES = 60;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const staticRoutes: MetadataRoute.Sitemap = [
@@ -23,15 +28,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Landings por consola. Van con prioridad alta: son las páginas que
     // responden "juegos de PS5 baratos", la búsqueda con más volumen del
     // sitio, y son pocas y estables.
+    //
+    // Detrás van sus páginas interiores (`/juegos/ps5/pagina/2`…), con
+    // prioridad baja: no valen por sí mismas, valen porque son el camino por el
+    // que un crawler llega a las fichas. Cuántas hay sale de `facets`, que ya
+    // publica cuántos juegos tiene cada consola y está cacheado en el backend.
     const platforms: MetadataRoute.Sitemap = [];
     try {
         const res = await getPlatforms();
+        const counts = await getGameFacets()
+            .then((f) => f.platforms)
+            .catch(() => ({} as Record<number, number>));
         for (const p of res.results) {
             platforms.push({
                 url: absoluteUrl(`/juegos/${p.slug}`),
                 changeFrequency: 'daily',
                 priority: 0.9,
             });
+            const pages = Math.ceil((counts[p.id] ?? 0) / GAMES_PER_PAGE);
+            for (let page = 2; page <= pages; page++) {
+                platforms.push({
+                    url: absoluteUrl(`/juegos/${p.slug}/pagina/${page}`),
+                    changeFrequency: 'daily',
+                    priority: 0.3,
+                });
+            }
         }
     } catch {
         /* ignore */
@@ -39,20 +60,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const games: MetadataRoute.Sitemap = [];
     try {
-        for (let page = 1; page <= MAX_PAGES; page++) {
-            const res = await getGames({ page, ordering: '-id' });
-            for (const g of res.results) {
-                games.push({
-                    url: absoluteUrl(`/game/${g.id}`),
-                    // `price_updated_at` es lo más cercano a "cuándo cambió
-                    // esta ficha": el juego en sí no tiene timestamp, pero lo
-                    // que se actualiza de él es su precio.
-                    ...(g.price_updated_at ? { lastModified: g.price_updated_at } : {}),
-                    changeFrequency: 'daily',
-                    priority: 0.8,
-                });
-            }
-            if (!res.next) break;
+        // Una sola petición para las ~10.000 fichas. Recorrer el listado
+        // paginado era lo que truncaba el sitemap al 15% del catálogo.
+        const res = await getGamesForSitemap();
+        for (const g of res.results) {
+            games.push({
+                url: absoluteUrl(`/game/${g.id}`),
+                // Cuándo cambió por última vez el precio del juego. El juego en
+                // sí no tiene timestamp, y lo que se actualiza de él es esto.
+                ...(g.lastmod ? { lastModified: g.lastmod } : {}),
+                changeFrequency: 'daily',
+                priority: 0.8,
+            });
         }
     } catch {
         /* API unavailable — ship the static routes we have */
@@ -78,13 +97,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const stores: MetadataRoute.Sitemap = [];
     try {
-        const res = await getSellers();
-        for (const s of res.results) {
-            stores.push({
-                url: absoluteUrl(`/store/${s.id}`),
-                changeFrequency: 'weekly',
-                priority: 0.4,
-            });
+        for (let page = 1; page <= MAX_PAGES; page++) {
+            const res = await getSellers({ page });
+            for (const s of res.results) {
+                stores.push({
+                    url: absoluteUrl(`/store/${s.id}`),
+                    changeFrequency: 'weekly',
+                    priority: 0.4,
+                });
+            }
+            if (!res.next) break;
         }
     } catch {
         /* ignore */
