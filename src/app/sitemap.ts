@@ -3,8 +3,21 @@ import { getGameFacets, getGamesForSitemap, getPlatforms, getPosts, getSellers }
 import { absoluteUrl } from '@/lib/seo';
 import { PAGE_SIZE as GAMES_PER_PAGE } from './juegos/[slug]/landing';
 
-// Regenerate at most hourly so new games/posts appear without a redeploy.
-export const revalidate = 3600;
+/**
+ * Se genera POR PETICIÓN, nunca en el build.
+ *
+ * `API_URL` (el backend interno) solo existe en runtime: durante `docker build`
+ * las llamadas caen a `NEXT_PUBLIC_API_URL`, o sea a la API **pública**, que en
+ * ese momento sigue sirviendo el backend ANTERIOR. Prerenderizado, el sitemap se
+ * horneaba contra la versión vieja y el `try/catch` de cada bloque convertía un
+ * endpoint que todavía no existía en un bloque vacío — y ese XML incompleto
+ * quedaba servido hasta la siguiente revalidación.
+ *
+ * El coste de no cachear aquí es bajo: quien pide esto son crawlers, y cada
+ * fuente ya viene cacheada del backend (el catálogo 10 min, las facets 90 s,
+ * plataformas y tiendas por `CachedListMixin`).
+ */
+export const dynamic = 'force-dynamic';
 
 // Tope de seguridad para los bloques que SÍ se recorren paginados (posts y
 // tiendas, decenas de filas). La API pagina de a 24, no de a 50 como decía este
