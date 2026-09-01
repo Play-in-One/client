@@ -26,7 +26,7 @@ export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; css
     pc: { mantine: 'gray', hex: platforms.pc, cssVar: 'var(--mantine-color-gray-filled)' },
     wii: { mantine: 'cyan', hex: platforms.wii, cssVar: 'var(--mantine-color-cyan-filled)' },
     nds: { mantine: 'gray.7', hex: platforms.nds, cssVar: 'var(--mantine-color-gray-7)' },
-    '3ds': { mantine: 'red.8', hex: platforms['3ds'], cssVar: 'var(--mantine-color-red-8)' },
+    '3ds': { mantine: 'gray.7', hex: platforms.nds, cssVar: 'var(--mantine-color-gray-7)' },
     wiiu: { mantine: 'cyan', hex: platforms.wii, cssVar: 'var(--mantine-color-cyan-filled)' },
     psvita: { mantine: 'indigo', hex: platforms.ps4, cssVar: 'var(--mantine-color-indigo-filled)' },
 };

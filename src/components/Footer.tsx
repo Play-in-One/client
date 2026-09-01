@@ -36,10 +36,24 @@ import {
 } from '@tabler/icons-react';
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
+import { trackEvent, type SocialNetwork } from '@/lib/api';
 
 const YEAR = new Date().getFullYear();
 
-function SocialIcon({ icon: Icon, brandColor, href }: { icon: ComponentType<{ size?: number; className?: string }>, brandColor: string, href: string }) {
+/**
+ * Un enlace de red social del footer.
+ *
+ * El `network` no es decorativo: viaja en el evento y es lo que permite saber
+ * cuál de los quince enlaces se gana el rincón que ocupa. El track vive aquí
+ * dentro y no en cada llamada, que es lo que garantiza que ninguna red se
+ * quede sin medir por olvido — el mismo patrón que `GameCard`.
+ */
+function SocialIcon({ icon: Icon, brandColor, href, network }: {
+    icon: ComponentType<{ size?: number; className?: string }>,
+    brandColor: string,
+    href: string,
+    network: SocialNetwork,
+}) {
     const [hover, setHover] = useState(false);
     const colorScheme = useComputedColorScheme('light');
     // Threads es negro puro: en modo oscuro sería invisible sobre el fondo, así que se invierte.
@@ -55,6 +69,9 @@ function SocialIcon({ icon: Icon, brandColor, href }: { icon: ComponentType<{ si
             size="lg"
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
+            // `target="_blank"` no descarga el documento, así que el beacon sale
+            // igual; y aunque lo hiciera, sendBeacon sobrevive al unload.
+            onClick={() => trackEvent({ event_type: 'social_click', social_network: network })}
             style={{ transition: 'all 0.2s ease' }}
         >
             <Icon size={24} />
@@ -111,10 +128,13 @@ export default function Footer() {
                     {/* Categorías */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Categorías</Text>
-                        <Anchor component={Link} href="/search?platform=ps5" fz="sm" c="dimmed" underline="never">PlayStation 5</Anchor>
-                        <Anchor component={Link} href="/search?platform=switch" fz="sm" c="dimmed" underline="never">Nintendo Switch</Anchor>
-                        <Anchor component={Link} href="/search?platform=xbox" fz="sm" c="dimmed" underline="never">Xbox Series X</Anchor>
-                        {/* <Anchor component={Link} href="/search?platform=pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor> */}
+                        {/* A la landing por consola, no a /search?platform=:
+                            esa variante va noindex y se renderiza en el cliente,
+                            así que estos enlaces no llevaban a nada indexable. */}
+                        <Anchor component={Link} href="/juegos/ps5" fz="sm" c="dimmed" underline="never">Juegos PS5</Anchor>
+                        <Anchor component={Link} href="/juegos/switch" fz="sm" c="dimmed" underline="never">Juegos Nintendo Switch</Anchor>
+                        <Anchor component={Link} href="/juegos/xbox" fz="sm" c="dimmed" underline="never">Juegos Xbox</Anchor>
+                        <Anchor component={Link} href="/juegos/pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
                     </Stack>
 
                     {/* Empresa */}
@@ -126,6 +146,7 @@ export default function Footer() {
                         <Anchor component={Link} href="/privacy" fz="sm" c="dimmed" underline="never">Política de Privacidad</Anchor>
                         <Anchor component={Link} href="/cookies" fz="sm" c="dimmed" underline="never">Cookies</Anchor>
                         <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
+                        <Anchor component={Link} href="/faq" fz="sm" c="dimmed" underline="never">Preguntas frecuentes</Anchor>
                     </Stack>
 
                     {/* Newsletter */}
@@ -133,21 +154,21 @@ export default function Footer() {
                         <Text fw={700} mb={4}>Siguenos</Text>
                         <Text fz="sm" c="dimmed">Mantente al dia de las mejores ofertas y novedades.</Text>
                         <Group gap="xs">
-                            <SocialIcon icon={IconBrandInstagram} brandColor={social.instagram} href={siteConfig.social.instagram} />
-                            <SocialIcon icon={IconBrandFacebook} brandColor={social.facebook} href={siteConfig.social.facebook} />
-                            <SocialIcon icon={IconBrandX} brandColor="gray" href={siteConfig.social.twitter} />
-                            <SocialIcon icon={IconBrandLinkedin} brandColor={social.linkedin} href={siteConfig.social.linkedin} />
-                            <SocialIcon icon={IconBrandReddit} brandColor={social.reddit} href={siteConfig.social.reddit} />
-                            <SocialIcon icon={IconBrandTiktok} brandColor={social.tiktok} href={siteConfig.social.tiktok} />
-                            <SocialIcon icon={IconBrandYoutube} brandColor={social.youtube} href={siteConfig.social.youtube} />
-                            <SocialIcon icon={IconBrandPinterest} brandColor={social.pinterest} href={siteConfig.social.pinterest} />
-                            <SocialIcon icon={IconBrandGmail} brandColor={social.gmail} href={siteConfig.social.gmail} />
-                            <SocialIcon icon={IconBrandDiscord} brandColor={social.discord} href={siteConfig.social.discord} />
-                            <SocialIcon icon={IconBrandSpotify} brandColor={social.spotify} href={siteConfig.social.spotify} />
-                            <SocialIcon icon={IconBrandWhatsapp} brandColor={social.whatsapp} href={siteConfig.social.whatsapp} />
-                            <SocialIcon icon={IconBrandThreads} brandColor={social.threads} href={siteConfig.social.threads} />
-                            <SocialIcon icon={IconBrandTumblr} brandColor={social.tumblr} href={siteConfig.social.tumblr} />
-                            <SocialIcon icon={IconBrandTelegram} brandColor={social.telegram} href={siteConfig.social.telegram} />
+                            <SocialIcon icon={IconBrandInstagram} brandColor={social.instagram} href={siteConfig.social.instagram} network="instagram" />
+                            <SocialIcon icon={IconBrandFacebook} brandColor={social.facebook} href={siteConfig.social.facebook} network="facebook" />
+                            <SocialIcon icon={IconBrandX} brandColor="gray" href={siteConfig.social.twitter} network="twitter" />
+                            <SocialIcon icon={IconBrandLinkedin} brandColor={social.linkedin} href={siteConfig.social.linkedin} network="linkedin" />
+                            <SocialIcon icon={IconBrandReddit} brandColor={social.reddit} href={siteConfig.social.reddit} network="reddit" />
+                            <SocialIcon icon={IconBrandTiktok} brandColor={social.tiktok} href={siteConfig.social.tiktok} network="tiktok" />
+                            <SocialIcon icon={IconBrandYoutube} brandColor={social.youtube} href={siteConfig.social.youtube} network="youtube" />
+                            <SocialIcon icon={IconBrandPinterest} brandColor={social.pinterest} href={siteConfig.social.pinterest} network="pinterest" />
+                            <SocialIcon icon={IconBrandGmail} brandColor={social.gmail} href={siteConfig.social.gmail} network="gmail" />
+                            <SocialIcon icon={IconBrandDiscord} brandColor={social.discord} href={siteConfig.social.discord} network="discord" />
+                            <SocialIcon icon={IconBrandSpotify} brandColor={social.spotify} href={siteConfig.social.spotify} network="spotify" />
+                            <SocialIcon icon={IconBrandWhatsapp} brandColor={social.whatsapp} href={siteConfig.social.whatsapp} network="whatsapp" />
+                            <SocialIcon icon={IconBrandThreads} brandColor={social.threads} href={siteConfig.social.threads} network="threads" />
+                            <SocialIcon icon={IconBrandTumblr} brandColor={social.tumblr} href={siteConfig.social.tumblr} network="tumblr" />
+                            <SocialIcon icon={IconBrandTelegram} brandColor={social.telegram} href={siteConfig.social.telegram} network="telegram" />
                         </Group>
                     </Stack>
                 </SimpleGrid>

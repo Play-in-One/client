@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Affix, Anchor, Button, Group, Paper, Stack, Text, Transition } from '@mantine/core';
@@ -29,8 +30,35 @@ export function CookieBanner() {
     const hidden = HIDDEN_ON.some((prefix) => pathname?.startsWith(prefix));
     const visible = ready && consent === null && !hidden;
 
+    /* El banner es `position: fixed` a z-index 300, o sea que está FUERA del
+       flujo y por encima de todo: mientras se muestra, sus ~200-260px de alto en
+       móvil dejan muerta la franja inferior de cualquier página, incluida la
+       última fila de tarjetas de la galería. Se compensa reservando ese alto al
+       final del documento mientras dura. Se mide en vez de fijarlo: el alto
+       depende de cuántas líneas ocupe el texto legal en cada ancho. */
+    const affixRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const affix = affixRef.current;
+        if (!affix) return;
+        /* Se observa el Affix y no el Paper: el Affix está montado siempre (mide
+           0 cuando no hay banner) y el Paper aparece un render más tarde, dentro
+           del Transition. Así el mismo observer cubre montaje, desmontaje y los
+           saltos de alto cuando el texto legal cambia de número de líneas. */
+        const apply = () => {
+            const { height } = affix.getBoundingClientRect();
+            document.body.style.paddingBottom = height > 0 ? `${height}px` : '';
+        };
+        apply();
+        const observer = new ResizeObserver(apply);
+        observer.observe(affix);
+        return () => {
+            observer.disconnect();
+            document.body.style.paddingBottom = '';
+        };
+    }, []);
+
     return (
-        <Affix position={{ bottom: 0, left: 0, right: 0 }} zIndex={300}>
+        <Affix ref={affixRef} position={{ bottom: 0, left: 0, right: 0 }} zIndex={300}>
             <Transition mounted={visible} transition="slide-up" duration={200}>
                 {(styles) => (
                     <Paper

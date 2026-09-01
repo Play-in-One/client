@@ -4,6 +4,7 @@ import { ColorSchemeScript } from '@mantine/core';
 import { Providers } from './providers';
 import { AppProvider } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
+import PrefsScript from '@/components/PrefsScript';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import PageViewTracker from '@/components/PageViewTracker';
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="es" className={poppins.variable} suppressHydrationWarning>
             <head>
                 <ColorSchemeScript defaultColorScheme="auto" />
+                <PrefsScript />
             </head>
             <body>
                 <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />

@@ -3,7 +3,8 @@
  * imported from Server Components, generateMetadata(), sitemap.ts and robots.ts.
  */
 import type { Metadata } from 'next';
-import type { Game, Post, Seller } from './types';
+import type { Game, Platform, Post, Product, Seller } from './types';
+import { formatCLP } from './utils';
 
 /** Public site origin. Configure NEXT_PUBLIC_SITE_URL at deploy time. */
 export const SITE_URL = (
@@ -33,17 +34,15 @@ export const siteConfig = {
         twitter: 'https://x.com/playinonecl',
         youtube: 'https://www.youtube.com/@PlayinOne-cl',
         reddit: 'https://www.reddit.com/user/playinonecl/',
-        /** Cuenta real pendiente de creación — link genérico como placeholder. */
-        tiktok: 'https://tiktok.com/',
-        /** Cuentas/enlaces reales pendientes de creación — placeholders genéricos. */
-        pinterest: 'https://www.pinterest.com/',
+        tiktok: 'https://www.tiktok.com/@playinone.cl',
+        pinterest: 'https://cl.pinterest.com/playinone/',
         gmail: 'mailto:pl4y1n0ne@gmail.com',
         discord: 'https://discord.gg/tuDjFGZnEF',
         spotify: 'https://open.spotify.com/',
         whatsapp: 'https://wa.me/',
-        threads: 'https://www.threads.net/',
-        tumblr: 'https://www.tumblr.com/',
-        telegram: 'https://t.me/',
+        threads: 'https://www.threads.com/@playinone.cl',
+        tumblr: 'https://www.tumblr.com/blog/playinone-cl',
+        telegram: 'https://t.me/playinonecl',
     },
 } as const;
 
@@ -161,51 +160,126 @@ function conditionToSchema(condition: string): string {
     }
 }
 
+const num = (value: string | null | undefined): number | null => {
+    if (value == null) return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+};
+
+/** Precio de lista, en el formato que schema.org espera (sin separadores). */
+const money = (value: string | null | undefined): string | undefined => {
+    const n = num(value);
+    return n == null ? undefined : n.toFixed(2);
+};
+
+/**
+ * Ventana de validez que se le atribuye a un precio.
+ *
+ * Se cuenta desde HOY, no desde `price_updated_at`. La diferencia importa:
+ * PriceHistory solo escribe una fila cuando el precio CAMBIA, así que
+ * `price_updated_at` es la fecha del último cambio, no la de la última
+ * comprobación. Un juego cuyo precio lleva dos meses quieto se verifica igual
+ * todos los días; fechar su validez en aquel cambio + 7 días publicaba un
+ * `priceValidUntil` ya vencido, que para Google equivale a una oferta caducada
+ * — peor que no declarar nada.
+ *
+ * Una semana es lo que el sitio puede sostener: el catálogo se revisa a diario.
+ */
+const PRICE_VALID_DAYS = 7;
+
+function priceValidUntil(): string {
+    const until = new Date();
+    until.setDate(until.getDate() + PRICE_VALID_DAYS);
+    return until.toISOString().slice(0, 10);
+}
+
+/**
+ * Una oferta concreta de una tienda.
+ *
+ * `price` es el precio de LISTA y el envío viaja aparte en `shippingDetails`,
+ * aunque toda la UI de PIO muestre el efectivo (lista + envío). Emitir el
+ * efectivo *y además* el envío lo cobraría dos veces; emitirlo sin
+ * `shippingDetails` haría creer que el despacho es gratis. Separarlos es la
+ * única lectura en la que el total que deduce un buscador coincide con la
+ * cifra que ve una persona en la página.
+ */
+export function offerJsonLd(product: Product, game: Game): JsonLdObject {
+    const shipping = num(product.shipping_cost) ?? 0;
+    return {
+        '@type': 'Offer',
+        '@id': absoluteUrl(`/game/${game.id}#offer-${product.id}`),
+        name: `${game.name} — ${product.seller.name}`,
+        price: money(product.base_price),
+        priceCurrency: 'CLP',
+        itemCondition: conditionToSchema(product.condition),
+        // El API público excluye las ofertas sin stock, así que todo lo que
+        // llega hasta aquí está efectivamente disponible.
+        availability: 'https://schema.org/InStock',
+        url: product.url,
+        priceValidUntil: priceValidUntil(),
+        seller: {
+            '@type': 'Organization',
+            name: product.seller.name,
+            url: absoluteUrl(`/store/${product.seller.id}`),
+            ...(product.seller.url ? { sameAs: product.seller.url } : {}),
+        },
+        shippingDetails: {
+            '@type': 'OfferShippingDetails',
+            shippingRate: {
+                '@type': 'MonetaryAmount',
+                value: shipping.toFixed(2),
+                currency: 'CLP',
+            },
+            shippingDestination: {
+                '@type': 'DefinedRegion',
+                addressCountry: 'CL',
+            },
+        },
+    };
+}
+
 /** Product + AggregateOffer for a game detail page. */
 export function gameJsonLd(game: Game): JsonLdObject {
-    const offers = (game.products ?? []).filter((p) => p.current_price != null);
-    const prices = offers
-        .map((p) => Number(p.current_price))
-        .filter((n) => Number.isFinite(n));
-    const lowPrice =
-        game.min_price ?? (prices.length ? String(Math.min(...prices)) : undefined);
+    // Ordenadas por precio EFECTIVO, el mismo criterio con el que PIO elige la
+    // mejor oferta. El backend ya las manda así; reordenar aquí mantiene el
+    // invariante aunque este builder reciba una lista de otra procedencia.
+    const offers = [...(game.products ?? [])]
+        .filter((p) => p.base_price != null)
+        .sort((a, b) => (num(a.current_price) ?? Infinity) - (num(b.current_price) ?? Infinity));
+    const listPrices = offers.map((p) => num(p.base_price)).filter((n): n is number => n != null);
 
     const data: JsonLdObject = {
         '@context': 'https://schema.org',
         '@type': 'Product',
+        '@id': absoluteUrl(`/game/${game.id}#product`),
         name: game.name,
         url: absoluteUrl(`/game/${game.id}`),
         category: 'VideoGame',
         ...(game.image ? { image: game.image } : {}),
         ...(game.description ? { description: game.description } : {}),
         ...(game.developer ? { brand: { '@type': 'Brand', name: game.developer } } : {}),
+        ...(game.platforms?.length
+            ? { gamePlatform: game.platforms.map((p) => p.display_name) }
+            : {}),
+        ...(game.genres?.length ? { genre: game.genres.map((g) => g.name) } : {}),
+        ...(game.release_date ? { releaseDate: game.release_date } : {}),
     };
 
-    // Solo se emiten offers cuando hay productos reales: el API público ya
-    // excluye los ocultos (out of stock), así que cada oferta emitida está
-    // efectivamente disponible y el InStock es veraz. Sin ofertas, no se
-    // fabrica un AggregateOffer.
-    if (lowPrice != null && offers.length > 0) {
+    // Sin ofertas no se fabrica un AggregateOffer vacío: un Product que
+    // declara tener precio y no lo trae es peor que uno que no lo declara.
+    if (listPrices.length > 0) {
         data.offers = {
             '@type': 'AggregateOffer',
             priceCurrency: 'CLP',
-            lowPrice,
-            ...(prices.length ? { highPrice: String(Math.max(...prices)) } : {}),
+            lowPrice: Math.min(...listPrices).toFixed(2),
+            highPrice: Math.max(...listPrices).toFixed(2),
             offerCount: offers.length,
-            offers: offers.map((p) => ({
-                '@type': 'Offer',
-                price: p.current_price,
-                priceCurrency: 'CLP',
-                itemCondition: conditionToSchema(p.condition),
-                availability: 'https://schema.org/InStock',
-                url: p.url,
-                seller: { '@type': 'Organization', name: p.seller.name },
-            })),
+            offers: offers.map((p) => offerJsonLd(p, game)),
         };
     }
 
-    const rating = game.rating != null ? Number(game.rating) : NaN;
-    if (Number.isFinite(rating) && rating > 0) {
+    const rating = num(game.rating);
+    if (rating != null && rating > 0) {
         data.aggregateRating = {
             '@type': 'AggregateRating',
             ratingValue: game.rating,
@@ -216,6 +290,167 @@ export function gameJsonLd(game: Game): JsonLdObject {
     }
 
     return data;
+}
+
+/* ── GEO: la frase que un motor generativo puede citar ─────────────────────
+ * Vive aquí, y no en cada página, para que el texto sea EL MISMO en el HTML,
+ * en la meta description, en la FAQ y en llms.txt. Una respuesta citada tiene
+ * que poder verificarse contra la página que la respalda.
+ */
+
+/** Convierte un ISO a "31 de agosto de 2026". */
+function formatDate(iso: string | null | undefined): string | null {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return new Intl.DateTimeFormat('es-CL', {
+        day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Santiago',
+    }).format(date);
+}
+
+interface BestPriceOptions {
+    /** Consola a la que se acota la frase, si la vista tiene una activa. */
+    platform?: Platform | null;
+    /** Precio y tienda ya resueltos por la vista (respetando sus filtros).
+     *  Sin esto se usan los del juego, que son los del catálogo completo. */
+    price?: string | number | null;
+    sellerName?: string | null;
+    /** Envío incluido en `price`. Decide si la frase dice "con envío incluido". */
+    shipping?: string | number | null;
+    offerCount?: number;
+    sellerCount?: number;
+}
+
+/**
+ * "El precio más barato de X para PS5 es $29.990 en Zmart, con envío incluido.
+ *  Comparamos 7 ofertas de 5 tiendas chilenas; precio actualizado el 31 de
+ *  agosto de 2026."
+ *
+ * Degrada por partes: sin tienda conocida omite el "en …", sin ofertas
+ * devuelve null, sin fecha se queda en la primera frase.
+ */
+export function bestPriceSentence(game: Game, opts: BestPriceOptions = {}): string | null {
+    const price = opts.price ?? game.min_price;
+    if (price == null || price === '') return null;
+
+    const sellerName = opts.sellerName ?? game.min_price_seller?.name ?? null;
+    const shipping = num(String(opts.shipping ?? game.min_price_shipping ?? '0')) ?? 0;
+    const platform = opts.platform ? ` para ${opts.platform.display_name}` : '';
+    const where = sellerName ? ` en ${sellerName}` : '';
+    const withShipping = shipping > 0 ? ', con envío incluido' : '';
+
+    let text = `El precio más barato de ${game.name}${platform} es ${formatCLP(price)}${where}${withShipping}.`;
+
+    const offerCount = opts.offerCount ?? game.products?.length ?? 0;
+    const sellerCount =
+        opts.sellerCount ??
+        (game.products ? new Set(game.products.map((p) => p.seller.id)).size : 0);
+    if (offerCount > 0) {
+        const offerLabel = offerCount === 1 ? '1 oferta' : `${offerCount} ofertas`;
+        const sellerLabel = sellerCount === 1 ? '1 tienda chilena' : `${sellerCount} tiendas chilenas`;
+        text += ` Comparamos ${offerLabel} de ${sellerLabel}`;
+        // "sin cambios desde", no "actualizado el": el historial solo registra
+        // cambios de precio, así que esa fecha es la del último movimiento y no
+        // la de la última revisión (que es diaria). Decir "actualizado el 30 de
+        // junio" hacía parecer abandonado un precio verificado esta mañana.
+        const since = formatDate(game.price_updated_at);
+        text += since ? `; precio sin cambios desde el ${since}.` : '.';
+    }
+
+    return text;
+}
+
+/* ── Listados y colecciones ────────────────────────────────────────────── */
+
+/**
+ * ItemList de juegos. Cada entrada lleva su precio y su tienda: es lo que
+ * convierte un listado en una respuesta ("los PS5 más baratos son…") en vez
+ * de en una lista de enlaces.
+ */
+export function itemListJsonLd(
+    games: Game[],
+    { path, name }: { path: string; name: string },
+): JsonLdObject {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name,
+        url: absoluteUrl(path),
+        numberOfItems: games.length,
+        itemListElement: games.map((game, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            item: {
+                '@type': 'Product',
+                '@id': absoluteUrl(`/game/${game.id}#product`),
+                name: game.name,
+                url: absoluteUrl(`/game/${game.id}`),
+                ...(game.image ? { image: game.image } : {}),
+                ...(game.min_price_base
+                    ? {
+                        offers: {
+                            '@type': 'AggregateOffer',
+                            priceCurrency: 'CLP',
+                            lowPrice: money(game.min_price_base),
+                            ...(game.min_price_seller
+                                ? {
+                                    seller: {
+                                        '@type': 'Organization',
+                                        name: game.min_price_seller.name,
+                                        url: absoluteUrl(`/store/${game.min_price_seller.id}`),
+                                    },
+                                }
+                                : {}),
+                        },
+                    }
+                    : {}),
+            },
+        })),
+    };
+}
+
+export function collectionPageJsonLd({
+    name,
+    description,
+    path,
+}: {
+    name: string;
+    description: string;
+    path: string;
+}): JsonLdObject {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name,
+        description,
+        url: absoluteUrl(path),
+        inLanguage: siteConfig.lang,
+        isPartOf: { '@type': 'WebSite', name: siteConfig.name, url: SITE_URL },
+    };
+}
+
+export interface FaqEntry {
+    question: string;
+    answer: string;
+}
+
+/**
+ * FAQPage. Google ya casi no pinta el rich result, pero sigue siendo la forma
+ * más directa de darle a un motor generativo un par pregunta/respuesta que
+ * puede citar entero.
+ */
+export function faqJsonLd(entries: FaqEntry[], path?: string): JsonLdObject {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        ...(path ? { '@id': `${absoluteUrl(path)}#faq` } : {}),
+        inLanguage: siteConfig.lang,
+        mainEntity: entries.map((entry) => ({
+            '@type': 'Question',
+            name: entry.question,
+            acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+        })),
+    };
 }
 
 /** Article / NewsArticle for a blog post. */
@@ -240,14 +475,33 @@ export function articleJsonLd(post: Post): JsonLdObject {
 }
 
 export function storeJsonLd(seller: Seller): JsonLdObject {
+    // `addresses` solo viaja en el detalle de la tienda, y hasta ahora se
+    // ignoraba: una dirección física es justo lo que distingue a una tienda
+    // real de un dominio cualquiera, tanto para el buscador local como para un
+    // motor generativo al que le preguntan "¿dónde la compro en Santiago?".
+    const addresses = seller.addresses ?? [];
     return {
         '@context': 'https://schema.org',
         '@type': 'Store',
+        '@id': absoluteUrl(`/store/${seller.id}#store`),
         name: seller.name,
         url: absoluteUrl(`/store/${seller.id}`),
         ...(seller.logo ? { logo: seller.logo, image: seller.logo } : {}),
         ...(seller.description ? { description: seller.description } : {}),
         ...(seller.url ? { sameAs: [seller.url] } : {}),
+        ...(addresses.length
+            ? {
+                address: addresses.map((a) => ({
+                    '@type': 'PostalAddress',
+                    streetAddress: a.address,
+                    addressCountry: 'CL',
+                    ...(a.label ? { name: a.label } : {}),
+                })),
+            }
+            : {}),
+        // Una importadora despacha a Chile pero no opera desde Chile: la
+        // distinción es la misma que la insignia 🌐 de la UI.
+        areaServed: { '@type': 'Country', name: 'Chile' },
     };
 }
 

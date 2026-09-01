@@ -64,6 +64,13 @@ test.beforeEach(async ({ page }) => {
     await page.route('**/api/platforms/**', (route) =>
         route.fulfill({ json: { count: 3, next: null, previous: null, results: MOCK_PLATFORMS } })
     );
+    // `**/api/games/**` engulle también /api/games/facets/, que devuelve otra
+    // forma ({platforms, genres, sellers}). Sin este mock el sidebar recibía la
+    // respuesta de juegos, `facets.platforms` quedaba undefined y la página
+    // reventaba entera. Va DESPUÉS a propósito: Playwright evalúa las rutas en
+    // orden inverso al registro, así que la última registrada es la que gana.
+    await page.route('**/api/games/facets/**', (route) =>
+        route.fulfill({ json: { platforms: {}, genres: {}, sellers: {} } }));
 });
 
 test('la página de inicio carga con el título correcto', async ({ page }) => {

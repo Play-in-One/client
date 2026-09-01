@@ -6,6 +6,7 @@ import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
+import ShippingInfo from './ShippingInfo';
 import { formatCLP } from '@/lib/utils';
 import { trackEvent } from '@/lib/api';
 import { decorative } from '@/lib/colors';
@@ -95,11 +96,21 @@ function FeaturedGameCard({
             component={Link}
             href={`/game/${game.id}`}
             underline="never"
+            /* `fit-content` acota el enlace a la tarjeta que se ve. Por defecto
+               el <a> se estiraba al ancho COMPLETO del slide (~575px con
+               slideSize 58%) aunque la carátula comprimida midiera 200px, y el
+               translateX de abajo arrastraba ese rectángulo transparente ~187px
+               hacia el centro, encima del slot vecino. Al compartir z-index
+               ganaba el que va después en el DOM, así que clicar el borde de la
+               tarjeta central abría el juego de al lado y el borde opuesto caía
+               en zona muerta. `marginInline: auto` conserva el centrado que
+               antes daba el ancho completo + justifyContent. */
             style={{
                 textDecoration: 'none',
                 display: 'flex',
                 justifyContent: 'center',
-                width: compact ? '100%' : undefined,
+                width: compact ? '100%' : 'fit-content',
+                marginInline: compact ? undefined : 'auto',
                 transform: compact ? undefined : `translateX(${shiftPx}px)`,
                 transition: compact ? undefined : 'transform 0.7s ease',
             }}
@@ -208,9 +219,15 @@ function FeaturedGameCard({
                         </Text>
 
                         {hasPrice && (
-                            <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" mt="auto" style={{ whiteSpace: 'nowrap' }}>
-                                {formatCLP(game.min_price as string)}
-                            </Text>
+                            <Group gap={2} wrap="nowrap" align="center" mt="auto">
+                                <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
+                                    {formatCLP(game.min_price as string)}
+                                </Text>
+                                <ShippingInfo
+                                    basePrice={game.min_price_base}
+                                    shippingCost={game.min_price_shipping}
+                                />
+                            </Group>
                         )}
                     </Box>
                 </Box>

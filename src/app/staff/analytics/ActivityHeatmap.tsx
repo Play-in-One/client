@@ -118,7 +118,7 @@ export function ActivityHeatmap({ report }: { report: ActivityReport }) {
                                         withArrow
                                         label={
                                             `${WEEKDAYS[weekday]} ${hourLabel(hour)} — ` +
-                                            `${events} eventos · ${cell?.visitors ?? 0} visitantes` +
+                                            `${events} eventos · ${cell?.sessions ?? 0} sesiones` +
                                             (cell ? ` · media ${cell.avg_events}/${WEEKDAYS_SHORT[weekday].toLowerCase()}` : '')
                                         }
                                     >

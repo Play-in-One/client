@@ -17,6 +17,12 @@ export interface Seller {
     description?: string;  // only present on the store detail response
     addresses?: SellerAddress[]; // only present on the store detail response
     game_count?: number;
+    /** Tienda internacional (importación). Solo informativo y para filtrar:
+     *  no decide si se cobra envío, eso lo dice shipping_cost. */
+    is_international: boolean;
+    /** Envío promedio que se suma al precio de lista de sus productos.
+     *  "0.00" = envío gratis o incluido. */
+    shipping_cost: string;
 }
 
 export interface SellerAddress {
@@ -54,9 +60,15 @@ export interface Product {
     seller: Seller;
     condition: 'new' | 'used' | 'digital';
     game: number | null;
+    /** Precio EFECTIVO: lista + envío de la tienda. Es el que se muestra, se
+     *  ordena y se compara en toda la plataforma. */
     current_price: string | null;
+    /** Precio de lista, sin envío. Solo para el desglose del ícono de info. */
+    base_price: string | null;
+    /** Envío que aporta esta oferta. "0.00" en digitales y en tiendas sin
+     *  despacho; null cuando la oferta no tiene precio. */
+    shipping_cost: string | null;
     rating: string | null;
-    prices?: PriceHistory[];
 }
 
 export interface Genre {
@@ -86,10 +98,28 @@ export interface Game {
      *  Solo lo envía el detalle: la galería resuelve la portada en el servidor. */
     image_is_custom?: boolean;
     rating: string | null;
+    /** Precio EFECTIVO de la mejor oferta: lista + envío de su tienda. */
     min_price: string | null;
+    /** Desglose de min_price. Viaja en la galería porque la tarjeta se
+     *  renderiza sin los productos del juego: sin esto no tendría cómo saber
+     *  que la cifra lleva despacho incluido. */
+    min_price_base: string | null;
+    min_price_shipping: string | null;
+    /** Tienda que tiene esa mejor oferta. Sale del MISMO producto que fija
+     *  min_price, así que el precio y el "dónde se consigue" no pueden
+     *  discrepar. null cuando el juego no tiene ninguna oferta con precio. */
+    min_price_seller?: { id: number; name: string } | null;
+    /** Cuándo se registró por última vez ese precio. Es la señal de frescura:
+     *  alimenta el priceValidUntil del dato estructurado y el "precio
+     *  actualizado el …" que se muestra y se cita. */
+    price_updated_at?: string | null;
     /** Historial del precio mínimo por consola y condición. Solo lo envía el
      *  detalle, acotado a los últimos meses. */
     min_price_history?: MinPriceHistory;
+    /** La misma serie excluyendo las tiendas internacionales. Viene vacía
+     *  cuando el juego no tiene ninguna oferta importada: ahí sería idéntica a
+     *  la agregada y el backend no la guarda. */
+    min_price_history_national?: MinPriceHistory;
     on_sale: boolean;
     products?: Product[];
     is_featured?: boolean;
@@ -120,9 +150,13 @@ export interface Contact {
 
 export interface DailyTraffic {
     date: string;
-    /** Únicos del día, sumando identificados y anónimos. */
-    visitors: number;
-    /** Subconjunto con consentimiento: los únicos de los que se sabe si vuelven. */
+    /**
+     * Navegadores distintos ese día. NO son personas: agrupa por sesión, así
+     * que el mismo humano en el móvil y en el escritorio cuenta dos veces, y
+     * quien navega sin aceptar la cookie solo se distingue por IP + navegador.
+     */
+    sessions: number;
+    /** Los que sí aceptaron la cookie: personas, y se sabe si vuelven. */
     visitors_known: number;
     visitors_new: number;
     visitors_returning: number;
@@ -177,7 +211,8 @@ export interface RetentionCohortRow {
 }
 
 export interface AnalyticsPeriod {
-    visitors: number;
+    sessions: number;
+    visitors_known: number;
     visitors_new: number;
     visits: number;
     page_views: number;
@@ -195,8 +230,16 @@ export interface AnalyticsSummary {
     end: string;
     current: AnalyticsPeriod;
     previous: AnalyticsPeriod;
-    /** `false` = el rollup no ha corrido hoy; las cifras no incluyen el día. */
+    /** Siempre `true`: el backend reagrega el día en curso al servir el panel. */
     rollup_ran_today: boolean;
+    /**
+     * Qué % de la audiencia cubren las métricas de comportamiento. `visits`,
+     * rebote, duración, dispositivo y retención solo existen para quien aceptó
+     * la cookie; el resto de cifras cubre a todo el mundo. Sin esto el panel
+     * ponía un rebote calculado sobre un cuarto de la gente al lado de un
+     * total calculado sobre toda.
+     */
+    known_coverage: number;
 }
 
 export interface TrafficReport {
@@ -204,7 +247,7 @@ export interface TrafficReport {
     end: string;
     series: DailyTraffic[];
     totals: {
-        visitors: number;
+        sessions: number;
         visitors_new: number;
         visits: number;
         page_views: number;
@@ -226,6 +269,14 @@ export interface FunnelReport {
     };
     top_games: GameStat[];
     top_sellers: SellerStat[];
+    /** Salidas a redes sociales desde el footer, de más a menos clicada. */
+    socials: SocialStat[];
+}
+
+export interface SocialStat {
+    /** Clave de `siteConfig.social`: instagram, tiktok, twitter… */
+    network: string;
+    clicks: number;
 }
 
 export interface SearchReport {
@@ -242,7 +293,7 @@ export interface ActivityCell {
     /** Hora local del sitio (ver `ActivityReport.timezone`), 0-23. */
     hour: number;
     events: number;
-    visitors: number;
+    sessions: number;
     /** Media por ocurrencia de ese día en el rango: hace comparables los días. */
     avg_events: number;
 }

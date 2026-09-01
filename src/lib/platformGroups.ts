@@ -8,7 +8,16 @@ export const PLATFORM_GROUPS: {
     brand: string;
     icon: ComponentType<{ size?: number; color?: string }>;
     color: string;
+    /* Consolas que el botón/tarjeta muestra en `label` — usadas para el
+       filtro de esa tarjeta, que no debe incluir consolas no mencionadas
+       en el texto (ver `featuredSlugs` más abajo). */
     options: { label: string; slug: string }[];
+    /* Subconjunto de `options` que coincide con lo que dice `label`. El menú
+       desplegable de Navbar sí lista cada consola individualmente y usa
+       `options` completo; la tarjeta de "Explorar por Plataforma" en la home
+       solo muestra el texto de `label`, así que su filtro debe acotarse a
+       estos slugs. */
+    featuredSlugs: string[];
 }[] = [
     {
         label: 'PS4 / PS5',
@@ -21,6 +30,7 @@ export const PLATFORM_GROUPS: {
             { label: 'PlayStation 5', slug: 'ps5' },
             { label: 'PlayStation Vita', slug: 'psvita' },
         ],
+        featuredSlugs: ['ps4', 'ps5'],
     },
     {
         label: 'Xbox 360 / One / Series',
@@ -32,6 +42,7 @@ export const PLATFORM_GROUPS: {
             { label: 'Xbox One', slug: 'xboxone' },
             { label: 'Xbox Series', slug: 'xboxseries' },
         ],
+        featuredSlugs: ['xbox360', 'xboxone', 'xboxseries'],
     },
     {
         label: 'Switch / Switch 2',
@@ -46,5 +57,6 @@ export const PLATFORM_GROUPS: {
             { label: 'Switch', slug: 'switch' },
             { label: 'Switch 2', slug: 'switch2' },
         ],
+        featuredSlugs: ['switch', 'switch2'],
     },
 ];

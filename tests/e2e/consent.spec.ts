@@ -140,3 +140,53 @@ test('el desactivar total corta los eventos por completo', async ({ page }) => {
     await page.waitForTimeout(700);
     expect(beacons).toHaveLength(0);
 });
+
+test('el desactivar total también corta los eventos de las páginas de detalle', async ({ page }) => {
+    // El test de arriba solo visita /about, que no tiene más tracker que el
+    // page_view del layout. Las fichas de juego y de blog emiten desde un
+    // efecto propio, y esos se adelantaban a ConsentContext: en carga en frío
+    // el evento salía aunque la medición estuviera apagada.
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+    await page.goto('/cookies');
+    await page.getByText('Contarme en las estadísticas anónimas').click();
+
+    const beacons: string[] = [];
+    page.on('request', (request) => {
+        if (request.method() === 'POST' && request.url().includes('/api/events/')) {
+            beacons.push(request.url());
+        }
+    });
+
+    for (const path of ['/game/1', '/blog/1', '/search?platform=ps5']) {
+        await page.goto(path);
+        await page.waitForTimeout(700);
+    }
+    expect(beacons).toEqual([]);
+});
+
+test('el primer evento de una ficha en frío ya lleva el identificador de visitante', async ({ page }) => {
+    // La otra cara del mismo defecto: si el game_view se adelanta, sale sin
+    // `visitor_id` y el backend lo agrupa bajo el hash anónimo — la misma
+    // persona cuenta dos veces en el mismo día.
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
+
+    const bodies: string[] = [];
+    page.on('request', (request) => {
+        if (request.method() === 'POST' && request.url().includes('/api/events/')) {
+            bodies.push(request.postData() ?? '');
+        }
+    });
+
+    await page.goto('/game/1');
+    // El game_view tiene que estar Y tiene que ir identificado. Las dos mitades
+    // importan y se protegen entre sí: `measurementEnabled` arranca apagado (así
+    // un tracker despistado no se salta el opt-out) y los trackers esperan a
+    // `ready` (así ese mismo tracker no pierde su evento contra el cerrojo).
+    // Este test cae si se rompe cualquiera de las dos.
+    await expect.poll(() => bodies.filter((b) => b.includes('game_view')).length)
+        .toBeGreaterThan(0);
+    for (const body of bodies) expect(body).toContain('visitor_id');
+});

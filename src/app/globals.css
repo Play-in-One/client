@@ -120,13 +120,15 @@ body {
   border-color: var(--mantine-color-dark-4);
 }
 
-/* Theme toggle icon — both icons render on server/client, CSS picks which is visible */
-.theme-icon-sun {
-  display: none;
-}
-[data-mantine-color-scheme='dark'] .theme-icon-sun {
-  display: block;
-}
-[data-mantine-color-scheme='dark'] .theme-icon-moon {
-  display: none;
+/* Filtros globales: tapa lo que aún no se puede pintar bien.
+
+   El atributo lo pone PrefsScript antes de la primera pintura, y lo quita
+   AppContext cuando ya conoce las preferencias. En medio queda el HTML que
+   mandó el servidor SIN filtrar — correcto para la mayoría, equivocado para
+   quien apagó un filtro, que es a quien marca el script.
+
+   `visibility` y no `display`: conserva el espacio, así que la página no da un
+   salto de layout cuando el contenido aparece. */
+html[data-prefs='pending'] [data-prefs-dependent] {
+  visibility: hidden;
 }

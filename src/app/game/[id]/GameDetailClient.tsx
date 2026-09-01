@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, type ComponentType, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
@@ -36,69 +36,68 @@ import {
     IconHome,
     IconCheck,
     IconDeviceGamepad,
-    IconDeviceGamepad2,
-    IconDeviceDesktop,
     IconPencil,
 } from '@tabler/icons-react';
-import { FaPlaystation, FaXbox } from 'react-icons/fa';
-import { BsNintendoSwitch } from 'react-icons/bs';
-import { WiiULogo, WiiLogo, NintendoDSLogo } from '@/components/icons/PlatformLogos';
 
 import { trackEvent } from '@/lib/api';
-import type { Game, Platform, Product } from '@/lib/types';
+import { useConsent } from '@/context/ConsentContext';
+import type { Game, Product } from '@/lib/types';
+import type { Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
+import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS } from '@/lib/platformIcons';
 import { surfaces, decorative } from '@/lib/colors';
+import { bestPriceSentence } from '@/lib/seo';
+import CollapsibleText from '@/components/CollapsibleText';
 import PlatformBadge from '@/components/PlatformBadge';
+import ShippingInfo from '@/components/ShippingInfo';
+import SellerScopeBadge from '@/components/SellerScopeBadge';
 // recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
 // (fuera del bundle inicial del detalle) y solo en el cliente.
-const ProductPriceChart = dynamic(() => import('@/components/ProductPriceChart'), { ssr: false });
 const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), { ssr: false });
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
 import { AdminGameControls, AdminProductEditor } from './AdminControls';
 
-/** Consolas del juego con al menos un producto disponible.
- * `game.platforms` puede traer consolas cuyo stock desapareció (la M2M del
- * backend se poda al finalizar cada scrape, pero puede quedar desfasada);
- * derivar de los productos embebidos garantiza que no se muestren tabs vacíos. */
-function availablePlatforms(game: Game): Platform[] {
-    const products = game.products ?? [];
-    if (products.length === 0) return game.platforms;
-    const withStock = new Set(products.map((p) => p.platform.name));
-    const fromGame = game.platforms.filter((pl) => withStock.has(pl.name));
-    if (fromGame.length > 0) return fromGame;
-    const unique: Platform[] = [];
-    for (const p of products) {
-        if (!unique.some((pl) => pl.name === p.platform.name)) unique.push(p.platform);
-    }
-    return unique;
-}
-
-export default function GameDetailClient({ initialGame }: { initialGame: Game }) {
+export default function GameDetailClient({
+    initialGame,
+    initialPrefs,
+}: {
+    initialGame: Game;
+    initialPrefs: Prefs;
+}) {
     const searchParams = useSearchParams();
-    const { condition, isSaved, toggleSaved } = useApp();
+    const { condition, includeInternational, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
     const game = initialGame;
-    const platformOptions = availablePlatforms(game);
+    // El backend garantiza que una consola solo está en el juego mientras tenga
+    // al menos un producto visible de ella, así que no hay tabs vacíos que filtrar.
+    const platformOptions = game.platforms;
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(() => {
         const requestedSlug = searchParams.get('platform');
         const requested = requestedSlug ? platformOptions.find((p) => p.slug === requestedSlug) : null;
         return requested?.name ?? platformOptions[0]?.name ?? null;
     });
+    /* Hasta que el contexto lee lo persistido manda lo que el SERVIDOR ya
+       resolvió desde la cookie: el primer render coincide con el HTML y no hay
+       nada que corregir después. Sin esto, las ofertas importadas asomaban un
+       instante en cada carga. */
+    const effectivePrefs: Prefs = ready
+        ? { condition, international: includeInternational }
+        : initialPrefs;
+
     const [conditionFilter, setConditionFilter] = useState<string | null>(
-        condition !== 'all' ? condition : null,
+        initialPrefs.condition !== 'all' ? initialPrefs.condition : null,
     );
     const [conditionManuallySet, setConditionManuallySet] = useState(false);
     // El switch del header manda mientras el usuario no elija manualmente
     // una condición en el Select local de la tabla de precios.
     useEffect(() => {
-        if (!conditionManuallySet) {
+        if (!conditionManuallySet && ready) {
             setConditionFilter(condition !== 'all' ? condition : null);
         }
-    }, [condition, conditionManuallySet]);
+    }, [condition, conditionManuallySet, ready]);
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
-    const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
     // Edición admin: toggles independientes para el panel del juego y por producto.
     const [editingGame, setEditingGame] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -114,17 +113,27 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
        intermedio del embudo (clic en la tarjeta → ver el detalle → salir a la
        tienda) y sin él no se puede saber cuántas visitas a una ficha acaban
        en un clic a un vendedor. */
+    // Esperar a `ready` no es opcional: React corre los efectos de los hijos
+    // antes que los del padre, así que en una carga en frío este efecto se
+    // adelantaba a ConsentContext. El evento salía sin `visitor_id` — el
+    // backend lo agrupaba bajo el hash anónimo y la misma persona contaba dos
+    // veces — y salía incluso con el opt-out total activo.
+    const { ready: consentReady } = useConsent();
     const viewedGame = useRef<number | null>(null);
     useEffect(() => {
-        if (viewedGame.current === game.id) return;
+        if (!consentReady || viewedGame.current === game.id) return;
         viewedGame.current = game.id;
         trackEvent({ event_type: 'game_view', game: game.id });
-    }, [game.id]);
+    }, [game.id, consentReady]);
 
     // Filter products
+    // El detalle recibe TODAS las ofertas del juego y las acota aquí: los
+    // filtros globales no viajan al servidor porque la página es SSR y su
+    // valor vive en localStorage.
     const products = (game.products ?? []).filter((p) => {
         if (selectedPlatform && p.platform.name !== selectedPlatform) return false;
         if (conditionFilter && p.condition !== conditionFilter) return false;
+        if (!effectivePrefs.international && p.seller.is_international) return false;
         return true;
     });
 
@@ -136,13 +145,40 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
     });
 
     const bestProduct = sorted[0] ?? null;
+    // `current_price` ya viene con el envío de la tienda sumado: es el precio con
+    // el que se compara y el que se ordena arriba.
     const bestPrice = bestProduct ? parseFloat(bestProduct.current_price ?? '0') : 0;
+    const bestShipping = bestProduct ? parseFloat(bestProduct.shipping_cost ?? '0') : 0;
+
+    // Resumen citable para motores generativos. Se arma con lo que la pantalla
+    // está mostrando de verdad —consola, condición y el toggle de tiendas
+    // internacionales—, no con el mínimo global del juego: si dijera otra cifra
+    // que la tarjeta "Mejor Precio" de abajo, el texto estaría mintiendo.
+    const geoSummary = bestProduct
+        ? bestPriceSentence(game, {
+            platform: platformOptions.find((p) => p.name === selectedPlatform) ?? null,
+            price: bestProduct.current_price,
+            sellerName: bestProduct.seller.name,
+            shipping: bestProduct.shipping_cost,
+            offerCount: sorted.length,
+            sellerCount: new Set(sorted.map((p) => p.seller.id)).size,
+        })
+        : null;
 
     // Serie histórica del mínimo de la consola/condición activas. Viene toda
     // embebida en el detalle, así que cambiar de tab no dispara un request.
     // La clave "" del backend es la serie agregada (todas las condiciones).
+    //
+    // Con las internacionales apagadas manda la serie nacional, para que el
+    // gráfico no contradiga al precio de arriba. El backend la omite cuando
+    // sería idéntica a la agregada (juegos sin ofertas importadas), así que un
+    // objeto vacío significa "usa la agregada", no "no hay datos".
+    const historySource =
+        !effectivePrefs.international && Object.keys(game.min_price_history_national ?? {}).length > 0
+            ? game.min_price_history_national
+            : game.min_price_history;
     const minPriceSeries =
-        game.min_price_history?.[selectedPlatform ?? '']?.[conditionFilter ?? ''] ?? [];
+        historySource?.[selectedPlatform ?? '']?.[conditionFilter ?? ''] ?? [];
 
     // Portada: la fija (puesta a mano) manda; si no, sale del producto más
     // barato de los que pasan los filtros ACTIVOS de esta pantalla, así que
@@ -157,14 +193,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
 
     const handleToggleSave = () => {
         const willSave = !isSaved(game.id);
-        toggleSaved({
-            id: game.id,
-            name: game.name,
-            image: game.image,
-            min_price: game.min_price,
-            platforms: game.platforms,
-            savedAt: new Date().toISOString(),
-        });
+        toggleSaved(game.id);
         // Track only the save action (not un-saving) — popularity of saved games.
         if (willSave) trackEvent({ event_type: 'game_save', game: game.id });
     };
@@ -202,38 +231,6 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
         new: 'blue',
         used: 'yellow',
         digital: 'grape',
-    };
-
-    const platformIconMap: Record<string, ComponentType<{ size?: number; className?: string }>> = {
-        ps5: FaPlaystation,
-        ps4: FaPlaystation,
-        ps3: FaPlaystation,
-        psvita: FaPlaystation,
-        xbox: FaXbox,
-        xbox360: FaXbox,
-        xboxone: FaXbox,
-        xboxseries: FaXbox,
-        switch: BsNintendoSwitch,
-        switch2: BsNintendoSwitch,
-        pc: IconDeviceDesktop,
-        wii: WiiLogo,
-        nds: NintendoDSLogo,
-        '3ds': IconDeviceGamepad2,
-        wiiu: WiiULogo,
-    };
-
-    /** Nombres cortos solo para el selector de plataforma de esta página (no afecta
-     * breadcrumbs, badges ni otras vistas, que siguen usando `display_name` tal cual). */
-    const platformSelectorLabel: Record<string, string> = {
-        switch: 'NS',
-        switch2: 'NS2',
-        psvita: 'PSV',
-        wiiu: 'WiiU',
-        nds: 'DS',
-        '3ds': '3DS',
-        xbox360: 'X360',
-        xboxone: 'XOne',
-        xboxseries: 'XSeries',
     };
 
     const breadcrumbPlatform = game.platforms.find((p) => p.name === selectedPlatform) ?? game.platforms[0];
@@ -394,7 +391,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                 {game.name}
                             </Title>
 
-                            {/* Platform selector (solo consolas con productos disponibles) */}
+                            {/* Selector de consola: game.platforms ya viene podado por el backend */}
                             {platformOptions.length > 1 && (
                                 <Group gap={4} mb="sm">
                                     <Box
@@ -407,7 +404,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                         }}
                                     >
                                         {platformOptions.map((pl) => {
-                                            const Icon = platformIconMap[pl.name] || IconDeviceGamepad;
+                                            const Icon = PLATFORM_ICONS[pl.name] || IconDeviceGamepad;
                                             const pColor = PLATFORM_COLORS[pl.name]?.mantine || 'gray';
                                             return (
                                                 <Button
@@ -420,7 +417,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                     onClick={() => setSelectedPlatform(pl.name)}
                                                     style={{ transition: 'all 0.2s' }}
                                                 >
-                                                    {platformSelectorLabel[pl.name] || pl.display_name}
+                                                    {PLATFORM_SHORT_LABELS[pl.name] || pl.display_name}
                                                 </Button>
                                             );
                                         })}
@@ -428,9 +425,27 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                 </Group>
                             )}
 
-                            <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
-                                Compara precios entre distintas tiendas y encuentra la mejor oferta.
-                            </Text>
+                            {/* La frase citable (GEO): responde en una línea la
+                                pregunta con la que se llega ("¿cuánto cuesta X
+                                y dónde?"). Sale del mismo helper que la meta
+                                description y la FAQ, y se recalcula con los
+                                filtros activos para no contradecir a la tarjeta
+                                de al lado.
+
+                                Va PLEGADA para no cargar la cabecera de texto.
+                                Plegar no cuesta nada en SEO ni en GEO —el texto
+                                sigue entero en el HTML y un `<details>` cerrado
+                                se indexa y se lee igual—, a diferencia de
+                                esconderlo con display:none, que sería cloaking. */}
+                            {geoSummary ? (
+                                <CollapsibleText label="Ver resumen de precios">
+                                    {geoSummary}
+                                </CollapsibleText>
+                            ) : (
+                                <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
+                                    Compara precios entre distintas tiendas y encuentra la mejor oferta.
+                                </Text>
+                            )}
 
                             {/* Action buttons */}
                             <Group gap="xs" mt="sm">
@@ -516,9 +531,23 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                             Mejor Precio {selectedPlatform?.toUpperCase()}
                                         </Badge>
 
-                                        <Group gap="sm" align="baseline">
+                                        <Group gap="sm" align="baseline" mb="sm">
                                             <Text fz={42} fw={800} lh={1}>{formatCLP(bestPrice)}</Text>
                                         </Group>
+                                        {bestShipping > 0 ? (
+                                            <Group gap={4} c="green.4" fz="xs" align="center">
+                                                <IconCheck size={14} /> Incluye envío promedio
+                                                <ShippingInfo
+                                                    basePrice={bestProduct.base_price}
+                                                    shippingCost={bestProduct.shipping_cost}
+                                                    color="green"
+                                                />
+                                            </Group>
+                                        ) : (
+                                            <Group gap={4} c="green.4" fz="xs">
+                                                <IconCheck size={14} /> No incluye gastos de envío
+                                            </Group>
+                                        )}
 
                                         <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
                                             <Text>Vendido por <Anchor
@@ -532,9 +561,6 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                 underline="hover"
                                             >{bestProduct.seller.name}</Anchor></Text>
                                             <Text c="rgba(255,255,255,0.4)">•</Text>
-                                            <Group gap={4} c="green.4" fz="xs">
-                                                <IconCheck size={14} /> Stock Disponible
-                                            </Group>
                                         </Group>
 
                                         <Text fz="xs" c="rgba(255,255,255,0.5)" mt={4} fs="italic">
@@ -570,7 +596,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                             <MinPriceChartCard
                                 series={minPriceSeries}
                                 platformLabel={
-                                    platformSelectorLabel[selectedPlatform] ??
+                                    PLATFORM_SHORT_LABELS[selectedPlatform] ??
                                     platformOptions.find((pl) => pl.name === selectedPlatform)?.display_name ??
                                     selectedPlatform
                                 }
@@ -617,7 +643,6 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                         <Table.Tr>
                                             <Table.Th>Tienda & Producto</Table.Th>
                                             <Table.Th>Precio</Table.Th>
-                                            <Table.Th>Tendencia</Table.Th>
                                             <Table.Th miw={100} style={{ whiteSpace: 'nowrap' }}>Estado</Table.Th>
                                             <Table.Th ta="right"></Table.Th>
                                         </Table.Tr>
@@ -625,7 +650,7 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                     <Table.Tbody>
                                         {sorted.length === 0 ? (
                                             <Table.Tr>
-                                                <Table.Td colSpan={5}>
+                                                <Table.Td colSpan={4}>
                                                     <Text c="dimmed" ta="center" py="lg">
                                                         No hay productos disponibles con estos filtros
                                                     </Text>
@@ -641,7 +666,15 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                 >
                                                     <Table.Td>
                                                         <Group gap="sm" wrap="nowrap">
-                                                            <Anchor component={Link} href={`/store/${p.seller.id}`} underline="never" c="inherit">
+                                                            <Anchor
+                                                                component={Link}
+                                                                href={`/store/${p.seller.id}`}
+                                                                underline="never"
+                                                                c="inherit"
+                                                                // El resto de anchors de esta fila sí medían; este
+                                                                // era el único sin instrumentar.
+                                                                onClick={() => trackEvent({ event_type: 'store_view', seller: p.seller.id })}
+                                                            >
                                                                 <Box
                                                                     w={40}
                                                                     h={40}
@@ -691,7 +724,10 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                                 c="inherit"
                                                             >
                                                                 <Box>
-                                                                    <Text fw={700} fz="sm">{p.seller.name}</Text>
+                                                                    <Group gap={6} wrap="nowrap" align="center">
+                                                                        <Text fw={700} fz="sm">{p.seller.name}</Text>
+                                                                        <SellerScopeBadge seller={p.seller} />
+                                                                    </Group>
                                                                     <Text fz="xs" c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
                                                                         {p.title}
                                                                     </Text>
@@ -700,24 +736,19 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                         </Group>
                                                     </Table.Td>
                                                     <Table.Td>
-                                                        <Text
-                                                            fw={700}
-                                                            fz="md"
-                                                            c={idx === 0 ? 'var(--mantine-color-primaryRed-5)' : undefined}
-                                                        >
-                                                            {p.current_price ? formatCLP(p.current_price) : '—'}
-                                                        </Text>
-                                                    </Table.Td>
-                                                    <Table.Td>
-                                                        <ProductPriceChart
-                                                            prices={p.prices ?? []}
-                                                            size="sm"
-                                                            onClick={
-                                                                (p.prices?.length ?? 0) >= 2
-                                                                    ? () => setExpandedProductId((id) => (id === p.id ? null : p.id))
-                                                                    : undefined
-                                                            }
-                                                        />
+                                                        <Group gap={2} wrap="nowrap" align="center">
+                                                            <Text
+                                                                fw={700}
+                                                                fz="md"
+                                                                c={idx === 0 ? 'var(--mantine-color-primaryRed-5)' : undefined}
+                                                            >
+                                                                {p.current_price ? formatCLP(p.current_price) : '—'}
+                                                            </Text>
+                                                            <ShippingInfo
+                                                                basePrice={p.base_price}
+                                                                shippingCost={p.shipping_cost}
+                                                            />
+                                                        </Group>
                                                     </Table.Td>
                                                     <Table.Td style={{ whiteSpace: 'nowrap' }}>
                                                         <Badge
@@ -764,16 +795,9 @@ export default function GameDetailClient({ initialGame }: { initialGame: Game })
                                                         </Group>
                                                     </Table.Td>
                                                 </Table.Tr>
-                                                {expandedProductId === p.id && (
-                                                    <Table.Tr>
-                                                        <Table.Td colSpan={5} p="md">
-                                                            <ProductPriceChart prices={p.prices ?? []} size="lg" />
-                                                        </Table.Td>
-                                                    </Table.Tr>
-                                                )}
                                                 {isAdmin && editingProductId === p.id && (
                                                     <Table.Tr>
-                                                        <Table.Td colSpan={5} p="md">
+                                                        <Table.Td colSpan={4} p="md">
                                                             <AdminProductEditor product={p} />
                                                         </Table.Td>
                                                     </Table.Tr>

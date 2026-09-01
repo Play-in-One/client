@@ -68,3 +68,30 @@ test('emite post_click al pulsar una tarjeta y post_view al abrir el post', asyn
     // La ruta del detalle también cuenta como visita: el pageview es global.
     await expect.poll(() => hasEvent(events, 'page_view', `/blog/${postId}`)).toBe(true);
 });
+
+test('cada red del footer emite social_click con su propia red', async ({ page }) => {
+    const events = collectEvents(page);
+    await page.goto('/');
+
+    // target="_blank": el clic abre pestaña nueva en vez de descargar el
+    // documento, así que el beacon sale sin depender de sobrevivir al unload.
+    const popup = page.waitForEvent('popup').catch(() => null);
+    await page.locator('footer a[href*="tiktok.com"]').first().click();
+    await popup;
+
+    await expect.poll(() => hasEvent(events, 'social_click', 'tiktok')).toBe(true);
+});
+
+test('la red que viaja es la del enlace pulsado, no siempre la primera', async ({ page }) => {
+    // El track vive dentro de SocialIcon, así que el riesgo no es que falte:
+    // es que las quince manden lo mismo por copiar mal el `network`.
+    const events = collectEvents(page);
+    await page.goto('/');
+
+    const popup = page.waitForEvent('popup').catch(() => null);
+    await page.locator('footer a[href*="instagram.com"]').first().click();
+    await popup;
+
+    await expect.poll(() => hasEvent(events, 'social_click', 'instagram')).toBe(true);
+    expect(hasEvent(events, 'social_click', 'tiktok')).toBe(false);
+});

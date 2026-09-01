@@ -4,18 +4,23 @@ import { useEffect, useRef } from 'react';
 import { Container, Title, Box, Text, Badge, Image } from '@mantine/core';
 import type { Post } from '@/lib/types';
 import { trackEvent } from '@/lib/api';
+import { useConsent } from '@/context/ConsentContext';
 
 export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
     const post = initialPost;
     // Mide la lectura, no el click: cuenta también las llegadas por buscador o
     // link directo. El ref evita el doble disparo de StrictMode en dev.
     const trackedPostId = useRef<number | null>(null);
+    // Igual que en la ficha de juego: sin esperar a `ready`, este efecto se
+    // adelanta al de ConsentContext y el evento sale sin identificar y
+    // saltándose el opt-out.
+    const { ready } = useConsent();
 
     useEffect(() => {
-        if (trackedPostId.current === post.id) return;
+        if (!ready || trackedPostId.current === post.id) return;
         trackedPostId.current = post.id;
         trackEvent({ event_type: 'post_view', post: post.id });
-    }, [post.id]);
+    }, [post.id, ready]);
 
     return (
         <Container size="md" py={60}>

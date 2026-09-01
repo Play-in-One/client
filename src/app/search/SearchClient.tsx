@@ -33,15 +33,21 @@ import {
     IconChevronDown,
     IconGitMerge,
 } from '@tabler/icons-react';
-import { getGames, getGameFacets, getPlatforms, getGenres, getSellers, trackEvent, mergeGames, ApiError } from '@/lib/api';
-import type { Game, Platform, Genre, Seller, GameFacets } from '@/lib/types';
+import { getGames, getGameFacets, getPlatforms, getGenres, trackEvent, mergeGames, ApiError } from '@/lib/api';
+import type { Game, Platform, Genre, GameFacets } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
+import { useConsent } from '@/context/ConsentContext';
 
 /* Debe coincidir con API_PAGE_SIZE del backend (default 24). El backend no
    expone page_size como query param, así que el frontend fija el mismo valor. */
 const GAMES_PAGE_SIZE = 24;
+
+/* Orden inicial de la galería. El segundo campo NO es decorativo: la mayoría del
+   catálogo comparte traffic_score = 0, y sin desempate por nombre el backend los
+   devolvería en orden arbitrario y un mismo juego podría repetirse entre páginas. */
+const DEFAULT_ORDERING = '-traffic_score,name';
 
 /* ── Collapsible Filter Section ── */
 function FilterSection({
@@ -93,26 +99,40 @@ function CheckboxLabel({ text, count }: { text: string; count?: number }) {
     );
 }
 
-function SearchContent() {
+function SearchContent({
+    initialGames,
+    initialTotal,
+}: {
+    initialGames: Game[];
+    initialTotal: number;
+}) {
     const router = useRouter();
     const params = useSearchParams();
-    const { condition } = useApp();
+    const { condition, sellerScopeParam, ready } = useApp();
     const { isAdmin } = useAdmin();
     const q = params.get('q') ?? '';
     const platformSlug = params.get('platform') ?? '';
-    const [games, setGames] = useState<Game[]>([]);
+    // Los resultados del servidor SIEMBRAN el estado, pero NO cancelan el
+    // primer fetch: `condition` y el scope de tiendas viven en localStorage y
+    // el servidor no los conoce, así que lo que llega es la vista sin filtrar.
+    // Dejar correr el fetch la corrige en cuanto el cliente hidrata; saltárselo
+    // habría dejado a quien tiene un filtro guardado viendo la galería
+    // equivocada hasta tocar algo. El request extra es el mismo que ya se hacía
+    // antes de esto: lo que se gana es que ahora hay HTML mientras tanto.
+    const [games, setGames] = useState<Game[]>(initialGames);
     const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
-    const [total, setTotal] = useState(0);
+    const [total, setTotal] = useState(initialTotal);
     const [page, setPage] = useState(1);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(initialGames.length === 0);
     const [searchInput, setSearchInput] = useState(q);
     const [activeQuery, setActiveQuery] = useState(q);
-    const [ordering, setOrdering] = useState<string>('name');
+    const [ordering, setOrdering] = useState<string>(DEFAULT_ORDERING);
+
+    const { ready: consentReady } = useConsent();
 
     /* ── Filter options (fetched once on mount, no bloquean el shell) ── */
     const [platforms, setPlatforms] = useState<Platform[]>([]);
     const [genres, setGenres] = useState<Genre[]>([]);
-    const [sellers, setSellers] = useState<Seller[]>([]);
 
     /* ── Active filter selections ── */
     /* Platform is derived from the URL — the URL is the single source of truth,
@@ -142,7 +162,6 @@ function SearchContent() {
     };
 
     const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-    const [selectedSeller, setSelectedSeller] = useState<number | null>(null);
     const [priceMin, setPriceMin] = useState<number | undefined>(undefined);
     const [priceMax, setPriceMax] = useState<number | undefined>(undefined);
     const [priceMinInput, setPriceMinInput] = useState<string | number>('');
@@ -152,7 +171,6 @@ function SearchContent() {
     /* ── Collapsible section states ── */
     const [platformsOpen, setPlatformsOpen] = useState(true);
     const [genresOpen, setGenresOpen] = useState(true);
-    const [sellersOpen, setSellersOpen] = useState(true);
     const [priceOpen, setPriceOpen] = useState(true);
 
     /* ── Mobile sidebar toggle ── */
@@ -222,9 +240,6 @@ function SearchContent() {
         getGenres()
             .then((res) => setGenres(res.results))
             .catch(() => { });
-        getSellers()
-            .then((res) => setSellers(res.results))
-            .catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -245,7 +260,21 @@ function SearchContent() {
     const trackedSearch = useRef<string | null>(null);
 
     const trackedPlatforms = useRef<Set<number>>(new Set());
+    const seededPlatforms = useRef(false);
     useEffect(() => {
+        // `ready`: sin él este efecto se adelanta al de ConsentContext y el
+        // evento sale sin identificar, saltándose además el opt-out.
+        if (!consentReady) return;
+        // La primera resolución no es una selección: es lo que traía la URL.
+        // A /search?platform=ps5 se llega desde el menú del header o desde un
+        // marcador, sin que nadie toque el filtro — contarlo inflaba
+        // `platform_select` con llegadas que el page_view ya registra.
+        if (!seededPlatforms.current) {
+            if (platforms.length === 0) return; // aún no se puede resolver el slug
+            seededPlatforms.current = true;
+            for (const id of selectedPlatforms) trackedPlatforms.current.add(id);
+            return;
+        }
         // Track only newly-added consoles so re-renders / removals don't inflate counts.
         for (const id of selectedPlatforms) {
             if (!trackedPlatforms.current.has(id)) {
@@ -253,20 +282,25 @@ function SearchContent() {
                 trackEvent({ event_type: 'platform_select', platform: id });
             }
         }
-    }, [selectedPlatforms]);
+    }, [selectedPlatforms, platforms, consentReady]);
 
     useEffect(() => {
+        /* Sin las preferencias leídas, los filtros globales valen su default
+           optimista. La pantalla no llegaba a parpadear —`loading` arranca en
+           true y el abort cancelaba la respuesta— pero se gastaban dos
+           peticiones por carga (ésta y la de facets) que había que repetir. */
+        if (!ready) return;
         const controller = new AbortController();
         setLoading(true);
         getGames({
             search: activeQuery || undefined,
             platforms: selectedPlatforms.length > 0 ? selectedPlatforms : undefined,
             genres: selectedGenre ?? undefined,
-            seller: selectedSeller ?? undefined,
             condition: condition !== 'all' ? condition : undefined,
             price_min: priceMin,
             price_max: priceMax,
             on_sale: onSale || undefined,
+            seller_scope: sellerScopeParam,
             ordering,
             page,
             signal: controller.signal,
@@ -282,31 +316,45 @@ function SearchContent() {
                     trackEvent({ event_type: 'search', search_query: query, result_count: res.count });
                 }
             })
-            .catch((err) => { if (err?.name !== 'AbortError') setGames([]); })
+            .catch((err) => {
+                if (err?.name === 'AbortError') return;
+                setGames([]);
+                // Una búsqueda que revienta sigue siendo una búsqueda, y es la
+                // que más dice: se emitía solo en el `.then`, así que cada caída
+                // de la API borraba justo la demanda que no supimos atender.
+                // Va sin `result_count` a propósito: no hubo resultados que
+                // contar, y `avg_results` promedia ignorando los nulos.
+                const failed = activeQuery.trim();
+                if (failed && trackedSearch.current !== failed) {
+                    trackedSearch.current = failed;
+                    trackEvent({ event_type: 'search', search_query: failed });
+                }
+            })
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
-    }, [activeQuery, ordering, page, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale, refreshKey]);
+    }, [ready, activeQuery, ordering, page, selectedPlatforms, selectedGenre, condition, priceMin, priceMax, onSale, sellerScopeParam, refreshKey]);
 
     /* ── Facet counts (how many games each filter option would yield, given
        every other currently active filter) — recomputed whenever the active
        filters change, independent of pagination/ordering. ── */
     useEffect(() => {
+        if (!ready) return;
         const controller = new AbortController();
         getGameFacets({
             search: activeQuery || undefined,
             platforms: selectedPlatforms.length > 0 ? selectedPlatforms : undefined,
             genres: selectedGenre ?? undefined,
-            seller: selectedSeller ?? undefined,
             condition: condition !== 'all' ? condition : undefined,
             price_min: priceMin,
             price_max: priceMax,
             on_sale: onSale || undefined,
+            seller_scope: sellerScopeParam,
             signal: controller.signal,
         })
             .then(setFacets)
             .catch((err) => { if (err?.name !== 'AbortError') setFacets({ platforms: {}, genres: {}, sellers: {} }); });
         return () => controller.abort();
-    }, [activeQuery, selectedPlatforms, selectedGenre, selectedSeller, condition, priceMin, priceMax, onSale]);
+    }, [ready, activeQuery, selectedPlatforms, selectedGenre, condition, priceMin, priceMax, onSale, sellerScopeParam]);
 
     const totalPages = Math.ceil(total / GAMES_PAGE_SIZE);
 
@@ -318,7 +366,6 @@ function SearchContent() {
     const handleClearFilters = () => {
         setPlatformFilter([]);
         setSelectedGenre(null);
-        setSelectedSeller(null);
         setPriceMin(undefined);
         setPriceMax(undefined);
         setPriceMinInput('');
@@ -340,7 +387,6 @@ function SearchContent() {
     const hasActiveFilters =
         selectedPlatforms.length > 0 ||
         selectedGenre !== null ||
-        selectedSeller !== null ||
         priceMin !== undefined ||
         priceMax !== undefined ||
         onSale;
@@ -461,46 +507,6 @@ function SearchContent() {
                 </Stack>
             </FilterSection>
 
-            <Divider />
-
-            {/* Sellers */}
-            <FilterSection title="Tienda" open={sellersOpen} onToggle={() => setSellersOpen((v) => !v)}>
-                <Stack gap={6}>
-                    <Checkbox
-                        label="Todos"
-                        checked={selectedSeller === null}
-                        onChange={() => {
-                            setSelectedSeller(null);
-                            setPage(1);
-                        }}
-                        color="primaryRed"
-                        radius="sm"
-                        styles={{
-                            label: { cursor: 'pointer', fontSize: 14 },
-                            input: { cursor: 'pointer' },
-                        }}
-                    />
-                    {sellers.map((s) => (
-                        <Checkbox
-                            key={s.id}
-                            label={<CheckboxLabel text={s.name} count={facets.sellers[s.id] ?? 0} />}
-                            checked={selectedSeller === s.id}
-                            onChange={() => {
-                                setSelectedSeller(selectedSeller === s.id ? null : s.id);
-                                setPage(1);
-                            }}
-                            color="primaryRed"
-                            radius="sm"
-                            styles={{
-                                label: { cursor: 'pointer', fontSize: 14 },
-                                input: { cursor: 'pointer' },
-                            }}
-                        />
-                    ))}
-                </Stack>
-            </FilterSection>
-
-
             {hasActiveFilters && (
                 <>
                     <Divider />
@@ -561,18 +567,42 @@ function SearchContent() {
                 <Select
                     label="Ordenar por"
                     data={[
-                        { value: 'name', label: 'Nombre A-Z' },
-                        { value: '-name', label: 'Nombre Z-A' },
-                        { value: 'release_date', label: 'Más antiguos' },
-                        { value: '-release_date', label: 'Más recientes' },
-                        { value: 'min_price', label: 'Menor precio' },
-                        { value: '-min_price', label: 'Mayor precio' },
+                        {
+                            group: 'Popularidad',
+                            items: [
+                                { value: DEFAULT_ORDERING, label: 'Más populares' },
+                                { value: '-traffic_views,name', label: 'Más vistos' },
+                                { value: '-traffic_saves,name', label: 'Más guardados' },
+                                { value: '-traffic_offer_clicks,name', label: 'Más visitas a la tienda' },
+                            ],
+                        },
+                        {
+                            group: 'Nombre',
+                            items: [
+                                { value: 'name', label: 'Nombre A-Z' },
+                                { value: '-name', label: 'Nombre Z-A' },
+                            ],
+                        },
+                        {
+                            group: 'Lanzamiento',
+                            items: [
+                                { value: '-release_date', label: 'Más recientes' },
+                                { value: 'release_date', label: 'Más antiguos' },
+                            ],
+                        },
+                        {
+                            group: 'Precio',
+                            items: [
+                                { value: 'min_price', label: 'Menor precio' },
+                                { value: '-min_price', label: 'Mayor precio' },
+                            ],
+                        },
                     ]}
                     value={ordering}
-                    onChange={(v) => { setOrdering(v ?? 'name'); setPage(1); }}
+                    onChange={(v) => { setOrdering(v ?? DEFAULT_ORDERING); setPage(1); }}
                     size="sm"
                     radius="md"
-                    w={180}
+                    w={210}
                     leftSection={<IconFilter size={16} />}
                 />
 
@@ -771,10 +801,60 @@ function SearchContent() {
     );
 }
 
-export default function SearchClient() {
+export default function SearchClient({
+    initialGames = [],
+    initialTotal = 0,
+}: {
+    /** Primera página resuelta en el servidor, solo para la entrada limpia a
+     *  /search (sin filtros ni búsqueda). Es lo que hace que la galería exista
+     *  en el HTML: los crawlers de IA no ejecutan el useEffect que la llenaba. */
+    initialGames?: Game[];
+    initialTotal?: number;
+}) {
     return (
-        <Suspense fallback={<Container py="xl"><Loader color="primaryRed" /></Container>}>
-            <SearchContent />
+        // El fallback NO es un spinner: es la galería que resolvió el servidor.
+        //
+        // `SearchContent` usa useSearchParams(), y eso deja a todo el subárbol
+        // fuera del render del servidor — el HTML solo traía el fallback. Con un
+        // Loader ahí, un crawler que no ejecuta JavaScript veía una página vacía
+        // por mucho que la primera página estuviera resuelta arriba.
+        //
+        // Poniendo la grilla real como fallback, el HTML inicial trae los juegos
+        // y React la reemplaza por la versión interactiva al hidratar. De paso
+        // quien entra ve portadas en vez de un spinner. Sin resultados del
+        // servidor (entrada con filtros) se cae al Loader de siempre.
+        <Suspense
+            fallback={
+                initialGames.length > 0 ? (
+                    <StaticResults games={initialGames} total={initialTotal} />
+                ) : (
+                    <Container py="xl"><Loader color="primaryRed" /></Container>
+                )
+            }
+        >
+            <SearchContent initialGames={initialGames} initialTotal={initialTotal} />
         </Suspense>
+    );
+}
+
+/** La galería tal como la deja el servidor: sin filtros, sin paginación y sin
+ *  nada que dependa de la URL. Solo se usa como fallback del Suspense de
+ *  arriba, así que su única misión es existir en el HTML. */
+function StaticResults({ games, total }: { games: Game[]; total: number }) {
+    return (
+        <Container size="xl" py="xl">
+            <Title order={1} fz={{ base: 24, md: 32 }} fw={800} mb="xs">
+                Explorar juegos
+            </Title>
+            <Text c="dimmed" fz="sm" mb="lg">
+                {total.toLocaleString('es-CL')} juegos comparados entre tiendas chilenas. Los
+                precios incluyen el envío promedio de cada tienda.
+            </Text>
+            <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                {games.map((g, i) => (
+                    <GameCard key={g.id} game={g} priority={i < 4} />
+                ))}
+            </SimpleGrid>
+        </Container>
     );
 }

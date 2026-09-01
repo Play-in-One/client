@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
+import ShippingInfo from './ShippingInfo';
 import { formatCLP } from '@/lib/utils';
 import { trackEvent } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
@@ -40,6 +41,12 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
 
     /* Resolve price: prefer min_price from annotation, fall back to product */
     const price = game.min_price ?? bestProduct?.current_price ?? null;
+    // El desglose sale de la MISMA fuente que el precio: mezclar el envío del
+    // producto con el mínimo anotado (o al revés) mostraría un total que no
+    // cuadra con la cifra de al lado.
+    const [basePrice, shippingCost] = game.min_price !== null
+        ? [game.min_price_base, game.min_price_shipping]
+        : [bestProduct?.base_price ?? null, bestProduct?.shipping_cost ?? null];
     const seller = bestProduct?.seller ?? null;
     const hasPrice = price !== null;
 
@@ -160,9 +167,12 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
-                                        {formatCLP(price)}
-                                    </Text>
+                                    <Group gap={2} wrap="nowrap" align="center">
+                                        <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
+                                            {formatCLP(price)}
+                                        </Text>
+                                        <ShippingInfo basePrice={basePrice} shippingCost={shippingCost} />
+                                    </Group>
                                 </Box>
                                 <Box ta="right">
                                     {seller ? (

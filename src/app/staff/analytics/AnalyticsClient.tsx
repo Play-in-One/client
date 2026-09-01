@@ -184,16 +184,17 @@ export function AnalyticsClient() {
 
             {error && <Alert color="red" mb="lg">{error}</Alert>}
 
-            {reports && !reports.summary.rollup_ran_today && (
+            {reports && reports.summary.known_coverage < 100 && (
                 <Alert
-                    color="yellow"
+                    color="blue"
                     icon={<IconAlertTriangle size={18} />}
-                    title="Faltan los datos de hoy"
+                    title={`Las métricas de comportamiento cubren el ${reports.summary.known_coverage}% de la audiencia`}
                     mb="lg"
                 >
-                    El agregado diario todavía no ha corrido, así que estas cifras no incluyen
-                    lo de hoy. Se ejecuta de madrugada; para adelantarlo:{' '}
-                    <Text component="code" fz="xs">manage.py rollup_analytics</Text>.
+                    «Visitas», «duración media», el rebote, el reparto por dispositivo y la
+                    retención solo existen para quien aceptó la cookie de medición: sin ella
+                    no hay noción de visita. El resto de cifras —sesiones, páginas vistas,
+                    embudo, búsquedas— cubre a todo el mundo.
                 </Alert>
             )}
 
@@ -205,10 +206,10 @@ export function AnalyticsClient() {
                 <Stack gap="lg">
                     <SimpleGrid cols={{ base: 2, sm: 3, lg: 6 }} spacing="md">
                         <Kpi
-                            label="Visitantes"
-                            value={current.visitors.toLocaleString('es-CL')}
-                            delta={change(current.visitors, previous.visitors)}
-                            hint="Suma de únicos diarios"
+                            label="Sesiones"
+                            value={current.sessions.toLocaleString('es-CL')}
+                            delta={change(current.sessions, previous.sessions)}
+                            hint="Navegadores distintos por día, no personas"
                         />
                         <Kpi
                             label="Nuevos"
@@ -220,6 +221,7 @@ export function AnalyticsClient() {
                             label="Visitas"
                             value={current.visits.toLocaleString('es-CL')}
                             delta={change(current.visits, previous.visits)}
+                            hint="Solo quienes aceptaron la cookie"
                         />
                         <Kpi
                             label="Clics a tienda"
@@ -236,12 +238,13 @@ export function AnalyticsClient() {
                             label="Duración media"
                             value={formatDuration(current.avg_visit_seconds)}
                             delta={change(current.avg_visit_seconds, previous.avg_visit_seconds)}
+                            hint="Solo quienes aceptaron la cookie"
                         />
                     </SimpleGrid>
 
                     <Panel
-                        title="Visitantes"
-                        subtitle="Únicos por día. «Nuevos» y «recurrentes» solo cuentan a quien aceptó la cookie: sin ella no se puede saber si alguien vuelve."
+                        title="Audiencia"
+                        subtitle="Sesiones por día: navegadores distintos, no personas. «Identificados», «nuevos» y «recurrentes» solo cuentan a quien aceptó la cookie — sin ella no se puede saber si alguien vuelve."
                     >
                         <VisitorsChart series={reports.traffic.series} />
                     </Panel>
@@ -314,6 +317,17 @@ export function AnalyticsClient() {
                         </Panel>
                     </SimpleGrid>
 
+                    <Panel
+                        title="Salidas a redes sociales"
+                        subtitle="Quince enlaces compiten por el mismo rincón del footer. Esto dice cuáles se ganan el sitio."
+                    >
+                        {reports.funnel.socials.length === 0 ? (
+                            <Text c="dimmed" fz="sm">Nadie ha salido a una red en este periodo.</Text>
+                        ) : (
+                            <SocialTable rows={reports.funnel.socials} />
+                        )}
+                    </Panel>
+
                     <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
                         <Panel title="Búsquedas más frecuentes">
                             <SearchTable rows={reports.search.top_queries} emptyLabel="Nadie ha buscado todavía." />
@@ -340,6 +354,44 @@ export function AnalyticsClient() {
                 </Stack>
             )}
         </Container>
+    );
+}
+
+/** Nombres tal como se leen, no como se guardan: la clave `twitter` es
+    historia del modelo, no algo que nadie deba reconocer en un panel. */
+const SOCIAL_LABELS: Record<string, string> = {
+    instagram: 'Instagram', linkedin: 'LinkedIn', facebook: 'Facebook',
+    twitter: 'X', youtube: 'YouTube', reddit: 'Reddit', tiktok: 'TikTok',
+    pinterest: 'Pinterest', gmail: 'Correo', discord: 'Discord',
+    spotify: 'Spotify', whatsapp: 'WhatsApp', threads: 'Threads',
+    tumblr: 'Tumblr', telegram: 'Telegram',
+};
+
+function SocialTable({ rows }: { rows: FunnelReport['socials'] }) {
+    const total = rows.reduce((sum, row) => sum + row.clicks, 0);
+    return (
+        <Table.ScrollContainer minWidth={320}>
+            <Table striped verticalSpacing="xs" fz="sm">
+                <Table.Thead>
+                    <Table.Tr>
+                        <Table.Th>Red</Table.Th>
+                        <Table.Th ta="right">Clics</Table.Th>
+                        <Table.Th ta="right">Del total</Table.Th>
+                    </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                    {rows.map((row) => (
+                        <Table.Tr key={row.network}>
+                            <Table.Td>{SOCIAL_LABELS[row.network] ?? row.network}</Table.Td>
+                            <Table.Td ta="right" fw={600}>{row.clicks}</Table.Td>
+                            <Table.Td ta="right" c="dimmed">
+                                {total ? `${Math.round((row.clicks / total) * 100)}%` : '—'}
+                            </Table.Td>
+                        </Table.Tr>
+                    ))}
+                </Table.Tbody>
+            </Table>
+        </Table.ScrollContainer>
     );
 }
 

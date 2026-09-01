@@ -127,7 +127,17 @@ export type EventType =
     | 'game_save'
     | 'post_click'
     | 'post_view'
-    | 'page_view';
+    | 'page_view'
+    | 'store_view'
+    | 'store_click'
+    | 'social_click';
+
+/** Las redes del footer. Espejo de `Event.SocialNetwork` en el backend, que
+    rechaza cualquier valor fuera de esta lista. */
+export type SocialNetwork =
+    | 'instagram' | 'linkedin' | 'facebook' | 'twitter' | 'youtube'
+    | 'reddit' | 'tiktok' | 'pinterest' | 'gmail' | 'discord'
+    | 'spotify' | 'whatsapp' | 'threads' | 'tumblr' | 'telegram';
 
 interface EventPayload {
     event_type: EventType;
@@ -135,6 +145,9 @@ interface EventPayload {
     product?: number;
     platform?: number;
     post?: number;
+    seller?: number;
+    /** Solo en `social_click`: la clave de `siteConfig.social`. */
+    social_network?: SocialNetwork;
     page_path?: string;
     search_query?: string;
     result_count?: number;
@@ -149,7 +162,12 @@ interface EventPayload {
    diario que no se guarda en el dispositivo y no permite seguir a nadie de un
    día para otro. */
 let visitorToken: string | null = null;
-let measurementEnabled = true;
+/* Arranca apagado a proposito. Con el valor permisivo, cualquier tracker que
+   se dispare antes del primer efecto de `ConsentProvider` emitia el evento sin
+   token y saltandose el opt-out: React corre los efectos de los hijos antes que
+   los del padre, asi que la ventana existe en toda carga en frio. Los trackers
+   esperan a `ready` del contexto; esto es el cinturon por si alguno se olvida. */
+let measurementEnabled = false;
 
 export function setVisitorToken(token: string | null): void {
     visitorToken = token;
@@ -180,6 +198,8 @@ export function trackEvent(payload: EventPayload): void {
         if (payload.product != null) fd.append('product', String(payload.product));
         if (payload.platform != null) fd.append('platform', String(payload.platform));
         if (payload.post != null) fd.append('post', String(payload.post));
+        if (payload.seller != null) fd.append('seller', String(payload.seller));
+        if (payload.social_network) fd.append('social_network', payload.social_network);
         if (payload.page_path) fd.append('page_path', payload.page_path);
         if (payload.search_query) fd.append('search_query', payload.search_query);
         if (payload.result_count != null) fd.append('result_count', String(payload.result_count));
@@ -203,6 +223,8 @@ export async function getGames(params?: {
     price_min?: number;
     price_max?: number;
     on_sale?: boolean;
+    /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
+    seller_scope?: string;
     ordering?: string;
     page?: number;
     signal?: AbortSignal;
@@ -215,13 +237,21 @@ export async function getGames(params?: {
 }
 
 /** Juegos con más tráfico en los últimos 7 días (con relleno por rating). */
-export async function getTrendingGames(params?: { condition?: string; signal?: AbortSignal }) {
+export async function getTrendingGames(params?: {
+    condition?: string;
+    seller_scope?: string;
+    signal?: AbortSignal;
+}) {
     const { signal, ...qsParams } = params ?? {};
     return fetcher<PaginatedResponse<Game>>(`/games/trending/${qs(qsParams)}`, { signal });
 }
 
 /** Juegos destacados curados a mano por el admin (orden manual). */
-export async function getFeaturedGames(params?: { condition?: string; signal?: AbortSignal }) {
+export async function getFeaturedGames(params?: {
+    condition?: string;
+    seller_scope?: string;
+    signal?: AbortSignal;
+}) {
     const { signal, ...qsParams } = params ?? {};
     return fetcher<PaginatedResponse<Game>>(`/games/featured/${qs(qsParams)}`, { signal });
 }
@@ -235,6 +265,8 @@ export async function getGameFacets(params?: {
     price_min?: number;
     price_max?: number;
     on_sale?: boolean;
+    /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
+    seller_scope?: string;
     signal?: AbortSignal;
 }) {
     const { signal, ...qsParams } = params ?? {};

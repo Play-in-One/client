@@ -331,8 +331,16 @@ function ProductRow({ product, platforms }: { product: Product; platforms: Platf
             <Stack gap="sm">
                 <Group align="flex-end" gap="sm" wrap="nowrap">
                     <NumberInput
-                        label="Nuevo precio"
-                        placeholder={product.current_price ?? 'sin precio'}
+                        // Escribe una fila de PriceHistory, que guarda el precio
+                        // de LISTA. El envío de la tienda lo suma la plataforma
+                        // después, así que pedirlo aquí lo cobraría dos veces.
+                        label="Nuevo precio en tienda"
+                        description={
+                            parseFloat(product.shipping_cost ?? '0') > 0
+                                ? 'Sin envío: se le suman los gastos de despacho de la tienda.'
+                                : undefined
+                        }
+                        placeholder={product.base_price ?? 'sin precio'}
                         value={newPrice}
                         onChange={setNewPrice}
                         min={0}

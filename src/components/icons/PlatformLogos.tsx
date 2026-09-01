@@ -69,8 +69,8 @@ export function NintendoDSLogo({ size = 18, className }: LogoProps) {
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
         >
-            <rect x="2" y="6" width="13" height="13" rx="3" fill="none" stroke="currentColor" strokeWidth="2.2" />
-            <rect x="9" y="6" width="13" height="13" rx="3" fill="none" stroke="currentColor" strokeWidth="2.2" />
+            <rect x="6" y="4" width="12" height="7" rx="2.5" fill="none" stroke="currentColor" strokeWidth="2.5" />
+            <rect x="6" y="13" width="12" height="7" rx="2.5" fill="none" stroke="currentColor" strokeWidth="2.5" />
         </svg>
     );
 }

@@ -70,7 +70,7 @@ export function PrivacyContent() {
 
                 <Title order={2} fz="lg" mb="xs">1. Quién es responsable</Title>
                 <Text fz="md" c="dimmed" mb="lg">
-                    Play in One, proyecto con sede en Chile. Para cualquier
+                    Play in One, proyecto startup con sede en Chile. Para cualquier
                     asunto relacionado con tus datos puedes escribirnos desde{' '}
                     <Anchor component={Link} href="/contact">la página de contacto</Anchor>.
                 </Text>

@@ -1,11 +1,14 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { ApiError, getGame } from '@/lib/api';
 import type { Game } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
-import { buildMetadata, gameJsonLd, breadcrumbJsonLd } from '@/lib/seo';
-import { formatCLP } from '@/lib/utils';
+import { buildMetadata, gameJsonLd, breadcrumbJsonLd, faqJsonLd, bestPriceSentence } from '@/lib/seo';
+import { buildGameFaq } from '@/lib/gameFaq';
+import FaqSection from '@/components/FaqSection';
+import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
 import GameDetailClient from './GameDetailClient';
 
 async function fetchGame(id: string): Promise<Game | null> {
@@ -30,10 +33,13 @@ export async function generateMetadata({
     if (!game) return buildMetadata({ title: 'Juego no encontrado', noIndex: true });
 
     const platforms = game.platforms.map((p) => p.display_name).join(', ');
-    const priceLabel = game.min_price ? ` desde ${formatCLP(Number(game.min_price))}` : '';
+    // La frase del precio va PRIMERO y la descripción editorial después: es el
+    // dato que resuelve la búsqueda ("¿cuánto cuesta X?") y el que un motor
+    // generativo cita. Sin oferta se cae a la descripción de siempre.
     const description =
+        bestPriceSentence(game) ||
         game.description?.trim() ||
-        `Compara precios de ${game.name}${platforms ? ` para ${platforms}` : ''}${priceLabel} entre tiendas chilenas en Play in One.`;
+        `Compara precios de ${game.name}${platforms ? ` para ${platforms}` : ''} entre tiendas chilenas en Play in One.`;
 
     return buildMetadata({
         title: game.name,
@@ -52,6 +58,15 @@ export default async function GameDetailPage({
     const game = await fetchGame(id);
     if (!game) notFound();
 
+    /* Los filtros globales se leen de la cookie y viajan como props: así el
+       HTML sale ya filtrado y no hay nada que corregir tras hidratar, que es lo
+       que hacía parpadear las ofertas de tiendas internacionales.
+       `cookies()` deja esta ruta fuera del prerender estático — aquí no cuesta
+       nada porque `getGame` ya se resuelve en cada petición, pero conviene
+       saberlo antes de intentar cachearla. */
+    const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
+
+    const faq = buildGameFaq(game);
     const jsonLd = [
         gameJsonLd(game),
         breadcrumbJsonLd([
@@ -59,14 +74,23 @@ export default async function GameDetailPage({
             { name: 'Juegos', path: '/search' },
             { name: game.name, path: `/game/${game.id}` },
         ]),
+        ...(faq.length ? [faqJsonLd(faq, `/game/${game.id}`)] : []),
     ];
 
     return (
         <>
             <JsonLd data={jsonLd} />
             <Suspense fallback={null}>
-                <GameDetailClient initialGame={game} />
+                <GameDetailClient initialGame={game} initialPrefs={prefs} />
             </Suspense>
+            <FaqSection
+                entries={faq}
+                title={`Preguntas frecuentes sobre ${game.name}`}
+                collapsible
+                /* 'lg' como el Container de GameDetailClient: con el 'xl' por
+                   defecto la sección se salía por la izquierda del resto. */
+                size="lg"
+            />
         </>
     );
 }

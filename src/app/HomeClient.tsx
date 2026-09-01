@@ -31,7 +31,7 @@ import type { Post, Game } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
-import { useApp, type ConditionFilter } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
 
@@ -92,7 +92,7 @@ export default function HomeClient({
     const router = useRouter();
     const [query, setQuery] = useState('');
     const posts = initialPosts;
-    const { condition } = useApp();
+    const { condition, sellerScopeParam, ready } = useApp();
 
     /* El efecto coverflow del carrusel de Destacados (tarjeta activa expandida
        de 520px, laterales comprimidas a la carátula) está construido con anchos
@@ -115,9 +115,16 @@ export default function HomeClient({
         const idOuter = requestAnimationFrame(() => {
             idInner = requestAnimationFrame(() => setCarouselsReady(true));
         });
+        /* requestAnimationFrame NO corre en una pestaña en segundo plano: abrir
+           la home con "abrir en pestaña nueva" dejaba los carruseles ocultos
+           hasta que la pestaña se mostraba. El timer sí corre ahí, así que
+           actúa de red de seguridad; en la pestaña visible siempre gana el
+           doble rAF, que es más rápido. */
+        const idFallback = setTimeout(() => setCarouselsReady(true), 300);
         return () => {
             cancelAnimationFrame(idOuter);
             if (idInner !== null) cancelAnimationFrame(idInner);
+            clearTimeout(idFallback);
         };
     }, []);
 
@@ -225,18 +232,26 @@ export default function HomeClient({
        refetch por condición está en vuelo — sin él, la UI mostraba los datos
        viejos sin ninguna señal y el toggle se sentía trabado. */
     const [filtering, setFiltering] = useState(false);
-    /* Respuestas ya vistas en esta sesión, por condición: alternar de vuelta
-       a un filtro visitado es instantáneo, sin red. Staleness de segundos,
-       aceptable — el backend cachea estos endpoints de todos modos. */
-    const conditionCache = useRef(new Map<ConditionFilter, { trending: Game[]; featured: Game[] }>());
+    /* Respuestas ya vistas en esta sesión, por combinación de filtros globales:
+       alternar de vuelta a una ya visitada es instantáneo, sin red. Staleness de
+       segundos, aceptable — el backend cachea estos endpoints de todos modos.
+       La clave es compuesta porque los filtros globales ya son dos. */
+    const filterCache = useRef(new Map<string, { trending: Game[]; featured: Game[] }>());
     useEffect(() => {
-        if (condition === 'all') {
+        /* Sin las preferencias leídas, `condition`/`sellerScopeParam` valen su
+           default optimista: pedir con ellos gastaría un fetch que hay que
+           repetir, y peor, dejaría pintados los datos sin filtrar. */
+        if (!ready) return;
+        /* El SSR se renderiza sin filtros (página cacheada y compartida), así
+           que solo sirve cuando NINGUNO está activo. */
+        if (condition === 'all' && !sellerScopeParam) {
             setTrending(initialTrending);
             setFeatured(initialFeatured);
             setFiltering(false);
             return;
         }
-        const cached = conditionCache.current.get(condition);
+        const cacheKey = `${condition}:${sellerScopeParam ?? 'all'}`;
+        const cached = filterCache.current.get(cacheKey);
         if (cached) {
             setTrending(cached.trending);
             setFeatured(cached.featured);
@@ -244,13 +259,26 @@ export default function HomeClient({
             return;
         }
         const controller = new AbortController();
+        /* Distingue "esta corrida quedó obsoleta" de "la petición falló". Antes
+           se deducía del nombre del error (`AbortError`), asumiendo que todo
+           abort venía del cleanup de abajo — pero un abort de la red o de la
+           navegación entra por la misma rama, y ahí nadie repone `filtering`:
+           quedaba en `true` para siempre, con el skeleton tapando Destacados y
+           la grilla reemplazada por su esqueleto. El flag lo decide el cleanup,
+           que es quien de verdad lo sabe. */
+        let superseded = false;
         setFiltering(true);
+        const query = {
+            condition: condition !== 'all' ? condition : undefined,
+            seller_scope: sellerScopeParam,
+        };
         Promise.all([
-            getTrendingGames({ condition, signal: controller.signal }),
-            getFeaturedGames({ condition, signal: controller.signal }),
+            getTrendingGames({ ...query, signal: controller.signal }),
+            getFeaturedGames({ ...query, signal: controller.signal }),
         ])
             .then(([t, f]) => {
-                conditionCache.current.set(condition, { trending: t.results, featured: f.results });
+                if (superseded) return;
+                filterCache.current.set(cacheKey, { trending: t.results, featured: f.results });
                 /* startTransition marca el swap de contenido como no urgente:
                    la animación del SegmentedControl y el resto de la UI no
                    quedan bloqueados por el re-render del carrusel + grilla. */
@@ -260,17 +288,19 @@ export default function HomeClient({
                     setFiltering(false);
                 });
             })
-            .catch((err) => {
-                /* En abort no se toca `filtering`: la corrida del efecto que
-                   causó el abort ya dejó el estado correcto. */
-                if (err?.name !== 'AbortError') {
-                    setTrending([]);
-                    setFeatured([]);
-                    setFiltering(false);
-                }
+            .catch(() => {
+                /* Si la corrida fue reemplazada, la nueva ya dejó el estado
+                   correcto y tocarlo acá lo pisaría. */
+                if (superseded) return;
+                setTrending([]);
+                setFeatured([]);
+                setFiltering(false);
             });
-        return () => controller.abort();
-    }, [condition, initialTrending, initialFeatured]);
+        return () => {
+            superseded = true;
+            controller.abort();
+        };
+    }, [ready, condition, sellerScopeParam, initialTrending, initialFeatured]);
 
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();
@@ -469,13 +499,19 @@ export default function HomeClient({
                             </Text>
                         </Box>
 
-                        <Box pos="relative">
+                        <Box pos="relative" data-prefs-dependent>
                             {/* Skeleton superpuesto (no reemplaza al carrusel en el
                                 árbol: desmontarlo re-inicializaría Embla y volvería
                                 el salto de centrado que este gating evita). Cubre la
                                 espera de hidratación inicial y el refetch del toggle. */}
                             {(!carouselsReady || filtering) && (
-                                <Box pos="absolute" style={{ inset: 0, zIndex: 2 }}>
+                                /* `pointerEvents: none` no es decorativo: este Box
+                                   cubre el carrusel entero con `inset: 0`, así que
+                                   mientras esté montado se come TODOS los clics de
+                                   las tarjetas destacadas. Sin él, cualquier
+                                   demora en apagarlo se ve como "el juego no es
+                                   clickeable" en vez de como un skeleton lento. */
+                                <Box pos="absolute" style={{ inset: 0, zIndex: 2, pointerEvents: 'none' }}>
                                     <FeaturedCarouselSkeleton compact={compactFeatured} />
                                 </Box>
                             )}
@@ -555,6 +591,51 @@ export default function HomeClient({
                 </Box>
             )}
 
+            {/* ══════ POPULARES ESTA SEMANA ══════ */}
+            {(trending.length > 0 || filtering) && (
+                <Box py={60}>
+                    <Container size="lg">
+                        <Group justify="space-between" align="flex-end" mb="xl">
+                            <Box>
+                                <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
+                                    Populares esta semana
+                                </Title>
+                                <Text c="dimmed" mt={6}>
+                                    Los juegos con más movimiento en los últimos 7 días.
+                                </Text>
+                            </Box>
+                            <Anchor
+                                component={Link}
+                                href="/search"
+                                c="var(--mantine-color-primaryRed-5)"
+                                fw={600}
+                                fz="sm"
+                                underline="never"
+                            >
+                                Ver todos los juegos <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
+                            </Anchor>
+                        </Group>
+
+                        {/* `data-prefs-dependent`: el HTML del SSR viene sin
+                            filtrar (esta página es ISR y su caché se comparte),
+                            así que a quien tenga un filtro apagado el CSS se lo
+                            mantiene tapado hasta que llega el refetch. Ver
+                            PrefsScript y globals.css. */}
+                        <Box data-prefs-dependent>
+                            {filtering ? (
+                                <TrendingGridSkeleton />
+                            ) : (
+                                <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                                    {trending.slice(0, 8).map((g, i) => (
+                                        <GameCard key={g.id} game={g} priority={i < 4} />
+                                    ))}
+                                </SimpleGrid>
+                            )}
+                        </Box>
+                    </Container>
+                </Box>
+            )}
+
             {/* ══════ NOTICIAS Y COMUNIDAD ══════ */}
             <Box py={60}>
                 <Container size="lg">
@@ -596,7 +677,7 @@ export default function HomeClient({
                             >
                                 {/* Placeholder image area */}
                                 <Box
-                                    h={180}
+                                    h={{ base: 130, md: 180 }}
                                     style={{
                                         background: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))',
                                         display: 'flex',
@@ -612,56 +693,18 @@ export default function HomeClient({
                                         <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
                                     )}
                                 </Box>
-                                <Box p="lg">
-                                    <Text fz="xs" fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={6} style={{ letterSpacing: 1 }}>
+                                <Box p={{ base: 'md', md: 'lg' }}>
+                                    <Text fz={{ base: 10, md: 'xs' }} fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={{ base: 4, md: 6 }} style={{ letterSpacing: 1 }}>
                                         {n.category}
                                     </Text>
-                                    <Text fw={700} fz="lg" mb={6} lineClamp={2}>{n.title}</Text>
-                                    <Text fz="sm" c="dimmed" lineClamp={3}>{n.description}</Text>
+                                    <Text fw={700} fz={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 6 }} lineClamp={2}>{n.title}</Text>
+                                    <Text fz={{ base: 'xs', md: 'sm' }} c="dimmed" lineClamp={3}>{n.description}</Text>
                                 </Box>
                             </Card>
                         ))}
                     </SimpleGrid>
                 </Container>
             </Box>
-
-            {/* ══════ POPULARES ESTA SEMANA ══════ */}
-            {(trending.length > 0 || filtering) && (
-                <Box py={60}>
-                    <Container size="lg">
-                        <Group justify="space-between" align="flex-end" mb="xl">
-                            <Box>
-                                <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                    Populares esta semana
-                                </Title>
-                                <Text c="dimmed" mt={6}>
-                                    Los juegos con más movimiento en los últimos 7 días.
-                                </Text>
-                            </Box>
-                            <Anchor
-                                component={Link}
-                                href="/search"
-                                c="var(--mantine-color-primaryRed-5)"
-                                fw={600}
-                                fz="sm"
-                                underline="never"
-                            >
-                                Ver todos los juegos <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
-                            </Anchor>
-                        </Group>
-
-                        {filtering ? (
-                            <TrendingGridSkeleton />
-                        ) : (
-                            <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                                {trending.slice(0, 8).map((g, i) => (
-                                    <GameCard key={g.id} game={g} priority={i < 4} />
-                                ))}
-                            </SimpleGrid>
-                        )}
-                    </Container>
-                </Box>
-            )}
 
             {/* ══════ EXPLORAR POR PLATAFORMA ══════ */}
             <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
@@ -673,7 +716,7 @@ export default function HomeClient({
                     <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                         {PLATFORM_GROUPS.map((group) => {
                             const Icon = group.icon;
-                            const href = `/search?platform=${group.options.map((o) => o.slug).join(',')}`;
+                            const href = `/search?platform=${group.featuredSlugs.join(',')}`;
                             return (
                                 <Anchor key={group.label} href={href} underline="never">
                                     <Card

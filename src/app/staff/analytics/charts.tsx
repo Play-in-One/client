@@ -23,10 +23,11 @@ import type { DailyFunnel, DailyTraffic, SellerStat } from '@/lib/types';
  *
  * Recharts se carga aquí y no en la página para que el `dynamic(...)` de
  * `AnalyticsClient` lo deje fuera del bundle inicial, igual que hace el detalle
- * de juego con `ProductPriceChart`. */
+ * de juego con `PriceHistoryChart`. */
 
 const COLORS = {
-    visitors: '#7C3AED',
+    sessions: '#7C3AED',
+    returning: '#0EA5E9',
     known: '#2563EB',
     fresh: '#22C55E',
     views: '#6366F1',
@@ -65,9 +66,9 @@ export function VisitorsChart({ series }: { series: DailyTraffic[] }) {
         <ResponsiveContainer width="100%" height={280}>
             <AreaChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
                 <defs>
-                    <linearGradient id="visitorsFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={COLORS.visitors} stopOpacity={0.35} />
-                        <stop offset="100%" stopColor={COLORS.visitors} stopOpacity={0} />
+                    <linearGradient id="sessionsFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={COLORS.sessions} stopOpacity={0.35} />
+                        <stop offset="100%" stopColor={COLORS.sessions} stopOpacity={0} />
                     </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} />
@@ -76,11 +77,12 @@ export function VisitorsChart({ series }: { series: DailyTraffic[] }) {
                 <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} labelFormatter={shortDate} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area
-                    type="monotone" dataKey="visitors" name="Visitantes únicos"
-                    stroke={COLORS.visitors} fill="url(#visitorsFill)" strokeWidth={2}
+                    type="monotone" dataKey="sessions" name="Sesiones"
+                    stroke={COLORS.sessions} fill="url(#sessionsFill)" strokeWidth={2}
                 />
+                <Line type="monotone" dataKey="visitors_known" name="Identificados" stroke={COLORS.known} strokeWidth={2} dot={false} strokeDasharray="4 3" />
                 <Line type="monotone" dataKey="visitors_new" name="Nuevos" stroke={COLORS.fresh} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="visitors_returning" name="Recurrentes" stroke={COLORS.known} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="visitors_returning" name="Recurrentes" stroke={COLORS.returning} strokeWidth={2} dot={false} />
             </AreaChart>
         </ResponsiveContainer>
     );
@@ -135,7 +137,7 @@ export function DevicesChart({ series }: { series: DailyTraffic[] }) {
                 <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} labelFormatter={shortDate} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="desktop_visits" name="Escritorio" stackId="d" fill={COLORS.known} />
-                <Bar dataKey="mobile_visits" name="Móvil" stackId="d" fill={COLORS.visitors} />
+                <Bar dataKey="mobile_visits" name="Móvil" stackId="d" fill={COLORS.sessions} />
                 <Bar dataKey="tablet_visits" name="Tablet" stackId="d" fill={COLORS.fresh} />
             </BarChart>
         </ResponsiveContainer>

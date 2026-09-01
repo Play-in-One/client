@@ -12,9 +12,14 @@ import { timingSafeEqual } from 'crypto';
    Body opcional: { "paths": ["/", "/blog", "/blog/12"] }  (default: ["/", "/blog"])
 */
 
-/* Solo rutas conocidas: la home, la lista del blog y detalles de post por id
-   numérico. Evita que un token filtrado sirva para purgar rutas arbitrarias. */
-const ALLOWED_PATH = /^\/$|^\/blog$|^\/blog\/\d+$/;
+/* Solo rutas conocidas: evita que un token filtrado sirva para purgar rutas
+   arbitrarias. Además de la home y el blog acepta las páginas cuyo contenido
+   depende de los precios —la ficha de un juego, la de una tienda, el buscador y
+   las landings por consola—, que antes quedaban fuera: un cambio de precio
+   podía tardar hasta 5 minutos en verse y su dato estructurado seguía
+   publicando la cifra vieja mientras tanto. */
+const ALLOWED_PATH =
+    /^\/$|^\/blog$|^\/blog\/\d+$|^\/search$|^\/game\/\d+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+$/;
 
 function tokenMatches(provided: string, expected: string): boolean {
     const a = Buffer.from(provided);
