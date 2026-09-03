@@ -87,6 +87,9 @@ export interface GameFacets {
 export interface Game {
     id: number;
     name: string;
+    /** Trozo legible de la URL de la ficha (`/juego/<slug>-<id>`). Lo deriva el
+     *  backend del nombre; el id sigue mandando y un slug viejo redirige. */
+    slug: string;
     description: string | null;
     developer: string;
     release_date: string | null;

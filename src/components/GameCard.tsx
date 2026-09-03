@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import ShippingInfo from './ShippingInfo';
 import { formatCLP } from '@/lib/utils';
+import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import type { Game, Product } from '@/lib/types';
 
@@ -64,7 +65,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     // "todos los juegos". En modo selectable el click nunca navega
     // (preventDefault cancela la navegación de Link), así que el href es
     // solo un placeholder.
-    const gameHref = `/game/${game.id}${platformSlug ? `?platform=${platformSlug}` : ''}`;
+    const gameHref = gamePath(game, platformSlug);
 
     return (
         <Anchor

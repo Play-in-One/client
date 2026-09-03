@@ -16,22 +16,25 @@ test('el link del logo navega a la página de inicio', async ({ page }) => {
     await expect(page).toHaveURL('/');
 });
 
-test('el link PS5 en el Navbar navega a búsqueda con plataforma', async ({ page }) => {
+test('PlayStation 5 en el menú del Navbar navega a su landing', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'PS5' }).click();
-    await expect(page).toHaveURL(/\/search\?platform=ps5/);
+    await page.getByRole('navigation').getByRole('link', { name: 'PlayStation', exact: true }).hover();
+    await page.getByRole('menuitem', { name: 'PlayStation 5', exact: true }).click();
+    await expect(page).toHaveURL(/\/juegos\/ps5$/);
 });
 
-test('el link Switch en el Navbar navega a búsqueda con plataforma', async ({ page }) => {
+test('Switch en el menú del Navbar navega a su landing', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Switch' }).click();
-    await expect(page).toHaveURL(/\/search\?platform=switch/);
+    await page.getByRole('navigation').getByRole('link', { name: 'Nintendo', exact: true }).hover();
+    await page.getByRole('menuitem', { name: 'Switch', exact: true }).click();
+    await expect(page).toHaveURL(/\/juegos\/switch$/);
 });
 
-test('el link Xbox en el Navbar navega a búsqueda con plataforma', async ({ page }) => {
+test('Xbox Series en el menú del Navbar navega a su landing', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Xbox' }).click();
-    await expect(page).toHaveURL(/\/search\?platform=xbox/);
+    await page.getByRole('navigation').getByRole('link', { name: 'Xbox', exact: true }).hover();
+    await page.getByRole('menuitem', { name: 'Xbox Series', exact: true }).click();
+    await expect(page).toHaveURL(/\/juegos\/xboxseries$/);
 });
 
 test('el menú mobile se abre en viewport 375px', async ({ page }) => {

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
 import ShippingInfo from './ShippingInfo';
 import { formatCLP } from '@/lib/utils';
+import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import { decorative } from '@/lib/colors';
 import type { Game } from '@/lib/types';
@@ -94,7 +95,7 @@ function FeaturedGameCard({
         <Anchor
             ref={anchorRef}
             component={Link}
-            href={`/game/${game.id}`}
+            href={gamePath(game)}
             underline="never"
             /* `fit-content` acota el enlace a la tarjeta que se ve. Por defecto
                el <a> se estiraba al ancho COMPLETO del slide (~575px con

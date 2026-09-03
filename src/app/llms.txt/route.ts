@@ -69,7 +69,7 @@ ${platformLines || `- Catálogo completo en ${SITE_URL}/search`}
 
 ## Datos
 
-- Cada juego vive en ${SITE_URL}/game/{id}: schema.org Product + AggregateOffer
+- Cada juego vive en ${SITE_URL}/juego/{slug}-{id}: schema.org Product + AggregateOffer
   con una Offer por tienda (vendedor, condición, envío y validez del precio),
   más un FAQPage con su precio más barato y dónde conseguirlo.
 - Cada tienda vive en ${SITE_URL}/store/{id} (schema.org Store) con su catálogo

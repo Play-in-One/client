@@ -13,12 +13,20 @@ import PlatformLanding, { buildLandingMetadata, landingPath } from '../../landin
  * En la URL va `pagina` y no `page` porque el resto de rutas públicas están en
  * español y la URL es contenido indexable como cualquier otro.
  *
- * NO hay `generateStaticParams`: son ~410 páginas entre todas las consolas y
- * prerenderizarlas en el build lo alargaría por nada. Se generan bajo demanda y
- * quedan cacheadas por el mismo ISR que la landing.
+ * `generateStaticParams` devuelve una lista VACÍA a propósito: son ~600
+ * páginas entre todas las consolas y prerenderizarlas en el build lo alargaría
+ * por nada (y el build ni siquiera ve la API). Pero la función tiene que
+ * existir: sin ella Next trata la ruta como dinámica, ignora `revalidate` y
+ * renderiza cada petición desde cero (`cache-control: no-store`, 2-5 s por
+ * página). Con ella, cada página se genera en su primera visita y se sirve
+ * desde caché 300 s, igual que la landing.
  */
 
 export const revalidate = 300;
+
+export function generateStaticParams(): { slug: string; page: string }[] {
+    return [];
+}
 
 /** `undefined` si el segmento no es un entero ≥ 1: `/pagina/abc` no existe. */
 function parsePage(raw: string): number | undefined {

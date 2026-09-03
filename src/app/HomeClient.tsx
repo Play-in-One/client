@@ -716,7 +716,11 @@ export default function HomeClient({
                     <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
                         {PLATFORM_GROUPS.map((group) => {
                             const Icon = group.icon;
-                            const href = `/search?platform=${group.featuredSlugs.join(',')}`;
+                            // Una consola sola tiene landing indexable; un grupo de varias
+                            // solo existe como filtro del buscador.
+                            const href = group.featuredSlugs.length === 1
+                                ? `/juegos/${group.featuredSlugs[0]}`
+                                : `/search?platform=${group.featuredSlugs.join(',')}`;
                             return (
                                 <Anchor key={group.label} href={href} underline="never">
                                     <Card

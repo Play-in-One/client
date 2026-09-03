@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
+import { gamePath } from '@/lib/seo';
 import { useSearchParams } from 'next/navigation';
 import {
     Container,
@@ -109,7 +110,7 @@ export default function GameDetailClient({
 
     /* ── Popularity tracking ──
        El page_view del layout ya registra la ruta, pero normalizada a
-       `/game/[id]`: no dice QUÉ juego se vio. Este evento es el escalón
+       `/juego/[slug]`: no dice QUÉ juego se vio. Este evento es el escalón
        intermedio del embudo (clic en la tarjeta → ver el detalle → salir a la
        tienda) y sin él no se puede saber cuántas visitas a una ficha acaban
        en un clic a un vendedor. */
@@ -199,7 +200,7 @@ export default function GameDetailClient({
     };
 
     const handleShare = async () => {
-        const shareUrl = `${window.location.origin}/game/${game.id}`;
+        const shareUrl = `${window.location.origin}${gamePath(game)}`;
         const shareData = { title: game.name, text: `Mira el precio de ${game.name} en PlayInOne`, url: shareUrl };
         if (navigator.share) {
             try {
@@ -248,7 +249,7 @@ export default function GameDetailClient({
                     <Group gap={4}><IconHome size={14} /> Inicio</Group>
                 </Anchor>
                 {breadcrumbPlatform && (
-                    <Anchor component={Link} href={`/search?platform=${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
+                    <Anchor component={Link} href={`/juegos/${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
                         {breadcrumbPlatform.display_name}
                     </Anchor>
                 )}

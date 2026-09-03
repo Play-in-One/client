@@ -37,6 +37,16 @@ import {
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
 import { trackEvent, type SocialNetwork } from '@/lib/api';
+import { PLATFORM_GROUPS } from '@/lib/platformGroups';
+
+/* Landings por consola enlazadas desde el pie de TODAS las páginas. Salen de
+   los grupos del Navbar (misma fuente que el menú) más Xbox genérico y PC, que no
+   tienen grupo pero sí existen en el catálogo. */
+const FOOTER_LANDINGS: { slug: string; label: string }[] = [
+    ...PLATFORM_GROUPS.flatMap((g) => g.options.map((o) => ({ slug: o.slug, label: o.label }))),
+    { slug: 'xbox', label: 'Xbox' },
+    { slug: 'pc', label: 'PC' },
+];
 
 const YEAR = new Date().getFullYear();
 
@@ -130,11 +140,18 @@ export default function Footer() {
                         <Text fw={700} mb={4}>Categorías</Text>
                         {/* A la landing por consola, no a /search?platform=:
                             esa variante va noindex y se renderiza en el cliente,
-                            así que estos enlaces no llevaban a nada indexable. */}
-                        <Anchor component={Link} href="/juegos/ps5" fz="sm" c="dimmed" underline="never">Juegos PS5</Anchor>
-                        <Anchor component={Link} href="/juegos/switch" fz="sm" c="dimmed" underline="never">Juegos Nintendo Switch</Anchor>
-                        <Anchor component={Link} href="/juegos/xbox" fz="sm" c="dimmed" underline="never">Juegos Xbox</Anchor>
-                        <Anchor component={Link} href="/juegos/pc" fz="sm" c="dimmed" underline="never">Juegos PC</Anchor>
+                            así que estos enlaces no llevaban a nada indexable.
+                            Van TODAS las consolas y no una muestra: el menú del
+                            Navbar es un dropdown que no existe en el HTML del
+                            servidor, así que este bloque es el único enlace que
+                            recibe cada landing desde todas las páginas. */}
+                        <SimpleGrid cols={2} spacing={4} verticalSpacing={4}>
+                            {FOOTER_LANDINGS.map((l) => (
+                                <Anchor key={l.slug} component={Link} href={`/juegos/${l.slug}`} fz="sm" c="dimmed" underline="never">
+                                    {l.label}
+                                </Anchor>
+                            ))}
+                        </SimpleGrid>
                     </Stack>
 
                     {/* Empresa */}

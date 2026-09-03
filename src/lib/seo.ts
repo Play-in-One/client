@@ -47,6 +47,24 @@ export const siteConfig = {
 } as const;
 
 /** Absolute URL from a site-relative path (or a passthrough if already absolute). */
+/**
+ * Ruta de la ficha de un juego: `/juego/<slug>-<id>` (+ `?platform=` si la
+ * vista sabe desde qué consola se llega). El id es lo único que resuelve; el
+ * slug lo deriva el backend del nombre y, si no cuadra, la ruta corrige con
+ * un 308. Sin slug (backend anterior al campo) se emite `/juego/<id>`, que
+ * también redirige a la canónica: un deploy a medias no publica URLs rotas.
+ *
+ * Único constructor de esta URL en el cliente: la ruta antigua `/game/<id>`
+ * solo existe ya como redirección permanente.
+ */
+export function gamePath(
+    game: { id: number; slug?: string | null },
+    platformSlug?: string | null,
+): string {
+    const segment = game.slug ? `${game.slug}-${game.id}` : String(game.id);
+    return `/juego/${segment}${platformSlug ? `?platform=${platformSlug}` : ''}`;
+}
+
 export function absoluteUrl(path = '/'): string {
     if (/^https?:\/\//i.test(path)) return path;
     return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
@@ -207,7 +225,7 @@ export function offerJsonLd(product: Product, game: Game): JsonLdObject {
     const shipping = num(product.shipping_cost) ?? 0;
     return {
         '@type': 'Offer',
-        '@id': absoluteUrl(`/game/${game.id}#offer-${product.id}`),
+        '@id': absoluteUrl(`${gamePath(game)}#offer-${product.id}`),
         name: `${game.name} — ${product.seller.name}`,
         price: money(product.base_price),
         priceCurrency: 'CLP',
@@ -251,9 +269,9 @@ export function gameJsonLd(game: Game): JsonLdObject {
     const data: JsonLdObject = {
         '@context': 'https://schema.org',
         '@type': 'Product',
-        '@id': absoluteUrl(`/game/${game.id}#product`),
+        '@id': absoluteUrl(`${gamePath(game)}#product`),
         name: game.name,
-        url: absoluteUrl(`/game/${game.id}`),
+        url: absoluteUrl(gamePath(game)),
         category: 'VideoGame',
         ...(game.image ? { image: game.image } : {}),
         ...(game.description ? { description: game.description } : {}),
@@ -278,16 +296,12 @@ export function gameJsonLd(game: Game): JsonLdObject {
         };
     }
 
-    const rating = num(game.rating);
-    if (rating != null && rating > 0) {
-        data.aggregateRating = {
-            '@type': 'AggregateRating',
-            ratingValue: game.rating,
-            bestRating: '10',
-            worstRating: '0',
-            ratingCount: offers.length || 1,
-        };
-    }
+    // Sin `aggregateRating` a propósito. `game.rating` es una nota editorial,
+    // no el promedio de reseñas de nadie, y Google exige `ratingCount` o
+    // `reviewCount` con esa semántica: publicar el número de ofertas como si
+    // fuera un conteo de reseñas es un dato inventado en el campo que más
+    // vigilan las acciones manuales por datos estructurados. Si algún día hay
+    // reseñas reales, aquí va el bloque con su conteo verdadero.
 
     return data;
 }
@@ -382,9 +396,9 @@ export function itemListJsonLd(
             position: i + 1,
             item: {
                 '@type': 'Product',
-                '@id': absoluteUrl(`/game/${game.id}#product`),
+                '@id': absoluteUrl(`${gamePath(game)}#product`),
                 name: game.name,
-                url: absoluteUrl(`/game/${game.id}`),
+                url: absoluteUrl(gamePath(game)),
                 ...(game.image ? { image: game.image } : {}),
                 ...(game.min_price_base
                     ? {

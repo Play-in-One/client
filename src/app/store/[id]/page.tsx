@@ -11,6 +11,14 @@ import StoreClient from './StoreClient';
 // fresco sin pagar el fetch en cada visita.
 export const revalidate = 300;
 
+// Vacío a propósito: sin `generateStaticParams` Next trata la ruta como
+// dinámica e ignora `revalidate` (renderizaba cada petición, `no-store`). Con
+// la lista vacía nada se prerenderiza en el build y cada tienda se cachea
+// tras su primera visita.
+export function generateStaticParams(): { id: string }[] {
+    return [];
+}
+
 async function fetchSeller(id: string): Promise<Seller | null> {
     try {
         return await getSeller(id);
@@ -65,7 +73,9 @@ export async function generateMetadata({
         `Ofertas y precios de videojuegos en ${seller.name}. Compara con otras tiendas chilenas en Play in One.`;
 
     return buildMetadata({
-        title: seller.name,
+        // La intención que puede ganar la ficha es "precios en <tienda>", no el
+        // nombre a secas (eso lo gana la propia tienda).
+        title: `${seller.name}: precios y catálogo de videojuegos`,
         description,
         path: `/store/${seller.id}`,
         image: seller.logo,

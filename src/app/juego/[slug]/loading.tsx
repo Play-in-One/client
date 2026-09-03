@@ -4,7 +4,7 @@ import { Box, Container, Flex, Group, Skeleton, Stack } from '@mantine/core';
    (page.tsx) resuelve `getGame`.
 
    No es solo cosmético: sin un boundary de carga, el App Router no puede
-   PREFETCHEAR una ruta dinámica —el prefetch de /game/[id] devolvía una
+   PREFETCHEAR una ruta dinámica —el prefetch de /juego/[slug] devolvía una
    respuesta vacía— y bloqueaba la navegación entera esperando el RSC, entre 1 y
    4 s contra el backend de producción, sin pintar nada. La tarjeta clicada
    parecía simplemente muerta.

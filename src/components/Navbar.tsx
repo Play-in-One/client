@@ -134,6 +134,11 @@ export default function Navbar() {
                 <Group gap="lg" visibleFrom="lg" wrap="nowrap">
                     {PLATFORM_GROUPS.map((group) => {
                         const Icon = group.icon;
+                        // El botón del grupo junta varias consolas y no tiene landing:
+                        // va al buscador. Cada consola del menú va a SU landing
+                        // (`/juegos/<slug>`), que es la página indexable y la que
+                        // reparte autoridad hacia las fichas; `/search?platform=` es
+                        // noindex y no sumaba nada al rastreo.
                         const groupHref = `/search?platform=${group.options.map((o) => o.slug).join(',')}`;
                         return (
                             <Menu
@@ -173,7 +178,7 @@ export default function Navbar() {
                                         <Menu.Item
                                             key={opt.slug}
                                             component={Link}
-                                            href={`/search?platform=${opt.slug}`}
+                                            href={`/juegos/${opt.slug}`}
                                         >
                                             {opt.label}
                                         </Menu.Item>
@@ -311,7 +316,7 @@ export default function Navbar() {
                                                 <Anchor
                                                     key={opt.slug}
                                                     component={Link}
-                                                    href={`/search?platform=${opt.slug}`}
+                                                    href={`/juegos/${opt.slug}`}
                                                     onClick={close}
                                                     fw={600}
                                                     fz="md"

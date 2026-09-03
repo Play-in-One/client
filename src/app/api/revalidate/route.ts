@@ -19,7 +19,7 @@ import { timingSafeEqual } from 'crypto';
    podía tardar hasta 5 minutos en verse y su dato estructurado seguía
    publicando la cifra vieja mientras tanto. */
 const ALLOWED_PATH =
-    /^\/$|^\/blog$|^\/blog\/\d+$|^\/search$|^\/game\/\d+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+$/;
+    /^\/$|^\/blog$|^\/blog\/\d+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$/;
 
 function tokenMatches(provided: string, expected: string): boolean {
     const a = Buffer.from(provided);

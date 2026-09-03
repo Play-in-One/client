@@ -280,6 +280,8 @@ export async function getGame(id: number | string) {
 /** Entrada del catálogo indexable: lo mínimo que necesita un `<url>` del sitemap. */
 export interface GameSitemapEntry {
     id: number;
+    /** Ausente solo si el backend es anterior al slug; `gamePath` lo tolera. */
+    slug?: string;
     /** Ausente si el juego todavía no tiene serie de precios. */
     lastmod?: string;
 }
