@@ -8,8 +8,12 @@ import PrefsScript from '@/components/PrefsScript';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import PageViewTracker from '@/components/PageViewTracker';
+import PerfTracker from '@/components/PerfTracker';
+import PerfBeacon from '@/components/PerfBeacon';
+import ViewTransition from '@/components/ViewTransition';
 import { CookieBanner } from '@/components/CookieBanner';
 import { SITE_URL, siteConfig, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
+import { ADSENSE_CLIENT } from '@/lib/ads';
 import './globals.css';
 
 const poppins = Poppins({
@@ -57,6 +61,11 @@ export const metadata: Metadata = {
         ],
         apple: '/PIO.png',
     },
+    /* Verificación de propiedad ante AdSense. Es una etiqueta ESTÁTICA en todas
+       las páginas, que es lo que el rastreador de Google espera encontrar; el
+       loader de anuncios, en cambio, solo se carga en la ficha de juego y bajo
+       demanda (ver AdSlot). Sin la variable no se emite nada. */
+    ...(ADSENSE_CLIENT ? { other: { 'google-adsense-account': ADSENSE_CLIENT } } : {}),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -71,14 +80,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Providers>
                     <AppProvider>
                         <PageViewTracker />
+                        <PerfTracker />
                         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                             <Navbar />
                             <main style={{ flex: 1 }}>
-                                {children}
+                                <ViewTransition>{children}</ViewTransition>
                             </main>
                             <Footer />
                         </div>
                         <CookieBanner />
+                        {/* Después de `{children}`: React renderiza los hijos
+                            en orden, así que aquí el acumulador del servidor ya
+                            contabilizó los fetch de la página. Antes mediría 0. */}
+                        <PerfBeacon />
                     </AppProvider>
                 </Providers>
             </body>

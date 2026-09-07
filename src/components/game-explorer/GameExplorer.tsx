@@ -49,6 +49,28 @@ interface Props {
     showSearchInput?: boolean;
     /** Búsqueda de texto inicial (viene de la URL en /search). */
     query?: string;
+    /** Al enviar una búsqueda desde el buscador DENTRO de /search (no el del
+     *  Navbar) — solo se usa cuando el padre controla la URL (/search). */
+    onQueryChange?: (q: string) => void;
+
+    /** Los siguientes campos siguen el mismo patrón que `query`: sirven solo
+     *  como valor inicial (siembran el `useState` correspondiente) y su
+     *  `onChange` es opcional — sin padre que los controle (landing), el
+     *  componente queda igual de no-controlado que hoy. */
+    page?: number;
+    onPageChange?: (page: number) => void;
+    genre?: number | null;
+    onGenreChange?: (id: number | null) => void;
+    priceMin?: number;
+    onPriceMinChange?: (v: number | undefined) => void;
+    priceMax?: number;
+    onPriceMaxChange?: (v: number | undefined) => void;
+    onSale?: boolean;
+    onOnSaleChange?: (v: boolean) => void;
+    onOrderingChange?: (v: string) => void;
+    /** Reemplaza el reset de plataforma que hacía `handleClearFilters` — una
+     *  sola escritura de URL que limpia todos los filtros a la vez. */
+    onClearFilters?: () => void;
 
     /** El JSX que el padre ya renderiza hoy (grid + paginación crawleable).
      *  Se muestra tal cual hasta que el usuario cambie algún filtro; a partir
@@ -70,6 +92,19 @@ export default function GameExplorer({
     onPlatformFilterChange,
     showSearchInput = false,
     query = '',
+    onQueryChange,
+    page: initialPage = 1,
+    onPageChange,
+    genre: initialGenre = null,
+    onGenreChange,
+    priceMin: initialPriceMin,
+    onPriceMinChange,
+    priceMax: initialPriceMax,
+    onPriceMaxChange,
+    onSale: initialOnSale = false,
+    onOnSaleChange,
+    onOrderingChange,
+    onClearFilters,
     staticFallback,
     showHeader = false,
     withContainer = false,
@@ -92,7 +127,7 @@ export default function GameExplorer({
     const [games, setGames] = useState<Game[]>(initialGames);
     const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
     const [total, setTotal] = useState(initialTotal);
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useState(initialPage);
     const [loading, setLoading] = useState(initialGames.length === 0);
     const [searchInput, setSearchInput] = useState(query);
     const [activeQuery, setActiveQuery] = useState(query);
@@ -101,12 +136,12 @@ export default function GameExplorer({
     const [platforms, setPlatforms] = useState<Platform[]>([]);
     const [genres, setGenres] = useState<Genre[]>([]);
 
-    const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
-    const [priceMin, setPriceMin] = useState<number | undefined>(undefined);
-    const [priceMax, setPriceMax] = useState<number | undefined>(undefined);
-    const [priceMinInput, setPriceMinInput] = useState<string | number>('');
-    const [priceMaxInput, setPriceMaxInput] = useState<string | number>('');
-    const [onSale, setOnSale] = useState(false);
+    const [selectedGenre, setSelectedGenre] = useState<number | null>(initialGenre);
+    const [priceMin, setPriceMin] = useState<number | undefined>(initialPriceMin);
+    const [priceMax, setPriceMax] = useState<number | undefined>(initialPriceMax);
+    const [priceMinInput, setPriceMinInput] = useState<string | number>(initialPriceMin ?? '');
+    const [priceMaxInput, setPriceMaxInput] = useState<string | number>(initialPriceMax ?? '');
+    const [onSale, setOnSale] = useState(initialOnSale);
 
     const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -201,7 +236,20 @@ export default function GameExplorer({
             .catch(() => { });
     }, [lockedPlatform]);
 
+    /* Reacciona a que el término de búsqueda cambie por fuera (p.ej. el Navbar
+       manda a /search?q=... mientras ya se está parado ahí, sin remontar).
+       El guard evita pisar el `page` recién sembrado desde la URL: este
+       efecto también corre en el montaje inicial, y ahí `query` ya coincide
+       con el valor con el que se sembró `activeQuery`/`searchInput` arriba. */
+    const appliedQueryRef = useRef(query);
     useEffect(() => {
+        // Comparar contra el valor ya aplicado (no contra "es la primera vez
+        // que corre este efecto"): en dev, StrictMode invoca este efecto dos
+        // veces seguidas al montar, y un guard de "primera ejecución" confunde
+        // esa segunda invocación con un cambio real de `query`, pisando el
+        // `page` recién sembrado desde la URL.
+        if (appliedQueryRef.current === query) return;
+        appliedQueryRef.current = query;
         setActiveQuery(query);
         setSearchInput(query);
         setPage(1);
@@ -303,10 +351,11 @@ export default function GameExplorer({
         markInteractive();
         setActiveQuery(searchInput);
         setPage(1);
+        onQueryChange?.(searchInput.trim());
     };
 
     const handleClearFilters = () => {
-        if (!lockedPlatform) onPlatformFilterChange?.([]);
+        if (!lockedPlatform && !onClearFilters) onPlatformFilterChange?.([]);
         setSelectedGenre(null);
         setPriceMin(undefined);
         setPriceMax(undefined);
@@ -315,41 +364,55 @@ export default function GameExplorer({
         setOnSale(false);
         markInteractive();
         setPage(1);
+        // `onClearFilters` (cuando existe) ya limpia platform+genre+price+
+        // onSale+page en UNA sola escritura de URL — llamarlo junto con
+        // `onPlatformFilterChange` haría dos `router.replace` en el mismo
+        // evento y el segundo pisaría al primero.
+        onClearFilters?.();
     };
 
     const applyPriceMin = () => {
         markInteractive();
-        setPriceMin(typeof priceMinInput === 'number' ? priceMinInput : undefined);
+        const v = typeof priceMinInput === 'number' ? priceMinInput : undefined;
+        setPriceMin(v);
         setPage(1);
+        onPriceMinChange?.(v);
     };
 
     const applyPriceMax = () => {
         markInteractive();
-        setPriceMax(typeof priceMaxInput === 'number' ? priceMaxInput : undefined);
+        const v = typeof priceMaxInput === 'number' ? priceMaxInput : undefined;
+        setPriceMax(v);
         setPage(1);
+        onPriceMaxChange?.(v);
     };
 
     const handleSelectGenre = (id: number | null) => {
         markInteractive();
         setSelectedGenre(id);
         setPage(1);
+        onGenreChange?.(id);
     };
 
     const handleToggleOnSale = () => {
         markInteractive();
-        setOnSale((v) => !v);
+        const next = !onSale;
+        setOnSale(next);
         setPage(1);
+        onOnSaleChange?.(next);
     };
 
     const handleOrderingChange = (v: string) => {
         markInteractive();
         setOrdering(v);
         setPage(1);
+        onOrderingChange?.(v);
     };
 
     const handlePageChange = (p: number) => {
         markInteractive();
         setPage(p);
+        onPageChange?.(p);
     };
 
     const hasActiveFilters =

@@ -17,7 +17,9 @@ interface ConsentContextValue {
     consent: ConsentState | null;
     /** `false` durante el primer render del servidor, para no parpadear. */
     ready: boolean;
-    decide: (choice: ConsentChoice) => Promise<void>;
+    /** Atajo para el lado de la publicidad: sin decisión, no se personaliza. */
+    adsPersonalized: boolean;
+    decide: (choice: ConsentChoice, ads?: boolean) => Promise<void>;
     /** Derecho de supresión: borra los datos del visitante y sus cookies. */
     forget: () => Promise<boolean>;
 }
@@ -25,6 +27,7 @@ interface ConsentContextValue {
 const ConsentContext = createContext<ConsentContextValue>({
     consent: null,
     ready: false,
+    adsPersonalized: false,
     decide: async () => {},
     forget: async () => false,
 });
@@ -46,11 +49,11 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
         setReady(true);
     }, []);
 
-    const decide = useCallback(async (choice: ConsentChoice) => {
+    const decide = useCallback(async (choice: ConsentChoice, ads = false) => {
         const response = await fetch('/api/consent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ choice, method: consent ? 'settings' : 'banner' }),
+            body: JSON.stringify({ choice, ads, method: consent ? 'settings' : 'banner' }),
         });
         if (!response.ok) return;
         const data = await response.json();
@@ -74,7 +77,7 @@ export function ConsentProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const value = useMemo(
-        () => ({ consent, ready, decide, forget }),
+        () => ({ consent, ready, adsPersonalized: consent?.ads ?? false, decide, forget }),
         [consent, ready, decide, forget],
     );
 

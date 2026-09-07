@@ -99,6 +99,59 @@ body {
 
 .condition-switch .mantine-SegmentedControl-label {
   color: var(--mantine-color-gray-7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.condition-switch .mantine-SegmentedControl-label svg {
+  display: block;
+}
+
+/* El ícono que se activa entra girando y creciendo con rebote. Lo comparten el
+   toggle de tema y el de formato.
+   Va con @keyframes y NO con transition a propósito: en el de tema,
+   `setColorScheme` de Mantine inyecta `*{transition:none!important}` durante
+   ~10 ms para evitar el parpadeo del esquema, y esa ventana cae justo en el
+   frame en que `data-active` cambia de lado — una transición se la come entera
+   y el ícono salta al valor final sin interpolar. Ese bloqueo no afecta a las
+   animaciones.
+   El reposo es sobrio: toda la amplitud vive dentro del keyframe, que es
+   transitorio, así que los íconos quedan a tamaño completo cuando nadie mira. */
+@keyframes switch-icon-pop {
+  from {
+    transform: scale(0.3) rotate(-150deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.switch-icon-pop .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label svg {
+  animation: switch-icon-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Solo el toggle de tema atenúa la opción inactiva: sus dos opciones son un ícono
+   a secas, así que la opacidad es lo único que separa activo de inactivo. En
+   "Formato" el ícono va pegado a su texto, y atenuar uno sin el otro los
+   descuadraría. */
+.theme-switch .mantine-SegmentedControl-label svg {
+  opacity: 0.55;
+}
+
+.theme-switch .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label svg {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch-icon-pop .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label svg {
+    animation: none;
+  }
 }
 
 [data-mantine-color-scheme='dark'] .condition-switch .mantine-SegmentedControl-label {
@@ -131,4 +184,30 @@ body {
    salto de layout cuando el contenido aparece. */
 html[data-prefs='pending'] [data-prefs-dependent] {
   visibility: hidden;
+}
+
+/* Fade al cambiar de vista, aplicado por `ViewTransition` (que decide CUÁNDO;
+   ver el comentario de ese componente).
+   Solo de entrada: el App Router monta la vista nueva y desmonta la anterior en
+   el mismo commit, así que una animación de salida obligaría a retener el árbol
+   viejo, y eso no compensa para un fade. */
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.view-fade {
+  animation: view-fade-in 0.22s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-fade {
+    animation: none;
+  }
 }

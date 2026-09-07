@@ -75,19 +75,21 @@ export function CookieBanner() {
                                 Cumpliendo con la Ley N° 19.628 sobre Protección de la Vida Privada, te
                                 contamos que usamos una
                                 cookie propia para entender cómo se usa Play in One y así mejorar nuestras
-                                recomendaciones y ofrecerte un mejor servicio. Si prefieres que no, seguimos
-                                contando visitas de forma anónima y agregada, sin guardar nada en tu
-                                dispositivo.{' '}
+                                recomendaciones y ofrecerte un mejor servicio, y que mostramos anuncios de
+                                Google para sostener el sitio. Si aceptas, esos anuncios se eligen también
+                                según tu navegación; si prefieres que no, los verás igual pero sin
+                                personalizar, y seguimos contando visitas de forma anónima y agregada, sin
+                                guardar nada en tu dispositivo.{' '}
                                 <Anchor component={Link} href="/cookies" fz="sm">
                                     Más detalle y opciones
                                 </Anchor>
                                 .
                             </Text>
                             <Group gap="sm">
-                                <Button size="sm" onClick={() => decide('accept')}>
+                                <Button size="sm" onClick={() => decide('accept', true)}>
                                     Aceptar
                                 </Button>
-                                <Button size="sm" variant="default" onClick={() => decide('essential')}>
+                                <Button size="sm" variant="default" onClick={() => decide('essential', false)}>
                                     Solo lo esencial
                                 </Button>
                                 <Anchor component={Link} href="/cookies" fz="sm" c="dimmed">

@@ -1,6 +1,7 @@
 'use client';
 
 import { Tooltip } from '@mantine/core';
+import { IconDeviceFloppy } from '@tabler/icons-react';
 import { DIGITAL_VARIANT_LABEL, isDigital } from '@/lib/conditions';
 
 interface Props {
@@ -30,8 +31,8 @@ export default function DigitalBadge({ condition, size = 13 }: Props) {
 
     return (
         <Tooltip label={label} withArrow events={{ hover: true, focus: true, touch: true }}>
-            <span role="img" aria-label={label} style={{ fontSize: size, lineHeight: 1 }}>
-                💾
+            <span role="img" aria-label={label} style={{ display: 'flex', lineHeight: 0 }}>
+                <IconDeviceFloppy size={size} stroke={2.25} />
             </span>
         </Tooltip>
     );

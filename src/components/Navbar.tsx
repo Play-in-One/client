@@ -30,6 +30,8 @@ import {
     IconSun,
     IconBookmark,
     IconSettings,
+    IconDisc,
+    IconDeviceFloppy,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
@@ -44,9 +46,30 @@ const CONDITION_OPTIONS = [
 ];
 
 const FORMAT_OPTIONS = [
-    { label: 'Físico', value: 'physical' },
+    {
+        label: (
+            <Group gap={6} wrap="nowrap">
+                <IconDisc size={18} />
+                <span>Físico</span>
+            </Group>
+        ),
+        value: 'physical',
+    },
     { label: 'Todo', value: 'all' },
-    { label: 'Digital', value: 'digital' },
+    {
+        label: (
+            <Group gap={6} wrap="nowrap">
+                <IconDeviceFloppy size={18} stroke={2.25} />
+                <span>Digital</span>
+            </Group>
+        ),
+        value: 'digital',
+    },
+];
+
+const THEME_OPTIONS = [
+    { label: <IconSun size={20} stroke={2.5} />, value: 'light' },
+    { label: <IconMoon size={20} stroke={2.5} />, value: 'dark' },
 ];
 
 export default function Navbar() {
@@ -57,7 +80,15 @@ export default function Navbar() {
         includeInternational, setIncludeInternational,
     } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
-    const { setColorScheme } = useMantineColorScheme();
+    /* `keepTransitions` desactiva un anti-parpadeo de Mantine que aquí estorba:
+       por defecto, `setColorScheme` inyecta `*{transition:none!important}` en el
+       <head> durante ~10 ms, y esa ventana cae justo en el frame en que el
+       SegmentedControl del tema mueve su indicador. El resultado era que la
+       píldora SALTABA de un lado al otro, mientras que la de "Formato" —mismo
+       componente, mismo CSS, pero sin cambio de esquema— sí deslizaba. El coste
+       es que durante el cambio de tema las transiciones de color de Mantine
+       (150 ms) se ven, en vez de saltar; son pocas y el efecto es suave. */
+    const { setColorScheme } = useMantineColorScheme({ keepTransitions: true });
     /* `getInitialValueInEffect` deja el primer render en un valor fijo y corrige
        tras montar: sin él, leer el esquema durante el render rompería la
        hidratación. El parpadeo que eso provocaría no se ve, porque el control
@@ -204,7 +235,7 @@ export default function Navbar() {
                         onChange={(v) => setFormat(v as FormatFilter)}
                         radius="xl"
                         size="sm"
-                        classNames={{ root: 'condition-switch' }}
+                        classNames={{ root: 'condition-switch switch-icon-pop' }}
                         aria-label="Formato"
                     />
 
@@ -250,6 +281,7 @@ export default function Navbar() {
                                 variant="subtle"
                                 radius="xl"
                                 size="lg"
+                                visibleFrom="lg"
                                 aria-label="Preferencias"
                             >
                                 <IconSettings size={22} />
@@ -257,22 +289,25 @@ export default function Navbar() {
                         </Menu.Target>
                         <Menu.Dropdown>
                             <Menu.Label>Preferencias</Menu.Label>
-                            {/* Un toggle que muestra el ESTADO, no la acción: la
-                                versión anterior sólo decía "Modo oscuro" y no
-                                se sabía si eso era lo activo o lo que pasaría al
-                                pulsar. Leer el esquema en JS es seguro aquí
-                                porque el dropdown no se monta hasta que se abre:
-                                no hay primer render que hidratar. */}
+                            {/* Mismo control que "Estado físico"/"Formato": un
+                                SegmentedControl con las dos opciones a la vista
+                                en vez de un Switch on/off, para que el ESTADO
+                                actual se lea de un vistazo y no haya que
+                                interpretar una posición on/off. Leer el
+                                esquema en JS es seguro aquí porque el dropdown
+                                no se monta hasta que se abre: no hay primer
+                                render que hidratar. */}
                             <Menu.Item component="div" closeMenuOnClick={false}>
-                                <Switch
-                                    checked={isDark}
-                                    onChange={(e) => setColorScheme(e.currentTarget.checked ? 'dark' : 'light')}
-                                    label="Modo oscuro"
-                                    size="sm"
-                                    color="primaryRed"
-                                    onLabel={<IconMoon size={13} />}
-                                    offLabel={<IconSun size={13} />}
-                                    styles={{ label: { cursor: 'pointer' } }}
+                                <Text fz="sm" fw={500} mb={6}>Tema</Text>
+                                <SegmentedControl
+                                    data={THEME_OPTIONS}
+                                    value={isDark ? 'dark' : 'light'}
+                                    onChange={(v) => setColorScheme(v as 'light' | 'dark')}
+                                    radius="xl"
+                                    size="xs"
+                                    fullWidth
+                                    classNames={{ root: 'condition-switch theme-switch switch-icon-pop' }}
+                                    aria-label="Tema"
                                 />
                             </Menu.Item>
 
@@ -307,31 +342,31 @@ export default function Navbar() {
                                 y el SegmentedControl para moverse entre
                                 opciones, así que sin él una flecha hace las dos
                                 cosas y el foco se va del control. */}
-                            <Menu.Item component="div" closeMenuOnClick={false}>
-                                <Text fz="sm" fw={500} mb={6}>Estado físico</Text>
-                                <Box onKeyDown={(e) => e.stopPropagation()}>
-                                    <SegmentedControl
-                                        data={CONDITION_OPTIONS}
-                                        /* Con formato digital se muestra "Todos"
-                                           sin tocar el valor guardado: quien
-                                           tenía "Usados" lo recupera al volver a
-                                           Físico. Se apaga el control, no el dato. */
-                                        value={format === 'digital' ? 'all' : condition}
-                                        onChange={(v) => setCondition(v as ConditionFilter)}
-                                        disabled={format === 'digital'}
-                                        radius="xl"
-                                        size="xs"
-                                        fullWidth
-                                        classNames={{ root: 'condition-switch' }}
-                                        aria-label="Estado del juego"
-                                    />
-                                </Box>
-                                <Text fz="xs" c="dimmed" mt={4}>
-                                    {format === 'digital'
-                                        ? 'No afecta al catalogo digital.'
-                                        : 'Acota el catálogo a juegos nuevos o usados.'}
-                                </Text>
-                            </Menu.Item>
+                            {/* Con formato digital el filtro no aplica —una
+                                descarga no es de segunda mano— así que se
+                                oculta en vez de mostrarse deshabilitado: el
+                                valor guardado (`condition`) no se toca, y
+                                vuelve a aparecer intacto al salir de Digital. */}
+                            {format !== 'digital' && (
+                                <Menu.Item component="div" closeMenuOnClick={false}>
+                                    <Text fz="sm" fw={500} mb={6}>Estado físico</Text>
+                                    <Box onKeyDown={(e) => e.stopPropagation()}>
+                                        <SegmentedControl
+                                            data={CONDITION_OPTIONS}
+                                            value={condition}
+                                            onChange={(v) => setCondition(v as ConditionFilter)}
+                                            radius="xl"
+                                            size="xs"
+                                            fullWidth
+                                            classNames={{ root: 'condition-switch' }}
+                                            aria-label="Estado del juego"
+                                        />
+                                    </Box>
+                                    <Text fz="xs" c="dimmed" mt={4}>
+                                        Acota el catálogo a juegos nuevos o usados.
+                                    </Text>
+                                </Menu.Item>
+                            )}
                         </Menu.Dropdown>
                     </Menu>
 
@@ -381,16 +416,70 @@ export default function Navbar() {
 
                     <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 
-                    <SegmentedControl
-                        data={FORMAT_OPTIONS}
-                        value={format}
-                        onChange={(v) => setFormat(v as FormatFilter)}
-                        radius="xl"
-                        size="md"
-                        classNames={{ root: 'condition-switch' }}
-                        fullWidth
-                        aria-label="Formato"
-                    />
+                    <div>
+                        <Text fz="sm" fw={500} mb={6}>Formato</Text>
+                        <SegmentedControl
+                            data={FORMAT_OPTIONS}
+                            value={format}
+                            onChange={(v) => setFormat(v as FormatFilter)}
+                            radius="xl"
+                            size="md"
+                            classNames={{ root: 'condition-switch switch-icon-pop' }}
+                            fullWidth
+                            aria-label="Formato"
+                        />
+                    </div>
+
+                    {format !== 'digital' && (
+                        <div>
+                            <Text fz="sm" fw={500} mb={6}>Estado físico</Text>
+                            <SegmentedControl
+                                data={CONDITION_OPTIONS}
+                                value={condition}
+                                onChange={(v) => setCondition(v as ConditionFilter)}
+                                radius="xl"
+                                size="md"
+                                fullWidth
+                                classNames={{ root: 'condition-switch' }}
+                                aria-label="Estado del juego"
+                            />
+                            <Text fz="xs" c="dimmed" mt={4}>
+                                Acota el catálogo a juegos nuevos o usados.
+                            </Text>
+                        </div>
+                    )}
+
+                    <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
+
+                    <div>
+                        <Text fz="sm" fw={500} mb={6}>Tema</Text>
+                        <SegmentedControl
+                            data={THEME_OPTIONS}
+                            value={isDark ? 'dark' : 'light'}
+                            onChange={(v) => setColorScheme(v as 'light' | 'dark')}
+                            radius="xl"
+                            size="md"
+                            fullWidth
+                            classNames={{ root: 'condition-switch theme-switch switch-icon-pop' }}
+                            aria-label="Tema"
+                        />
+                    </div>
+
+                    <div>
+                        <Switch
+                            checked={includeInternational}
+                            onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
+                            label="Tiendas internacionales"
+                            size="sm"
+                            color="primaryRed"
+                            styles={{ label: { cursor: 'pointer' } }}
+                        />
+                        <Text fz="xs" c="dimmed" mt={4}>
+                            Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
+                        </Text>
+                    </div>
+
+                    <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 
                     <Button
                         component={Link}

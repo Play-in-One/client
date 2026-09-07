@@ -42,3 +42,38 @@ export const PLATFORM_LABEL_OVERRIDES: Record<string, string> = {
     switch: 'sw',
     switch2: 'sw2',
 };
+
+/**
+ * Cuántas tarjetas muestra la sección "Otros juegos populares" de la ficha.
+ *
+ * Vive aquí y no en `PopularGamesSection` porque ese módulo es `'use client'`:
+ * lo que un Server Component importa de un módulo cliente NO es el valor, es
+ * una referencia de módulo. Exportada desde allá, esta constante llegaba a
+ * `page.tsx` como `undefined` y `sampleBy` devolvía una lista vacía sin error —
+ * la sección simplemente no se renderizaba.
+ */
+export const POPULAR_SAMPLE_SIZE = 4;
+
+/**
+ * `count` elementos al azar, sin repetir y sin mutar la entrada.
+ *
+ * El muestreo vive aquí y no en el backend a propósito: `/api/games/popular/`
+ * devuelve una lista ESTABLE, y por eso su respuesta se cachea en Redis, en el
+ * Data Cache de Next y en el navegador. Sortear en el servidor haría cada
+ * respuesta distinta y perdería los tres niveles de caché a la vez.
+ */
+export function sampleBy<T extends { id: number }>(
+    items: T[],
+    count: number,
+    excludeId?: number,
+): T[] {
+    const pool = excludeId == null ? [...items] : items.filter((it) => it.id !== excludeId);
+    // Fisher-Yates PARCIAL: solo se baraja el prefijo que se va a devolver, no
+    // los 40 elementos enteros.
+    const take = Math.min(count, pool.length);
+    for (let i = 0; i < take; i++) {
+        const j = i + Math.floor(Math.random() * (pool.length - i));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, take);
+}

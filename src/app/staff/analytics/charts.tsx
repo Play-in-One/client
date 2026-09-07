@@ -17,7 +17,7 @@ import {
     YAxis,
 } from 'recharts';
 
-import type { DailyFunnel, DailyTraffic, SellerStat } from '@/lib/types';
+import type { DailyFunnel, DailyTraffic, PagePerfRow, SellerStat } from '@/lib/types';
 
 /* Gráficos del dashboard interno.
  *
@@ -33,6 +33,9 @@ const COLORS = {
     views: '#6366F1',
     clicks: '#F97316',
     offers: '#EF4444',
+    lcp: '#8B5CF6',
+    ttfb: '#06B6D4',
+    server: '#F59E0B',
 };
 
 /** Etiqueta corta para el eje X: '2026-08-27' → '27/08'. */
@@ -140,6 +143,40 @@ export function DevicesChart({ series }: { series: DailyTraffic[] }) {
                 <Bar dataKey="mobile_visits" name="Móvil" stackId="d" fill={COLORS.sessions} />
                 <Bar dataKey="tablet_visits" name="Tablet" stackId="d" fill={COLORS.fresh} />
             </BarChart>
+        </ResponsiveContainer>
+    );
+}
+
+/** Cómo evoluciona el p75 día a día: LCP, TTFB y tiempo de servidor.
+ *
+ *  Se dibuja el p75 y no la media porque la media de una página que va bien
+ *  para casi todos y fatal para uno de cada veinte parece buena, y esos son
+ *  justo los casos que hay que arreglar.
+ *
+ *  Los puntos vienen de la fila global de cada día (`page_path: ""`). No se
+ *  puede componer a partir de las filas por ruta: un percentil no es promediable. */
+export function PerfChart({ series }: { series: PagePerfRow[] }) {
+    const axis = useAxisColor();
+    return (
+        <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} />
+                <XAxis dataKey="date" tickFormatter={shortDate} stroke={axis} fontSize={11} />
+                <YAxis
+                    stroke={axis} fontSize={11} allowDecimals={false}
+                    tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}s` : `${v}`)}
+                />
+                <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    labelFormatter={shortDate}
+                    formatter={(value: number) => `${Math.round(value)} ms`}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="lcp_p75" name="LCP p75" stroke={COLORS.lcp} strokeWidth={2} dot={false} connectNulls />
+                <Line type="monotone" dataKey="ttfb_p75" name="TTFB p75" stroke={COLORS.ttfb} strokeWidth={2} dot={false} connectNulls />
+                <Line type="monotone" dataKey="server_p75" name="Servidor p75" stroke={COLORS.server} strokeWidth={2} dot={false} strokeDasharray="4 3" connectNulls />
+            </LineChart>
         </ResponsiveContainer>
     );
 }

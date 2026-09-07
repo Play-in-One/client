@@ -42,6 +42,7 @@ import type {
 import { useAdmin } from '@/context/AdminContext';
 import { RetentionLegend, RetentionMatrix } from './RetentionMatrix';
 import { ActivityHeatmap } from './ActivityHeatmap';
+import { PerformancePanel } from './PerformancePanel';
 
 // Recharts pesa: se carga aparte y solo en el cliente, igual que en el detalle
 // de juego. El dashboard es interno y no necesita renderizarse en el servidor.
@@ -351,6 +352,10 @@ export function AnalyticsClient() {
                         <RetentionMatrix cohorts={reports.retention.cohorts} />
                         <RetentionLegend />
                     </Panel>
+
+                    {/* Rendimiento aparte: tiene su propio rango (la ventana de
+                        datos en crudo es más corta) y sus propias peticiones. */}
+                    <PerformancePanel />
                 </Stack>
             )}
         </Container>

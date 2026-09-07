@@ -14,6 +14,12 @@ async function cookieValue(page: Page, name: string): Promise<string | undefined
 
 const banner = (page: Page) => page.getByRole('dialog', { name: 'Preferencias de cookies' });
 
+/** El JSON de `pio_consent`, ya decodificado. */
+async function storedConsent(page: Page): Promise<Record<string, unknown> | undefined> {
+    const raw = await cookieValue(page, 'pio_consent');
+    return raw ? JSON.parse(decodeURIComponent(raw)) : undefined;
+}
+
 test('el aviso aparece en la primera visita', async ({ page }) => {
     await page.goto('/');
     await expect(banner(page)).toBeVisible();
@@ -55,6 +61,53 @@ test('«solo lo esencial» no deja cookie de visitante', async ({ page }) => {
 
     await page.reload();
     await expect(banner(page)).toBeHidden();
+});
+
+test('aceptar concede también la personalización publicitaria', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Aceptar' }).click();
+
+    await expect.poll(async () => (await storedConsent(page))?.ads).toBe(true);
+});
+
+test('«solo lo esencial» deja los anuncios sin personalizar', async ({ page }) => {
+    // Los anuncios se siguen mostrando: lo que queda apagado es que Google los
+    // elija según la navegación. Verlo en la cookie es la única forma de
+    // distinguir «no personalizado» de «no hay anuncio».
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+
+    await expect.poll(async () => (await storedConsent(page))?.ads).toBe(false);
+});
+
+test('el eje publicitario se cambia sin tocar la medición', async ({ page }) => {
+    // Los tres interruptores de /cookies viajan por el mismo endpoint, que
+    // reconstruye el estado entero. Sin reenviar el valor actual de cada eje,
+    // tocar uno apagaría los otros de rebote.
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
+
+    await page.goto('/cookies');
+    await page.getByText('Anuncios ajustados a mis intereses').click();
+
+    await expect.poll(async () => (await storedConsent(page))?.ads).toBe(false);
+    // La analítica sigue en pie: la cookie de visitante no se ha movido.
+    expect(await cookieValue(page, 'pio_vid')).toBeTruthy();
+    expect((await storedConsent(page))?.analytics).toBe(true);
+});
+
+test('el opt-out total arrastra la personalización publicitaria', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await expect.poll(async () => (await storedConsent(page))?.ads).toBe(true);
+
+    await page.goto('/cookies');
+    await page.getByText('Contarme en las estadísticas anónimas').click();
+
+    // Quien pide no aparecer en ninguna cifra tampoco quiere que le perfilen.
+    await expect.poll(async () => (await storedConsent(page))?.ads).toBe(false);
+    expect((await storedConsent(page))?.measure).toBe(false);
 });
 
 test('el identificador sobrevive a la navegación y viaja en los eventos', async ({ page }) => {

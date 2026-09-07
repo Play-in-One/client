@@ -329,6 +329,92 @@ export interface RetentionReport {
     cohorts: RetentionCohortRow[];
 }
 
+/* ── Rendimiento percibido (RUM) ── */
+
+/** Percentiles de un día, o de un rango. `page_path: ""` = todo el sitio. */
+export interface PagePerfRow {
+    page_path: string;
+    samples: number;
+    date?: string;
+    lcp_p50: number | null;
+    lcp_p75: number | null;
+    lcp_p95: number | null;
+    ttfb_p50: number | null;
+    ttfb_p75: number | null;
+    ttfb_p95: number | null;
+    load_p50: number | null;
+    load_p75: number | null;
+    load_p95: number | null;
+    server_p50: number | null;
+    server_p75: number | null;
+    server_p95: number | null;
+    inp_p75: number | null;
+    fcp_p75: number | null;
+    cls_p75: number | null;
+    good_lcp: number;
+    poor_lcp: number;
+    good_lcp_rate?: number;
+    poor_lcp_rate?: number;
+}
+
+export interface PerformanceReport {
+    start: string;
+    end: string;
+    /** Solo la fila global de cada día: es el único p75 componible en el tiempo. */
+    series: PagePerfRow[];
+    totals: PagePerfRow | { samples: number };
+    /** Excluye la fila global; ordenado de peor a mejor. */
+    by_path: PagePerfRow[];
+    /** Días de historial en crudo que hay realmente. */
+    raw_window_days: number;
+    /** `true` si se pidió un rango mayor del que existe en crudo. */
+    truncated: boolean;
+}
+
+/** Una carga concreta, con todo su detalle. Lo que se mira para un caso suelto. */
+export interface PageLoadDetail {
+    id: number;
+    created_at: string;
+    page_path: string;
+    request_id: string;
+    nav_type: string;
+    cache_state: string;
+    dns_ms: number | null;
+    tcp_ms: number | null;
+    tls_ms: number | null;
+    request_ms: number | null;
+    response_ms: number | null;
+    ttfb_ms: number | null;
+    dom_interactive_ms: number | null;
+    dom_content_loaded_ms: number | null;
+    load_event_ms: number | null;
+    fcp_ms: number | null;
+    lcp_ms: number | null;
+    inp_ms: number | null;
+    cls: number | null;
+    server_ms: number | null;
+    server_db_ms: number | null;
+    server_queries: number | null;
+    api_calls: number | null;
+    server_view: string;
+    device_type: string;
+    connection_type: string;
+    country: string;
+    session_id: string;
+    lcp_rating: string;
+    network_ms: number | null;
+    /** TTFB menos lo que fue Django: el render de Next. Derivado. */
+    frontend_ms: number | null;
+    client_render_ms: number | null;
+}
+
+export interface SlowestReport {
+    start: string;
+    end: string;
+    metric: string;
+    results: PageLoadDetail[];
+}
+
 /* ── Paginated response wrapper ── */
 export interface PaginatedResponse<T> {
     count: number;

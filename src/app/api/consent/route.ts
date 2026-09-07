@@ -19,7 +19,7 @@ import {
  * servidor: si el identificador lo generase el navegador, cualquiera podría
  * fabricarse los que quisiera e inflar el conteo de visitantes.
  *
- * POST   /api/consent   { choice: 'accept' | 'essential' | 'reject-all', method? }
+ * POST   /api/consent   { choice: 'accept' | 'essential' | 'reject-all', ads?, method? }
  * DELETE /api/consent   → ejerce el derecho de supresión y borra las cookies
  */
 
@@ -71,16 +71,20 @@ async function recordServerSide(
 
 export async function POST(request: NextRequest) {
     let choice: ConsentChoice = 'essential';
+    let ads = false;
     let method = 'banner';
     try {
         const body = await request.json();
         if (body?.choice === 'accept' || body?.choice === 'reject-all') choice = body.choice;
+        // Estrictamente `true`: un cuerpo con basura no debe conceder
+        // personalización publicitaria por accidente.
+        if (body?.ads === true) ads = true;
         if (body?.method === 'settings') method = 'settings';
     } catch {
         /* sin cuerpo válido se asume la opción mínima, nunca la que más mide */
     }
 
-    const state = buildConsent(choice);
+    const state = buildConsent(choice, ads);
     const signingSecret = secret();
     const existingToken = request.cookies.get(VISITOR_COOKIE)?.value ?? '';
 
@@ -94,6 +98,7 @@ export async function POST(request: NextRequest) {
     await recordServerSide(request, {
         policy_version: POLICY_VERSION,
         analytics: state.analytics,
+        ads: state.ads,
         method,
         visitor_id: visitorToken || existingToken,
     });

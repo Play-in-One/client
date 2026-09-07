@@ -35,14 +35,20 @@ export default function TermsPage() {
                     Nuestra web enlaza a tiendas de terceros. No nos hacemos responsables del contenido, privacidad, ni de las transacciones que ocurran en esos sitios web.
                 </Text>
 
-                <Text fw={700} mb="xs">5. Modificaciones</Text>
+                <Text fw={700} mb="xs">5. Publicidad</Text>
+                <Text fz="md" c="dimmed" mb="lg">
+                    La plataforma se financia mostrando anuncios de Google AdSense en un bloque al final de la ficha de cada juego. Esos anuncios los selecciona Google, no nosotros: no revisamos uno a uno lo que aparece ahí, no respaldamos a los anunciantes ni sus productos, y no intervenimos en lo que ocurra si haces clic en uno. La publicidad tampoco influye en el orden de las ofertas ni en qué tiendas aparecen: el comparador se ordena por precio y popularidad, y ninguna tienda paga por posicionarse. Cómo funciona a efectos de datos personales está en la{' '}
+                    <Anchor component={Link} href="/privacy">Política de Privacidad</Anchor>.
+                </Text>
+
+                <Text fw={700} mb="xs">6. Modificaciones</Text>
                 <Text fz="md" c="dimmed" mb="lg">
                     Nos reservamos el derecho a modificar estos términos en cualquier momento. El uso continuado de la plataforma tras haber realizado cambios implica tu aceptación de las nuevas políticas.
                 </Text>
 
-                <Text fw={700} mb="xs">6. Privacidad</Text>
+                <Text fw={700} mb="xs">7. Privacidad</Text>
                 <Text fz="md" c="dimmed">
-                    No pedimos registro ni creamos cuentas de usuario, y no compartimos datos con terceros. Qué medimos exactamente, con qué base legal, cuánto tiempo lo conservamos y cómo ejercer tus derechos está detallado en la{' '}
+                    No pedimos registro ni creamos cuentas de usuario. Los únicos datos que salen de nuestros servidores son los que Google recoge por su cuenta al cargar el bloque de anuncios; no le cedemos nada de lo que medimos. Qué medimos exactamente, con qué base legal, cuánto tiempo lo conservamos y cómo ejercer tus derechos está detallado en la{' '}
                     <Anchor component={Link} href="/privacy">Política de Privacidad</Anchor>. Las cookies que usamos y el panel para cambiar tus preferencias están en{' '}
                     <Anchor component={Link} href="/cookies">Cookies y preferencias</Anchor>.
                 </Text>

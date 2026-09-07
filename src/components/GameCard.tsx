@@ -159,13 +159,13 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                             pos="absolute"
                             top={8}
                             right={8}
-                            px={4}
-                            py={2}
+                            p={4}
                             style={{
                                 zIndex: 2,
                                 borderRadius: 'var(--mantine-radius-sm)',
                                 background: 'rgba(0,0,0,0.55)',
-                                lineHeight: 0,
+                                display: 'flex',
+                                color: 'white',
                             }}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         >

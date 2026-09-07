@@ -12,6 +12,13 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # URL pública del sitio, usada por el SEO/SSR (canonical, OG, sitemap). Horneada en build.
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3001
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# AdSense. Vacías = no se pide ni un anuncio y /ads.txt responde 404, que es el
+# estado correcto mientras la cuenta no esté aprobada. Horneadas en build:
+# cambiarlas exige reconstruir la imagen, no basta con reiniciar el contenedor.
+ARG NEXT_PUBLIC_ADSENSE_CLIENT=
+ENV NEXT_PUBLIC_ADSENSE_CLIENT=$NEXT_PUBLIC_ADSENSE_CLIENT
+ARG NEXT_PUBLIC_ADSENSE_SLOT_GAME_FOOTER=
+ENV NEXT_PUBLIC_ADSENSE_SLOT_GAME_FOOTER=$NEXT_PUBLIC_ADSENSE_SLOT_GAME_FOOTER
 RUN npm run build
 
 FROM node:22-alpine AS runner

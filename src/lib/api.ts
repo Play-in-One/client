@@ -1,7 +1,9 @@
 import type {
     Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
+    PerformanceReport, SlowestReport,
 } from './types';
+import { tryServerPerf } from './serverPerf';
 
 const API_BASE = typeof window === 'undefined'
     ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api')
@@ -64,17 +66,37 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     // fusionar juegos, que sí necesita ver ocultos).
     const attachToken = isMutation || admin;
 
-    const res = await fetch(`${API_BASE}${path}`, {
-        ...requestInit,
-        headers: {
-            // Solo en mutaciones: un GET con Content-Type deja de ser "simple
-            // request" y fuerza un preflight CORS (OPTIONS) por cada llamada.
-            // Omitirlo en GETs anónimos evita ese round-trip extra.
-            ...(isMutation ? { 'Content-Type': 'application/json' } : {}),
-            ...(attachToken && adminToken ? { Authorization: `Token ${adminToken}` } : {}),
-            ...requestInit.headers,
-        },
-    });
+    // Solo en SSR. `X-Request-Id` etiqueta esta llamada con la navegación que
+    // la provocó, para que el beacon del navegador pueda preguntarle a Django
+    // cuánto tardó en atenderla. En el navegador no se adjunta: sería una
+    // cabecera no safelisted en una petición cross-origin y forzaría un
+    // preflight en cada GET del catálogo.
+    const perf = tryServerPerf();
+    const startedAt = perf ? performance.now() : 0;
+
+    let res: Response;
+    try {
+        res = await fetch(`${API_BASE}${path}`, {
+            ...requestInit,
+            headers: {
+                // Solo en mutaciones: un GET con Content-Type deja de ser "simple
+                // request" y fuerza un preflight CORS (OPTIONS) por cada llamada.
+                // Omitirlo en GETs anónimos evita ese round-trip extra.
+                ...(isMutation ? { 'Content-Type': 'application/json' } : {}),
+                ...(attachToken && adminToken ? { Authorization: `Token ${adminToken}` } : {}),
+                ...(perf ? { 'X-Request-Id': perf.navId } : {}),
+                ...requestInit.headers,
+            },
+        });
+    } finally {
+        // En `finally` para que una llamada que revienta también cuente: una
+        // petición que tarda 30 s y muere por timeout es justo la que explica
+        // una página lenta, y omitirla dejaría el hueco sin explicación.
+        if (perf) {
+            perf.apiMs += performance.now() - startedAt;
+            perf.apiCalls += 1;
+        }
+    }
     if (!res.ok) {
         // Sesión admin inválida: si habíamos adjuntado un token y nos deniegan
         // (401/403), el token expiró o fue revocado → limpiar y avisar.
@@ -213,6 +235,65 @@ export function trackEvent(payload: EventPayload): void {
     } catch { /* never break the UI for analytics */ }
 }
 
+/** Lo que el navegador midió de una carga de página.
+
+    Todo opcional salvo la ruta: un beacon lleva lo que ese navegador supo
+    medir. Safari no da INP, una pestaña cerrada pronto no da LCP, y una página
+    servida desde la caché de ISR no tiene tiempo de render. El backend acepta
+    los huecos; exigirlos convertiría cada laguna en una medición perdida. */
+export interface PageLoadPayload {
+    page_path: string;
+    request_id?: string;
+    nav_type?: string;
+    cache_state?: 'hit' | 'miss' | 'dynamic';
+    connection_type?: string;
+    dns_ms?: number | null;
+    tcp_ms?: number | null;
+    tls_ms?: number | null;
+    request_ms?: number | null;
+    response_ms?: number | null;
+    ttfb_ms?: number | null;
+    dom_interactive_ms?: number | null;
+    dom_content_loaded_ms?: number | null;
+    load_event_ms?: number | null;
+    fcp_ms?: number | null;
+    lcp_ms?: number | null;
+    inp_ms?: number | null;
+    cls?: number | null;
+}
+
+/**
+ * Envía los tiempos de UNA carga de página. Fire-and-forget, como `trackEvent`.
+ *
+ * Vive aquí y no en un módulo aparte para compartir `measurementEnabled` y
+ * `visitorToken` en vez de duplicarlos: dos guardas de consentimiento que
+ * pueden divergir es exactamente la forma de acabar midiendo a quien pidió no
+ * ser medido, sin que nada falle.
+ *
+ * Mismo multipart deliberado que `trackEvent`: `application/json` no es
+ * CORS-safelisted, forzaría un preflight, y `sendBeacon` no puede hacerlo.
+ */
+export function sendPageLoad(payload: PageLoadPayload): void {
+    if (typeof window === 'undefined' || !measurementEnabled) return;
+    try {
+        const fd = new FormData();
+        fd.append('page_path', payload.page_path);
+
+        for (const [key, value] of Object.entries(payload)) {
+            if (key === 'page_path') continue;
+            // `null` y `undefined` se omiten en vez de mandarse como cadena:
+            // el backend los toleraría, pero no hay razón para pagar los bytes.
+            if (value === null || value === undefined || value === '') continue;
+            fd.append(key, String(value));
+        }
+        if (visitorToken) fd.append('visitor_id', visitorToken);
+
+        const url = `${API_BASE}/rum/`;
+        if (navigator.sendBeacon?.(url, fd)) return;
+        fetch(url, { method: 'POST', body: fd, keepalive: true }).catch(() => {});
+    } catch { /* never break the UI for analytics */ }
+}
+
 /* ── Games ── */
 export async function getGames(params?: {
     search?: string;
@@ -254,6 +335,31 @@ export async function getFeaturedGames(params?: {
 }) {
     const { signal, ...qsParams } = params ?? {};
     return fetcher<PaginatedResponse<Game>>(`/games/featured/${qs(qsParams)}`, { signal });
+}
+
+/**
+ * Top del catálogo por tráfico (máx. 40), como LISTA estable.
+ *
+ * La misma URL sirve a todas las fichas del sitio, y ahí está la gracia: la
+ * respuesta se cachea en Redis (backend), en el Data Cache de Next (`revalidate`)
+ * y en el navegador (`Cache-Control` del endpoint). Quien la consume baraja por
+ * su cuenta con `sampleBy()`; pedirle al backend la muestra ya hecha —o pasarle
+ * el id a excluir— rompería los tres niveles.
+ */
+export async function getPopularGames(params?: {
+    /** Cuántos devolver. El backend lo acota a 40. */
+    limit?: number;
+    condition?: string;
+    seller_scope?: string;
+    signal?: AbortSignal;
+    /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
+    revalidate?: number;
+}) {
+    const { signal, revalidate, ...qsParams } = params ?? {};
+    return fetcher<PaginatedResponse<Game>>(`/games/popular/${qs(qsParams)}`, {
+        signal,
+        ...(revalidate !== undefined ? { next: { revalidate } } : {}),
+    });
 }
 
 export async function getGameFacets(params?: {
@@ -439,4 +545,17 @@ export async function getAnalyticsRetention(weeks = 12) {
 
 export async function getAnalyticsActivity(days = 30) {
     return fetcher<ActivityReport>(`/analytics/activity/?days=${days}`, { admin: true });
+}
+
+export async function getAnalyticsPerformance(days = 28, minSamples = 5) {
+    return fetcher<PerformanceReport>(
+        `/analytics/performance/?days=${days}&min_samples=${minSamples}&top=25`,
+        { admin: true },
+    );
+}
+
+export async function getAnalyticsSlowest(days = 7, metric = 'lcp', path = '') {
+    const query = new URLSearchParams({ days: String(days), metric, limit: '50' });
+    if (path) query.set('path', path);
+    return fetcher<SlowestReport>(`/analytics/performance/slowest/?${query}`, { admin: true });
 }
