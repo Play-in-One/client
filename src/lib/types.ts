@@ -58,7 +58,11 @@ export interface Product {
     url: string;
     image: string | null;
     seller: Seller;
-    condition: 'new' | 'used' | 'digital';
+    /* El backend guarda de DÓNDE sale una descarga, no solo que lo es: `store`
+     * es la tienda oficial y `key` un código de canje. La UI las colapsa todas
+     * en "Digital" (ver `lib/conditions.ts`); comparar `=== 'digital'` por
+     * igualdad se come las otras tres. */
+    condition: 'new' | 'used' | 'digital' | 'store' | 'key' | 'download';
     game: number | null;
     /** Precio EFECTIVO: lista + envío de la tienda. Es el que se muestra, se
      *  ordena y se compara en toda la plataforma. */
@@ -112,6 +116,10 @@ export interface Game {
      *  min_price, así que el precio y el "dónde se consigue" no pueden
      *  discrepar. null cuando el juego no tiene ninguna oferta con precio. */
     min_price_seller?: { id: number; name: string } | null;
+    /** Condición de la MISMA oferta que fija `min_price`, en el vocabulario de
+     *  almacenamiento. Opcional: un backend anterior no lo manda y la tarjeta
+     *  simplemente no pinta el 💾. */
+    min_price_condition?: Product['condition'] | null;
     /** Cuándo se registró por última vez ese precio. Es la señal de frescura:
      *  alimenta el priceValidUntil del dato estructurado y el "precio
      *  actualizado el …" que se muestra y se cita. */

@@ -31,10 +31,16 @@ import {
     updateProduct,
 } from '@/lib/api';
 
+/* Estas EDITAN el dato, así que hablan el vocabulario de almacenamiento y no
+ * colapsan la familia digital — al revés que el resto de la UI. No fusionar con
+ * las del Navbar: allí se filtra, aquí se corrige de dónde sale la oferta. */
 const CONDITION_OPTIONS = [
     { value: 'new', label: 'Nuevo' },
     { value: 'used', label: 'Usado' },
-    { value: 'digital', label: 'Digital' },
+    { value: 'digital', label: 'Digital (genérico)' },
+    { value: 'store', label: 'Digital · tienda oficial' },
+    { value: 'key', label: 'Digital · código' },
+    { value: 'download', label: 'Digital · descarga' },
 ];
 
 /* ── Buscador de juegos reutilizable (reasignar / fusionar) ── */
@@ -395,7 +401,7 @@ function ProductRow({ product, platforms }: { product: Product; platforms: Platf
                                     updateProduct(product.id, {
                                         url,
                                         platform: platformId ? Number(platformId) : undefined,
-                                        condition: (condition as 'new' | 'used' | 'digital') ?? undefined,
+                                        condition: (condition as Product['condition']) ?? undefined,
                                     }),
                                 'Producto actualizado.',
                             )

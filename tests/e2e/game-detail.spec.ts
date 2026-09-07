@@ -138,9 +138,15 @@ test('solo las tiendas internacionales se marcan con el globo', async ({ page })
 });
 
 test('los badges de condición se muestran', async ({ page }) => {
+    /* Acotado a la TABLA de ofertas a propósito. Antes buscaba 'Nuevo' y
+       'Usado' en toda la página, y como el navbar tenía un control con
+       "Nuevos"/"Usados" el test pasaba por coincidencia de subcadena aunque la
+       ficha no hubiera cargado: nunca llegó a mirar un badge. Al mover ese
+       control al menú de preferencias quedó al descubierto. */
     await page.goto('/game/1');
-    await expect(page.getByText('Nuevo')).toBeVisible();
-    await expect(page.getByText('Usado')).toBeVisible();
+    const tabla = page.getByRole('table');
+    await expect(tabla.getByText('Nuevo', { exact: true })).toBeVisible();
+    await expect(tabla.getByText('Usado', { exact: true })).toBeVisible();
 });
 
 test('el botón de ir a la tienda apunta a la URL del producto', async ({ page }) => {

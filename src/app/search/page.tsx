@@ -76,7 +76,7 @@ export default async function SearchPage({
     const cheapest = games.find((g) => g.min_price != null);
     const description = cheapest
         ? `Comparamos ${total.toLocaleString('es-CL')} videojuegos entre tiendas chilenas. ` +
-          `Los precios incluyen el envío promedio de cada tienda; el más barato del catálogo ` +
+          `El más barato del catálogo ` +
           `ahora es ${cheapest.name} a ${formatCLP(cheapest.min_price!)}` +
           `${cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : ''}.`
         : 'Busca y compara precios de videojuegos entre tiendas chilenas.';

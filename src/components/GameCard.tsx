@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
+import DigitalBadge from './DigitalBadge';
+import { isDigital } from '@/lib/conditions';
 import ShippingInfo from './ShippingInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
@@ -140,6 +142,34 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                 size="md"
                                 styles={{ input: { cursor: 'pointer' } }}
                             />
+                        </Box>
+                    )}
+
+                    {/* La condición de la oferta que fija el precio mostrado.
+                        Va arriba a la derecha porque arriba a la izquierda está
+                        el checkbox de fusión, y sobre un fondo propio para que
+                        se lea encima de cualquier carátula.
+
+                        Sin `pointerEvents:'none'` (al revés que el overlay de
+                        admin): el tooltip necesita hover y foco. Y con el click
+                        cortado, porque la tarjeta entera es un <Link> y tocar
+                        el emoji para leer el tooltip navegaría a la ficha. */}
+                    {isDigital(game.min_price_condition) && (
+                        <Box
+                            pos="absolute"
+                            top={8}
+                            right={8}
+                            px={4}
+                            py={2}
+                            style={{
+                                zIndex: 2,
+                                borderRadius: 'var(--mantine-radius-sm)',
+                                background: 'rgba(0,0,0,0.55)',
+                                lineHeight: 0,
+                            }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                        >
+                            <DigitalBadge condition={game.min_price_condition} size={15} />
                         </Box>
                     )}
                 </Box>

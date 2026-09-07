@@ -380,7 +380,7 @@ export interface ProductPatch {
     platform?: number;   // Platform id
     url?: string;
     image?: string;
-    condition?: 'new' | 'used' | 'digital';
+    condition?: Product['condition'];
     game?: number;       // reasignar a otro juego
 }
 

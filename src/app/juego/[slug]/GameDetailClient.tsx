@@ -43,7 +43,7 @@ import {
 import { trackEvent } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product } from '@/lib/types';
-import type { Prefs } from '@/lib/prefs';
+import { allowedConditionsFor, type ConditionFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS } from '@/lib/platformIcons';
 import { surfaces, decorative } from '@/lib/colors';
@@ -52,12 +52,29 @@ import CollapsibleText from '@/components/CollapsibleText';
 import PlatformBadge from '@/components/PlatformBadge';
 import ShippingInfo from '@/components/ShippingInfo';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
+import DigitalBadge from '@/components/DigitalBadge';
+import {
+    CONDITION_BADGE_COLOR,
+    CONDITION_LABEL,
+    conditionBucket,
+    conditionLabelFor,
+} from '@/lib/conditions';
 // recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
 // (fuera del bundle inicial del detalle) y solo en el cliente.
 const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), { ssr: false });
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
 import { AdminGameControls, AdminProductEditor } from './AdminControls';
+
+/* El valor que le toca al Select local según el par del navbar. `null` = sin
+ * acotar, que es lo que corresponde a "físico + todos": ese caso no es
+ * representable en un Select de valor único, y las ofertas ya las recorta
+ * `navbarAllowed`. */
+function selectValueFor(format: FormatFilter, condition: ConditionFilter): string | null {
+    if (format === 'digital') return 'digital';
+    if (condition !== 'all') return condition;
+    return null;
+}
 
 export default function GameDetailClient({
     initialGame,
@@ -67,7 +84,7 @@ export default function GameDetailClient({
     initialPrefs: Prefs;
 }) {
     const searchParams = useSearchParams();
-    const { condition, includeInternational, ready, isSaved, toggleSaved } = useApp();
+    const { condition, format, includeInternational, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
     const game = initialGame;
@@ -84,20 +101,27 @@ export default function GameDetailClient({
        nada que corregir después. Sin esto, las ofertas importadas asomaban un
        instante en cada carga. */
     const effectivePrefs: Prefs = ready
-        ? { condition, international: includeInternational }
+        ? { condition, format, international: includeInternational }
         : initialPrefs;
 
+    /* El Select local es de valor único y no puede expresar "físico = nuevo o
+       usado", así que guarda el BUCKET (o null) y el par del navbar se aplica
+       aparte, como conjunto permitido. */
     const [conditionFilter, setConditionFilter] = useState<string | null>(
-        initialPrefs.condition !== 'all' ? initialPrefs.condition : null,
+        selectValueFor(initialPrefs.format, initialPrefs.condition),
     );
     const [conditionManuallySet, setConditionManuallySet] = useState(false);
+    /* Lo que el navbar permite, como conjunto de condiciones ALMACENADAS. Solo
+       manda mientras el Select local esté en "Cualquier Estado": en cuanto el
+       usuario elige ahí, su elección gana (ver `conditionManuallySet`). */
+    const navbarAllowed = allowedConditionsFor(effectivePrefs.format, effectivePrefs.condition);
     // El switch del header manda mientras el usuario no elija manualmente
     // una condición en el Select local de la tabla de precios.
     useEffect(() => {
         if (!conditionManuallySet && ready) {
-            setConditionFilter(condition !== 'all' ? condition : null);
+            setConditionFilter(selectValueFor(format, condition));
         }
-    }, [condition, conditionManuallySet, ready]);
+    }, [condition, format, conditionManuallySet, ready]);
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
     // Edición admin: toggles independientes para el panel del juego y por producto.
     const [editingGame, setEditingGame] = useState(false);
@@ -133,7 +157,10 @@ export default function GameDetailClient({
     // valor vive en localStorage.
     const products = (game.products ?? []).filter((p) => {
         if (selectedPlatform && p.platform.name !== selectedPlatform) return false;
-        if (conditionFilter && p.condition !== conditionFilter) return false;
+        // Por BUCKET y no por igualdad: la opción "Digital" del Select tiene
+        // que casar también con las ofertas guardadas como `store` o `key`.
+        if (conditionFilter && conditionBucket(p.condition) !== conditionFilter) return false;
+        if (!conditionFilter && navbarAllowed && !navbarAllowed.has(p.condition)) return false;
         if (!effectivePrefs.international && p.seller.is_international) return false;
         return true;
     });
@@ -221,18 +248,6 @@ export default function GameDetailClient({
 
     // Seller initials color map
     const sellerColors = ['#7C3AED', '#2563EB', '#6366F1', '#6B7280', '#F97316'];
-
-    const conditionLabel: Record<string, string> = {
-        new: 'Nuevo',
-        used: 'Usado',
-        digital: 'Digital',
-    };
-
-    const conditionBadgeColor: Record<string, string> = {
-        new: 'blue',
-        used: 'yellow',
-        digital: 'grape',
-    };
 
     const breadcrumbPlatform = game.platforms.find((p) => p.name === selectedPlatform) ?? game.platforms[0];
 
@@ -522,15 +537,23 @@ export default function GameDetailClient({
 
                                 <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" style={{ position: 'relative', zIndex: 1 }}>
                                     <Box>
-                                        <Badge
-                                            color="primaryRed"
-                                            variant="light"
-                                            size="sm"
-                                            leftSection={<IconTag size={12} />}
-                                            mb="sm"
-                                        >
-                                            Mejor Precio {selectedPlatform?.toUpperCase()}
-                                        </Badge>
+                                        {/* El 💾 va junto al rótulo de la oferta y
+                                            no pegado a la cifra: dice qué es lo
+                                            que se compra, no cuánto vale.
+                                            `bestProduct` ya sale del listado
+                                            filtrado, así que respeta los filtros
+                                            activos sin pedir nada más. */}
+                                        <Group gap={8} align="center" mb="sm">
+                                            <Badge
+                                                color="primaryRed"
+                                                variant="light"
+                                                size="sm"
+                                                leftSection={<IconTag size={12} />}
+                                            >
+                                                Mejor Precio {selectedPlatform?.toUpperCase()}
+                                            </Badge>
+                                            <DigitalBadge condition={bestProduct?.condition} size={16} />
+                                        </Group>
 
                                         <Group gap="sm" align="baseline" mb="sm">
                                             <Text fz={42} fw={800} lh={1}>{formatCLP(bestPrice)}</Text>
@@ -601,7 +624,7 @@ export default function GameDetailClient({
                                     platformOptions.find((pl) => pl.name === selectedPlatform)?.display_name ??
                                     selectedPlatform
                                 }
-                                conditionLabel={conditionFilter ? conditionLabel[conditionFilter] : null}
+                                conditionLabel={conditionFilter ? CONDITION_LABEL[conditionFilter as 'new' | 'used' | 'digital'] : null}
                             />
                         )}
 
@@ -753,12 +776,13 @@ export default function GameDetailClient({
                                                     </Table.Td>
                                                     <Table.Td style={{ whiteSpace: 'nowrap' }}>
                                                         <Badge
-                                                            color={conditionBadgeColor[p.condition] ?? 'gray'}
+                                                            color={CONDITION_BADGE_COLOR[conditionBucket(p.condition)]}
                                                             variant="light"
                                                             size="sm"
                                                             styles={{ label: { overflow: 'visible' } }}
+                                                            leftSection={<DigitalBadge condition={p.condition} size={12} />}
                                                         >
-                                                            {conditionLabel[p.condition] ?? p.condition}
+                                                            {conditionLabelFor(p.condition)}
                                                         </Badge>
                                                     </Table.Td>
                                                     <Table.Td ta="right">

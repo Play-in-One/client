@@ -13,6 +13,14 @@ import { PREFS_COOKIE } from '@/lib/prefs';
  *
  * Sólo marca a quien se desvía del default. Para la mayoría —y para todo
  * visitante nuevo— este script no hace nada y la página pinta como siempre.
+ *
+ * OJO: la condición de abajo es un allowlist LITERAL y tiene que enumerar cada
+ * dimensión de los prefs. Es el más fácil de olvidar de los que hay que mover
+ * juntos —`parsePrefs`, `isDefaultPrefs`, la lectura legacy de AppContext y
+ * este— porque olvidarlo no rompe nada visible en desarrollo: simplemente el
+ * anti-flash deja de activarse para esa preferencia, y el parpadeo sólo se ve
+ * con la red lenta. El test que lo cubre está en `tests/e2e/flash.spec.ts` y
+ * corre con throttling a propósito.
  */
 
 // El timeout es un cinturón de seguridad: si React nunca hidrata (JS caído, un
@@ -21,7 +29,7 @@ import { PREFS_COOKIE } from '@/lib/prefs';
 const SCRIPT = `(function(){try{
 var m=document.cookie.match(/(?:^|; )${PREFS_COOKIE}=([^;]*)/);if(!m)return;
 var p=JSON.parse(decodeURIComponent(m[1]));
-if(!p||(p.international!==false&&p.condition!=='new'&&p.condition!=='used'))return;
+if(!p||(p.international!==false&&p.condition!=='new'&&p.condition!=='used'&&p.format!=='physical'&&p.format!=='digital'))return;
 var e=document.documentElement;e.setAttribute('data-prefs','pending');
 setTimeout(function(){e.removeAttribute('data-prefs')},3000);
 }catch(_){}})()`;

@@ -32,20 +32,28 @@ import {
     IconSettings,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
-import type { ConditionFilter } from '@/context/AppContext';
+import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 
+/* El neutro va al centro en los dos: es el default y el que más se elige, así
+ * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
 const CONDITION_OPTIONS = [
     { label: 'Usados', value: 'used' },
     { label: 'Todos', value: 'all' },
     { label: 'Nuevos', value: 'new' },
 ];
 
+const FORMAT_OPTIONS = [
+    { label: 'Físico', value: 'physical' },
+    { label: 'Todo', value: 'all' },
+    { label: 'Digital', value: 'digital' },
+];
+
 export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
     const {
-        searchQuery, setSearchQuery, condition, setCondition,
+        searchQuery, setSearchQuery, condition, setCondition, format, setFormat,
         includeInternational, setIncludeInternational,
     } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
@@ -191,12 +199,13 @@ export default function Navbar() {
                     <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx="xs" />
 
                     <SegmentedControl
-                        data={CONDITION_OPTIONS}
-                        value={condition}
-                        onChange={(v) => setCondition(v as ConditionFilter)}
+                        data={FORMAT_OPTIONS}
+                        value={format}
+                        onChange={(v) => setFormat(v as FormatFilter)}
                         radius="xl"
                         size="sm"
                         classNames={{ root: 'condition-switch' }}
+                        aria-label="Formato"
                     />
 
                 </Group>
@@ -287,6 +296,42 @@ export default function Navbar() {
                                     Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
                                 </Text>
                             </Menu.Item>
+
+                            {/* El estado vive aquí y no en la barra porque solo
+                                acota lo FÍSICO: una descarga no es de segunda
+                                mano. Es también el filtro que menos se cambia,
+                                y la barra la ocupa ahora el formato.
+
+                                El stopPropagation del teclado no es decorativo:
+                                el Menu usa las flechas para moverse entre items
+                                y el SegmentedControl para moverse entre
+                                opciones, así que sin él una flecha hace las dos
+                                cosas y el foco se va del control. */}
+                            <Menu.Item component="div" closeMenuOnClick={false}>
+                                <Text fz="sm" fw={500} mb={6}>Estado físico</Text>
+                                <Box onKeyDown={(e) => e.stopPropagation()}>
+                                    <SegmentedControl
+                                        data={CONDITION_OPTIONS}
+                                        /* Con formato digital se muestra "Todos"
+                                           sin tocar el valor guardado: quien
+                                           tenía "Usados" lo recupera al volver a
+                                           Físico. Se apaga el control, no el dato. */
+                                        value={format === 'digital' ? 'all' : condition}
+                                        onChange={(v) => setCondition(v as ConditionFilter)}
+                                        disabled={format === 'digital'}
+                                        radius="xl"
+                                        size="xs"
+                                        fullWidth
+                                        classNames={{ root: 'condition-switch' }}
+                                        aria-label="Estado del juego"
+                                    />
+                                </Box>
+                                <Text fz="xs" c="dimmed" mt={4}>
+                                    {format === 'digital'
+                                        ? 'No afecta al catalogo digital.'
+                                        : 'Acota el catálogo a juegos nuevos o usados.'}
+                                </Text>
+                            </Menu.Item>
                         </Menu.Dropdown>
                     </Menu>
 
@@ -337,13 +382,14 @@ export default function Navbar() {
                     <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 
                     <SegmentedControl
-                        data={CONDITION_OPTIONS}
-                        value={condition}
-                        onChange={(v) => setCondition(v as ConditionFilter)}
+                        data={FORMAT_OPTIONS}
+                        value={format}
+                        onChange={(v) => setFormat(v as FormatFilter)}
                         radius="xl"
                         size="md"
                         classNames={{ root: 'condition-switch' }}
                         fullWidth
+                        aria-label="Formato"
                     />
 
                     <Button

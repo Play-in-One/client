@@ -18,7 +18,7 @@ import {
 import { IconBookmark, IconX, IconDeviceGamepad } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
-import type { ConditionFilter } from '@/lib/prefs';
+import { allowedConditionsFor, type ConditionFilter, type FormatFilter } from '@/lib/prefs';
 import { getGame } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/utils';
@@ -36,15 +36,18 @@ import { surfaces } from '@/lib/colors';
 function resolveForFilters(
     game: Game,
     platformSlugs: string[],
-    prefs: { condition: ConditionFilter; international: boolean },
+    prefs: { condition: ConditionFilter; format: FormatFilter; international: boolean },
 ): Game {
-    const noFilters =
-        platformSlugs.length === 0 && prefs.condition === 'all' && prefs.international;
+    /* El conjunto permitido sale del mismo sitio que el `?condition=` de la
+       API, así que la galería y esta vista no pueden interpretar el par de
+       filtros de dos maneras distintas. `null` = no acota. */
+    const allowed = allowedConditionsFor(prefs.format, prefs.condition);
+    const noFilters = platformSlugs.length === 0 && !allowed && prefs.international;
     if (noFilters) return game;
 
     const matching = (game.products ?? []).filter((p) => {
         if (platformSlugs.length > 0 && !platformSlugs.includes(p.platform.slug)) return false;
-        if (prefs.condition !== 'all' && p.condition !== prefs.condition) return false;
+        if (allowed && !allowed.has(p.condition)) return false;
         if (!prefs.international && p.seller.is_international) return false;
         return true;
     });
@@ -64,11 +67,15 @@ function resolveForFilters(
         min_price: bestProduct.current_price,
         min_price_base: bestProduct.base_price,
         min_price_shipping: bestProduct.shipping_cost,
+        // Va con el resto del desglose: sin esto la tarjeta pintaría el 💾 del
+        // ganador SIN filtrar que mandó el backend, al lado del precio del
+        // ganador ya filtrado que se acaba de recalcular aquí.
+        min_price_condition: bestProduct.condition,
     };
 }
 
 export default function SavedClient() {
-    const { savedGames, removeSaved, condition, includeInternational } = useApp();
+    const { savedGames, removeSaved, condition, format, includeInternational } = useApp();
     const [games, setGames] = useState<Game[]>([]);
     const [loading, setLoading] = useState(true);
     const [platformFilter, setPlatformFilter] = useState<string[]>([]);
@@ -114,6 +121,7 @@ export default function SavedClient() {
     )
         .map((g) => resolveForFilters(g, platformFilter, {
             condition,
+            format,
             international: includeInternational,
         }))
         .sort((a, b) => (a.developer || '').localeCompare(b.developer || ''));

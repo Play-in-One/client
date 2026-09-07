@@ -14,6 +14,8 @@
  * poder consultarla antes de que React hidrate.
  */
 
+import { DIGITAL_CONDITIONS } from './conditions';
+
 export const PREFS_COOKIE = 'pio_prefs';
 
 /* Un año. La preferencia no caduca sola: quien apagó las importadoras espera
@@ -22,8 +24,13 @@ export const PREFS_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 export type ConditionFilter = 'all' | 'new' | 'used';
 
+/** Físico ↔ digital. Es el filtro de la barra; la condición vive en el menú de
+ *  preferencias porque solo tiene sentido dentro de lo físico. */
+export type FormatFilter = 'all' | 'physical' | 'digital';
+
 export interface Prefs {
     condition: ConditionFilter;
+    format: FormatFilter;
     /** `false` esconde las tiendas internacionales en toda la plataforma. */
     international: boolean;
 }
@@ -31,7 +38,7 @@ export interface Prefs {
 /* Lo que ve quien nunca tocó nada, y el fallback de cualquier valor corrupto.
  * Coincide con lo que renderiza el servidor cuando no hay cookie, que es lo que
  * mantiene alineados los dos lados de la hidratación. */
-export const DEFAULT_PREFS: Prefs = { condition: 'all', international: true };
+export const DEFAULT_PREFS: Prefs = { condition: 'all', format: 'all', international: true };
 
 export function parsePrefs(raw: string | null | undefined): Prefs {
     if (!raw) return DEFAULT_PREFS;
@@ -42,6 +49,12 @@ export function parsePrefs(raw: string | null | undefined): Prefs {
                 parsed.condition === 'new' || parsed.condition === 'used'
                     ? parsed.condition
                     : DEFAULT_PREFS.condition,
+            // Una cookie anterior a este campo cae en 'all', que es exactamente
+            // como se comportaba antes: no hay que migrar nada ni reescribirla.
+            format:
+                parsed.format === 'physical' || parsed.format === 'digital'
+                    ? parsed.format
+                    : DEFAULT_PREFS.format,
             international:
                 typeof parsed.international === 'boolean'
                     ? parsed.international
@@ -56,8 +69,40 @@ export function parsePrefs(raw: string | null | undefined): Prefs {
 export function isDefaultPrefs(prefs: Prefs): boolean {
     return (
         prefs.condition === DEFAULT_PREFS.condition &&
+        prefs.format === DEFAULT_PREFS.format &&
         prefs.international === DEFAULT_PREFS.international
     );
+}
+
+/* El formato y la condición son DOS controles pero UN solo campo en el backend
+ * (`Product.condition`, que vale new/used/digital/store/key/download). Esta es
+ * la única traducción del par a lo que viaja en `?condition=`, y el backend
+ * expande el token a las condiciones almacenadas que representa.
+ *
+ * Con formato digital la condición se IGNORA, no se borra: quien tenía
+ * "Usados" y pasa por Digital debe recuperarlo al volver a Físico. Lo que se
+ * apaga es el control, no el dato. */
+export function conditionParamFor(
+    format: FormatFilter,
+    condition: ConditionFilter,
+): string | undefined {
+    if (format === 'digital') return 'digital';
+    if (condition !== 'all') return condition;      // nuevo/usado ya es más estrecho
+    return format === 'physical' ? 'physical' : undefined;
+}
+
+/* Las condiciones ALMACENADAS que el par admite, para quien filtra en memoria
+ * (la ficha del juego y /saved) en vez de pedirle a la API. `null` = no acota.
+ * Es el gemelo cliente de `models.CONDITION_FAMILIES`. */
+export function allowedConditionsFor(
+    format: FormatFilter,
+    condition: ConditionFilter,
+): Set<string> | null {
+    const token = conditionParamFor(format, condition);
+    if (!token) return null;
+    if (token === 'digital') return new Set(DIGITAL_CONDITIONS);
+    if (token === 'physical') return new Set(['new', 'used']);
+    return new Set([token]);
 }
 
 /** El valor de `?seller_scope=` que le toca a la API, o undefined si no acota. */

@@ -92,7 +92,7 @@ export default function HomeClient({
     const router = useRouter();
     const [query, setQuery] = useState('');
     const posts = initialPosts;
-    const { condition, sellerScopeParam, ready } = useApp();
+    const { conditionParam, sellerScopeParam, ready } = useApp();
 
     /* El efecto coverflow del carrusel de Destacados (tarjeta activa expandida
        de 520px, laterales comprimidas a la carátula) está construido con anchos
@@ -244,13 +244,17 @@ export default function HomeClient({
         if (!ready) return;
         /* El SSR se renderiza sin filtros (página cacheada y compartida), así
            que solo sirve cuando NINGUNO está activo. */
-        if (condition === 'all' && !sellerScopeParam) {
+        /* Sobre el parámetro DERIVADO, no sobre `condition`: con formato
+           "físico" y estado "todos" la condición sigue valiendo 'all' pero el
+           filtro sí acota, y reusar el SSR dejaba la home sin filtrar sin que
+           ninguna petición lo delatara. */
+        if (!conditionParam && !sellerScopeParam) {
             setTrending(initialTrending);
             setFeatured(initialFeatured);
             setFiltering(false);
             return;
         }
-        const cacheKey = `${condition}:${sellerScopeParam ?? 'all'}`;
+        const cacheKey = `${conditionParam ?? 'all'}:${sellerScopeParam ?? 'all'}`;
         const cached = filterCache.current.get(cacheKey);
         if (cached) {
             setTrending(cached.trending);
@@ -269,7 +273,7 @@ export default function HomeClient({
         let superseded = false;
         setFiltering(true);
         const query = {
-            condition: condition !== 'all' ? condition : undefined,
+            condition: conditionParam,
             seller_scope: sellerScopeParam,
         };
         Promise.all([
@@ -300,7 +304,7 @@ export default function HomeClient({
             superseded = true;
             controller.abort();
         };
-    }, [ready, condition, sellerScopeParam, initialTrending, initialFeatured]);
+    }, [ready, conditionParam, sellerScopeParam, initialTrending, initialFeatured]);
 
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();

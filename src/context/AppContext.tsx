@@ -5,18 +5,21 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
     DEFAULT_PREFS,
     PREFS_COOKIE,
+    conditionParamFor,
     parsePrefs,
     sellerScopeFor,
     writePrefsCookie,
     type ConditionFilter,
+    type FormatFilter,
     type Prefs,
 } from '@/lib/prefs';
 import { readCookie } from '@/lib/consent';
 
-export type { ConditionFilter };
+export type { ConditionFilter, FormatFilter };
 
 const CONDITION_STORAGE_KEY = 'pio_condition';
 const INTERNATIONAL_STORAGE_KEY = 'pio_international';
+const FORMAT_STORAGE_KEY = 'pio_format';
 const SAVED_GAMES_STORAGE_KEY = 'pio_saved_games';
 
 export interface SavedGame {
@@ -29,6 +32,15 @@ interface AppState {
     setSearchQuery: (q: string) => void;
     condition: ConditionFilter;
     setCondition: (c: ConditionFilter) => void;
+    /** Filtro global de formato: físico ↔ digital. Vive en la barra; la
+     *  condición (nuevo/usado) quedó en el menú de preferencias porque solo
+     *  tiene sentido dentro de lo físico. */
+    format: FormatFilter;
+    setFormat: (f: FormatFilter) => void;
+    /** El `?condition=` que le toca a la API, derivado del PAR (formato,
+     *  condición). Vive aquí por el mismo motivo que `sellerScopeParam`: la
+     *  tabla de esa traducción tiene que estar en un solo sitio. */
+    conditionParam: string | undefined;
     /** Filtro global de procedencia. Al apagarlo, las ofertas de tiendas
      *  internacionales dejan de contar en toda la plataforma. */
     includeInternational: boolean;
@@ -53,6 +65,7 @@ const AppContext = createContext<AppState | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [condition, setConditionState] = useState<ConditionFilter>('all');
+    const [format, setFormatState] = useState<FormatFilter>('all');
     // Por defecto se ven todas las tiendas: quien no quiera importaciones las
     // apaga. Arrancar apagado escondería catálogo al visitante nuevo.
     const [includeInternational, setIncludeInternationalState] = useState(true);
@@ -69,14 +82,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // localStorage queda de respaldo para quien guardó su preferencia antes
         // de que existiera la cookie.
         const stored = window.localStorage.getItem(CONDITION_STORAGE_KEY);
+        const storedFormat = window.localStorage.getItem(FORMAT_STORAGE_KEY);
         const legacy: Prefs = {
             condition: stored === 'new' || stored === 'used' ? stored : DEFAULT_PREFS.condition,
+            format:
+                storedFormat === 'physical' || storedFormat === 'digital'
+                    ? storedFormat
+                    : DEFAULT_PREFS.format,
             international: window.localStorage.getItem(INTERNATIONAL_STORAGE_KEY) !== 'false',
         };
         const cookie = readCookie(PREFS_COOKIE);
         const prefs = cookie ? parsePrefs(cookie) : legacy;
 
         setConditionState(prefs.condition);
+        setFormatState(prefs.format);
         setIncludeInternationalState(prefs.international);
         if (!cookie) writePrefsCookie(prefs);   // migración desde localStorage
         setReady(true);
@@ -87,11 +106,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
        Provider envuelve toda la app y recrearlos re-renderizaría el árbol
        entero). Estas refs les dan el valor del OTRO filtro sin capturarlo. */
     const conditionRef = useRef(condition);
+    const formatRef = useRef(format);
     const includeInternationalRef = useRef(includeInternational);
     useEffect(() => {
         conditionRef.current = condition;
+        formatRef.current = format;
         includeInternationalRef.current = includeInternational;
-    }, [condition, includeInternational]);
+    }, [condition, format, includeInternational]);
 
     /* El atributo lo pone el script del <head> antes de la primera pintura y lo
        quita React cuando ya puede renderizar con la preferencia correcta. Entre
@@ -128,13 +149,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const setCondition = useCallback((c: ConditionFilter) => {
         setConditionState(c);
         window.localStorage.setItem(CONDITION_STORAGE_KEY, c);
-        writePrefsCookie({ condition: c, international: includeInternationalRef.current });
+        writePrefsCookie({
+            condition: c,
+            format: formatRef.current,
+            international: includeInternationalRef.current,
+        });
+    }, []);
+
+    const setFormat = useCallback((f: FormatFilter) => {
+        setFormatState(f);
+        window.localStorage.setItem(FORMAT_STORAGE_KEY, f);
+        writePrefsCookie({
+            condition: conditionRef.current,
+            format: f,
+            international: includeInternationalRef.current,
+        });
     }, []);
 
     const setIncludeInternational = useCallback((v: boolean) => {
         setIncludeInternationalState(v);
         window.localStorage.setItem(INTERNATIONAL_STORAGE_KEY, String(v));
-        writePrefsCookie({ condition: conditionRef.current, international: v });
+        writePrefsCookie({
+            condition: conditionRef.current,
+            format: formatRef.current,
+            international: v,
+        });
     }, []);
 
     const persistSavedGames = useCallback((games: SavedGame[]) => {
@@ -166,6 +205,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setSearchQuery,
             condition,
             setCondition,
+            format,
+            setFormat,
+            conditionParam: conditionParamFor(format, condition),
             includeInternational,
             setIncludeInternational,
             sellerScopeParam: sellerScopeFor(includeInternational),
@@ -176,7 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             removeSaved,
         }),
         [
-            searchQuery, condition, setCondition,
+            searchQuery, condition, setCondition, format, setFormat,
             includeInternational, setIncludeInternational, ready,
             savedGames, isSaved, toggleSaved, removeSaved,
         ],

@@ -171,8 +171,15 @@ function conditionToSchema(condition: string): string {
     switch (condition) {
         case 'used':
             return 'https://schema.org/UsedCondition';
+        // La familia digital entera va explícita, aunque el default diría lo
+        // mismo: una descarga se vende nueva. Depender del default hacía que el
+        // dato estructurado fuera correcto por accidente, y el siguiente que
+        // cambiara el fallback lo rompería sin enterarse.
         case 'new':
         case 'digital':
+        case 'store':
+        case 'key':
+        case 'download':
         default:
             return 'https://schema.org/NewCondition';
     }

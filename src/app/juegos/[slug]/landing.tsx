@@ -1,13 +1,14 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Anchor, Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
+import { Container, SimpleGrid, Text, Title } from '@mantine/core';
 import { getGames, getPlatforms } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import CrawlablePagination from '@/components/CrawlablePagination';
 import FaqSection from '@/components/FaqSection';
+import CollapsibleText from '@/components/CollapsibleText';
 import { JsonLd } from '@/components/JsonLd';
+import GameExplorer from '@/components/game-explorer/GameExplorer';
 import {
     buildMetadata,
     breadcrumbJsonLd,
@@ -74,7 +75,7 @@ function platformSummary(platform: Platform, games: Game[], total: number): stri
     return (
         `${head}${where}. El juego de ${platform.display_name} más barato ahora es ` +
         `${cheapest.name} a ${formatCLP(cheapest.min_price!)}${seller}. ` +
-        'Todos los precios están en pesos chilenos e incluyen el envío promedio de cada tienda.'
+        'Todos los precios están en pesos chilenos.'
     );
 }
 
@@ -89,8 +90,7 @@ function pageSummary(platform: Platform, page: number, totalPages: number, total
     return (
         `Juegos de ${platform.display_name} del ${from} al ${to} de ` +
         `${total.toLocaleString('es-CL')}, ordenados del más barato al más caro. ` +
-        `Página ${page} de ${totalPages}. Los precios están en pesos chilenos e ` +
-        'incluyen el envío promedio de cada tienda.'
+        `Página ${page} de ${totalPages}. Los precios están en pesos chilenos.`
     );
 }
 
@@ -207,42 +207,42 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         </Text>
                     )}
                 </Title>
-                <Text c="dimmed" lh={1.6} maw={780} mb="lg">
+                <CollapsibleText label={`Sobre este catálogo de ${platform.display_name}`}>
                     {summary}
-                </Text>
+                </CollapsibleText>
 
                 {games.length > 0 ? (
-                    <>
-                        <Group justify="space-between" align="baseline" mb="md">
-                            <Title order={2} fz="xl" fw={700}>
-                                {isFirst ? 'Los más baratos ahora' : `Página ${page} de ${totalPages}`}
-                            </Title>
-                            <Anchor
-                                component={Link}
-                                href={`/search?platform=${platform.slug}`}
-                                fz="sm"
-                                c="primaryRed"
-                                underline="hover"
-                            >
-                                Filtrar y ordenar el catálogo completo
-                            </Anchor>
-                        </Group>
-                        <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 6 }} spacing="md">
-                            {games.map((game, i) => (
-                                <GameCard
-                                    key={game.id}
-                                    game={game}
-                                    platformSlug={platform.slug}
-                                    priority={i < 6}
+                    <GameExplorer
+                        lockedPlatform={{ id: platform.id, slug: platform.slug, display_name: platform.display_name }}
+                        initialGames={games}
+                        initialTotal={total}
+                        pageSize={PAGE_SIZE}
+                        defaultOrdering={ORDERING}
+                        showHeader={false}
+                        withContainer={false}
+                        staticFallback={
+                            <>
+                                <Title order={2} fz="xl" fw={700} mb="md">
+                                    {isFirst ? 'Los más baratos ahora' : `Página ${page} de ${totalPages}`}
+                                </Title>
+                                <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 6 }} spacing="md">
+                                    {games.map((game, i) => (
+                                        <GameCard
+                                            key={game.id}
+                                            game={game}
+                                            platformSlug={platform.slug}
+                                            priority={i < 6}
+                                        />
+                                    ))}
+                                </SimpleGrid>
+                                <CrawlablePagination
+                                    current={page}
+                                    total={totalPages}
+                                    hrefFor={(n) => landingPath(platform.slug, n)}
                                 />
-                            ))}
-                        </SimpleGrid>
-                        <CrawlablePagination
-                            current={page}
-                            total={totalPages}
-                            hrefFor={(n) => landingPath(platform.slug, n)}
-                        />
-                    </>
+                            </>
+                        }
+                    />
                 ) : (
                     <Text c="dimmed">
                         Ahora mismo no hay ofertas en stock para {platform.display_name}.
@@ -253,6 +253,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                 <FaqSection
                     entries={faq}
                     title={`Preguntas frecuentes sobre juegos de ${platform.display_name}`}
+                    collapsible
                 />
             )}
         </>

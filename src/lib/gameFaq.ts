@@ -12,8 +12,14 @@ import type { FaqEntry } from './seo';
 import { bestPriceSentence } from './seo';
 import { formatCLP } from './utils';
 import type { Game, MinPricePoint, Product } from './types';
+import { conditionBucket } from './conditions';
 
-const CONDITION_LABELS: Record<Product['condition'], string> = {
+/* En minúscula porque van DENTRO de una frase ("se consigue nuevo desde …"),
+ * no como rótulo suelto: por eso no se reutilizan las de `lib/conditions.ts`.
+ * Indexadas por BUCKET, así que una oferta `store` cuenta como digital. */
+type ConditionBucket = ReturnType<typeof conditionBucket>;
+
+const CONDITION_LABELS: Record<ConditionBucket, string> = {
     new: 'nuevo',
     used: 'usado',
     digital: 'digital',
@@ -25,15 +31,21 @@ const price = (value: string | null | undefined): number | null => {
     return Number.isFinite(n) ? n : null;
 };
 
-/** La oferta más barata por condición, en precio efectivo. */
-function cheapestByCondition(products: Product[]): Map<Product['condition'], Product> {
-    const best = new Map<Product['condition'], Product>();
+/** La oferta más barata por condición, en precio efectivo.
+ *
+ * Agrupa por BUCKET y no por el valor crudo: la frase de abajo recorre las tres
+ * claves fijas, así que una oferta guardada como `store` caía en una clave que
+ * nadie miraba y desaparecía del FAQ — un juego solo-digital publicaba una
+ * respuesta sin una sola oferta, en el bloque visible y en el `FAQPage`. */
+function cheapestByCondition(products: Product[]): Map<ConditionBucket, Product> {
+    const best = new Map<ConditionBucket, Product>();
     for (const product of products) {
         const value = price(product.current_price);
         if (value == null) continue;
-        const current = best.get(product.condition);
+        const bucket = conditionBucket(product.condition);
+        const current = best.get(bucket);
         if (!current || value < (price(current.current_price) ?? Infinity)) {
-            best.set(product.condition, product);
+            best.set(bucket, product);
         }
     }
     return best;
@@ -80,9 +92,7 @@ export function buildGameFaq(game: Game): FaqEntry[] {
         entries.push({
             question: `¿Dónde comprar ${game.name} barato en Chile?`,
             answer:
-                `${game.name} está disponible en ${listed}${rest}. ` +
-                'Los precios incluyen el envío promedio de cada tienda, así que ' +
-                'se pueden comparar directamente entre sí.',
+                `${game.name} está disponible en ${listed}${rest}.`
         });
     }
 
