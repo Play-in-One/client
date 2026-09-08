@@ -44,6 +44,11 @@ async function adsConfigured(page: Page): Promise<boolean> {
     return (await holder(page).count()) > 0;
 }
 
+async function homeAdsConfigured(page: Page): Promise<boolean> {
+    await page.goto('/');
+    return (await holder(page).count()) > 0;
+}
+
 test('sin ID de editor no se pide absolutamente nada a Google', async ({ page }) => {
     // El estado por defecto del repo y de cualquier entorno local. Si alguien
     // deja un ca-pub- escrito a mano en el código, este test lo caza.
@@ -131,4 +136,58 @@ test('tras aceptar, el anuncio se pide personalizado', async ({ page }) => {
     await expect
         .poll(() => page.evaluate(() => window.adsbygoogle?.requestNonPersonalizedAds))
         .toBe(0);
+});
+
+/* ── La home, que es estática ────────────────────────────────────────────────
+ *
+ * Su HTML es un documento ISR compartido por todos los visitantes, así que el
+ * país NO puede decidirse en el servidor: se resuelve en el navegador contra
+ * /api/geo. Esa diferencia con la ficha es donde se rompería el bloqueo sin
+ * que nadie lo notara, porque el fallo se ve igual que "hay anuncio".
+ */
+
+test('/api/geo responde según el país de la petición', async ({ request }) => {
+    const eea = await request.get('/api/geo', { headers: { 'CF-IPCountry': 'DE' } });
+    expect(await eea.json()).toEqual({ ads: false });
+
+    const chile = await request.get('/api/geo', { headers: { 'CF-IPCountry': 'CL' } });
+    expect(await chile.json()).toEqual({ ads: true });
+});
+
+test('la home no pide anuncio desde el EEE', async ({ page }) => {
+    const requested = await stubGoogle(page);
+    await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'DE' });
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+
+    await scrollToBottom(page);
+    await page.waitForTimeout(1000);
+
+    // El hueco SÍ está —se reserva antes de saber el país, para no mover la
+    // página cuando llega la respuesta— pero no se pide nada a Google.
+    await expect(holder(page)).toHaveCount(1);
+    await expect(page.locator('ins.adsbygoogle')).toHaveCount(0);
+    expect(requested).toEqual([]);
+});
+
+test('la home pide anuncio desde Chile', async ({ page }) => {
+    await stubGoogle(page);
+    await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'CL' });
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+
+    await scrollToBottom(page);
+
+    await expect(page.locator('ins.adsbygoogle')).toHaveCount(1);
+});
+
+test('la home no consulta el país si nadie baja hasta el anuncio', async ({ page }) => {
+    // La petición a /api/geo cuelga del mismo IntersectionObserver que el
+    // script: quien entra y se va no paga ninguna de las dos.
+    const geo: string[] = [];
+    page.on('request', (r) => { if (r.url().includes('/api/geo')) geo.push(r.url()); });
+
+    await stubGoogle(page);
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+    await page.waitForTimeout(700);
+
+    expect(geo).toEqual([]);
 });

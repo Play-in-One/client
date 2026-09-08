@@ -32,8 +32,20 @@ const RESERVED_HEIGHT = 100;
  *    se pediría anuncio personalizado a quien todavía no ha dicho nada.
  * 3. **El alto está reservado desde el primer render**, llene o no llene.
  *
- * Sin `NEXT_PUBLIC_ADSENSE_CLIENT`, sin `slot` o fuera de zona (`allowed`)
- * devuelve `null` y no queda ni el hueco: así en local no aparece nada.
+ * Sin `NEXT_PUBLIC_ADSENSE_CLIENT` o sin `slot` devuelve `null` y no queda ni
+ * el hueco: así en local no aparece nada.
+ *
+ * `allowed` admite dos formas, y la diferencia no es un capricho:
+ *
+ * - **Un booleano** en las páginas dinámicas (la ficha de juego), donde el
+ *   servidor ya leyó `CF-IPCountry` y sabe si toca anuncio. Sale gratis y,
+ *   cuando la respuesta es que no, la página no emite ni el hueco.
+ * - **Omitido** en las páginas ESTÁTICAS (la home). Su HTML es un documento
+ *   cacheado y compartido: una decisión por país tomada en el servidor se
+ *   hornearía en esa caché y se le serviría al país equivocado. Ahí el país lo
+ *   resuelve el navegador contra `/api/geo`, y el hueco se reserva igual
+ *   mientras tanto — a quien no le toque anuncio le queda un espacio en blanco,
+ *   que es preferible a mover la página bajo el cursor.
  */
 export default function AdSlot({
     slot,
@@ -41,7 +53,7 @@ export default function AdSlot({
     label = 'Publicidad',
 }: {
     slot: string;
-    allowed: boolean;
+    allowed?: boolean;
     label?: string;
 }) {
     const { ready, adsPersonalized } = useConsent();
@@ -50,11 +62,32 @@ export default function AdSlot({
     const pushed = useRef(false);
     const [near, setNear] = useState(false);
     const [filled, setFilled] = useState(false);
+    /* `null` = todavía no se sabe (solo en páginas estáticas, hasta que
+       responda /api/geo). Nunca se pide anuncio con este valor. */
+    const [geoAllowed, setGeoAllowed] = useState<boolean | null>(allowed ?? null);
 
-    const enabled = Boolean(ADSENSE_CLIENT && slot && allowed);
+    /** Hay con qué pedir un anuncio, aunque quizá no a esta persona. */
+    const configured = Boolean(ADSENSE_CLIENT && slot);
+    const enabled = configured && geoAllowed === true;
+
+    /* El país solo se pregunta cuando el hueco ya está cerca: si nadie baja
+       hasta aquí, no se gasta ni esta petición. Los errores caen del lado
+       prudente —sin anuncio— porque servirlo en el EEE sin CMP es el fallo
+       caro, y no verlo en Chile solo cuesta una impresión. */
+    useEffect(() => {
+        if (!configured || !near || allowed !== undefined) return;
+        const controller = new AbortController();
+        fetch('/api/geo', { signal: controller.signal })
+            .then((response) => (response.ok ? response.json() : { ads: false }))
+            .then((data) => setGeoAllowed(data.ads === true))
+            .catch(() => {
+                if (!controller.signal.aborted) setGeoAllowed(false);
+            });
+        return () => controller.abort();
+    }, [configured, near, allowed]);
 
     useEffect(() => {
-        if (!enabled) return;
+        if (!configured) return;
         const node = holder.current;
         if (!node) return;
         // Sin IntersectionObserver (navegador viejo) se carga sin más: es
@@ -75,7 +108,7 @@ export default function AdSlot({
         );
         observer.observe(node);
         return () => observer.disconnect();
-    }, [enabled]);
+    }, [configured]);
 
     useEffect(() => {
         if (!enabled || !near || !ready || pushed.current || !ins.current) return;
@@ -109,9 +142,14 @@ export default function AdSlot({
         return () => observer.disconnect();
     }, [enabled, near]);
 
-    // El contenedor y su aire viven DENTRO del componente: si el bloque no
-    // aplica, la página no queda con un hueco vacío de 60px al fondo.
-    if (!enabled) return null;
+    /* El contenedor y su aire viven DENTRO del componente: si el bloque no
+       aplica, la página no queda con un hueco vacío al fondo.
+
+       Se sale por `allowed === false` —el servidor ya dijo que no— pero NO por
+       `geoAllowed === false`, que es la misma negativa llegando tarde desde
+       /api/geo: para entonces el hueco ya está pintado, y quitarlo movería la
+       página. Se queda en blanco, que cuesta menos. */
+    if (!configured || allowed === false) return null;
 
     return (
         <Container
@@ -132,21 +170,27 @@ export default function AdSlot({
             >
                 {label}
             </Text>
+            {/* El alto está en el Box, no en el `<ins>`: así el hueco mide lo
+                mismo antes y después de saberse el país, y el anuncio puede
+                aparecer sin mover nada. */}
             <Box mih={RESERVED_HEIGHT} style={{ overflow: 'hidden' }}>
-                <ins
-                    ref={ins}
-                    className="adsbygoogle"
-                    style={{ display: 'block', minHeight: RESERVED_HEIGHT }}
-                    data-ad-client={ADSENSE_CLIENT}
-                    data-ad-slot={slot}
-                    data-ad-format="horizontal"
-                    /* `false` a propósito: en true el anuncio se va a ancho
-                       completo en móvil y su alto deja de ser predecible, que
-                       es justo lo que el hueco reservado intenta evitar. */
-                    data-full-width-responsive="false"
-                />
+                {enabled && (
+                    <ins
+                        ref={ins}
+                        className="adsbygoogle"
+                        style={{ display: 'block', minHeight: RESERVED_HEIGHT }}
+                        data-ad-client={ADSENSE_CLIENT}
+                        data-ad-slot={slot}
+                        data-ad-format="horizontal"
+                        /* `false` a propósito: en true el anuncio se va a ancho
+                           completo en móvil y su alto deja de ser predecible,
+                           que es justo lo que el hueco reservado intenta
+                           evitar. */
+                        data-full-width-responsive="false"
+                    />
+                )}
             </Box>
-            {near && (
+            {enabled && near && (
                 <Script
                     id="adsbygoogle-loader"
                     src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}

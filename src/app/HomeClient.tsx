@@ -33,6 +33,8 @@ import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
+import AdSlot from '@/components/AdSlot';
+import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
 import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
 
 /* Skeleton con la silueta del carrusel de Destacados: tarjeta activa
@@ -597,7 +599,10 @@ export default function HomeClient({
 
             {/* ══════ POPULARES ESTA SEMANA ══════ */}
             {(trending.length > 0 || filtering) && (
-                <Box py={60}>
+                /* Cierra con 20 y no con los 60 del resto: sumado a la apertura
+                   de "Noticias" daban 120 px de hueco, el doble que entre
+                   cualquier otro par de secciones. */
+                <Box pt={60} pb={20}>
                     <Container size="lg">
                         <Group justify="space-between" align="flex-end" mb="xl">
                             <Box>
@@ -709,6 +714,12 @@ export default function HomeClient({
                     </SimpleGrid>
                 </Container>
             </Box>
+
+            {/* ══════ PUBLICIDAD ══════ */}
+            {/* Sin prop `allowed`: la home es ISR y su HTML se comparte entre
+                todos los visitantes, así que el país lo resuelve el navegador
+                contra /api/geo. Ver AdSlot. */}
+            <AdSlot slot={AD_SLOT_HOME_FOOTER} />
 
             {/* ══════ EXPLORAR POR PLATAFORMA ══════ */}
             <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>

@@ -12,8 +12,15 @@
 /** ID de editor, `ca-pub-…`. Vacío = no se pide ni un anuncio. */
 export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? '';
 
+/* Un bloque por ubicación, y no el mismo repetido: AdSense informa por unidad,
+   así que compartir slot entre dos sitios suma los números y deja sin forma de
+   saber cuál de los dos rinde. */
+
 /** Bloque del pie de la ficha de juego. Lo emite AdSense al crear la unidad. */
 export const AD_SLOT_GAME_FOOTER = process.env.NEXT_PUBLIC_ADSENSE_SLOT_GAME_FOOTER ?? '';
+
+/** Bloque de la home, bajo "Noticias y Comunidad". */
+export const AD_SLOT_HOME_FOOTER = process.env.NEXT_PUBLIC_ADSENSE_SLOT_HOME_FOOTER ?? '';
 
 /* Espacio Económico Europeo + Reino Unido.
  *
