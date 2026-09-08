@@ -603,7 +603,7 @@ export default function GameDetailClient({
                                             size="lg"
                                             radius="lg"
                                             rightSection={<IconExternalLink size={18} />}
-                                            style={{ boxShadow: '0 8px 25px rgba(230,57,70,0.3)' }}
+                                            style={{ boxShadow: decorative.primaryButtonShadowStrong }}
                                         >
                                             Ir a la Tienda
                                         </Button>

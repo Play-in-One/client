@@ -432,7 +432,7 @@ export default function HomeClient({
                                     radius="xl"
                                     color="primaryRed"
                                     px="xl"
-                                    style={{ boxShadow: '0 4px 14px rgba(230,57,70,0.25)' }}
+                                    style={{ boxShadow: decorative.primaryButtonShadow }}
                                 >
                                     Buscar
                                 </Button>

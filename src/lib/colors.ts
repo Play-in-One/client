@@ -64,8 +64,15 @@ export const surfaces = {
 };
 
 export const decorative = {
-    heroBlobRed: 'rgba(230, 57, 70, 0.1)',
+    heroBlobRed: 'rgba(240, 47, 104, 0.1)',
     heroBlobBlue: 'rgba(59, 130, 246, 0.1)',
+    /* Realce bajo los botones primarios: es el propio color del botón difuminado,
+       así que vive aquí y no suelto en el JSX. Estaba escrito a mano en dos sitios
+       con el rojo anterior a la paleta Signature Red, y por eso sobrevivió al
+       cambio sin que nadie lo viera. La versión `strong` es la de la ficha, sobre
+       la tarjeta oscura de "Mejor precio", donde la sutil no se aprecia. */
+    primaryButtonShadow: '0 4px 14px rgba(240, 47, 104, 0.25)',
+    primaryButtonShadowStrong: '0 8px 25px rgba(240, 47, 104, 0.3)',
     bestPriceCardGradient: {
         light: { from: '#6e3a59', to: '#8e5b68' },
         dark: { from: '#1F2937', to: '#111827' },
@@ -121,5 +128,7 @@ export const og = {
 
 export const pwa = {
     backgroundColor: '#ffffff',
-    themeColor: '#E63946',
+    /* Tiñe la barra del navegador en móvil al instalar la PWA: es lo primero
+       que se ve de la marca, y seguía en el rojo viejo. */
+    themeColor: brand.primary,
 };
