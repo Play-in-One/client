@@ -729,7 +729,7 @@ export default function HomeClient({
                     </Title>
 
                     <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
-                        {PLATFORM_GROUPS.map((group) => {
+                        {PLATFORM_GROUPS.filter((group) => group.brand !== 'PC').map((group) => {
                             const Icon = group.icon;
                             // Una consola sola tiene landing indexable; un grupo de varias
                             // solo existe como filtro del buscador.

@@ -205,7 +205,7 @@ export default function Navbar() {
                                         }}
                                     >
                                         <Group gap={6} wrap="nowrap">
-                                            <Icon size={group.brand === 'PlayStation' ? 22 : 18} />
+                                            <Icon size={group.brand === 'PlayStation' || group.brand === 'PC' ? 22 : 18} />
                                             <Box component="span">
                                                 {group.brand}
                                             </Box>
@@ -227,7 +227,7 @@ export default function Navbar() {
                         );
                     })}
 
-                    <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx="xs" />
+                    <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx={6} />
 
                     <SegmentedControl
                         data={FORMAT_OPTIONS}
@@ -252,7 +252,7 @@ export default function Navbar() {
                                 onChange={(e) => setLocalQuery(e.currentTarget.value)}
                                 radius="xl"
                                 size="sm"
-                                w={{ base: 160, sm: 260, lg: 340 }}
+                                w={{ base: 140, sm: 220, lg: 280 }}
                                 classNames={{ input: 'search-input' }}
                                 styles={{
                                     input: {
