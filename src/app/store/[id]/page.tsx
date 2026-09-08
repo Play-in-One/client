@@ -4,7 +4,7 @@ import { getGames, getSeller } from '@/lib/api';
 import type { Game, Seller } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, storeJsonLd, breadcrumbJsonLd } from '@/lib/seo';
-import { formatCLP } from '@/lib/utils';
+import { formatCLP, priceClause } from '@/lib/utils';
 import StoreClient from './StoreClient';
 
 // El catálogo de la tienda cambia con cada scrapeo; 5 minutos lo mantiene
@@ -53,7 +53,7 @@ function storeSummary(seller: Seller, games: Game[], total: number): string | nu
     const label = total === 1 ? '1 videojuego' : `${total} videojuegos`;
     const head = `En ${seller.name} comparamos ${label}`;
     return cheapest
-        ? `${head}; el más barato ahora es ${cheapest.name} a ${formatCLP(cheapest.min_price!)}.${shippingNote}`
+        ? `${head}; el más barato ahora es ${cheapest.name} ${priceClause(cheapest.min_price!)}.${shippingNote}`
         : `${head}.${shippingNote}`;
 }
 

@@ -17,7 +17,7 @@ import {
     itemListJsonLd,
     type FaqEntry,
 } from '@/lib/seo';
-import { formatCLP } from '@/lib/utils';
+import { priceClause } from '@/lib/utils';
 
 /**
  * El cuerpo compartido de la landing por consola, para que `/juegos/ps5` y
@@ -74,7 +74,7 @@ function platformSummary(platform: Platform, games: Game[], total: number): stri
     const seller = cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : '';
     return (
         `${head}${where}. El juego de ${platform.display_name} más barato ahora es ` +
-        `${cheapest.name} a ${formatCLP(cheapest.min_price!)}${seller}. ` +
+        `${cheapest.name} ${priceClause(cheapest.min_price!)}${seller}. ` +
         'Todos los precios están en pesos chilenos.'
     );
 }
@@ -103,7 +103,7 @@ function buildFaq(platform: Platform, games: Game[], total: number): FaqEntry[] 
         const seller = cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : '';
         entries.push({
             question: `¿Cuál es el juego de ${name} más barato en Chile?`,
-            answer: `${cheapest.name}, a ${formatCLP(cheapest.min_price!)}${seller}, envío promedio incluido.`,
+            answer: `${cheapest.name}, ${priceClause(cheapest.min_price!)}${seller}, envío promedio incluido.`,
         });
     }
     if (total > 0) {

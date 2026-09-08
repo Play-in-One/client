@@ -1,9 +1,16 @@
 import { platforms } from '@/lib/colors';
 
-/** Utility: format Chilean peso */
+/** Utility: format Chilean peso. Un precio de 0 se anuncia como "Gratis". */
 export function formatCLP(value: number | string): string {
     const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (num === 0) return 'Gratis';
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(num);
+}
+
+/** Fragmento de precio para frases tipo "X ${priceClause(precio)}": "a $12.000" o "gratis". */
+export function priceClause(value: number | string): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return num === 0 ? 'gratis' : `a ${formatCLP(value)}`;
 }
 
 /**
