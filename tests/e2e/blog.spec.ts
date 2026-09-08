@@ -1,67 +1,52 @@
 import { test, expect } from '@playwright/test';
+import { SEEDED, seededPostId } from './helpers';
 
-const MOCK_POSTS = {
-    count: 2,
-    next: null,
-    previous: null,
-    results: [
-        {
-            id: 1,
-            title: 'Las mejores ofertas de junio',
-            category: 'deals',
-            description: 'Aprovecha estas increíbles ofertas de videojuegos este mes en Chile.',
-            image: null,
-            published_date: '2026-06-01T12:00:00Z',
-        },
-        {
-            id: 2,
-            title: 'Nuevo juego anunciado para PS5',
-            category: 'news',
-            description: 'Sony sorprende con un nuevo exclusivo para PlayStation 5.',
-            image: null,
-            published_date: '2026-05-28T09:00:00Z',
-        },
-    ],
-};
+/**
+ * El blog se resuelve ENTERO en el servidor (`app/blog/page.tsx` y
+ * `app/blog/[id]/page.tsx`), y `BlogListClient`/`BlogPostClient` se limitan a
+ * pintar el prop que reciben. Ese fetch sale del contenedor de Next hacia
+ * `backend:8001`, así que `page.route` no puede verlo: los mocks que había aquí
+ * no interceptaban nada y los tests dependían, sin decirlo, de que la base
+ * tuviera unos posts concretos.
+ *
+ * Ahora se apoyan en `manage.py seed_e2e`, como el resto de specs que ya
+ * funcionaban sin mocks.
+ */
 
-test.beforeEach(async ({ page }) => {
-    await page.route('**/api/posts/**', (route) => {
-        const url = route.request().url();
-        if (/\/posts\/1\//.test(url)) {
-            route.fulfill({ json: MOCK_POSTS.results[0] });
-        } else if (/\/posts\/2\//.test(url)) {
-            route.fulfill({ json: MOCK_POSTS.results[1] });
-        } else {
-            route.fulfill({ json: MOCK_POSTS });
-        }
-    });
-});
+const [DEALS_POST, NEWS_POST] = SEEDED.posts;
 
 test('la página de blog carga los posts', async ({ page }) => {
     await page.goto('/blog');
-    await expect(page.getByText('Las mejores ofertas de junio')).toBeVisible();
-    await expect(page.getByText('Nuevo juego anunciado para PS5')).toBeVisible();
+    await expect(page.getByText(DEALS_POST.title)).toBeVisible();
+    await expect(page.getByText(NEWS_POST.title)).toBeVisible();
 });
 
 test('los badges de categoría se muestran en cada post', async ({ page }) => {
     await page.goto('/blog');
-    await expect(page.getByText('deals')).toBeVisible();
-    await expect(page.getByText('news')).toBeVisible();
+    // El badge repite la categoría en cada tarjeta de esa categoría, así que se
+    // comprueba que aparezca al menos una vez y no que sea único.
+    await expect(page.getByText(DEALS_POST.category).first()).toBeVisible();
+    await expect(page.getByText(NEWS_POST.category).first()).toBeVisible();
 });
 
 test('hacer click en un post navega al detalle', async ({ page }) => {
+    const id = await seededPostId(page, DEALS_POST.title);
     await page.goto('/blog');
-    await page.getByText('Las mejores ofertas de junio').click();
-    await expect(page).toHaveURL(/\/blog\/1/);
+    await page.getByText(DEALS_POST.title).click();
+    await expect(page).toHaveURL(new RegExp(`/blog/${id}`));
 });
 
 test('la página de detalle de post muestra el contenido', async ({ page }) => {
-    await page.goto('/blog/1');
-    await expect(page.getByRole('heading', { name: 'Las mejores ofertas de junio' })).toBeVisible();
-    await expect(page.getByText('Aprovecha estas increíbles ofertas de videojuegos este mes en Chile.')).toBeVisible();
+    const id = await seededPostId(page, DEALS_POST.title);
+    await page.goto(`/blog/${id}`);
+    await expect(page.getByRole('heading', { name: DEALS_POST.title })).toBeVisible();
+    await expect(
+        page.getByText('Aprovecha estas ofertas de videojuegos este mes en Chile.'),
+    ).toBeVisible();
 });
 
 test('la página de detalle muestra el badge de categoría', async ({ page }) => {
-    await page.goto('/blog/1');
-    await expect(page.getByText('deals')).toBeVisible();
+    const id = await seededPostId(page, DEALS_POST.title);
+    await page.goto(`/blog/${id}`);
+    await expect(page.getByText(DEALS_POST.category).first()).toBeVisible();
 });

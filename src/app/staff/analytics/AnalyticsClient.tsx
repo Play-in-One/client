@@ -185,6 +185,23 @@ export function AnalyticsClient() {
 
             {error && <Alert color="red" mb="lg">{error}</Alert>}
 
+            {/* Un rollup caído no se distingue de un día tranquilo: las dos cosas
+                se ven como cifras bajas. La API lo dice en `rollup_ran_today` y
+                nadie lo estaba leyendo, así que el panel presentaba datos
+                incompletos como si fueran completos. */}
+            {reports && !reports.summary.rollup_ran_today && (
+                <Alert
+                    color="orange"
+                    icon={<IconAlertTriangle size={18} />}
+                    title="Faltan los datos de hoy"
+                    mb="lg"
+                >
+                    El agregado diario no ha corrido, así que lo de hoy aparece
+                    incompleto. No es que no haya habido tráfico:{' '}
+                    <code>manage.py rollup_analytics</code> lo rellena.
+                </Alert>
+            )}
+
             {reports && reports.summary.known_coverage < 100 && (
                 <Alert
                     color="blue"

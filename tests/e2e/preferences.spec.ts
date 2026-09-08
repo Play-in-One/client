@@ -17,18 +17,30 @@ const toggleInternational = async (page: import('@playwright/test').Page) => {
 const internationalSwitch = (page: import('@playwright/test').Page) =>
     page.getByRole('switch', { name: 'Tiendas internacionales' });
 
-const toggleDark = async (page: import('@playwright/test').Page) => {
-    await page.getByText('Modo oscuro').click();
+/* El tema dejó de ser un Switch de "Modo oscuro" y es un SegmentedControl de
+   dos posiciones rotulado "Tema", con un icono por opción. Mantine lo renderiza
+   como un grupo de radios cuyo label es el SVG, así que no tienen nombre
+   accesible: se eligen por posición dentro del grupo. */
+const themeControl = (page: import('@playwright/test').Page) =>
+    page.locator('[role="radiogroup"][aria-label="Tema"]');
+
+const setTheme = async (page: import('@playwright/test').Page, value: 'light' | 'dark') => {
+    // Mantine deja el <input> fuera del viewport y pone al lado un <label> que
+    // lo referencia por `for` (no lo envuelve, así que `label:has(input)` no
+    // sirve). Se pulsa el label, que es lo que ve y toca una persona.
+    await themeControl(page)
+        .locator(`.mantine-SegmentedControl-control:has(input[value="${value}"]) label`)
+        .click();
 };
 
-const darkSwitch = (page: import('@playwright/test').Page) =>
-    page.getByRole('switch', { name: 'Modo oscuro' });
+const activeTheme = async (page: import('@playwright/test').Page) =>
+    themeControl(page).locator('input:checked').inputValue();
 
 test('el menú de preferencias agrupa el tema y las tiendas internacionales', async ({ page }) => {
     await page.goto('/');
     await openMenu(page);
     await expect(page.getByText('Tiendas internacionales')).toBeVisible();
-    await expect(page.getByText('Modo oscuro')).toBeVisible();
+    await expect(page.getByText('Tema')).toBeVisible();
 });
 
 test('el toggle de tema refleja el esquema activo y lo cambia', async ({ page }) => {
@@ -38,16 +50,17 @@ test('el toggle de tema refleja el esquema activo y lo cambia', async ({ page })
     const scheme = () => page.evaluate(
         () => document.documentElement.getAttribute('data-mantine-color-scheme'),
     );
-    // El toggle muestra el ESTADO, no la acción: encendido == modo oscuro.
-    expect(await darkSwitch(page).isChecked()).toBe((await scheme()) === 'dark');
+    // El control muestra el ESTADO, no la acción: la posición marcada es el
+    // esquema vigente.
+    expect(await activeTheme(page)).toBe(await scheme());
 
-    await toggleDark(page);
+    await setTheme(page, 'dark');
     expect(await scheme()).toBe('dark');
-    await expect(darkSwitch(page)).toBeChecked();
+    expect(await activeTheme(page)).toBe('dark');
 
-    await toggleDark(page);
+    await setTheme(page, 'light');
     expect(await scheme()).toBe('light');
-    await expect(darkSwitch(page)).not.toBeChecked();
+    expect(await activeTheme(page)).toBe('light');
 });
 
 test('las tiendas internacionales vienen activadas por defecto', async ({ page }) => {

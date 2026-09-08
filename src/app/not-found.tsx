@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Anchor, Container, Stack, Text, Title } from '@mantine/core';
+import { FAMILIES, platformsOf } from '@/lib/platforms';
 
 /* 404 propia. La genérica de Next no enlazaba nada: quien llega a una URL
    muerta (un juego fusionado, un enlace viejo) se quedaba sin camino, y un
@@ -15,12 +16,13 @@ export const metadata: Metadata = {
     alternates: { canonical: null },
 };
 
-const LANDINGS = [
-    { href: '/juegos/ps5', label: 'Juegos PS5' },
-    { href: '/juegos/switch', label: 'Juegos Nintendo Switch' },
-    { href: '/juegos/xbox', label: 'Juegos Xbox' },
-    { href: '/juegos/pc', label: 'Juegos PC' },
-];
+/* Una salida por marca desde la 404, sacada del catálogo: la consola que
+   encabeza cada familia. Estaba escrita a mano y apuntaba a `/juegos/pc`, que
+   ya no existe. */
+const LANDINGS = FAMILIES.map(({ family }) => {
+    const platform = platformsOf(family).find((p) => p.featured) ?? platformsOf(family)[0];
+    return { href: `/juegos/${platform.slug}`, label: `Juegos ${platform.long}` };
+});
 
 export default function NotFound() {
     return (

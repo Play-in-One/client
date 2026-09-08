@@ -1,5 +1,7 @@
+import { platformLongName } from '@/lib/types';
 import { getPlatforms } from '@/lib/api';
 import { SITE_URL, siteConfig } from '@/lib/seo';
+import { FAMILIES, platformsOf } from '@/lib/platforms';
 
 // llms.txt — emerging convention that gives generative engines a concise,
 // structured map of the site. Served dynamically so links use the deploy origin
@@ -11,7 +13,15 @@ import { SITE_URL, siteConfig } from '@/lib/seo';
 export const dynamic = 'force-static';
 export const revalidate = 86400;
 
-const FALLBACK_PLATFORMS = 'PS5, PS4, Xbox, Nintendo Switch y PC';
+/* Respaldo sacado del catálogo (una consola por marca), no de una lista fija:
+   la anterior seguía nombrando "PC", que ya no es ninguna plataforma. */
+const FALLBACK_PLATFORMS = (() => {
+    const names = FAMILIES.map(({ family }) => {
+        const members = platformsOf(family);
+        return (members.find((p) => p.featured) ?? members[0]).long;
+    });
+    return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
+})();
 
 export async function GET() {
     // Las consolas salen del catálogo real. Si el API no responde durante la
@@ -22,9 +32,9 @@ export async function GET() {
         const { results } = await getPlatforms();
         if (results.length > 0) {
             platformLines = results
-                .map((p) => `- [Juegos de ${p.display_name}](${SITE_URL}/juegos/${p.slug})`)
+                .map((p) => `- [Juegos de ${platformLongName(p)}](${SITE_URL}/juegos/${p.slug})`)
                 .join('\n');
-            const names = results.map((p) => p.display_name);
+            const names = results.map(platformLongName);
             platformNames = `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
         }
     } catch {

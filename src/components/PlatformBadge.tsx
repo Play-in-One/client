@@ -13,12 +13,12 @@ export default function PlatformBadge({ platform, size = 'xs' }: Props) {
     return (
         <Badge
             size={size}
-            color={PLATFORM_COLORS[platform.name]?.mantine ?? 'gray'}
+            color={PLATFORM_COLORS[platform.slug]?.mantine ?? 'gray'}
             variant="filled"
             radius="sm"
             styles={{ root: { textTransform: 'uppercase', fontWeight: 700, fontSize: 10 } }}
         >
-            {PLATFORM_LABEL_OVERRIDES[platform.name] ?? platform.display_name}
+            {PLATFORM_LABEL_OVERRIDES[platform.slug] ?? platform.display_name}
         </Badge>
     );
 }

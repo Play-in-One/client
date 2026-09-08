@@ -22,6 +22,7 @@ import {
 } from '@mantine/core';
 import { IconTrash } from '@tabler/icons-react';
 import type { Game, Platform, Product } from '@/lib/types';
+import { platformLongName } from '@/lib/types';
 import {
     addProductPrice,
     getGames,
@@ -322,7 +323,7 @@ function ProductRow({ product, platforms }: { product: Product; platforms: Platf
         }
     };
 
-    const platformData = platforms.map((pl) => ({ value: String(pl.id), label: pl.display_name }));
+    const platformData = platforms.map((pl) => ({ value: String(pl.id), label: platformLongName(pl) }));
 
     return (
         <Card withBorder radius="md" p="md">

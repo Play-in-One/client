@@ -2,6 +2,7 @@
  * Helpers for metadata + schema.org JSON-LD. Kept framework-light so it can be
  * imported from Server Components, generateMetadata(), sitemap.ts and robots.ts.
  */
+import { platformLongName } from '@/lib/types';
 import type { Metadata } from 'next';
 import type { Game, Platform, Post, Product, Seller } from './types';
 import { formatCLP } from './utils';
@@ -284,7 +285,7 @@ export function gameJsonLd(game: Game): JsonLdObject {
         ...(game.description ? { description: game.description } : {}),
         ...(game.developer ? { brand: { '@type': 'Brand', name: game.developer } } : {}),
         ...(game.platforms?.length
-            ? { gamePlatform: game.platforms.map((p) => p.display_name) }
+            ? { gamePlatform: game.platforms.map(platformLongName) }
             : {}),
         ...(game.genres?.length ? { genre: game.genres.map((g) => g.name) } : {}),
         ...(game.release_date ? { releaseDate: game.release_date } : {}),
@@ -356,7 +357,7 @@ export function bestPriceSentence(game: Game, opts: BestPriceOptions = {}): stri
 
     const sellerName = opts.sellerName ?? game.min_price_seller?.name ?? null;
     const shipping = num(String(opts.shipping ?? game.min_price_shipping ?? '0')) ?? 0;
-    const platform = opts.platform ? ` para ${opts.platform.display_name}` : '';
+    const platform = opts.platform ? ` para ${platformLongName(opts.platform)}` : '';
     const where = sellerName ? ` en ${sellerName}` : '';
     const withShipping = shipping > 0 ? ', con envío incluido' : '';
 

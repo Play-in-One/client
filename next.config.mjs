@@ -31,6 +31,28 @@ const nextConfig = {
             { protocol: 'https', hostname: '**' },
         ],
     },
+    async redirects() {
+        return [
+            // `pc` se retiró del catálogo en favor de `win`/`mac`/`linux`, y
+            // `/juegos/pc` es una landing que Google ya tenía indexada: sin
+            // esto se convierte en un 404. Va en la configuración y no en un
+            // `page.tsx` para no pagar un render por cada redirección.
+            { source: '/juegos/pc', destination: '/juegos/win', permanent: true },
+            {
+                source: '/juegos/pc/pagina/:page',
+                destination: '/juegos/win/pagina/:page',
+                permanent: true,
+            },
+            // Nintendo DS pasó de `nds` a `ds`, y su landing también estaba
+            // indexada.
+            { source: '/juegos/nds', destination: '/juegos/ds', permanent: true },
+            {
+                source: '/juegos/nds/pagina/:page',
+                destination: '/juegos/ds/pagina/:page',
+                permanent: true,
+            },
+        ];
+    },
     experimental: {
         // Reduce el barrel de estas librerías en el bundle (tree-shaking dirigido).
         optimizePackageImports: ['@mantine/core', '@tabler/icons-react'],

@@ -36,16 +36,16 @@ import {
     IconChevronRight,
     IconHome,
     IconCheck,
-    IconDeviceGamepad,
     IconPencil,
 } from '@tabler/icons-react';
 
 import { trackEvent } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product } from '@/lib/types';
+import { platformLongName } from '@/lib/types';
 import { allowedConditionsFor, type ConditionFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
-import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS } from '@/lib/platformIcons';
+import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
 import { surfaces, decorative } from '@/lib/colors';
 import { bestPriceSentence } from '@/lib/seo';
 import CollapsibleText from '@/components/CollapsibleText';
@@ -94,7 +94,7 @@ export default function GameDetailClient({
     const [selectedPlatform, setSelectedPlatform] = useState<string | null>(() => {
         const requestedSlug = searchParams.get('platform');
         const requested = requestedSlug ? platformOptions.find((p) => p.slug === requestedSlug) : null;
-        return requested?.name ?? platformOptions[0]?.name ?? null;
+        return requested?.slug ?? platformOptions[0]?.slug ?? null;
     });
     /* Hasta que el contexto lee lo persistido manda lo que el SERVIDOR ya
        resolvió desde la cookie: el primer render coincide con el HTML y no hay
@@ -156,7 +156,7 @@ export default function GameDetailClient({
     // filtros globales no viajan al servidor porque la página es SSR y su
     // valor vive en localStorage.
     const products = (game.products ?? []).filter((p) => {
-        if (selectedPlatform && p.platform.name !== selectedPlatform) return false;
+        if (selectedPlatform && p.platform.slug !== selectedPlatform) return false;
         // Por BUCKET y no por igualdad: la opción "Digital" del Select tiene
         // que casar también con las ofertas guardadas como `store` o `key`.
         if (conditionFilter && conditionBucket(p.condition) !== conditionFilter) return false;
@@ -175,7 +175,9 @@ export default function GameDetailClient({
     const bestProduct = sorted[0] ?? null;
     // `current_price` ya viene con el envío de la tienda sumado: es el precio con
     // el que se compara y el que se ordena arriba.
-    const bestPrice = bestProduct ? parseFloat(bestProduct.current_price ?? '0') : 0;
+    const bestPrice = bestProduct && bestProduct.current_price != null
+        ? parseFloat(bestProduct.current_price)
+        : null;
     const bestShipping = bestProduct ? parseFloat(bestProduct.shipping_cost ?? '0') : 0;
 
     // Resumen citable para motores generativos. Se arma con lo que la pantalla
@@ -184,7 +186,7 @@ export default function GameDetailClient({
     // que la tarjeta "Mejor Precio" de abajo, el texto estaría mintiendo.
     const geoSummary = bestProduct
         ? bestPriceSentence(game, {
-            platform: platformOptions.find((p) => p.name === selectedPlatform) ?? null,
+            platform: platformOptions.find((p) => p.slug === selectedPlatform) ?? null,
             price: bestProduct.current_price,
             sellerName: bestProduct.seller.name,
             shipping: bestProduct.shipping_cost,
@@ -205,6 +207,10 @@ export default function GameDetailClient({
         !effectivePrefs.international && Object.keys(game.min_price_history_national ?? {}).length > 0
             ? game.min_price_history_national
             : game.min_price_history;
+    /* La serie del mínimo llega indexada por `Platform.name`, no por `slug`
+       (contrato del backend, `GameDetailSerializer`). El backend mantiene los
+       dos campos idénticos por catálogo, así que el slug entra tal cual; es la
+       ÚNICA frontera de esta pantalla donde no se habla de slugs. */
     const minPriceSeries =
         historySource?.[selectedPlatform ?? '']?.[conditionFilter ?? ''] ?? [];
 
@@ -249,7 +255,7 @@ export default function GameDetailClient({
     // Seller initials color map
     const sellerColors = ['#7C3AED', '#2563EB', '#6366F1', '#6B7280', '#F97316'];
 
-    const breadcrumbPlatform = game.platforms.find((p) => p.name === selectedPlatform) ?? game.platforms[0];
+    const breadcrumbPlatform = game.platforms.find((p) => p.slug === selectedPlatform) ?? game.platforms[0];
 
 
     return (
@@ -265,7 +271,7 @@ export default function GameDetailClient({
                 </Anchor>
                 {breadcrumbPlatform && (
                     <Anchor component={Link} href={`/juegos/${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
-                        {breadcrumbPlatform.display_name}
+                        {platformLongName(breadcrumbPlatform)}
                     </Anchor>
                 )}
                 <Text fw={500}>{game.name}</Text>
@@ -420,20 +426,20 @@ export default function GameDetailClient({
                                         }}
                                     >
                                         {platformOptions.map((pl) => {
-                                            const Icon = PLATFORM_ICONS[pl.name] || IconDeviceGamepad;
-                                            const pColor = PLATFORM_COLORS[pl.name]?.mantine || 'gray';
+                                            const Icon = PLATFORM_ICONS[pl.slug] || FALLBACK_PLATFORM_ICON;
+                                            const pColor = PLATFORM_COLORS[pl.slug]?.mantine || 'gray';
                                             return (
                                                 <Button
                                                     key={pl.id}
                                                     size="xs"
                                                     radius="sm"
-                                                    variant={selectedPlatform === pl.name ? 'filled' : 'subtle'}
-                                                    color={selectedPlatform === pl.name ? pColor : 'gray'}
+                                                    variant={selectedPlatform === pl.slug ? 'filled' : 'subtle'}
+                                                    color={selectedPlatform === pl.slug ? pColor : 'gray'}
                                                     leftSection={<Icon size={pl.name === 'switch' || pl.name === 'switch2' ? 15 : pl.name === 'xbox360' || pl.name === 'xboxone' || pl.name === 'xboxseries' ? 16 : 18} />}
-                                                    onClick={() => setSelectedPlatform(pl.name)}
+                                                    onClick={() => setSelectedPlatform(pl.slug)}
                                                     style={{ transition: 'all 0.2s' }}
                                                 >
-                                                    {PLATFORM_SHORT_LABELS[pl.name] || pl.display_name}
+                                                    {PLATFORM_SHORT_LABELS[pl.slug] || pl.display_name}
                                                 </Button>
                                             );
                                         })}
@@ -556,7 +562,7 @@ export default function GameDetailClient({
                                         </Group>
 
                                         <Group gap="sm" align="baseline" mb="sm">
-                                            <Text fz={42} fw={800} lh={1}>{formatCLP(bestPrice)}</Text>
+                                            <Text fz={42} fw={800} lh={1}>{bestPrice !== null ? formatCLP(bestPrice) : '—'}</Text>
                                         </Group>
                                         {bestShipping > 0 ? (
                                             <Group gap={4} c="green.4" fz="xs" align="center">
@@ -621,7 +627,7 @@ export default function GameDetailClient({
                                 series={minPriceSeries}
                                 platformLabel={
                                     PLATFORM_SHORT_LABELS[selectedPlatform] ??
-                                    platformOptions.find((pl) => pl.name === selectedPlatform)?.display_name ??
+                                    platformOptions.find((pl) => pl.slug === selectedPlatform)?.display_name ??
                                     selectedPlatform
                                 }
                                 conditionLabel={conditionFilter ? CONDITION_LABEL[conditionFilter as 'new' | 'used' | 'digital'] : null}

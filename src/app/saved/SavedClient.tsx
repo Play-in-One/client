@@ -15,14 +15,16 @@ import {
     Loader,
     Group,
 } from '@mantine/core';
-import { IconBookmark, IconX, IconDeviceGamepad } from '@tabler/icons-react';
+import { IconBookmark, IconX } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
 import { allowedConditionsFor, type ConditionFilter, type FormatFilter } from '@/lib/prefs';
 import { getGame } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/utils';
-import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, PLATFORM_LONG_LABELS } from '@/lib/platformIcons';
+import {
+    PLATFORM_ICONS, PLATFORM_SHORT_LABELS, PLATFORM_LONG_LABELS, FALLBACK_PLATFORM_ICON,
+} from '@/lib/platformIcons';
 import { surfaces } from '@/lib/colors';
 
 /** Juego con imagen/precio resueltos para los filtros activos: misma regla que
@@ -166,8 +168,8 @@ export default function SavedClient() {
                                 }}
                             >
                                 {availablePlatforms.map((p) => {
-                                    const Icon = PLATFORM_ICONS[p.name] || IconDeviceGamepad;
-                                    const pColor = PLATFORM_COLORS[p.name]?.mantine || 'gray';
+                                    const Icon = PLATFORM_ICONS[p.slug] || FALLBACK_PLATFORM_ICON;
+                                    const pColor = PLATFORM_COLORS[p.slug]?.mantine || 'gray';
                                     const active = platformFilter.includes(p.slug);
                                     return (
                                         <Button
@@ -181,10 +183,10 @@ export default function SavedClient() {
                                             style={{ transition: 'all 0.2s' }}
                                         >
                                             <Text span hiddenFrom="xs" fz="xs" fw={700} inherit>
-                                                {PLATFORM_SHORT_LABELS[p.name] || p.display_name}
+                                                {PLATFORM_SHORT_LABELS[p.slug] || p.display_name}
                                             </Text>
                                             <Text span visibleFrom="xs" fz="xs" fw={700} inherit>
-                                                {PLATFORM_LONG_LABELS[p.name] || p.display_name}
+                                                {PLATFORM_LONG_LABELS[p.slug] || p.display_name}
                                             </Text>
                                         </Button>
                                     );

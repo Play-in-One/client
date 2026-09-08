@@ -3,7 +3,7 @@ import { getPlatforms } from '@/lib/api';
 import PlatformLanding, { buildLandingMetadata } from './landing';
 
 /**
- * Landing por consola: /juegos/ps5, /juegos/switch, /juegos/pc…
+ * Landing por consola: /juegos/ps5, /juegos/switch, /juegos/win…
  *
  * Existe porque `/search?platform=ps5` va `noindex` (cualquier permutación de
  * filtros lo está, para no indexar mil variantes del mismo catálogo) y además

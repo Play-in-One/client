@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 import { useAdmin } from '@/context/AdminContext';
 import type { Genre, GameFacets, Platform } from '@/lib/types';
+import { platformLongName } from '@/lib/types';
 
 /* ── Collapsible Filter Section ── */
 function FilterSection({
@@ -339,7 +340,7 @@ export default function GameFilterBar({
                             {platforms.map((p) => (
                                 <Checkbox
                                     key={p.id}
-                                    label={<CheckboxLabel text={p.display_name} count={facets.platforms[p.id] ?? 0} />}
+                                    label={<CheckboxLabel text={platformLongName(p)} count={facets.platforms[p.id] ?? 0} />}
                                     checked={selectedPlatforms.includes(p.id)}
                                     onChange={() => onTogglePlatform(p.id)}
                                     color="primaryRed"

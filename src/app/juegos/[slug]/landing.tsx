@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Container, SimpleGrid, Text, Title } from '@mantine/core';
 import { getGames, getPlatforms } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
+import { platformLongName } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import CrawlablePagination from '@/components/CrawlablePagination';
 import FaqSection from '@/components/FaqSection';
@@ -68,12 +69,12 @@ function platformSummary(platform: Platform, games: Game[], total: number): stri
     const sellers = new Set(
         games.map((g) => g.min_price_seller?.id).filter((id): id is number => id != null),
     );
-    const head = `En Play in One comparamos ${total.toLocaleString('es-CL')} juegos de ${platform.display_name} entre tiendas chilenas`;
+    const head = `En Play in One comparamos ${total.toLocaleString('es-CL')} juegos de ${platformLongName(platform)} entre tiendas chilenas`;
     const where = sellers.size > 1 ? `, con ofertas en ${sellers.size} tiendas distintas` : '';
     if (!cheapest) return `${head}${where}.`;
     const seller = cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : '';
     return (
-        `${head}${where}. El juego de ${platform.display_name} más barato ahora es ` +
+        `${head}${where}. El juego de ${platformLongName(platform)} más barato ahora es ` +
         `${cheapest.name} ${priceClause(cheapest.min_price!)}${seller}. ` +
         'Todos los precios están en pesos chilenos.'
     );
@@ -88,7 +89,7 @@ function pageSummary(platform: Platform, page: number, totalPages: number, total
     const from = (page - 1) * PAGE_SIZE + 1;
     const to = Math.min(page * PAGE_SIZE, total);
     return (
-        `Juegos de ${platform.display_name} del ${from} al ${to} de ` +
+        `Juegos de ${platformLongName(platform)} del ${from} al ${to} de ` +
         `${total.toLocaleString('es-CL')}, ordenados del más barato al más caro. ` +
         `Página ${page} de ${totalPages}. Los precios están en pesos chilenos.`
     );
@@ -97,7 +98,7 @@ function pageSummary(platform: Platform, page: number, totalPages: number, total
 function buildFaq(platform: Platform, games: Game[], total: number): FaqEntry[] {
     const entries: FaqEntry[] = [];
     const cheapest = games.find((g) => g.min_price != null);
-    const name = platform.display_name;
+    const name = platformLongName(platform);
 
     if (cheapest) {
         const seller = cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : '';
@@ -132,7 +133,7 @@ export async function buildLandingMetadata(slug: string, page: number): Promise<
     }
 
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    const base = `Juegos de ${platform.display_name} baratos en Chile`;
+    const base = `Juegos de ${platformLongName(platform)} baratos en Chile`;
     return buildMetadata({
         title: page > 1 ? `${base} — página ${page} de ${totalPages}` : base,
         description:
@@ -159,7 +160,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const isFirst = page === 1;
     const path = landingPath(platform.slug, page);
-    const heading = `Juegos de ${platform.display_name} baratos en Chile`;
+    const heading = `Juegos de ${platformLongName(platform)} baratos en Chile`;
     const summary = isFirst
         ? platformSummary(platform, games, total)
         : pageSummary(platform, page, totalPages, total);
@@ -174,7 +175,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
         breadcrumbJsonLd([
             { name: 'Inicio', path: '/' },
             { name: 'Juegos', path: '/search' },
-            { name: platform.display_name, path: `/juegos/${platform.slug}` },
+            { name: platformLongName(platform), path: `/juegos/${platform.slug}` },
             ...(isFirst ? [] : [{ name: `Página ${page}`, path }]),
         ]),
         ...(games.length
@@ -182,8 +183,8 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                 itemListJsonLd(games, {
                     path,
                     name: isFirst
-                        ? `Juegos de ${platform.display_name} más baratos`
-                        : `Juegos de ${platform.display_name}, página ${page}`,
+                        ? `Juegos de ${platformLongName(platform)} más baratos`
+                        : `Juegos de ${platformLongName(platform)}, página ${page}`,
                 }),
             ]
             : []),
@@ -207,13 +208,13 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         </Text>
                     )}
                 </Title>
-                <CollapsibleText label={`Sobre este catálogo de ${platform.display_name}`}>
+                <CollapsibleText label={`Sobre este catálogo de ${platformLongName(platform)}`}>
                     {summary}
                 </CollapsibleText>
 
                 {games.length > 0 ? (
                     <GameExplorer
-                        lockedPlatform={{ id: platform.id, slug: platform.slug, display_name: platform.display_name }}
+                        lockedPlatform={{ id: platform.id, slug: platform.slug, display_name: platformLongName(platform) }}
                         initialGames={games}
                         initialTotal={total}
                         pageSize={PAGE_SIZE}
@@ -245,14 +246,14 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                     />
                 ) : (
                     <Text c="dimmed">
-                        Ahora mismo no hay ofertas en stock para {platform.display_name}.
+                        Ahora mismo no hay ofertas en stock para {platformLongName(platform)}.
                     </Text>
                 )}
             </Container>
             {isFirst && (
                 <FaqSection
                     entries={faq}
-                    title={`Preguntas frecuentes sobre juegos de ${platform.display_name}`}
+                    title={`Preguntas frecuentes sobre juegos de ${platformLongName(platform)}`}
                     collapsible
                 />
             )}

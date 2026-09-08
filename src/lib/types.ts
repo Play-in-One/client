@@ -1,11 +1,38 @@
 /* ── TypeScript interfaces mirroring Django REST API ── */
 
 export interface Platform {
+    /** Idéntico a `slug`: el backend los mantiene iguales por catálogo. La
+     *  serie de `min_price_history` se indexa por este campo. */
+    name: string;
     id: number;
-    name: string;        // "ps5" | "ps4" | "ps3" | "xbox" | "switch" | "switch2" | "pc" | "wii" | "nds" | "3ds" | "wiiu"
     slug: string;
-    display_name: string; // "PS5" | "PS4" | "Xbox" | "Switch" | "Switch 2" | "PC"
+    /** Abreviatura: "PS5", "Switch", "Windows". Para el nombre completo, ver
+     *  `PLATFORM_LONG_LABELS` o el `long_name` que publica la API. */
+    display_name: string;
+    long_name?: string;
+    /** Marca por la que se agrupa el menú: playstation | xbox | nintendo | pc. */
+    family?: string;
+    /** Orden de negocio (familia y generación), no alfabético. */
+    order?: number;
     game_count?: number;
+}
+
+/**
+ * El nombre LARGO de una consola: el que se lee de corrido.
+ *
+ * `display_name` es el abreviado ("NS", "Win", "XSeries") y no sirve para un
+ * título ni para una frase — "Juegos de Win baratos en Chile" no lo lee nadie.
+ * Todo lo que sea texto corrido, metadata o dato estructurado pasa por aquí; el
+ * abreviado se queda para las insignias y los selectores estrechos.
+ *
+ * El fallback cubre a un backend anterior a `long_name`, que no lo publicaba.
+ *
+ * Vive en este módulo, y no en el catálogo de `platforms.ts`, porque lo usan
+ * Server Components y páginas que no necesitan nada más: importar el catálogo
+ * arrastraría con él los iconos de las 17 consolas.
+ */
+export function platformLongName(platform: Platform): string {
+    return platform.long_name || platform.display_name;
 }
 
 export interface Seller {

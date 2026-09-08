@@ -1,9 +1,10 @@
 import type { ComponentType } from 'react';
 import { FaPlaystation, FaXbox } from 'react-icons/fa';
 import { BsNintendoSwitch } from 'react-icons/bs';
-import { platforms } from '@/lib/colors';
+import { IconDeviceDesktop } from '@tabler/icons-react';
+import { FAMILIES, platformsOf, type PlatformFamily } from '@/lib/platforms';
 
-export const PLATFORM_GROUPS: {
+export interface PlatformGroup {
     label: string;
     brand: string;
     icon: ComponentType<{ size?: number; color?: string }>;
@@ -18,45 +19,41 @@ export const PLATFORM_GROUPS: {
        solo muestra el texto de `label`, así que su filtro debe acotarse a
        estos slugs. */
     featuredSlugs: string[];
-}[] = [
-    {
-        label: 'PS4 / PS5',
-        brand: 'PlayStation',
-        icon: FaPlaystation,
-        color: platforms.ps5,
-        options: [
-            { label: 'PlayStation 3', slug: 'ps3' },
-            { label: 'PlayStation 4', slug: 'ps4' },
-            { label: 'PlayStation 5', slug: 'ps5' },
-            { label: 'PlayStation Vita', slug: 'psvita' },
-        ],
-        featuredSlugs: ['ps4', 'ps5'],
-    },
-    {
-        label: 'Xbox 360 / One / Series',
-        brand: 'Xbox',
-        icon: FaXbox,
-        color: platforms.xbox,
-        options: [
-            { label: 'Xbox 360', slug: 'xbox360' },
-            { label: 'Xbox One', slug: 'xboxone' },
-            { label: 'Xbox Series', slug: 'xboxseries' },
-        ],
-        featuredSlugs: ['xbox360', 'xboxone', 'xboxseries'],
-    },
-    {
-        label: 'Switch / Switch 2',
-        brand: 'Nintendo',
-        icon: BsNintendoSwitch,
-        color: platforms.switch,
-        options: [
-            { label: 'Nintendo DS', slug: 'nds' },
-            { label: 'Wii', slug: 'wii' },
-            { label: 'Nintendo 3DS', slug: '3ds' },
-            { label: 'Wii U', slug: 'wiiu' },
-            { label: 'Switch', slug: 'switch' },
-            { label: 'Switch 2', slug: 'switch2' },
-        ],
-        featuredSlugs: ['switch', 'switch2'],
-    },
-];
+}
+
+/* Icono y color de cada familia. El color sale de la consola más representativa
+   de la marca, que es la que ya se usaba. */
+const FAMILY_ICONS: Record<PlatformFamily, ComponentType<{ size?: number; color?: string }>> = {
+    playstation: FaPlaystation,
+    xbox: FaXbox,
+    nintendo: BsNintendoSwitch,
+    pc: IconDeviceDesktop,
+};
+
+const FAMILY_COLOR_SLUG: Record<PlatformFamily, string> = {
+    playstation: 'ps5',
+    xbox: 'xbox',
+    nintendo: 'switch',
+    pc: 'win',
+};
+
+/**
+ * Los grupos del Navbar, el Footer y la home, derivados del catálogo
+ * (`lib/platforms.ts`) agrupando por familia.
+ *
+ * Se escribían a mano, y por eso **`xbox` y `pc` no estaban en ningún grupo**
+ * aunque existían en el backend: eran invisibles en la navegación y el Footer
+ * los reinyectaba con dos entradas sueltas. Derivándolo, una consola nueva
+ * entra en su familia sin tocar este archivo.
+ */
+export const PLATFORM_GROUPS: PlatformGroup[] = FAMILIES.map(({ family, label, brand }) => {
+    const members = platformsOf(family);
+    return {
+        label,
+        brand,
+        icon: FAMILY_ICONS[family],
+        color: members.find((p) => p.slug === FAMILY_COLOR_SLUG[family])?.hex ?? members[0].hex,
+        options: members.map((p) => ({ label: p.long, slug: p.slug })),
+        featuredSlugs: members.filter((p) => p.featured).map((p) => p.slug),
+    };
+});

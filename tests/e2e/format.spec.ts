@@ -74,10 +74,11 @@ test('digital pide condition=digital y deshabilita el estado', async ({ page }) 
     await pickFormat(page, 'Digital');
 
     await openMenu(page);
-    // Un control apagado sin explicación se lee como un bug, así que el texto
-    // es parte del contrato.
-    await expect(page.getByText('Las descargas no son de segunda mano.')).toBeVisible();
-    await expect(page.getByRole('radio', { name: 'Usados' })).toBeDisabled();
+    // Con formato digital el filtro de estado se OCULTA, no se deshabilita: una
+    // descarga no es de segunda mano, y un control apagado sin explicación se
+    // lee como un bug. El valor guardado no se toca y reaparece al salir de
+    // Digital, cosa que cubre el test siguiente.
+    await expect(page.getByText('Estado físico')).toHaveCount(0);
     await page.keyboard.press('Escape');
 
     const request = page.waitForRequest(

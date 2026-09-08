@@ -11,8 +11,6 @@ import {
     Text,
     Anchor,
     SimpleGrid,
-    TextInput,
-    Button,
     Stack,
     ActionIcon,
     useComputedColorScheme,
@@ -37,16 +35,16 @@ import {
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
 import { trackEvent, type SocialNetwork } from '@/lib/api';
-import { PLATFORM_GROUPS } from '@/lib/platformGroups';
+import { PLATFORMS } from '@/lib/platforms';
 
-/* Landings por consola enlazadas desde el pie de TODAS las páginas. Salen de
-   los grupos del Navbar (misma fuente que el menú) más Xbox genérico y PC, que no
-   tienen grupo pero sí existen en el catálogo. */
-const FOOTER_LANDINGS: { slug: string; label: string }[] = [
-    ...PLATFORM_GROUPS.flatMap((g) => g.options.map((o) => ({ slug: o.slug, label: o.label }))),
-    { slug: 'xbox', label: 'Xbox' },
-    { slug: 'pc', label: 'PC' },
-];
+/* Landings por consola enlazadas desde el pie de TODAS las páginas: el catálogo
+   entero, en el orden del menú. Antes se armaba con los grupos del Navbar más
+   dos entradas sueltas cosidas a mano, porque `xbox` y `pc` existían en el
+   backend pero no en ningún grupo. Ahora ninguna consola se queda fuera. */
+const FOOTER_LANDINGS: { slug: string; label: string }[] = PLATFORMS.map((p) => ({
+    slug: p.slug,
+    label: p.long,
+}));
 
 const YEAR = new Date().getFullYear();
 

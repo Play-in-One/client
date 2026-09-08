@@ -1,9 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { SEEDED } from './helpers';
 
 const MOCK_PLATFORMS = [
-    { id: 1, name: 'ps5', slug: 'ps5', display_name: 'PS5' },
-    { id: 2, name: 'switch', slug: 'switch', display_name: 'Switch' },
-    { id: 3, name: 'xbox', slug: 'xbox', display_name: 'Xbox' },
+    { id: 1, name: 'ps5', slug: 'ps5', display_name: 'PS5',
+      long_name: 'PlayStation 5', family: 'playstation', order: 12 },
+    { id: 2, name: 'switch', slug: 'switch', display_name: 'NS',
+      long_name: 'Nintendo Switch', family: 'nintendo', order: 34 },
+    { id: 3, name: 'xbox', slug: 'xbox', display_name: 'Xbox',
+      long_name: 'Xbox', family: 'xbox', order: 20 },
 ];
 
 const MOCK_GAMES = {
@@ -55,13 +59,13 @@ const MOCK_POSTS = {
 };
 
 test.beforeEach(async ({ page }) => {
-    await page.route('**/api/games/**', (route) =>
+    await page.route(/\/api\/games\//, (route) =>
         route.fulfill({ json: MOCK_GAMES })
     );
-    await page.route('**/api/posts/**', (route) =>
+    await page.route(/\/api\/posts\//, (route) =>
         route.fulfill({ json: MOCK_POSTS })
     );
-    await page.route('**/api/platforms/**', (route) =>
+    await page.route(/\/api\/platforms\//, (route) =>
         route.fulfill({ json: { count: 3, next: null, previous: null, results: MOCK_PLATFORMS } })
     );
     // `**/api/games/**` engulle también /api/games/facets/, que devuelve otra
@@ -69,7 +73,7 @@ test.beforeEach(async ({ page }) => {
     // respuesta de juegos, `facets.platforms` quedaba undefined y la página
     // reventaba entera. Va DESPUÉS a propósito: Playwright evalúa las rutas en
     // orden inverso al registro, así que la última registrada es la que gana.
-    await page.route('**/api/games/facets/**', (route) =>
+    await page.route(/\/api\/games\/facets\//, (route) =>
         route.fulfill({ json: { platforms: {}, genres: {}, sellers: {} } }));
 });
 
@@ -81,21 +85,30 @@ test('la página de inicio carga con el título correcto', async ({ page }) => {
 test('el Navbar muestra los enlaces de plataforma', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('navigation')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'PS5' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Switch' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Xbox' })).toBeVisible();
+    // El Navbar agrupa por MARCA, no por consola: cada botón abre el menú de su
+    // familia. Es lo que ya comprueba navigation.spec.ts, y por eso ese pasaba
+    // mientras este buscaba enlaces que no existen.
+    const nav = page.getByRole('navigation');
+    await expect(nav.getByRole('link', { name: 'PlayStation', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Nintendo', exact: true })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Xbox', exact: true })).toBeVisible();
 });
 
 test('las tarjetas de juegos se muestran con precio en CLP', async ({ page }) => {
+    // La portada se resuelve en el servidor (`app/page.tsx`) y HomeClient reusa
+    // ese resultado mientras no haya filtro activo, así que los mocks de esta
+    // página nunca llegaron a aplicarse: se comprueba el catálogo real.
     await page.goto('/');
-    await expect(page.getByText('God of War Ragnarök')).toBeVisible();
-    await expect(page.getByText('The Legend of Zelda: Tears of the Kingdom')).toBeVisible();
-    await expect(page.getByText(/\$29\.990/)).toBeVisible();
+    const cards = page.locator('main a[href^="/juego/"]');
+    await expect(cards.first()).toBeVisible();
+    // Cualquier tarjeta con precio sirve: el formato CLP es lo que se verifica.
+    await expect(page.locator('main').getByText(/\$[\d.]{4,}/).first()).toBeVisible();
 });
 
 test('la sección de blog preview muestra el post más reciente', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Las mejores ofertas de junio')).toBeVisible();
+    // El post más reciente es el que siembra `manage.py seed_e2e`.
+    await expect(page.getByText(SEEDED.posts[0].title)).toBeVisible();
 });
 
 /* Regresión: el carrusel de Destacados usaba anchos fijos de desktop (carátula
@@ -115,11 +128,18 @@ test.describe('carrusel de Destacados en mobile', () => {
         const cards = page.locator('.mantine-Carousel-slide a > div');
         const count = await cards.count();
         expect(count).toBeGreaterThan(0);
-        for (let i = 0; i < count; i++) {
-            const box = await cards.nth(i).boundingBox();
-            if (!box) continue;
-            expect(box.width).toBeLessThanOrEqual(carouselBox!.width + 1);
-        }
+        /* Reintentando: el layout compacto lo decide `useMediaQuery`, que
+           devuelve `undefined` en el primer render y resuelve en un efecto, así
+           que hay un frame en el que la tarjeta todavía mide el ancho de
+           desktop. Medir a la primera comprobaba ese frame intermedio y no el
+           layout asentado, que es lo que le importa a quien mira la página. */
+        await expect(async () => {
+            for (let i = 0; i < count; i++) {
+                const box = await cards.nth(i).boundingBox();
+                if (!box) continue;
+                expect(box.width).toBeLessThanOrEqual(carouselBox!.width + 1);
+            }
+        }).toPass({ timeout: 5000 });
 
         await expect(page.locator('.mantine-Carousel-control')).toHaveCount(0);
     });

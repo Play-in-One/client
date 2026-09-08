@@ -8,6 +8,7 @@
  * responde "no disponible": una respuesta vacía en un FAQPage es peor que la
  * ausencia de la pregunta.
  */
+import { platformLongName } from '@/lib/types';
 import type { FaqEntry } from './seo';
 import { bestPriceSentence } from './seo';
 import { formatCLP } from './utils';
@@ -128,7 +129,7 @@ export function buildGameFaq(game: Game): FaqEntry[] {
     }
 
     if (game.platforms?.length) {
-        const names = game.platforms.map((p) => p.display_name);
+        const names = game.platforms.map(platformLongName);
         const list =
             names.length === 1
                 ? names[0]

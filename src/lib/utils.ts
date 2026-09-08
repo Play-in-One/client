@@ -1,4 +1,4 @@
-import { platforms } from '@/lib/colors';
+import { PLATFORMS } from '@/lib/platforms';
 
 /** Utility: format Chilean peso. Un precio de 0 se anuncia como "Gratis". */
 export function formatCLP(value: number | string): string {
@@ -15,40 +15,22 @@ export function priceClause(value: number | string): string {
 
 /**
  * ── Colores oficiales por consola ──
- * Fuente única de verdad para todos los contextos.
+ * Derivado del catálogo (`lib/platforms.ts`), que es la fuente única.
  *   • mantine  → para props `color` de componentes Mantine (Badge, Button…)
- *   • hex      → para estilos inline / CSS custom que requieran hex (ver lib/colors.ts)
+ *   • hex      → para estilos inline / CSS custom que requieran hex
  *   • cssVar   → variable CSS Mantine resuelta (ej.: cards de la home)
  */
-export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; cssVar: string }> = {
-    ps3: { mantine: 'gray.7', hex: platforms.ps3, cssVar: 'var(--mantine-color-gray-7)' },
-    ps4: { mantine: 'indigo', hex: platforms.ps4, cssVar: 'var(--mantine-color-indigo-filled)' },
-    ps5: { mantine: 'blue', hex: platforms.ps5, cssVar: 'var(--mantine-color-blue-filled)' },
-    xbox: { mantine: 'green', hex: platforms.xbox, cssVar: 'var(--mantine-color-green-filled)' },
-    xbox360: { mantine: 'green', hex: platforms.xbox360, cssVar: 'var(--mantine-color-green-filled)' },
-    xboxone: { mantine: 'green', hex: platforms.xboxone, cssVar: 'var(--mantine-color-green-filled)' },
-    xboxseries: { mantine: 'green', hex: platforms.xboxseries, cssVar: 'var(--mantine-color-green-filled)' },
-    switch: { mantine: 'red', hex: platforms.switch, cssVar: 'var(--mantine-color-red-filled)' },
-    switch2: { mantine: 'red', hex: platforms.switch2, cssVar: 'var(--mantine-color-red-filled)' },
-    pc: { mantine: 'gray', hex: platforms.pc, cssVar: 'var(--mantine-color-gray-filled)' },
-    wii: { mantine: 'cyan', hex: platforms.wii, cssVar: 'var(--mantine-color-cyan-filled)' },
-    nds: { mantine: 'gray.7', hex: platforms.nds, cssVar: 'var(--mantine-color-gray-7)' },
-    '3ds': { mantine: 'gray.7', hex: platforms.nds, cssVar: 'var(--mantine-color-gray-7)' },
-    wiiu: { mantine: 'cyan', hex: platforms.wii, cssVar: 'var(--mantine-color-cyan-filled)' },
-    psvita: { mantine: 'indigo', hex: platforms.ps4, cssVar: 'var(--mantine-color-indigo-filled)' },
-};
+export const PLATFORM_COLORS: Record<string, { mantine: string; hex: string; cssVar: string }> =
+    Object.fromEntries(
+        PLATFORMS.map((p) => [p.slug, { mantine: p.mantine, hex: p.hex, cssVar: p.cssVar }]),
+    );
 
-/** Alias corto para labels de plataforma (ej. badges de la galería) cuando difiere del display_name del backend */
-export const PLATFORM_LABEL_OVERRIDES: Record<string, string> = {
-    psvita: 'PSV',
-    xbox360: 'X360',
-    xboxone: 'XOne',
-    xboxseries: 'XSeries',
-    nds: 'NDS',
-    '3ds': 'N3DS',
-    switch: 'sw',
-    switch2: 'sw2',
-};
+/** Etiqueta del badge de la galería: el mismo abreviado que usan los
+ * selectores, pintado en mayúsculas por el Badge. Tenía tabla propia y por eso
+ * podía contradecir a la del selector — "NDS" aquí y "DS" allá. */
+export const PLATFORM_LABEL_OVERRIDES: Record<string, string> = Object.fromEntries(
+    PLATFORMS.map((p) => [p.slug, p.short]),
+);
 
 /**
  * Cuántas tarjetas muestra la sección "Otros juegos populares" de la ficha.

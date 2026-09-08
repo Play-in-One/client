@@ -54,7 +54,9 @@ test('el script del <head> reconoce el formato como desviación del default', as
         ([src, value]) => {
             document.documentElement.removeAttribute('data-prefs');
             document.cookie = `pio_prefs=${encodeURIComponent(value)}; path=/`;
-            // eslint-disable-next-line no-eval
+            // El `no-eval` de ESLint no aplica aquí: esto corre dentro del
+            // navegador vía page.evaluate, y el objetivo del test es ejecutar el
+            // script REAL que el servidor mete en el <head>.
             eval(src);
             const marcado = document.documentElement.getAttribute('data-prefs') === 'pending';
             document.documentElement.removeAttribute('data-prefs');

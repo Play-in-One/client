@@ -1,3 +1,4 @@
+import { platformLongName } from '@/lib/types';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
@@ -69,7 +70,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     const game = parsed && (await fetchGame(parsed.id));
     if (!game) notFound();
 
-    const platforms = game.platforms.map((p) => p.display_name).join(', ');
+    const platforms = game.platforms.map(platformLongName).join(', ');
     // La frase del precio va PRIMERO y la descripción editorial después: es el
     // dato que resuelve la búsqueda ("¿cuánto cuesta X?") y el que un motor
     // generativo cita. Sin oferta se cae a la descripción de siempre.
@@ -138,7 +139,7 @@ export default async function GameDetailPage({
         breadcrumbJsonLd([
             { name: 'Inicio', path: '/' },
             crumbPlatform
-                ? { name: crumbPlatform.display_name, path: `/juegos/${crumbPlatform.slug}` }
+                ? { name: platformLongName(crumbPlatform), path: `/juegos/${crumbPlatform.slug}` }
                 : { name: 'Juegos', path: '/search' },
             { name: game.name, path: gamePath(game) },
         ]),

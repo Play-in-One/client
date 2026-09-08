@@ -1,139 +1,61 @@
 import { test, expect } from '@playwright/test';
+import { SEEDED, seededGamePath } from './helpers';
 
-// El grafico usa una ventana relativa a hoy, asi que los timestamps del
-// fixture tienen que serlo tambien: con fechas fijas el historial caduca y el
-// test empieza a fallar solo por el paso del tiempo.
-const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+/**
+ * La ficha se resuelve en el SERVIDOR (`app/juego/[slug]/page.tsx`) y
+ * `GameDetailClient` pinta el prop que recibe, sin volver a pedir. Ese fetch
+ * sale del contenedor de Next hacia `backend:8001`, así que `page.route` no
+ * puede verlo: los mocks que había aquí no interceptaban nada y los tests
+ * miraban, en realidad, el juego con id 1 de la base de desarrollo.
+ *
+ * Ahora trabajan contra `manage.py seed_e2e`, que siembra un juego con dos
+ * ofertas —una nacional sin envío y una importada con envío— y otro sin
+ * ninguna, para los estados vacíos.
+ */
 
-const MOCK_PLATFORM = { id: 1, name: 'ps5', slug: 'ps5', display_name: 'PS5' };
-// Ripley importa y cobra despacho: su precio mostrado lleva el envio sumado
-// y por eso su fila es la unica que ofrece el desglose.
-const MOCK_SELLER_1 = {
-    id: 1, name: 'Ripley', url: 'https://ripley.cl', logo: null,
-    is_international: true, shipping_cost: '5000.00',
-};
-const MOCK_SELLER_2 = {
-    id: 2, name: 'Paris', url: 'https://paris.cl', logo: null,
-    is_international: false, shipping_cost: '0.00',
-};
-
-const MOCK_GAME = {
-    id: 1,
-    name: 'God of War Ragnarök',
-    description: 'La saga continúa en los reinos nórdicos.',
-    developer: 'Santa Monica Studio',
-    release_date: '2022-11-09',
-    platforms: [MOCK_PLATFORM],
-    genres: [{ id: 1, name: 'Acción', slug: 'accion' }],
-    image: null,
-    rating: '9.5',
-    min_price: '18990',
-    min_price_base: '18990',
-    min_price_shipping: '0.00',
-    products: [
-        {
-            id: 10,
-            title: 'God of War Ragnarök PS5 Nuevo',
-            platform: MOCK_PLATFORM,
-            url: 'https://ripley.cl/product/1',
-            image: null,
-            seller: MOCK_SELLER_1,
-            condition: 'new',
-            game: 1,
-            current_price: '29990',
-            base_price: '24990',
-            shipping_cost: '5000.00',
-            rating: null,
-        },
-        {
-            id: 11,
-            title: 'God of War Ragnarök PS5 Usado',
-            platform: MOCK_PLATFORM,
-            url: 'https://paris.cl/product/2',
-            image: null,
-            seller: MOCK_SELLER_2,
-            condition: 'used',
-            game: 1,
-            current_price: '18990',
-            base_price: '18990',
-            shipping_cost: '0.00',
-            rating: null,
-        },
-    ],
-    // Serie del mínimo por consola: clave externa = Platform.name, interna =
-    // condición ("" = agregada). price null marca un tramo sin stock.
-    min_price_history: {
-        ps5: {
-            '': [
-                { price: '18990.00', timestamp: daysAgo(3) },
-                { price: null, timestamp: daysAgo(9) },
-                { price: '24990.00', timestamp: daysAgo(15) },
-                { price: '29990.00', timestamp: daysAgo(21) },
-            ],
-            used: [
-                { price: '18990.00', timestamp: daysAgo(3) },
-                { price: '21990.00', timestamp: daysAgo(15) },
-            ],
-        },
-    },
-};
-
-const MOCK_GAME_NO_PRODUCTS = {
-    ...MOCK_GAME,
-    id: 2,
-    name: 'Juego Sin Stock',
-    products: [],
-    min_price: null,
-    min_price_history: {},
-};
+let gamePath: string;
+let emptyGamePath: string;
+let noHistoryGamePath: string;
 
 test.beforeEach(async ({ page }) => {
-    await page.route('**/api/games/1/**', (route) =>
-        route.fulfill({ json: MOCK_GAME })
-    );
-    await page.route('**/api/games/2/**', (route) =>
-        route.fulfill({ json: MOCK_GAME_NO_PRODUCTS })
-    );
-    await page.route('**/api/products/**', (route) =>
-        route.fulfill({ json: { count: 0, next: null, previous: null, results: [] } })
-    );
-    // `**/api/games/**` engulle también /api/games/facets/, que devuelve otra
-    // forma ({platforms, genres, sellers}). Sin este mock el sidebar recibía la
-    // respuesta de juegos, `facets.platforms` quedaba undefined y la página
-    // reventaba entera. Va DESPUÉS a propósito: Playwright evalúa las rutas en
-    // orden inverso al registro, así que la última registrada es la que gana.
-    await page.route('**/api/games/facets/**', (route) =>
-        route.fulfill({ json: { platforms: {}, genres: {}, sellers: {} } }));
+    gamePath = await seededGamePath(page);
+    emptyGamePath = await seededGamePath(page, SEEDED.emptyGameId);
+    noHistoryGamePath = await seededGamePath(page, SEEDED.noHistoryGameId);
 });
 
 test('la página de detalle carga con el título del juego', async ({ page }) => {
-    await page.goto('/game/1');
-    await expect(page.getByRole('heading', { name: 'God of War Ragnarök' })).toBeVisible();
+    await page.goto(gamePath);
+    await expect(page.getByRole('heading', { name: SEEDED.game })).toBeVisible();
 });
 
 test('la tabla de productos muestra los vendedores y precios', async ({ page }) => {
-    await page.goto('/game/1');
-    await expect(page.getByText('Ripley')).toBeVisible();
-    await expect(page.getByText('Paris')).toBeVisible();
-    await expect(page.getByText(/\$29\.990/)).toBeVisible();
-    await expect(page.getByText(/\$18\.990/)).toBeVisible();
+    await page.goto(gamePath);
+    // Acotado a la tabla: el nombre de la tienda se repite en la fila, en el
+    // enlace y en el bloque de mejor precio.
+    const tabla = page.getByRole('table');
+    await expect(tabla.getByText(SEEDED.nationalSeller).first()).toBeVisible();
+    await expect(tabla.getByText(SEEDED.internationalSeller).first()).toBeVisible();
+    // Los precios también salen en el bloque de mejor precio y en las tarjetas
+    // de "otros juegos", así que la comprobación va contra la tabla.
+    await expect(tabla.getByText(/\$19\.990/).first()).toBeVisible();   // nacional, sin envío
+    await expect(tabla.getByText(/\$24\.980/).first()).toBeVisible();   // importada, con envío
 });
 
 test('el precio con envío ofrece el desglose y el sin envío no', async ({ page }) => {
-    await page.goto('/game/1');
-    // Un ícono por oferta con despacho: Ripley sí, Paris no.
+    await page.goto(gamePath);
+    // Un ícono por oferta con despacho: la importadora sí, la nacional no.
     const info = page.getByRole('button', { name: 'Ver desglose del precio' });
     await expect(info).toHaveCount(1);
 
     await info.click();
     await expect(page.getByText('Este precio incluye el envío')).toBeVisible();
-    await expect(page.getByText(/\$24\.990/)).toBeVisible();  // precio en tienda
-    await expect(page.getByText(/\$5\.000/)).toBeVisible();   // envío promedio
+    await expect(page.getByText(/\$14\.990/)).toBeVisible();  // precio en tienda
+    await expect(page.getByText(/\$9\.990/)).toBeVisible();   // envío promedio
 });
 
 test('solo las tiendas internacionales se marcan con el globo', async ({ page }) => {
-    await page.goto('/game/1');
-    // Ripley importa y Paris no: lo nacional es el caso por defecto y no se rotula.
+    await page.goto(gamePath);
+    // Solo la importadora lleva el globo: lo nacional es el caso por defecto.
     await expect(page.getByRole('img', { name: 'Tienda internacional' })).toHaveCount(1);
 });
 
@@ -143,21 +65,21 @@ test('los badges de condición se muestran', async ({ page }) => {
        "Nuevos"/"Usados" el test pasaba por coincidencia de subcadena aunque la
        ficha no hubiera cargado: nunca llegó a mirar un badge. Al mover ese
        control al menú de preferencias quedó al descubierto. */
-    await page.goto('/game/1');
+    await page.goto(gamePath);
     const tabla = page.getByRole('table');
     await expect(tabla.getByText('Nuevo', { exact: true })).toBeVisible();
     await expect(tabla.getByText('Usado', { exact: true })).toBeVisible();
 });
 
 test('el botón de ir a la tienda apunta a la URL del producto', async ({ page }) => {
-    await page.goto('/game/1');
+    await page.goto(gamePath);
     const btn = page.getByRole('link', { name: /tienda|comprar/i }).first();
     const href = await btn.getAttribute('href');
     expect(href).toBeTruthy();
 });
 
 test('el historial de precio mínimo se muestra entre el mejor precio y la comparativa', async ({ page }) => {
-    await page.goto('/game/1');
+    await page.goto(gamePath);
     const minHistory = page.getByRole('heading', { name: /historial de precio mínimo/i });
     const comparison = page.getByRole('heading', { name: /comparativa de precios/i });
     await expect(minHistory).toBeVisible();
@@ -174,14 +96,17 @@ test('el historial de precio mínimo se muestra entre el mejor precio y la compa
 });
 
 test('el historial sigue al filtro de condición sin recargar', async ({ page }) => {
-    await page.goto('/game/1');
+    await page.goto(gamePath);
     const heading = page.getByRole('heading', { name: /historial de precio mínimo/i });
     await expect(heading).toBeVisible();
 
     // El Select de condición vive en la comparativa; el card del historial
     // debe reaccionar sin pedir datos nuevos (la serie viaja embebida).
     let apiCalls = 0;
-    await page.route('**/api/games/**', (route) => {
+    // El lookahead deja fuera `facets/`: sin él este contador tapa el mock de
+    // facetas del beforeEach —Playwright evalúa las rutas en orden inverso al
+    // registro— y el sidebar recibe la forma equivocada.
+    await page.route(/\/api\/games\/(?!facets)/, (route) => {
         apiCalls += 1;
         route.continue();
     });
@@ -193,7 +118,7 @@ test('el historial sigue al filtro de condición sin recargar', async ({ page })
 });
 
 test('la tabla ya no tiene la columna de tendencia por producto', async ({ page }) => {
-    await page.goto('/game/1');
+    await page.goto(gamePath);
     await expect(page.getByRole('heading', { name: /comparativa de precios/i })).toBeVisible();
     // El unico grafico del detalle es el del minimo por consola; el historial
     // por oferta se retiro junto con su columna.
@@ -201,14 +126,17 @@ test('la tabla ya no tiene la columna de tendencia por producto', async ({ page 
 });
 
 test('el selector de rango recorta el eje sin pedir datos nuevos', async ({ page }) => {
-    await page.goto('/game/1');
+    await page.goto(gamePath);
     const heading = page.getByRole('heading', { name: /historial de precio mínimo/i });
     await expect(heading).toBeVisible();
 
     // La serie completa ya viaja en el detalle: cambiar el rango es puro
     // recorte en el cliente y no debe disparar ninguna request.
     let apiCalls = 0;
-    await page.route('**/api/games/**', (route) => {
+    // El lookahead deja fuera `facets/`: sin él este contador tapa el mock de
+    // facetas del beforeEach —Playwright evalúa las rutas en orden inverso al
+    // registro— y el sidebar recibe la forma equivocada.
+    await page.route(/\/api\/games\/(?!facets)/, (route) => {
         apiCalls += 1;
         route.continue();
     });
@@ -222,13 +150,17 @@ test('el selector de rango recorta el eje sin pedir datos nuevos', async ({ page
 });
 
 test('el historial muestra estado vacío sin datos suficientes', async ({ page }) => {
-    await page.goto('/game/2');
+    // Un juego CON oferta pero sin serie: sin ofertas no hay consola, y sin
+    // consola el card del historial no llega a pintarse.
+    await page.goto(noHistoryGamePath);
     await expect(page.getByText(/aún no hay suficiente historial/i)).toBeVisible();
 });
 
 test('se muestra estado vacío cuando no hay productos', async ({ page }) => {
-    await page.goto('/game/2');
-    await expect(page.getByRole('heading', { name: 'Juego Sin Stock' })).toBeVisible();
-    // La tabla está vacía o se muestra el estado sin stock
-    await expect(page.getByText(/no hay|sin stock|sin productos/i)).toBeVisible();
+    await page.goto(emptyGamePath);
+    await expect(page.getByRole('heading', { name: SEEDED.emptyGame })).toBeVisible();
+    // La tabla se pinta vacía, con su propio aviso.
+    await expect(
+        page.getByText('No hay productos disponibles con estos filtros'),
+    ).toBeVisible();
 });

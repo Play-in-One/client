@@ -79,27 +79,12 @@ export const decorative = {
     },
 };
 
-/**
- * Colores oficiales por consola — fuente única de verdad.
- * Usado por lib/utils.ts (PLATFORM_COLORS.hex) y lib/platformGroups.ts (PLATFORM_GROUPS[].color).
- */
-export const platforms: Record<string, string> = {
-    ps3: '#52525B',
-    ps4: '#1E40AF',
-    ps5: '#2563EB',
-    xbox: '#16A34A',
-    xbox360: '#16A34A',
-    xboxone: '#16A34A',
-    xboxseries: '#16A34A',
-    switch: '#DC2626',
-    switch2: '#EF4444',
-    pc: '#6B7280',
-    wii: '#00AEEF',
-    nds: '#4B4B4B',
-    '3ds': '#C0001B',
-    wiiu: '#009AC7',
-    psvita: '#7C3AED',
-};
+/* Los colores por consola vivían aquí y se retiraron: ahora son un campo del
+   catálogo (`lib/platforms.ts`), junto al icono y las etiquetas de cada una.
+   Este archivo lo importa el tema global, así que derivarlos desde el catálogo
+   habría arrastrado los iconos de las consolas a todos los bundles. Tres de
+   aquellos colores (`3ds`, `wiiu`, `psvita`) llevaban tiempo muertos, porque
+   `PLATFORM_COLORS` los pisaba con el hex de otra consola. */
 
 export const chart = {
     tooltipBg: { light: '#fff', dark: '#1c1c1c' },
