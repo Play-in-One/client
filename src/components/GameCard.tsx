@@ -9,6 +9,7 @@ import PlatformBadge from './PlatformBadge';
 import DigitalBadge from './DigitalBadge';
 import { isDigital } from '@/lib/conditions';
 import ShippingInfo from './ShippingInfo';
+import CouponInfo from './CouponInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
@@ -203,6 +204,9 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                             {formatCLP(price)}
                                         </Text>
                                         <ShippingInfo basePrice={basePrice} shippingCost={shippingCost} />
+                                        {game.min_price_seller && (
+                                            <CouponInfo basePrice={basePrice} seller={game.min_price_seller} />
+                                        )}
                                     </Group>
                                 </Box>
                                 <Box ta="right">

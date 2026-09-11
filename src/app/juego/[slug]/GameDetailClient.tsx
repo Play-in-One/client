@@ -42,7 +42,7 @@ import {
 import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
-import { platformLongName } from '@/lib/types';
+import { platformLongName, activeCoupon } from '@/lib/types';
 import { allowedConditionsFor, type ConditionFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
@@ -51,6 +51,8 @@ import { bestPriceSentence } from '@/lib/seo';
 import CollapsibleText from '@/components/CollapsibleText';
 import PlatformBadge from '@/components/PlatformBadge';
 import ShippingInfo from '@/components/ShippingInfo';
+import CouponInfo from '@/components/CouponInfo';
+import CouponModal, { type PendingOffer } from '@/components/CouponModal';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import DigitalBadge from '@/components/DigitalBadge';
 import GameClickBadge from '@/components/GameClickBadge';
@@ -146,6 +148,37 @@ export default function GameDetailClient({
     useEffect(() => {
         setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
     }, []);
+
+    /* Tiendas con convenio interceptan la salida: en vez de navegar directo,
+       se guarda la oferta pendiente y se muestra el cupón en un modal. Sin
+       cupón activo, el click no toca este estado y navega como siempre. */
+    const [pendingOffer, setPendingOffer] = useState<PendingOffer | null>(null);
+    const handleOfferClick = (e: React.MouseEvent, product: Product) => {
+        const coupon = activeCoupon(product.seller);
+        if (!coupon) {
+            trackEvent({ event_type: 'offer_click', product: product.id, game: game.id, platform: product.platform?.id });
+            return;
+        }
+        e.preventDefault();
+        setPendingOffer({
+            url: product.affiliate_url || product.url,
+            productId: product.id,
+            platformId: product.platform?.id,
+            seller: product.seller,
+            basePrice: product.base_price,
+        });
+    };
+    const handleConfirmOffer = () => {
+        if (!pendingOffer) return;
+        trackEvent({
+            event_type: 'offer_click',
+            product: pendingOffer.productId,
+            game: game.id,
+            platform: pendingOffer.platformId,
+        });
+        window.open(pendingOffer.url, '_blank', 'noopener,noreferrer');
+        setPendingOffer(null);
+    };
 
     /* ── Popularity tracking ──
        El page_view del layout ya registra la ruta, pero normalizada a
@@ -281,6 +314,7 @@ export default function GameDetailClient({
 
 
     return (
+        <>
         <Container size="lg" py="xl">
             {/* Breadcrumbs */}
             <Breadcrumbs
@@ -376,10 +410,16 @@ export default function GameDetailClient({
                                     <Group justify="space-between" pb={8} style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
                                         <Text fz="sm" c="dimmed">Lanzamiento</Text>
                                         <Text fz="sm" fw={500}>
+                                            {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
+                                                interpreta como medianoche UTC. Sin fijar el timeZone acá, el
+                                                formateo cae al del entorno que ejecuta el código: el servidor
+                                                (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
+                                                el día anterior en horario local — mismatch de hidratación. */}
                                             {new Date(game.release_date).toLocaleDateString('es-CL', {
                                                 day: '2-digit',
                                                 month: 'short',
                                                 year: 'numeric',
+                                                timeZone: 'UTC',
                                             })}
                                         </Text>
                                     </Group>
@@ -601,6 +641,7 @@ export default function GameDetailClient({
                                                 <IconCheck size={14} /> No incluye gastos de envío
                                             </Group>
                                         )}
+                                        <CouponInfo basePrice={bestProduct.base_price} seller={bestProduct.seller} color="green" />
 
                                         <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
                                             <Text>Vendido por <Anchor
@@ -608,7 +649,7 @@ export default function GameDetailClient({
                                                 href={bestProduct.affiliate_url || bestProduct.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                onClick={() => trackEvent({ event_type: 'offer_click', product: bestProduct.id, game: game.id, platform: bestProduct.platform?.id })}
+                                                onClick={(e) => handleOfferClick(e, bestProduct)}
                                                 fw={700}
                                                 c="#fff"
                                                 underline="hover"
@@ -627,7 +668,7 @@ export default function GameDetailClient({
                                             href={bestProduct.affiliate_url || bestProduct.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            onClick={() => trackEvent({ event_type: 'offer_click', product: bestProduct.id, game: game.id, platform: bestProduct.platform?.id })}
+                                            onClick={(e) => handleOfferClick(e, bestProduct)}
                                             color="primaryRed"
                                             size="lg"
                                             radius="lg"
@@ -772,7 +813,7 @@ export default function GameDetailClient({
                                                                 href={p.affiliate_url || p.url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
-                                                                onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
+                                                                onClick={(e) => handleOfferClick(e, p)}
                                                                 underline="never"
                                                                 c="inherit"
                                                             >
@@ -801,6 +842,7 @@ export default function GameDetailClient({
                                                                 basePrice={p.base_price}
                                                                 shippingCost={p.shipping_cost}
                                                             />
+                                                            <CouponInfo basePrice={p.base_price} seller={p.seller} />
                                                         </Group>
                                                     </Table.Td>
                                                     <Table.Td style={{ whiteSpace: 'nowrap' }}>
@@ -822,7 +864,7 @@ export default function GameDetailClient({
                                                                     href={p.affiliate_url || p.url}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
+                                                                    onClick={(e) => handleOfferClick(e, p)}
                                                                     size="lg"
                                                                     radius="md"
                                                                     variant={idx === 0 ? 'filled' : 'default'}
@@ -870,5 +912,7 @@ export default function GameDetailClient({
                 </Grid.Col>
             </Grid>
         </Container>
+        <CouponModal offer={pendingOffer} onClose={() => setPendingOffer(null)} onConfirm={handleConfirmOffer} />
+        </>
     );
 }

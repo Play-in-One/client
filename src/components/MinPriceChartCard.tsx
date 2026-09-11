@@ -95,7 +95,11 @@ export default function MinPriceChartCard({
                     </Text>
                 ) : (
                     <>
-                        <PriceHistoryChart points={built.points} domain={built.domain} />
+                        <PriceHistoryChart
+                            points={built.points}
+                            domain={built.domain}
+                            lastRealTimestamp={built.lastRealTimestamp}
+                        />
                         {built.realCount === 0 && (
                             // Línea plana de borde a borde: sin esta nota parece
                             // que el gráfico está roto.

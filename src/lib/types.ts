@@ -50,12 +50,31 @@ export interface Seller {
     /** Envío promedio que se suma al precio de lista de sus productos.
      *  "0.00" = envío gratis o incluido. */
     shipping_cost: string;
+    /** Convenio activo con esta tienda. Interruptor maestro: si es `false`,
+     *  ignorar coupon_code/coupon_discount_percent aunque vengan cargados. */
+    has_agreement: boolean;
+    /** Código de cupón del convenio. Vacío si no hay uno cargado. */
+    coupon_code: string;
+    /** Descuento del cupón en %, ej. 5 = 5%. `null` si no hay cupón. Se aplica
+     *  sobre el precio de LISTA de la oferta (antes de envío), en el carrito
+     *  de la tienda externa. */
+    coupon_discount_percent: number | null;
 }
 
 export interface SellerAddress {
     id: number;
     label: string;
     address: string;
+}
+
+/** Seller con convenio y cupón realmente aplicables (no solo cargados):
+ *  `has_agreement` apagado ignora el resto aunque tenga datos. */
+export function activeCoupon(
+    seller: Pick<Seller, 'has_agreement' | 'coupon_code' | 'coupon_discount_percent'>,
+): { code: string; percent: number } | null {
+    if (!seller.has_agreement || !seller.coupon_code) return null;
+    if (!seller.coupon_discount_percent || seller.coupon_discount_percent <= 0) return null;
+    return { code: seller.coupon_code, percent: seller.coupon_discount_percent };
 }
 
 export interface PriceHistory {
@@ -144,8 +163,13 @@ export interface Game {
     min_price_shipping: string | null;
     /** Tienda que tiene esa mejor oferta. Sale del MISMO producto que fija
      *  min_price, así que el precio y el "dónde se consigue" no pueden
-     *  discrepar. null cuando el juego no tiene ninguna oferta con precio. */
-    min_price_seller?: { id: number; name: string } | null;
+     *  discrepar. null cuando el juego no tiene ninguna oferta con precio.
+     *  Trae también sus campos de cupón (min_price ya viene descontado si
+     *  aplica; estos son para que la tarjeta pueda mostrar el ícono/desglose
+     *  sin cargar el producto completo). */
+    min_price_seller?: Pick<
+        Seller, 'id' | 'name' | 'has_agreement' | 'coupon_code' | 'coupon_discount_percent'
+    > | null;
     /** Condición de la MISMA oferta que fija `min_price`, en el vocabulario de
      *  almacenamiento. Opcional: un backend anterior no lo manda y la tarjeta
      *  simplemente no pinta el 💾. */

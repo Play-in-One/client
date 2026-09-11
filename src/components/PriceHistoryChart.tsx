@@ -6,6 +6,7 @@ import { useMantineColorScheme } from '@mantine/core';
 import {
     Area,
     AreaChart,
+    ReferenceLine,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -19,6 +20,10 @@ interface PriceHistoryChartProps {
     /** Puntos ya normalizados por buildPriceSeries: ascendentes, con bordes. */
     points: ChartPoint[];
     domain: [number, number];
+    /** `t` de la última muestra REAL (buildPriceSeries.lastRealTimestamp), o
+     *  `null` si ninguna cae en la ventana. Marca dónde termina el dato medido
+     *  y empieza la extensión sintética hasta hoy. */
+    lastRealTimestamp: number | null;
 }
 
 /** recharts invoca esto por punto. Los sintéticos (el borde del rango y "ahora")
@@ -55,7 +60,7 @@ function renderPriceDot({ cx, cy, index, payload }: PriceDotProps) {
  * cambios en una tarde se veían tan separados como dos meses de calma. Con
  * `type="number"` la escala pasa a ser continua y las distancias son reales.
  */
-export default function PriceHistoryChart({ points, domain }: PriceHistoryChartProps) {
+export default function PriceHistoryChart({ points, domain, lastRealTimestamp }: PriceHistoryChartProps) {
     const { colorScheme } = useMantineColorScheme();
     const isDark = colorScheme === 'dark';
     // Id único por instancia: el gradiente vive en el DOM global. Se limpian
@@ -105,7 +110,11 @@ export default function PriceHistoryChart({ points, domain }: PriceHistoryChartP
                             const kind = (payload?.[0]?.payload as ChartPoint | undefined)?.kind;
                             if (kind === 'now') return 'Precio actual';
                             if (kind === 'edge') return 'Vigente al inicio del rango';
-                            return new Date(value).toLocaleDateString('es-CL');
+                            const date = new Date(value).toLocaleDateString('es-CL');
+                            // El punto real más reciente es la última vez que este
+                            // precio cambió de verdad; de ahí en más el gráfico solo
+                            // arrastra ese mismo valor hasta hoy (línea punteada).
+                            return value === lastRealTimestamp ? `Última actualización: ${date}` : date;
                         }}
                         contentStyle={{
                             background: isDark ? chart.tooltipBg.dark : chart.tooltipBg.light,
@@ -128,6 +137,17 @@ export default function PriceHistoryChart({ points, domain }: PriceHistoryChartP
                         // re-animación se ve como un parpadeo.
                         isAnimationActive={false}
                     />
+                    {/* Sin label fijo a propósito: la fecha sale en el Tooltip al
+                        pasar el mouse (ver labelFormatter arriba). La línea sola ya
+                        marca dónde termina el dato medido y empieza la extensión
+                        sintética hasta hoy. */}
+                    {lastRealTimestamp != null && (
+                        <ReferenceLine
+                            x={lastRealTimestamp}
+                            stroke={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(31,41,55,0.35)'}
+                            strokeDasharray="4 4"
+                        />
+                    )}
                 </AreaChart>
             </ResponsiveContainer>
         </Box>

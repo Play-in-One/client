@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
 import ShippingInfo from './ShippingInfo';
+import CouponInfo from './CouponInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
@@ -228,6 +229,9 @@ function FeaturedGameCard({
                                     basePrice={game.min_price_base}
                                     shippingCost={game.min_price_shipping}
                                 />
+                                {game.min_price_seller && (
+                                    <CouponInfo basePrice={game.min_price_base} seller={game.min_price_seller} />
+                                )}
                             </Group>
                         )}
                     </Box>

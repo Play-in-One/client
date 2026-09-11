@@ -23,6 +23,11 @@ export interface PriceSeries {
     realCount: number;
     /** Hay muestras más antiguas que el rango elegido. */
     hasOlderData: boolean;
+    /** `t` de la muestra REAL más reciente dentro de la ventana, o `null` si
+     *  ninguna cayó dentro (mismo caso que `realCount === 0`). Es lo que marca
+     *  el gráfico como "última actualización": el tramo entre este punto y
+     *  "ahora" es la extensión sintética (`kind: 'now'`), no una medición. */
+    lastRealTimestamp: number | null;
 }
 
 const DAY_MS = 86_400_000;
@@ -99,6 +104,7 @@ export function buildPriceSeries(
         plotCount: points.filter((p) => p.price !== null).length,
         realCount: inRange.filter((p) => p.price !== null).length,
         hasOlderData: older.length > 0,
+        lastRealTimestamp: inRange.length ? inRange[inRange.length - 1].t : null,
     };
 }
 

@@ -15,10 +15,11 @@ const ROWS: { key: keyof ProductClickCounts; label: string }[] = [
 ];
 
 /**
- * Solo staff: clics a ESTA oferta puntual (offer_click), hoy/7d/30d. Un
- * producto sin ningún clic no llega en `counts` (el backend omite las filas en
- * cero) y aquí no se pinta nada —ni un badge en 0 que compita visualmente con
- * las ofertas que sí convierten.
+ * Solo staff: clics a ESTA oferta puntual (offer_click), hoy/7d/30d. El
+ * backend trae SIEMPRE una entrada por producto, aunque esté en cero —el
+ * badge se muestra igual en cero, para que ausencia de clics no se confunda
+ * con "todavía no cargó". `counts` solo falta mientras el fetch está pendiente
+ * o si falló (ver `GameDetailClient`), y ahí no se pinta nada.
  */
 export default function ProductClickBadge({ counts }: Props) {
     if (!counts) return null;
