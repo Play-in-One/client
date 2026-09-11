@@ -1,7 +1,7 @@
 import type {
     Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
-    PerformanceReport, SlowestReport,
+    PerformanceReport, SlowestReport, GameClickStats,
 } from './types';
 import { tryServerPerf } from './serverPerf';
 
@@ -485,6 +485,7 @@ export interface ProductPatch {
     title?: string;
     platform?: number;   // Platform id
     url?: string;
+    affiliate_url?: string;
     image?: string;
     condition?: Product['condition'];
     game?: number;       // reasignar a otro juego
@@ -533,6 +534,10 @@ export async function getAnalyticsTraffic(days = 30) {
 
 export async function getAnalyticsFunnel(days = 30, top = 10) {
     return fetcher<FunnelReport>(`/analytics/funnel/?days=${days}&top=${top}`, { admin: true });
+}
+
+export async function getGameClickStats(gameId: number) {
+    return fetcher<GameClickStats>(`/analytics/games/${gameId}/clicks/`, { admin: true });
 }
 
 export async function getAnalyticsSearch(days = 30, top = 20) {

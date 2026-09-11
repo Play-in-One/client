@@ -22,6 +22,19 @@ function hasEvent(bodies: string[], eventType: string, value: string): boolean {
     return bodies.some((body) => body.includes(eventType) && body.includes(value));
 }
 
+/**
+ * Espera a que el aviso de cookies esté en pantalla antes de pulsar el footer.
+ *
+ * La tarjeta entra ~1 s después de cargar y flota en la esquina inferior
+ * derecha, justo donde caen los iconos del footer al desplazarse hasta ellos.
+ * Si aparece entre el mousedown y el mouseup, el clic acaba en `body` y no abre
+ * nada. Ya visible, Playwright la detecta como obstáculo y desplaza hasta dejar
+ * el enlace libre, que es lo que hace una persona.
+ */
+async function waitForCookieBanner(page: Page): Promise<void> {
+    await expect(page.getByRole('dialog', { name: 'Preferencias de cookies' })).toBeVisible();
+}
+
 test('emite page_view en las páginas de información', async ({ page }) => {
     const events = collectEvents(page);
 
@@ -75,6 +88,7 @@ test('cada red del footer emite social_click con su propia red', async ({ page }
 
     // target="_blank": el clic abre pestaña nueva en vez de descargar el
     // documento, así que el beacon sale sin depender de sobrevivir al unload.
+    await waitForCookieBanner(page);
     const popup = page.waitForEvent('popup').catch(() => null);
     await page.locator('footer a[href*="tiktok.com"]').first().click();
     await popup;
@@ -88,6 +102,7 @@ test('la red que viaja es la del enlace pulsado, no siempre la primera', async (
     const events = collectEvents(page);
     await page.goto('/');
 
+    await waitForCookieBanner(page);
     const popup = page.waitForEvent('popup').catch(() => null);
     await page.locator('footer a[href*="instagram.com"]').first().click();
     await popup;

@@ -118,7 +118,7 @@ test('tras aceptar, el anuncio se pide personalizado', async ({ page }) => {
     await stubGoogle(page);
     test.skip(!(await adsConfigured(page)), 'sin ID de editor no hay bloque');
 
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     // Se espera a `pio_consent`, no a `pio_vid`: el eje publicitario es
     // independiente de la analítica, y sin VISITOR_ID_SECRET configurado la
     // cookie de visitante no se emite aunque el consentimiento sí exista.

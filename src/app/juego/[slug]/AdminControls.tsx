@@ -303,6 +303,7 @@ export function AdminProductEditor({ product }: { product: Product }) {
 function ProductRow({ product, platforms }: { product: Product; platforms: Platform[] }) {
     const router = useRouter();
     const [url, setUrl] = useState(product.url);
+    const [affiliateUrl, setAffiliateUrl] = useState(product.affiliate_url ?? '');
     const [platformId, setPlatformId] = useState<string | null>(String(product.platform.id));
     const [condition, setCondition] = useState<string | null>(product.condition);
     const [newPrice, setNewPrice] = useState<number | string>('');
@@ -387,12 +388,20 @@ function ProductRow({ product, platforms }: { product: Product; platforms: Platf
                     onChange={(e) => setUrl(e.currentTarget.value)}
                 />
 
+                <TextInput
+                    label="Link de afiliado (opcional)"
+                    description="Si se completa, reemplaza al link del producto en los botones de salida del sitio."
+                    value={affiliateUrl}
+                    onChange={(e) => setAffiliateUrl(e.currentTarget.value)}
+                />
+
                 <Group justify="space-between">
                     <Button
                         variant="light"
                         disabled={
                             busy ||
                             (url === product.url &&
+                                affiliateUrl === (product.affiliate_url ?? '') &&
                                 platformId === String(product.platform.id) &&
                                 condition === product.condition)
                         }
@@ -401,6 +410,7 @@ function ProductRow({ product, platforms }: { product: Product; platforms: Platf
                                 () =>
                                     updateProduct(product.id, {
                                         url,
+                                        affiliate_url: affiliateUrl,
                                         platform: platformId ? Number(platformId) : undefined,
                                         condition: (condition as Product['condition']) ?? undefined,
                                     }),

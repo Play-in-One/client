@@ -39,9 +39,9 @@ import {
     IconPencil,
 } from '@tabler/icons-react';
 
-import { trackEvent } from '@/lib/api';
+import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
-import type { Game, Product } from '@/lib/types';
+import type { Game, Product, GameClickStats } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
 import { allowedConditionsFor, type ConditionFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
@@ -53,6 +53,8 @@ import PlatformBadge from '@/components/PlatformBadge';
 import ShippingInfo from '@/components/ShippingInfo';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import DigitalBadge from '@/components/DigitalBadge';
+import GameClickBadge from '@/components/GameClickBadge';
+import ProductClickBadge from '@/components/ProductClickBadge';
 import {
     CONDITION_BADGE_COLOR,
     CONDITION_LABEL,
@@ -88,6 +90,19 @@ export default function GameDetailClient({
     const { isAdmin } = useAdmin();
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
     const game = initialGame;
+
+    /* Un solo fetch para el badge del juego Y el de cada oferta: el backend ya
+       devuelve el desglose por producto en la misma respuesta, así que pedirlo
+       por fila sería N llamadas por una que ya trae todo. Solo para staff. */
+    const [clickStats, setClickStats] = useState<GameClickStats | null>(null);
+    useEffect(() => {
+        if (!isAdmin) { setClickStats(null); return; }
+        let cancelled = false;
+        getGameClickStats(game.id)
+            .then((data) => { if (!cancelled) setClickStats(data); })
+            .catch(() => { /* silencioso: extra del panel, no debe romper la ficha */ });
+        return () => { cancelled = true; };
+    }, [isAdmin, game.id]);
     // El backend garantiza que una consola solo está en el juego mientras tenga
     // al menos un producto visible de ella, así que no hay tabs vacíos que filtrar.
     const platformOptions = game.platforms;
@@ -211,8 +226,15 @@ export default function GameDetailClient({
        (contrato del backend, `GameDetailSerializer`). El backend mantiene los
        dos campos idénticos por catálogo, así que el slug entra tal cual; es la
        ÚNICA frontera de esta pantalla donde no se habla de slugs. */
+    /* `conditionFilter` es `null` tanto para "todos + todos" como para
+       "físico + todos" (el Select de la tabla no puede distinguirlos, ver
+       `selectValueFor`). Sin esto el segundo caso caía en la clave "" —la
+       agregada, que incluye digital— en vez de en "physical" (unión de
+       new+used que el backend ya calcula). */
+    const historyConditionKey =
+        conditionFilter ?? (effectivePrefs.format === 'physical' ? 'physical' : '');
     const minPriceSeries =
-        historySource?.[selectedPlatform ?? '']?.[conditionFilter ?? ''] ?? [];
+        historySource?.[selectedPlatform ?? '']?.[historyConditionKey] ?? [];
 
     // Portada: la fija (puesta a mano) manda; si no, sale del producto más
     // barato de los que pasan los filtros ACTIVOS de esta pantalla, así que
@@ -495,6 +517,7 @@ export default function GameDetailClient({
                                         {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
                                     </ActionIcon>
                                 </MantineTooltip>
+                                {isAdmin && <GameClickBadge stats={clickStats} />}
                                 {isAdmin && (
                                     <Button
                                         size="sm"
@@ -582,7 +605,7 @@ export default function GameDetailClient({
                                         <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
                                             <Text>Vendido por <Anchor
                                                 component="a"
-                                                href={bestProduct.url}
+                                                href={bestProduct.affiliate_url || bestProduct.url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={() => trackEvent({ event_type: 'offer_click', product: bestProduct.id, game: game.id, platform: bestProduct.platform?.id })}
@@ -601,7 +624,7 @@ export default function GameDetailClient({
                                     <Stack align="stretch" justify="center" gap="sm">
                                         <Button
                                             component="a"
-                                            href={bestProduct.url}
+                                            href={bestProduct.affiliate_url || bestProduct.url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={() => trackEvent({ event_type: 'offer_click', product: bestProduct.id, game: game.id, platform: bestProduct.platform?.id })}
@@ -746,7 +769,7 @@ export default function GameDetailClient({
                                                             </Anchor>
                                                             <Anchor
                                                                 component="a"
-                                                                href={p.url}
+                                                                href={p.affiliate_url || p.url}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                                 onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
@@ -796,7 +819,7 @@ export default function GameDetailClient({
                                                             <MantineTooltip label="Ver en Tienda" withArrow>
                                                                 <ActionIcon
                                                                     component="a"
-                                                                    href={p.url}
+                                                                    href={p.affiliate_url || p.url}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     onClick={() => trackEvent({ event_type: 'offer_click', product: p.id, game: game.id, platform: p.platform?.id })}
@@ -809,6 +832,9 @@ export default function GameDetailClient({
                                                                     <IconExternalLink size={16} />
                                                                 </ActionIcon>
                                                             </MantineTooltip>
+                                                            {isAdmin && (
+                                                                <ProductClickBadge counts={clickStats?.products?.[String(p.id)]} />
+                                                            )}
                                                             {isAdmin && (
                                                                 <MantineTooltip label="Editar producto" withArrow>
                                                                     <ActionIcon

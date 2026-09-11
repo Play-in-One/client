@@ -83,6 +83,9 @@ export interface Product {
     title: string;
     platform: Platform;
     url: string;
+    /** Link de afiliado (opcional). Cuando existe, reemplaza a `url` como
+     *  destino de los botones "Ir a la Tienda" / "Ver en Tienda". */
+    affiliate_url: string;
     image: string | null;
     seller: Seller;
     /* El backend guarda de DÓNDE sale una descarga, no solo que lo es: `store`
@@ -232,6 +235,26 @@ export interface SellerStat {
     seller: number | null;
     name: string;
     offer_clicks: number;
+}
+
+export interface GameClickWindow {
+    game_clicks: number;
+    offer_clicks: number;
+    conversion_rate: number;
+}
+
+export interface ProductClickCounts {
+    today: number;
+    last_7d: number;
+    last_30d: number;
+}
+
+export interface GameClickStats {
+    game_id: number;
+    today: GameClickWindow;
+    last_7d: GameClickWindow;
+    last_30d: GameClickWindow;
+    products: Record<string, ProductClickCounts>;
 }
 
 export interface SearchStat {

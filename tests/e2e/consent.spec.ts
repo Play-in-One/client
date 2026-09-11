@@ -24,8 +24,8 @@ test('el aviso aparece en la primera visita', async ({ page }) => {
     await page.goto('/');
     await expect(banner(page)).toBeVisible();
     // Rechazar debe costar lo mismo que aceptar: ambos son un botón visible.
-    await expect(page.getByRole('button', { name: 'Aceptar' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Solo lo esencial' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Aceptar todo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Solo esenciales' })).toBeVisible();
 });
 
 test('el aviso no aparece en las rutas de administración', async ({ page }) => {
@@ -38,7 +38,7 @@ test('el aviso no aparece en las rutas de administración', async ({ page }) => 
 
 test('aceptar guarda la cookie de visitante y no vuelve a preguntar', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
 
     await expect(banner(page)).toBeHidden();
     await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
@@ -51,9 +51,9 @@ test('aceptar guarda la cookie de visitante y no vuelve a preguntar', async ({ p
     await expect(banner(page)).toBeHidden();
 });
 
-test('«solo lo esencial» no deja cookie de visitante', async ({ page }) => {
+test('«solo esenciales» no deja cookie de visitante', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+    await page.getByRole('button', { name: 'Solo esenciales' }).click();
 
     await expect(banner(page)).toBeHidden();
     await expect.poll(() => cookieValue(page, 'pio_consent')).toBeTruthy();
@@ -65,17 +65,17 @@ test('«solo lo esencial» no deja cookie de visitante', async ({ page }) => {
 
 test('aceptar concede también la personalización publicitaria', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
 
     await expect.poll(async () => (await storedConsent(page))?.ads).toBe(true);
 });
 
-test('«solo lo esencial» deja los anuncios sin personalizar', async ({ page }) => {
+test('«solo esenciales» deja los anuncios sin personalizar', async ({ page }) => {
     // Los anuncios se siguen mostrando: lo que queda apagado es que Google los
     // elija según la navegación. Verlo en la cookie es la única forma de
     // distinguir «no personalizado» de «no hay anuncio».
     await page.goto('/');
-    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+    await page.getByRole('button', { name: 'Solo esenciales' }).click();
 
     await expect.poll(async () => (await storedConsent(page))?.ads).toBe(false);
 });
@@ -85,7 +85,7 @@ test('el eje publicitario se cambia sin tocar la medición', async ({ page }) =>
     // reconstruye el estado entero. Sin reenviar el valor actual de cada eje,
     // tocar uno apagaría los otros de rebote.
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
 
     await page.goto('/cookies');
@@ -99,7 +99,7 @@ test('el eje publicitario se cambia sin tocar la medición', async ({ page }) =>
 
 test('el opt-out total arrastra la personalización publicitaria', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     await expect.poll(async () => (await storedConsent(page))?.ads).toBe(true);
 
     await page.goto('/cookies');
@@ -119,7 +119,7 @@ test('el identificador sobrevive a la navegación y viaja en los eventos', async
     });
 
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     // Esperar a que exista: la cookie llega con la respuesta del fetch, no con
     // el clic, y leerla antes devuelve undefined.
     await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
@@ -138,7 +138,7 @@ test('sin aceptar, los eventos salen sin identificador', async ({ page }) => {
     });
 
     await page.goto('/');
-    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+    await page.getByRole('button', { name: 'Solo esenciales' }).click();
     await page.goto('/about');
 
     // El evento se envía igual (lo cuenta el nivel anónimo del servidor), pero
@@ -149,7 +149,7 @@ test('sin aceptar, los eventos salen sin identificador', async ({ page }) => {
 
 test('el panel de /cookies revoca el consentimiento', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
 
     await page.goto('/cookies');
@@ -162,7 +162,7 @@ test('el panel de /cookies revoca el consentimiento', async ({ page }) => {
 
 test('«borrar mis datos» limpia las cookies y el aviso reaparece', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
 
     await page.goto('/cookies');
@@ -178,7 +178,7 @@ test('«borrar mis datos» limpia las cookies y el aviso reaparece', async ({ pa
 
 test('el desactivar total corta los eventos por completo', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+    await page.getByRole('button', { name: 'Solo esenciales' }).click();
     await page.goto('/cookies');
     await page.getByText('Contarme en las estadísticas anónimas').click();
 
@@ -200,7 +200,7 @@ test('el desactivar total también corta los eventos de las páginas de detalle'
     // efecto propio, y esos se adelantaban a ConsentContext: en carga en frío
     // el evento salía aunque la medición estuviera apagada.
     await page.goto('/');
-    await page.getByRole('button', { name: 'Solo lo esencial' }).click();
+    await page.getByRole('button', { name: 'Solo esenciales' }).click();
     await page.goto('/cookies');
     await page.getByText('Contarme en las estadísticas anónimas').click();
 
@@ -223,7 +223,7 @@ test('el primer evento de una ficha en frío ya lleva el identificador de visita
     // `visitor_id` y el backend lo agrupa bajo el hash anónimo — la misma
     // persona cuenta dos veces en el mismo día.
     await page.goto('/');
-    await page.getByRole('button', { name: 'Aceptar' }).click();
+    await page.getByRole('button', { name: 'Aceptar todo' }).click();
     await expect.poll(() => cookieValue(page, 'pio_vid')).toBeTruthy();
 
     const bodies: string[] = [];

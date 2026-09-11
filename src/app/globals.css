@@ -173,6 +173,40 @@ body {
   border-color: var(--mantine-color-dark-4);
 }
 
+/* Aviso de cookies (CookieBanner): tarjeta flotante en la esquina inferior
+   derecha; en móvil ocupa el ancho con margen.
+   Doble clase para ganarle a la regla de Affix, que posiciona con
+   `inset-inline-*` leyendo variables inline. */
+.mantine-Affix-root.cookie-banner {
+  top: auto;
+  bottom: 24px;
+  inset-inline-start: auto;
+  inset-inline-end: 24px;
+  width: min(480px, calc(100vw - 48px));
+}
+
+@media (max-width: 36em) {
+  .mantine-Affix-root.cookie-banner {
+    bottom: 12px;
+    inset-inline: 12px;
+    width: auto;
+  }
+
+  /* Los botones arriba, repartiéndose la fila; «Personalizar» debajo. */
+  .cookie-banner__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .cookie-banner__customize {
+    align-self: center;
+  }
+  /* A media fila, el padding del tamaño `md` recortaba «Solo esenciales». */
+  .cookie-banner__buttons > .mantine-Button-root {
+    flex: 1 1 0;
+    padding-inline: 12px;
+  }
+}
+
 /* Filtros globales: tapa lo que aún no se puede pintar bien.
 
    El atributo lo pone PrefsScript antes de la primera pintura, y lo quita
