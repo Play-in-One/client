@@ -45,6 +45,10 @@ interface Props {
      *  plataforma la controla el padre (vive en la URL). */
     selectedPlatformIds?: number[];
     onPlatformFilterChange?: (ids: number[]) => void;
+    /** `false` mientras el padre todavía no puede traducir la URL a filtros: en
+     *  /search los slugs de `?platform=` esperan a `getPlatforms`. Pedir antes
+     *  mostraba un instante el catálogo de todas las consolas. */
+    filtersReady?: boolean;
 
     showSearchInput?: boolean;
     /** Búsqueda de texto inicial (viene de la URL en /search). */
@@ -90,6 +94,7 @@ export default function GameExplorer({
     lockedPlatform,
     selectedPlatformIds,
     onPlatformFilterChange,
+    filtersReady = true,
     showSearchInput = false,
     query = '',
     onQueryChange,
@@ -284,7 +289,7 @@ export default function GameExplorer({
         // En modo estático (landing sin interactuar) no se toca la red: el
         // HTML que ya sirvió el servidor es el contenido real.
         if (isStaticMode && !interactive && !globalFiltersActive) return;
-        if (!ready) return;
+        if (!ready || !filtersReady) return;
         const controller = new AbortController();
         setLoading(true);
         getGames({
@@ -321,12 +326,12 @@ export default function GameExplorer({
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isStaticMode, interactive, globalFiltersActive, ready, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, refreshKey]);
+    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, refreshKey]);
 
     /* Los contadores del sidebar sí corren en modo estático: solo decoran el
        sidebar, nunca reemplazan el grid/paginación visibles. */
     useEffect(() => {
-        if (!ready) return;
+        if (!ready || !filtersReady) return;
         const controller = new AbortController();
         getGameFacets({
             search: activeQuery || undefined,
@@ -343,7 +348,7 @@ export default function GameExplorer({
             .catch((err) => { if (err?.name !== 'AbortError') setFacets({ platforms: {}, genres: {}, sellers: {} }); });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ready, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam]);
+    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam]);
 
     const totalPages = Math.ceil(total / pageSize);
 

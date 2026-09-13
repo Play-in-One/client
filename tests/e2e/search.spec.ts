@@ -52,6 +52,27 @@ test.beforeEach(async ({ page }) => {
         route.fulfill({ json: { platforms: {}, genres: {}, sellers: {} } }));
 });
 
+test('con ?platform= no se pide el catálogo sin filtrar mientras se resuelve la consola', async ({ page }) => {
+    // El slug de la URL se traduce a id con /api/platforms/, que el navegador
+    // pide al montar. Llega tarde a propósito: en esa ventana la galería pedía
+    // /games/ sin `platforms` y mostraba un instante todas las consolas.
+    await page.route(/\/api\/platforms\//, async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        await route.fulfill({ json: { count: 2, next: null, previous: null, results: MOCK_PLATFORMS } });
+    });
+    const unfiltered: string[] = [];
+    page.on('request', (req) => {
+        const url = new URL(req.url());
+        if (/\/api\/games\/(facets\/)?$/.test(url.pathname) && !url.searchParams.has('platforms')) {
+            unfiltered.push(url.pathname + url.search);
+        }
+    });
+
+    await page.goto('/search?platform=ps5');
+    await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
+    expect(unfiltered).toEqual([]);
+});
+
 test('la página de búsqueda carga con resultados', async ({ page }) => {
     await page.goto('/search');
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();

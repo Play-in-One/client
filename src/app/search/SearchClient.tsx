@@ -38,10 +38,14 @@ function SearchContent({
     /* Platform is derived from the URL — the URL is the single source of truth,
        so header links and the sidebar selector stay in sync automatically. */
     const [platforms, setPlatforms] = useState<Platform[]>([]);
+    // También al fallar: sin catálogo de consolas la galería degrada a no
+    // filtrar por consola, en vez de quedarse en el skeleton para siempre.
+    const [platformsLoaded, setPlatformsLoaded] = useState(false);
     useEffect(() => {
         getPlatforms()
             .then((res) => setPlatforms(res.results))
-            .catch(() => { });
+            .catch(() => { })
+            .finally(() => setPlatformsLoaded(true));
     }, []);
 
     const selectedPlatforms = useMemo(() => {
@@ -109,6 +113,7 @@ function SearchContent({
             defaultOrdering={ordering}
             selectedPlatformIds={selectedPlatforms}
             onPlatformFilterChange={setPlatformFilter}
+            filtersReady={!platformSlug || platformsLoaded}
             showSearchInput
             query={q}
             page={page}

@@ -1,3 +1,4 @@
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { getPosts, getTrendingGames, getFeaturedGames } from '@/lib/api';
 import type { Post, Game } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
@@ -17,6 +18,19 @@ export default async function HomePage() {
         getTrendingGames(),
         getFeaturedGames(),
     ]);
+
+    /* Una regeneración ISR con una sección caída NO debe llegar a la caché:
+       con `stale-while-revalidate` esa portada incompleta se servía hasta la
+       siguiente regeneración. Pasó al reiniciar el droplet, donde Docker
+       arranca todos los contenedores a la vez sin respetar `depends_on` y el
+       frontend regeneró la home mientras el backend migraba. Lanzar hace que
+       Next siga sirviendo la última versión buena y reintente en la próxima
+       visita. En el build se degrada como antes: ahí no hay versión anterior
+       que conservar y lanzar rompería el deploy. */
+    const failed = [postsResult, trendingResult, featuredResult].some((r) => r.status === 'rejected');
+    if (failed && process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
+        throw new Error('La portada no se regenera con secciones del backend caídas');
+    }
 
     const posts: Post[] = postsResult.status === 'fulfilled' ? postsResult.value.results : [];
     const trending: Game[] = trendingResult.status === 'fulfilled' ? trendingResult.value.results : [];
