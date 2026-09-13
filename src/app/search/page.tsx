@@ -21,7 +21,9 @@ export const revalidate = 300;
  *  que renderizarla en el servidor sería pagar un fetch por nada. */
 async function fetchFirstPage(): Promise<{ games: Game[]; total: number }> {
     try {
-        const res = await getGames({ page: 1, ordering: DEFAULT_ORDERING });
+        // La página es dinámica (lee `searchParams`), así que el `revalidate`
+        // de arriba no la cachea: sin Data Cache cada visita pagaba este fetch.
+        const res = await getGames({ page: 1, ordering: DEFAULT_ORDERING, revalidate });
         return { games: res.results, total: res.count };
     } catch {
         // La galería se llena igual en el cliente: un backend caído no debe

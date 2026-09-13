@@ -63,10 +63,9 @@ export async function generateMetadata({
     params: Promise<{ id: string }>;
 }): Promise<Metadata> {
     const { id } = await params;
-    const seller = await fetchSeller(id);
+    const [seller, { games, total }] = await Promise.all([fetchSeller(id), fetchGames(id)]);
     if (!seller) return buildMetadata({ title: 'Tienda no encontrada', noIndex: true });
 
-    const { games, total } = await fetchGames(id);
     const description =
         storeSummary(seller, games, total) ||
         seller.description?.trim() ||
@@ -88,10 +87,9 @@ export default async function StoreDetailPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const seller = await fetchSeller(id);
+    const [seller, { games, total }] = await Promise.all([fetchSeller(id), fetchGames(id)]);
     if (!seller) notFound();
 
-    const { games, total } = await fetchGames(id);
     const summary = storeSummary(seller, games, total);
 
     // Sin ItemList ni CollectionPage: la galería se retiró de la vista y un

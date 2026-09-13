@@ -71,7 +71,13 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     // cuánto tardó en atenderla. En el navegador no se adjunta: sería una
     // cabecera no safelisted en una petición cross-origin y forzaría un
     // preflight en cada GET del catálogo.
-    const perf = tryServerPerf();
+    //
+    // Nunca en un fetch cacheable (`next.revalidate`): Next mete las cabeceras
+    // en la clave del Data Cache, y un id distinto por render hacía que esa
+    // llamada no acertara jamás. Un acierto tampoco llega a Django, así que no
+    // hay tiempo que atribuirle.
+    const cacheable = requestInit.next?.revalidate !== undefined;
+    const perf = cacheable ? null : tryServerPerf();
     const startedAt = perf ? performance.now() : 0;
 
     let res: Response;
@@ -312,9 +318,15 @@ export async function getGames(params?: {
     /** Solo para herramientas de admin (buscador de duplicados al fusionar):
      * incluye juegos sin productos visibles, ocultos al público. */
     admin?: boolean;
+    /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
+    revalidate?: number;
 }) {
-    const { signal, admin, ...qsParams } = params ?? {};
-    return fetcher<PaginatedResponse<Game>>(`/games/${qs(qsParams)}`, { signal, admin });
+    const { signal, admin, revalidate, ...qsParams } = params ?? {};
+    return fetcher<PaginatedResponse<Game>>(`/games/${qs(qsParams)}`, {
+        signal,
+        admin,
+        ...(revalidate !== undefined ? { next: { revalidate } } : {}),
+    });
 }
 
 /** Juegos con más tráfico en los últimos 7 días (con relleno por rating). */
