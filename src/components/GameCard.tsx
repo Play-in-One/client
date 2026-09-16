@@ -177,7 +177,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
 
                 {/* Info */}
                 <Box p={{ base: 'xs', sm: 'sm' }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Group gap={4} mb="xs">
+                    <Group gap={4} mb="xs" wrap="wrap">
                         {game.platforms.map((p) => (
                             <PlatformBadge key={p.id} platform={p} />
                         ))}

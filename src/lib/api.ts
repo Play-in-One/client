@@ -1,7 +1,7 @@
 import type {
     Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
-    PerformanceReport, SlowestReport, GameClickStats,
+    PerformanceReport, SlowestReport, GameClickStats, Stats,
 } from './types';
 import { tryServerPerf } from './serverPerf';
 
@@ -431,6 +431,11 @@ export async function getGenres() {
 // quedaba en la primera página de 24 y publicaba un tercio de las fichas.
 export async function getSellers(params?: { page?: number }) {
     return fetcher<PaginatedResponse<Seller>>(`/sellers/${qs(params ?? {})}`);
+}
+
+/** Estadísticas públicas (contador, matriz plataforma×formato, último scrapeo) para `/scrap`. */
+export async function getStats() {
+    return fetcher<Stats>('/stats/');
 }
 
 export async function getSeller(id: number | string) {

@@ -119,12 +119,12 @@ export default function Footer() {
                                 style={{ flexShrink: 0 }}
                             />
                             <Text
-                                fw={800}
-                                fz="lg"
+                                fw={900}
+                                fz="xl"
                                 className="logo-wordmark"
                                 style={{ letterSpacing: '-0.02em' }}
                             >
-                                Play<Text span fw={800} c="var(--mantine-color-primaryRed-5)">in</Text>One
+                                Play<Text span fz="xl" fw={900} c="var(--mantine-color-primaryRed-5)">in</Text>One
                             </Text>
                         </Group>
                         <Text fz="sm" c="dimmed" maw={280}>
@@ -162,6 +162,7 @@ export default function Footer() {
                         <Anchor component={Link} href="/cookies" fz="sm" c="dimmed" underline="never">Cookies</Anchor>
                         <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
                         <Anchor component={Link} href="/faq" fz="sm" c="dimmed" underline="never">Preguntas frecuentes</Anchor>
+                        <Anchor component={Link} href="/scrap" fz="sm" c="dimmed" underline="never">Estadísticas</Anchor>
                     </Stack>
 
                     {/* Newsletter */}

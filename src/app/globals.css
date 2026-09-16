@@ -64,9 +64,24 @@ body {
   display: block;
 }
 
+/* Leyenda del mapa de calor de /scrap: en oscuro el mínimo no es "más claro"
+   sino casi negro, y el máximo converge al mismo rojo saturado de siempre —
+   así que "más oscuro" deja de ser cierto y hay que cambiar el texto, no solo
+   el color. Mismo patrón SSR/hydration-safe que el logo. */
+.heat-caption-dark {
+  display: none;
+}
+[data-mantine-color-scheme='dark'] .heat-caption-light {
+  display: none;
+}
+[data-mantine-color-scheme='dark'] .heat-caption-dark {
+  display: block;
+}
+
 /* Logo wordmark: black text on light bg, pure white on dark bg (Mantine's
    default text color resolves to dark.0 = #C9C9C9, not white) */
 .logo-wordmark {
+  font-family: var(--font-figtree);
   color: var(--mantine-color-black);
 }
 [data-mantine-color-scheme='dark'] .logo-wordmark {
@@ -171,6 +186,38 @@ body {
 [data-mantine-color-scheme='dark'] .content-card {
   background-color: var(--mantine-color-dark-6);
   border-color: var(--mantine-color-dark-4);
+}
+
+/* Tabla estática de /scrap — plain HTML a propósito: los compuestos de Table
+   de Mantine llegan `undefined` en un Server Component (ver CLAUDE.md). */
+.scrap-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--mantine-font-size-sm);
+}
+.scrap-table th,
+.scrap-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--mantine-color-gray-2);
+}
+.scrap-table .value-col {
+  text-align: center;
+}
+.scrap-table th {
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+}
+.scrap-table tbody tr:hover {
+  background-color: var(--mantine-color-gray-0);
+}
+[data-mantine-color-scheme='dark'] .scrap-table th,
+[data-mantine-color-scheme='dark'] .scrap-table td {
+  border-bottom-color: var(--mantine-color-dark-4);
+}
+[data-mantine-color-scheme='dark'] .scrap-table tbody tr:hover {
+  background-color: var(--mantine-color-dark-6);
 }
 
 /* Aviso de cookies (CookieBanner): tarjeta flotante en la esquina inferior

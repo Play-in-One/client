@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Poppins, Figtree } from 'next/font/google';
 import { ColorSchemeScript } from '@mantine/core';
 import { Providers } from './providers';
 import { AppProvider } from '@/context/AppContext';
@@ -21,6 +21,13 @@ const poppins = Poppins({
     weight: ['300', '400', '500', '600', '700', '800'],
     display: 'swap',
     variable: '--font-poppins',
+});
+
+const figtree = Figtree({
+    subsets: ['latin'],
+    weight: ['600', '700', '800'],
+    display: 'swap',
+    variable: '--font-figtree',
 });
 
 export const metadata: Metadata = {
@@ -56,10 +63,10 @@ export const metadata: Metadata = {
     },
     icons: {
         icon: [
-            { url: '/PIO-punto-negro.svg', media: '(prefers-color-scheme: light)' },
-            { url: '/PIO.svg', media: '(prefers-color-scheme: dark)' },
+            { url: '/Icon_w.svg', media: '(prefers-color-scheme: light)' },
+            { url: '/Icon_d.svg', media: '(prefers-color-scheme: dark)' },
         ],
-        apple: '/PIO.png',
+        apple: '/Icon_w.svg',
     },
     /* Verificación de propiedad ante AdSense. Es una etiqueta ESTÁTICA en todas
        las páginas, que es lo que el rastreador de Google espera encontrar; el
@@ -70,7 +77,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="es" className={poppins.variable} suppressHydrationWarning>
+        <html lang="es" className={`${poppins.variable} ${figtree.variable}`} suppressHydrationWarning>
             <head>
                 <ColorSchemeScript defaultColorScheme="auto" />
                 <PrefsScript />

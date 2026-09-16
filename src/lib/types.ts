@@ -496,3 +496,29 @@ export interface PaginatedResponse<T> {
     previous: string | null;
     results: T[];
 }
+
+/* ── Estadísticas públicas (página /scrap) ── */
+export interface PlatformMatrixRow {
+    slug: string;
+    long_name: string;
+    family: string;
+    new: number;
+    used: number;
+    digital: number;
+}
+
+export interface LastScrapeRun {
+    finished_at: string;
+    products_created: number;
+    products_updated: number;
+    products_skipped: number;
+    products_price_decreased: number;
+}
+
+export interface Stats {
+    sellers: number;
+    games: number;
+    products: number;
+    platform_matrix: PlatformMatrixRow[];
+    last_run: LastScrapeRun | null;
+}

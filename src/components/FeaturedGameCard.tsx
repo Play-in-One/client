@@ -195,15 +195,14 @@ function FeaturedGameCard({
                                 : 'width 0.7s ease, padding 0.7s ease, opacity 0.5s ease',
                         }}
                     >
-                        <Group gap={6} mb={10} wrap="nowrap" style={{ whiteSpace: 'nowrap' }}>
-                            {game.platforms.map((p) => (
-                                <PlatformBadge key={p.id} platform={p} />
-                            ))}
-                            {game.on_sale && (
-                                <Badge color="primaryRed" variant="light" size="sm">Oferta</Badge>
-                            )}
+                        <Group gap={6} mb={10} justify="space-between" align="flex-start">
+                            <Group gap={6} wrap="wrap" style={{ flex: 1 }}>
+                                {game.platforms.map((p) => (
+                                    <PlatformBadge key={p.id} platform={p} />
+                                ))}
+                            </Group>
                             {game.rating && (
-                                <Group gap={4} ml="auto" wrap="nowrap">
+                                <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
                                     <IconStarFilled size={14} style={{ color: '#f5b400', flexShrink: 0 }} />
                                     <Text fz="sm" fw={700}>{game.rating}</Text>
                                 </Group>

@@ -4,7 +4,7 @@
  */
 import { platformLongName } from '@/lib/types';
 import type { Metadata } from 'next';
-import type { Game, Platform, Post, Product, Seller } from './types';
+import type { Game, Platform, Post, Product, Seller, Stats } from './types';
 import { formatCLP } from './utils';
 
 /** Public site origin. Configure NEXT_PUBLIC_SITE_URL at deploy time. */
@@ -146,6 +146,29 @@ export function organizationJsonLd(): JsonLdObject {
             siteConfig.social.twitter,
             siteConfig.social.youtube,
             siteConfig.social.reddit,
+        ],
+    };
+}
+
+/** Dataset de /scrap: no hay catálogo que listar (no es Product/ItemList),
+ * así que describe las estadísticas agregadas en vez de forzar un tipo que
+ * no encaja. Requiere `stats` resuelto: si el fetch falló, el caller no
+ * debe incluirlo (mismo criterio que usa la página para el contador). */
+export function datasetJsonLd(stats: Stats): JsonLdObject {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'Dataset',
+        name: 'Estadísticas de Play in One',
+        description:
+            'Cantidad de tiendas, juegos y productos activos en Play in One, desglosados por consola y formato, y el detalle del último scrapeo.',
+        url: absoluteUrl('/scrap'),
+        creator: { '@type': 'Organization', name: siteConfig.name, url: SITE_URL },
+        ...(stats.last_run ? { dateModified: stats.last_run.finished_at } : {}),
+        variableMeasured: [
+            'Tiendas activas',
+            'Juegos con stock',
+            'Productos activos',
+            'Productos por plataforma y formato',
         ],
     };
 }

@@ -476,12 +476,13 @@ export default function GameDetailClient({
                             </Title>
 
                             {/* Selector de consola: game.platforms ya viene podado por el backend */}
-                            {platformOptions.length > 1 && (
+                            {platformOptions.length > 0 && (
                                 <Group gap={4} mb="sm">
                                     <Box
                                         p={4}
                                         style={{
-                                            display: 'inline-flex',
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
                                             borderRadius: 'var(--mantine-radius-md)',
                                             border: '1px solid var(--mantine-color-default-border)',
                                             background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTintStrong})`,

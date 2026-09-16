@@ -158,13 +158,13 @@ export default function Navbar() {
                             style={{ flexShrink: 0 }}
                         />
                         <Text
-                            fw={800}
-                            fz="lg"
+                            fw={900}
+                            fz="xl"
                             visibleFrom="sm"
                             className="logo-wordmark"
                             style={{ letterSpacing: '-0.02em' }}
                         >
-                            Play<Text span fw={800} c="var(--mantine-color-primaryRed-5)">in</Text>One
+                            Play<Text span fz="xl" fw={900} c="var(--mantine-color-primaryRed-5)">in</Text>One
                         </Text>
                     </Group>
                 </Anchor>
