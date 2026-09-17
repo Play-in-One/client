@@ -17,6 +17,9 @@ const openMenu = async (page: import('@playwright/test').Page) => {
 const formatControl = (page: import('@playwright/test').Page) =>
     page.getByRole('radiogroup', { name: 'Formato' }).first();
 
+const digitalControl = (page: import('@playwright/test').Page) =>
+    page.getByRole('radiogroup', { name: 'Tipo digital' }).first();
+
 const pickFormat = async (page: import('@playwright/test').Page, label: string) => {
     // El <input type="radio"> está oculto visualmente, así que se clickea su
     // label —igual que los Switch del menú en `preferences.spec.ts`—.
@@ -46,6 +49,7 @@ test('el formato vive en la barra y el estado en preferencias', async ({ page })
     const estado = page.getByRole('radiogroup', { name: 'Estado del juego' });
     await expect(estado.getByRole('radio', { name: 'Usados' })).toHaveCount(1);
     await expect(estado.getByRole('radio', { name: 'Nuevos' })).toHaveCount(1);
+    await expect(digitalControl(page).getByRole('radio', { name: 'Código' })).toHaveCount(1);
 });
 
 test('el formato elegido sobrevive a una recarga', async ({ page }) => {
@@ -83,6 +87,57 @@ test('digital pide condition=digital y deshabilita el estado', async ({ page }) 
 
     const request = page.waitForRequest(
         (r) => r.url().includes('/api/games/?') && r.url().includes('condition=digital'),
+    );
+    await page.goto('/search');
+    expect(await request).toBeTruthy();
+});
+
+test('el subtipo digital pide store o key y persiste la elección', async ({ page }) => {
+    await page.goto('/');
+    await pickFormat(page, 'Digital');
+    await openMenu(page);
+    await expect(digitalControl(page).getByRole('radio', { name: 'Store' })).toHaveCount(1);
+    await digitalControl(page).getByText('Store', { exact: true }).click();
+    await page.keyboard.press('Escape');
+
+    const storeRequest = page.waitForRequest(
+        (r) => r.url().includes('/api/games/?') && r.url().includes('condition=store'),
+    );
+    await page.goto('/search');
+    expect(await storeRequest).toBeTruthy();
+
+    await openMenu(page);
+    await digitalControl(page).getByText('Código', { exact: true }).click();
+    await page.reload();
+    await openMenu(page);
+    await expect(digitalControl(page).getByRole('radio', { name: 'Código' })).toBeChecked();
+});
+
+test('el subtipo digital también filtra desde Todo', async ({ page }) => {
+    await page.goto('/');
+    await openMenu(page);
+    await digitalControl(page).getByText('Código', { exact: true }).click();
+    const estado = page.getByRole('radiogroup', { name: 'Estado del juego' });
+    await expect(estado).toBeVisible();
+    await estado.getByText('Nuevos', { exact: true }).click();
+    await expect(digitalControl(page).getByRole('radio', { name: 'Código' })).toBeChecked();
+    await page.keyboard.press('Escape');
+
+    const request = page.waitForRequest(
+        (r) => r.url().includes('/api/games/?') && r.url().includes('condition=new_key'),
+    );
+    await page.goto('/search');
+    expect(await request).toBeTruthy();
+});
+
+test('todos físico con Código conserva todos los físicos', async ({ page }) => {
+    await page.goto('/');
+    await openMenu(page);
+    await digitalControl(page).getByText('Código', { exact: true }).click();
+    await page.keyboard.press('Escape');
+
+    const request = page.waitForRequest(
+        (r) => r.url().includes('/api/games/?') && r.url().includes('condition=physical_key'),
     );
     await page.goto('/search');
     expect(await request).toBeTruthy();

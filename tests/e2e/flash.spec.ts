@@ -67,6 +67,7 @@ test('el script del <head> reconoce el formato como desviación del default', as
 
     // El caso que este cambio añade.
     expect(await marcaCon('{"condition":"all","format":"digital","international":true}')).toBe(true);
+    expect(await marcaCon('{"condition":"all","format":"digital","digital":"store","international":true}')).toBe(true);
     expect(await marcaCon('{"condition":"all","format":"physical","international":true}')).toBe(true);
     // Los que ya existían, como control: si estos fallaran, el test de arriba
     // estaría pasando por un motivo equivocado.

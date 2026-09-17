@@ -18,7 +18,7 @@ import {
 import { IconBookmark, IconX } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
-import { allowedConditionsFor, type ConditionFilter, type FormatFilter } from '@/lib/prefs';
+import { allowedConditionsFor, type ConditionFilter, type DigitalFilter, type FormatFilter } from '@/lib/prefs';
 import { getGame } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/utils';
@@ -38,12 +38,12 @@ import { surfaces } from '@/lib/colors';
 function resolveForFilters(
     game: Game,
     platformSlugs: string[],
-    prefs: { condition: ConditionFilter; format: FormatFilter; international: boolean },
+    prefs: { condition: ConditionFilter; format: FormatFilter; digital: DigitalFilter; international: boolean },
 ): Game {
     /* El conjunto permitido sale del mismo sitio que el `?condition=` de la
        API, así que la galería y esta vista no pueden interpretar el par de
        filtros de dos maneras distintas. `null` = no acota. */
-    const allowed = allowedConditionsFor(prefs.format, prefs.condition);
+    const allowed = allowedConditionsFor(prefs.format, prefs.condition, prefs.digital);
     const noFilters = platformSlugs.length === 0 && !allowed && prefs.international;
     if (noFilters) return game;
 
@@ -77,7 +77,7 @@ function resolveForFilters(
 }
 
 export default function SavedClient() {
-    const { savedGames, removeSaved, condition, format, includeInternational } = useApp();
+    const { savedGames, removeSaved, condition, format, digital, includeInternational } = useApp();
     const [games, setGames] = useState<Game[]>([]);
     const [loading, setLoading] = useState(true);
     const [platformFilter, setPlatformFilter] = useState<string[]>([]);
@@ -124,6 +124,7 @@ export default function SavedClient() {
         .map((g) => resolveForFilters(g, platformFilter, {
             condition,
             format,
+            digital,
             international: includeInternational,
         }))
         .sort((a, b) => (a.developer || '').localeCompare(b.developer || ''));

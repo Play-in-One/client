@@ -10,16 +10,18 @@ import {
     sellerScopeFor,
     writePrefsCookie,
     type ConditionFilter,
+    type DigitalFilter,
     type FormatFilter,
     type Prefs,
 } from '@/lib/prefs';
 import { readCookie } from '@/lib/consent';
 
-export type { ConditionFilter, FormatFilter };
+export type { ConditionFilter, DigitalFilter, FormatFilter };
 
 const CONDITION_STORAGE_KEY = 'pio_condition';
 const INTERNATIONAL_STORAGE_KEY = 'pio_international';
 const FORMAT_STORAGE_KEY = 'pio_format';
+const DIGITAL_STORAGE_KEY = 'pio_digital';
 const SAVED_GAMES_STORAGE_KEY = 'pio_saved_games';
 
 export interface SavedGame {
@@ -37,6 +39,8 @@ interface AppState {
      *  tiene sentido dentro de lo físico. */
     format: FormatFilter;
     setFormat: (f: FormatFilter) => void;
+    digital: DigitalFilter;
+    setDigital: (f: DigitalFilter) => void;
     /** El `?condition=` que le toca a la API, derivado del PAR (formato,
      *  condición). Vive aquí por el mismo motivo que `sellerScopeParam`: la
      *  tabla de esa traducción tiene que estar en un solo sitio. */
@@ -66,6 +70,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [condition, setConditionState] = useState<ConditionFilter>('all');
     const [format, setFormatState] = useState<FormatFilter>('all');
+    const [digital, setDigitalState] = useState<DigitalFilter>('all');
     // Por defecto se ven todas las tiendas: quien no quiera importaciones las
     // apaga. Arrancar apagado escondería catálogo al visitante nuevo.
     const [includeInternational, setIncludeInternationalState] = useState(true);
@@ -83,12 +88,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // de que existiera la cookie.
         const stored = window.localStorage.getItem(CONDITION_STORAGE_KEY);
         const storedFormat = window.localStorage.getItem(FORMAT_STORAGE_KEY);
+        const storedDigital = window.localStorage.getItem(DIGITAL_STORAGE_KEY);
         const legacy: Prefs = {
             condition: stored === 'new' || stored === 'used' ? stored : DEFAULT_PREFS.condition,
             format:
                 storedFormat === 'physical' || storedFormat === 'digital'
                     ? storedFormat
                     : DEFAULT_PREFS.format,
+            digital: storedDigital === 'store' || storedDigital === 'key' ? storedDigital : 'all',
             international: window.localStorage.getItem(INTERNATIONAL_STORAGE_KEY) !== 'false',
         };
         const cookie = readCookie(PREFS_COOKIE);
@@ -96,6 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         setConditionState(prefs.condition);
         setFormatState(prefs.format);
+        setDigitalState(prefs.digital);
         setIncludeInternationalState(prefs.international);
         if (!cookie) writePrefsCookie(prefs);   // migración desde localStorage
         setReady(true);
@@ -107,12 +115,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
        entero). Estas refs les dan el valor del OTRO filtro sin capturarlo. */
     const conditionRef = useRef(condition);
     const formatRef = useRef(format);
+    const digitalRef = useRef(digital);
     const includeInternationalRef = useRef(includeInternational);
     useEffect(() => {
         conditionRef.current = condition;
         formatRef.current = format;
+        digitalRef.current = digital;
         includeInternationalRef.current = includeInternational;
-    }, [condition, format, includeInternational]);
+    }, [condition, format, digital, includeInternational]);
 
     /* El atributo lo pone el script del <head> antes de la primera pintura y lo
        quita React cuando ya puede renderizar con la preferencia correcta. Entre
@@ -152,6 +162,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         writePrefsCookie({
             condition: c,
             format: formatRef.current,
+            digital: digitalRef.current,
             international: includeInternationalRef.current,
         });
     }, []);
@@ -162,6 +173,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         writePrefsCookie({
             condition: conditionRef.current,
             format: f,
+            digital: digitalRef.current,
+            international: includeInternationalRef.current,
+        });
+    }, []);
+
+    const setDigital = useCallback((f: DigitalFilter) => {
+        setDigitalState(f);
+        window.localStorage.setItem(DIGITAL_STORAGE_KEY, f);
+        writePrefsCookie({
+            condition: conditionRef.current,
+            format: formatRef.current,
+            digital: f,
             international: includeInternationalRef.current,
         });
     }, []);
@@ -172,6 +195,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         writePrefsCookie({
             condition: conditionRef.current,
             format: formatRef.current,
+            digital: digitalRef.current,
             international: v,
         });
     }, []);
@@ -207,7 +231,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setCondition,
             format,
             setFormat,
-            conditionParam: conditionParamFor(format, condition),
+            digital,
+            setDigital,
+            conditionParam: conditionParamFor(format, condition, digital),
             includeInternational,
             setIncludeInternational,
             sellerScopeParam: sellerScopeFor(includeInternational),
@@ -218,7 +244,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             removeSaved,
         }),
         [
-            searchQuery, condition, setCondition, format, setFormat,
+            searchQuery, condition, setCondition, format, setFormat, digital, setDigital,
             includeInternational, setIncludeInternational, ready,
             savedGames, isSaved, toggleSaved, removeSaved,
         ],

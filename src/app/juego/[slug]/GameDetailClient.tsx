@@ -43,7 +43,7 @@ import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
 import { platformLongName, activeCoupon } from '@/lib/types';
-import { allowedConditionsFor, type ConditionFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
+import { allowedConditionsFor, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
 import { surfaces, decorative } from '@/lib/colors';
@@ -54,12 +54,11 @@ import ShippingInfo from '@/components/ShippingInfo';
 import CouponInfo from '@/components/CouponInfo';
 import CouponModal, { type PendingOffer } from '@/components/CouponModal';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
-import DigitalBadge from '@/components/DigitalBadge';
+import ConditionIcon from '@/components/ConditionIcon';
 import GameClickBadge from '@/components/GameClickBadge';
 import ProductClickBadge from '@/components/ProductClickBadge';
 import {
-    CONDITION_BADGE_COLOR,
-    CONDITION_LABEL,
+    conditionBadgeColorFor,
     conditionBucket,
     conditionLabelFor,
 } from '@/lib/conditions';
@@ -74,8 +73,15 @@ import { AdminGameControls, AdminProductEditor } from './AdminControls';
  * acotar, que es lo que corresponde a "físico + todos": ese caso no es
  * representable en un Select de valor único, y las ofertas ya las recorta
  * `navbarAllowed`. */
-function selectValueFor(format: FormatFilter, condition: ConditionFilter): string | null {
-    if (format === 'digital') return 'digital';
+function selectValueFor(format: FormatFilter, condition: ConditionFilter, digital: DigitalFilter): string | null {
+    if (format === 'all') {
+        if (condition === 'all' && digital === 'all') return null;
+        if (condition === 'all') return `physical_${digital}`;
+        if (digital === 'all') return `${condition}_digital`;
+        return `${condition}_${digital}`;
+    }
+    if (format !== 'physical' && digital !== 'all') return digital;
+    if (format === 'digital') return null;
     if (condition !== 'all') return condition;
     return null;
 }
@@ -88,7 +94,7 @@ export default function GameDetailClient({
     initialPrefs: Prefs;
 }) {
     const searchParams = useSearchParams();
-    const { condition, format, includeInternational, ready, isSaved, toggleSaved } = useApp();
+    const { condition, format, digital, includeInternational, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
     const game = initialGame;
@@ -118,27 +124,27 @@ export default function GameDetailClient({
        nada que corregir después. Sin esto, las ofertas importadas asomaban un
        instante en cada carga. */
     const effectivePrefs: Prefs = ready
-        ? { condition, format, international: includeInternational }
+        ? { condition, format, digital, international: includeInternational }
         : initialPrefs;
 
     /* El Select local es de valor único y no puede expresar "físico = nuevo o
        usado", así que guarda el BUCKET (o null) y el par del navbar se aplica
        aparte, como conjunto permitido. */
     const [conditionFilter, setConditionFilter] = useState<string | null>(
-        selectValueFor(initialPrefs.format, initialPrefs.condition),
+        selectValueFor(initialPrefs.format, initialPrefs.condition, initialPrefs.digital),
     );
     const [conditionManuallySet, setConditionManuallySet] = useState(false);
     /* Lo que el navbar permite, como conjunto de condiciones ALMACENADAS. Solo
        manda mientras el Select local esté en "Cualquier Estado": en cuanto el
        usuario elige ahí, su elección gana (ver `conditionManuallySet`). */
-    const navbarAllowed = allowedConditionsFor(effectivePrefs.format, effectivePrefs.condition);
+    const navbarAllowed = allowedConditionsFor(effectivePrefs.format, effectivePrefs.condition, effectivePrefs.digital);
     // El switch del header manda mientras el usuario no elija manualmente
     // una condición en el Select local de la tabla de precios.
     useEffect(() => {
         if (!conditionManuallySet && ready) {
-            setConditionFilter(selectValueFor(format, condition));
+            setConditionFilter(selectValueFor(format, condition, digital));
         }
-    }, [condition, format, conditionManuallySet, ready]);
+    }, [condition, format, digital, conditionManuallySet, ready]);
     const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
     // Edición admin: toggles independientes para el panel del juego y por producto.
     const [editingGame, setEditingGame] = useState(false);
@@ -205,9 +211,17 @@ export default function GameDetailClient({
     // valor vive en localStorage.
     const products = (game.products ?? []).filter((p) => {
         if (selectedPlatform && p.platform.slug !== selectedPlatform) return false;
-        // Por BUCKET y no por igualdad: la opción "Digital" del Select tiene
-        // que casar también con las ofertas guardadas como `store` o `key`.
-        if (conditionFilter && conditionBucket(p.condition) !== conditionFilter) return false;
+        if (conditionFilter === 'digital' && conditionBucket(p.condition) !== 'digital') return false;
+        if (conditionFilter?.includes('_')) {
+            const families: Record<string, string[]> = {
+                new_store: ['new', 'store'], new_key: ['new', 'key'],
+                used_store: ['used', 'store'], used_key: ['used', 'key'],
+                physical_store: ['new', 'used', 'store'], physical_key: ['new', 'used', 'key'],
+                new_digital: ['new', 'store', 'key'], used_digital: ['used', 'store', 'key'],
+            };
+            if (!families[conditionFilter]?.includes(p.condition)) return false;
+        }
+        if (conditionFilter && conditionFilter !== 'digital' && !conditionFilter.includes('_') && p.condition !== conditionFilter) return false;
         if (!conditionFilter && navbarAllowed && !navbarAllowed.has(p.condition)) return false;
         if (!effectivePrefs.international && p.seller.is_international) return false;
         return true;
@@ -264,8 +278,11 @@ export default function GameDetailClient({
        `selectValueFor`). Sin esto el segundo caso caía en la clave "" —la
        agregada, que incluye digital— en vez de en "physical" (unión de
        new+used que el backend ya calcula). */
-    const historyConditionKey =
-        conditionFilter ?? (effectivePrefs.format === 'physical' ? 'physical' : '');
+    const historyConditionKey = conditionFilter ?? (
+        effectivePrefs.format === 'physical' ? 'physical'
+            : effectivePrefs.format === 'digital' ? 'digital'
+                : ''
+    );
     const minPriceSeries =
         historySource?.[selectedPlatform ?? '']?.[historyConditionKey] ?? [];
 
@@ -622,7 +639,7 @@ export default function GameDetailClient({
                                             >
                                                 Mejor Precio {selectedPlatform?.toUpperCase()}
                                             </Badge>
-                                            <DigitalBadge condition={bestProduct?.condition} size={16} />
+                                            <ConditionIcon condition={bestProduct?.condition} size={16} />
                                         </Group>
 
                                         <Group gap="sm" align="baseline" mb="sm">
@@ -695,7 +712,7 @@ export default function GameDetailClient({
                                     platformOptions.find((pl) => pl.slug === selectedPlatform)?.display_name ??
                                     selectedPlatform
                                 }
-                                conditionLabel={conditionFilter ? CONDITION_LABEL[conditionFilter as 'new' | 'used' | 'digital'] : null}
+                                conditionLabel={conditionFilter ? conditionLabelFor(conditionFilter) : null}
                             />
                         )}
 
@@ -718,7 +735,16 @@ export default function GameDetailClient({
                                             { value: '', label: 'Cualquier Estado' },
                                             { value: 'new', label: 'Nuevo' },
                                             { value: 'used', label: 'Usado' },
-                                            { value: 'digital', label: 'Digital' },
+                                            { value: 'store', label: 'Store' },
+                                            { value: 'key', label: 'Código' },
+                                            { value: 'new_store', label: 'Nuevo + Store' },
+                                            { value: 'new_key', label: 'Nuevo + Código' },
+                                            { value: 'used_store', label: 'Usado + Store' },
+                                            { value: 'used_key', label: 'Usado + Código' },
+                                            { value: 'physical_store', label: 'Físico + Store' },
+                                            { value: 'physical_key', label: 'Físico + Código' },
+                                            { value: 'new_digital', label: 'Nuevo + Digital' },
+                                            { value: 'used_digital', label: 'Usado + Digital' },
                                         ]}
                                         value={conditionFilter ?? ''}
                                         onChange={(v) => {
@@ -848,11 +874,11 @@ export default function GameDetailClient({
                                                     </Table.Td>
                                                     <Table.Td style={{ whiteSpace: 'nowrap' }}>
                                                         <Badge
-                                                            color={CONDITION_BADGE_COLOR[conditionBucket(p.condition)]}
+                                                            color={conditionBadgeColorFor(p.condition)}
                                                             variant="light"
                                                             size="sm"
                                                             styles={{ label: { overflow: 'visible' } }}
-                                                            leftSection={<DigitalBadge condition={p.condition} size={12} />}
+                                                            leftSection={<ConditionIcon condition={p.condition} size={12} />}
                                                         >
                                                             {conditionLabelFor(p.condition)}
                                                         </Badge>

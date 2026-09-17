@@ -27,10 +27,23 @@ export type ConditionFilter = 'all' | 'new' | 'used';
 /** Físico ↔ digital. Es el filtro de la barra; la condición vive en el menú de
  *  preferencias porque solo tiene sentido dentro de lo físico. */
 export type FormatFilter = 'all' | 'physical' | 'digital';
+export type DigitalFilter = 'all' | 'store' | 'key';
+
+const COMBINED_CONDITIONS: Record<string, readonly string[]> = {
+    new_store: ['new', 'store'],
+    new_key: ['new', 'key'],
+    used_store: ['used', 'store'],
+    used_key: ['used', 'key'],
+    physical_store: ['new', 'used', 'store'],
+    physical_key: ['new', 'used', 'key'],
+    new_digital: ['new', 'store', 'key'],
+    used_digital: ['used', 'store', 'key'],
+};
 
 export interface Prefs {
     condition: ConditionFilter;
     format: FormatFilter;
+    digital: DigitalFilter;
     /** `false` esconde las tiendas internacionales en toda la plataforma. */
     international: boolean;
 }
@@ -38,7 +51,7 @@ export interface Prefs {
 /* Lo que ve quien nunca tocó nada, y el fallback de cualquier valor corrupto.
  * Coincide con lo que renderiza el servidor cuando no hay cookie, que es lo que
  * mantiene alineados los dos lados de la hidratación. */
-export const DEFAULT_PREFS: Prefs = { condition: 'all', format: 'all', international: true };
+export const DEFAULT_PREFS: Prefs = { condition: 'all', format: 'all', digital: 'all', international: true };
 
 export function parsePrefs(raw: string | null | undefined): Prefs {
     if (!raw) return DEFAULT_PREFS;
@@ -55,6 +68,10 @@ export function parsePrefs(raw: string | null | undefined): Prefs {
                 parsed.format === 'physical' || parsed.format === 'digital'
                     ? parsed.format
                     : DEFAULT_PREFS.format,
+            digital:
+                parsed.digital === 'store' || parsed.digital === 'key'
+                    ? parsed.digital
+                    : DEFAULT_PREFS.digital,
             international:
                 typeof parsed.international === 'boolean'
                     ? parsed.international
@@ -70,22 +87,31 @@ export function isDefaultPrefs(prefs: Prefs): boolean {
     return (
         prefs.condition === DEFAULT_PREFS.condition &&
         prefs.format === DEFAULT_PREFS.format &&
+        prefs.digital === DEFAULT_PREFS.digital &&
         prefs.international === DEFAULT_PREFS.international
     );
 }
 
 /* El formato y la condición son DOS controles pero UN solo campo en el backend
- * (`Product.condition`, que vale new/used/digital/store/key/download). Esta es
+ * (`Product.condition`, que vale new/used/store/key). Esta es
  * la única traducción del par a lo que viaja en `?condition=`, y el backend
  * expande el token a las condiciones almacenadas que representa.
  *
- * Con formato digital la condición se IGNORA, no se borra: quien tenía
- * "Usados" y pasa por Digital debe recuperarlo al volver a Físico. Lo que se
- * apaga es el control, no el dato. */
+ * Un subtipo digital exacto manda mientras el formato admita digitales
+ * (Todo/Digital); al volver a Físico se recupera el estado nuevo/usado que se
+ * había guardado. */
 export function conditionParamFor(
     format: FormatFilter,
     condition: ConditionFilter,
+    digital: DigitalFilter = 'all',
 ): string | undefined {
+    if (format === 'all') {
+        if (condition === 'all' && digital === 'all') return undefined;
+        if (condition === 'all') return `physical_${digital}`;
+        if (digital === 'all') return `${condition}_digital`;
+        return `${condition}_${digital}`;
+    }
+    if (format === 'digital' && digital !== 'all') return digital;
     if (format === 'digital') return 'digital';
     if (condition !== 'all') return condition;      // nuevo/usado ya es más estrecho
     return format === 'physical' ? 'physical' : undefined;
@@ -97,11 +123,13 @@ export function conditionParamFor(
 export function allowedConditionsFor(
     format: FormatFilter,
     condition: ConditionFilter,
+    digital: DigitalFilter = 'all',
 ): Set<string> | null {
-    const token = conditionParamFor(format, condition);
+    const token = conditionParamFor(format, condition, digital);
     if (!token) return null;
     if (token === 'digital') return new Set(DIGITAL_CONDITIONS);
     if (token === 'physical') return new Set(['new', 'used']);
+    if (COMBINED_CONDITIONS[token]) return new Set(COMBINED_CONDITIONS[token]);
     return new Set([token]);
 }
 

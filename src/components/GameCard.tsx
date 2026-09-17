@@ -6,8 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
-import DigitalBadge from './DigitalBadge';
-import { isDigital } from '@/lib/conditions';
+import ConditionIcon from './ConditionIcon';
 import ShippingInfo from './ShippingInfo';
 import CouponInfo from './CouponInfo';
 import { formatCLP } from '@/lib/utils';
@@ -155,7 +154,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         admin): el tooltip necesita hover y foco. Y con el click
                         cortado, porque la tarjeta entera es un <Link> y tocar
                         el emoji para leer el tooltip navegaría a la ficha. */}
-                    {isDigital(game.min_price_condition) && (
+                    {game.min_price_condition && (
                         <Box
                             pos="absolute"
                             top={8}
@@ -170,7 +169,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                             }}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         >
-                            <DigitalBadge condition={game.min_price_condition} size={15} />
+                            <ConditionIcon condition={game.min_price_condition} size={15} />
                         </Box>
                     )}
                 </Box>

@@ -29,7 +29,7 @@ import { PREFS_COOKIE } from '@/lib/prefs';
 const SCRIPT = `(function(){try{
 var m=document.cookie.match(/(?:^|; )${PREFS_COOKIE}=([^;]*)/);if(!m)return;
 var p=JSON.parse(decodeURIComponent(m[1]));
-if(!p||(p.international!==false&&p.condition!=='new'&&p.condition!=='used'&&p.format!=='physical'&&p.format!=='digital'))return;
+if(!p||(p.international!==false&&p.condition!=='new'&&p.condition!=='used'&&p.format!=='physical'&&p.format!=='digital'&&p.digital!=='store'&&p.digital!=='key'))return;
 var e=document.documentElement;e.setAttribute('data-prefs','pending');
 setTimeout(function(){e.removeAttribute('data-prefs')},3000);
 }catch(_){}})()`;

@@ -38,10 +38,8 @@ import {
 const CONDITION_OPTIONS = [
     { value: 'new', label: 'Nuevo' },
     { value: 'used', label: 'Usado' },
-    { value: 'digital', label: 'Digital (genérico)' },
-    { value: 'store', label: 'Digital · tienda oficial' },
-    { value: 'key', label: 'Digital · código' },
-    { value: 'download', label: 'Digital · descarga' },
+    { value: 'store', label: 'Store' },
+    { value: 'key', label: 'Código' },
 ];
 
 /* ── Buscador de juegos reutilizable (reasignar / fusionar) ── */

@@ -107,11 +107,8 @@ export interface Product {
     affiliate_url: string;
     image: string | null;
     seller: Seller;
-    /* El backend guarda de DÓNDE sale una descarga, no solo que lo es: `store`
-     * es la tienda oficial y `key` un código de canje. La UI las colapsa todas
-     * en "Digital" (ver `lib/conditions.ts`); comparar `=== 'digital'` por
-     * igualdad se come las otras tres. */
-    condition: 'new' | 'used' | 'digital' | 'store' | 'key' | 'download';
+    /** `store` es compra en tienda oficial y `key` un código de canje. */
+    condition: 'new' | 'used' | 'store' | 'key';
     game: number | null;
     /** Precio EFECTIVO: lista + envío de la tienda. Es el que se muestra, se
      *  ordena y se compara en toda la plataforma. */

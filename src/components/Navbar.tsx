@@ -31,7 +31,10 @@ import {
     IconBookmark,
     IconSettings,
     IconDisc,
-    IconDeviceFloppy,
+    IconCloudDownload,
+    IconKey,
+    IconRecycle,
+    IconSparkles,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
@@ -40,9 +43,15 @@ import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 /* El neutro va al centro en los dos: es el default y el que más se elige, así
  * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
 const CONDITION_OPTIONS = [
-    { label: 'Usados', value: 'used' },
+    { label: <Group gap={4} wrap="nowrap"><IconRecycle size={15} /><span>Usados</span></Group>, value: 'used' },
     { label: 'Todos', value: 'all' },
-    { label: 'Nuevos', value: 'new' },
+    { label: <Group gap={4} wrap="nowrap"><IconSparkles size={15} /><span>Nuevos</span></Group>, value: 'new' },
+];
+
+const DIGITAL_OPTIONS = [
+    { label: <Group gap={4} wrap="nowrap"><IconKey size={15} /><span>Código</span></Group>, value: 'key' },
+    { label: 'Todos', value: 'all' },
+    { label: <Group gap={4} wrap="nowrap"><IconCloudDownload size={15} /><span>Store</span></Group>, value: 'store' },
 ];
 
 const FORMAT_OPTIONS = [
@@ -59,7 +68,7 @@ const FORMAT_OPTIONS = [
     {
         label: (
             <Group gap={6} wrap="nowrap">
-                <IconDeviceFloppy size={18} stroke={2.25} />
+                <IconCloudDownload size={18} stroke={2.25} />
                 <span>Digital</span>
             </Group>
         ),
@@ -76,7 +85,7 @@ export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
     const {
-        searchQuery, setSearchQuery, condition, setCondition, format, setFormat,
+        searchQuery, setSearchQuery, condition, setCondition, format, setFormat, digital, setDigital,
         includeInternational, setIncludeInternational,
     } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
@@ -367,6 +376,26 @@ export default function Navbar() {
                                     </Text>
                                 </Menu.Item>
                             )}
+                            {format !== 'physical' && (
+                                <Menu.Item component="div" closeMenuOnClick={false}>
+                                    <Text fz="sm" fw={500} mb={6}>Tipo digital</Text>
+                                    <Box onKeyDown={(e) => e.stopPropagation()}>
+                                        <SegmentedControl
+                                            data={DIGITAL_OPTIONS}
+                                            value={digital}
+                                            onChange={(v) => setDigital(v as 'all' | 'store' | 'key')}
+                                            radius="xl"
+                                            size="xs"
+                                            fullWidth
+                                            classNames={{ root: 'condition-switch' }}
+                                            aria-label="Tipo digital"
+                                        />
+                                    </Box>
+                                    <Text fz="xs" c="dimmed" mt={4}>
+                                        Acota el catálogo a compras en Store o códigos de canje.
+                                    </Text>
+                                </Menu.Item>
+                            )}
                         </Menu.Dropdown>
                     </Menu>
 
@@ -445,6 +474,25 @@ export default function Navbar() {
                             />
                             <Text fz="xs" c="dimmed" mt={4}>
                                 Acota el catálogo a juegos nuevos o usados.
+                            </Text>
+                        </div>
+                    )}
+
+                    {format !== 'physical' && (
+                        <div>
+                            <Text fz="sm" fw={500} mb={6}>Tipo digital</Text>
+                            <SegmentedControl
+                                data={DIGITAL_OPTIONS}
+                                value={digital}
+                                onChange={(v) => setDigital(v as 'all' | 'store' | 'key')}
+                                radius="xl"
+                                size="md"
+                                fullWidth
+                                classNames={{ root: 'condition-switch' }}
+                                aria-label="Tipo digital"
+                            />
+                            <Text fz="xs" c="dimmed" mt={4}>
+                                Acota el catálogo a compras en Store o códigos de canje.
                             </Text>
                         </div>
                     )}
