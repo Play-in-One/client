@@ -503,6 +503,8 @@ export interface PlatformMatrixRow {
     used: number;
     store: number;
     key: number;
+    /** Contrato anterior de `/stats/`; solo se tolera durante despliegues escalonados. */
+    digital?: number;
 }
 
 export interface LastScrapeRun {

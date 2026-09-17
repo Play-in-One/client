@@ -56,7 +56,10 @@ function heatCellStyle(value: number, max: number): CSSProperties {
     };
 }
 
-export const revalidate = 300;
+/* Durante `docker build` solo está disponible la API pública, que puede seguir
+   atendiendo la versión anterior mientras Compose aún no reinicia el backend.
+   Renderizar en runtime evita hornear esa respuesta transitoria en la página. */
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = buildMetadata({
     title: 'Estadísticas de PlayinOne',
@@ -119,10 +122,18 @@ export default async function ScrapStatsPage() {
 
             {/* ══ Matriz plataforma × formato (mapa de calor) ══ */}
             {stats && stats.platform_matrix.length > 0 && (() => {
+                // La API anterior exponía un único conteo `digital`. El fallback
+                // mantiene la página renderizable durante un deploy escalonado;
+                // una vez actualizado el backend, `store` y `key` llegan separados.
+                const matrix = stats.platform_matrix.map((row) => ({
+                    ...row,
+                    store: row.store ?? row.digital ?? 0,
+                    key: row.key ?? 0,
+                }));
                 const maxCount = Math.max(
-                    ...stats.platform_matrix.flatMap((r) => [r.new, r.used, r.store, r.key]),
+                    ...matrix.flatMap((r) => [r.new, r.used, r.store, r.key]),
                 );
-                const totals = stats.platform_matrix.reduce(
+                const totals = matrix.reduce(
                     (sum, row) => ({
                         new: sum.new + row.new,
                         used: sum.used + row.used,
@@ -131,7 +142,7 @@ export default async function ScrapStatsPage() {
                     }),
                     { new: 0, used: 0, store: 0, key: 0 },
                 );
-                const totalFor = (row: typeof stats.platform_matrix[number]) =>
+                const totalFor = (row: typeof matrix[number]) =>
                     row.new + row.used + row.store + row.key;
                 const grandTotal = totals.new + totals.used + totals.store + totals.key;
                 return (
@@ -172,7 +183,7 @@ export default async function ScrapStatsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {stats.platform_matrix.map((row) => {
+                                {matrix.map((row) => {
                                     const def = PLATFORMS_BY_SLUG[row.slug];
                                     const Icon = def?.icon ?? FALLBACK_PLATFORM_ICON;
                                     return (
