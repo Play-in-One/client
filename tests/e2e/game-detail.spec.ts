@@ -9,8 +9,8 @@ import { SEEDED, seededGamePath } from './helpers';
  * miraban, en realidad, el juego con id 1 de la base de desarrollo.
  *
  * Ahora trabajan contra `manage.py seed_e2e`, que siembra un juego con dos
- * ofertas —una nacional sin envío y una importada con envío— y otro sin
- * ninguna, para los estados vacíos.
+ * ofertas —una nacional sin envío y una importada con envío y convenio— y otro
+ * sin ninguna, para los estados vacíos.
  */
 
 let gamePath: string;
@@ -38,19 +38,23 @@ test('la tabla de productos muestra los vendedores y precios', async ({ page }) 
     // Los precios también salen en el bloque de mejor precio y en las tarjetas
     // de "otros juegos", así que la comprobación va contra la tabla.
     await expect(tabla.getByText(/\$19\.990/).first()).toBeVisible();   // nacional, sin envío
-    await expect(tabla.getByText(/\$24\.980/).first()).toBeVisible();   // importada, con envío
+    await expect(tabla.getByText(/\$23\.481/).first()).toBeVisible();   // importada, con envío y cupón
 });
 
-test('el precio con envío ofrece el desglose y el sin envío no', async ({ page }) => {
+test('el precio con envío y convenio ofrece un solo desglose combinado', async ({ page }) => {
     await page.goto(gamePath);
-    // Un ícono por oferta con despacho: la importadora sí, la nacional no.
-    const info = page.getByRole('button', { name: 'Ver desglose del precio' });
+    // La importadora tiene envío y convenio, pero ambos usan el mismo ícono.
+    const info = page.getByRole('button', { name: 'Ver desglose de envío y cupón' });
     await expect(info).toHaveCount(1);
 
     await info.click();
-    await expect(page.getByText('Este precio incluye el envío')).toBeVisible();
-    await expect(page.getByText(/\$14\.990/)).toBeVisible();  // precio en tienda
-    await expect(page.getByText(/\$9\.990/)).toBeVisible();   // envío promedio
+    const popover = page.getByRole('dialog', { name: 'Ver desglose de envío y cupón' });
+    await expect(popover.getByText('Precio con el cupón PIO10; el envío se suma después.')).toBeVisible();
+    await expect(popover.getByText(/\$14\.990/)).toBeVisible();  // precio en tienda
+    await expect(popover.getByText(/\$9\.990/)).toBeVisible();   // envío promedio
+    await expect(popover.getByText(/\$13\.491/)).toBeVisible();  // precio con cupón
+    await expect(popover.getByText(/\$23\.481/)).toBeVisible();  // total tras cupón y envío
+    await expect(popover.getByText(/\$1\.499/)).toBeVisible();   // ahorro
 });
 
 test('solo las tiendas internacionales se marcan con el globo', async ({ page }) => {

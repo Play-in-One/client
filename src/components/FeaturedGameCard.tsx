@@ -6,8 +6,7 @@ import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
-import ShippingInfo from './ShippingInfo';
-import CouponInfo from './CouponInfo';
+import PriceInfo from './PriceInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
@@ -224,13 +223,11 @@ function FeaturedGameCard({
                                 <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
                                     {formatCLP(game.min_price as string)}
                                 </Text>
-                                <ShippingInfo
+                                <PriceInfo
                                     basePrice={game.min_price_base}
                                     shippingCost={game.min_price_shipping}
+                                    seller={game.min_price_seller}
                                 />
-                                {game.min_price_seller && (
-                                    <CouponInfo basePrice={game.min_price_base} seller={game.min_price_seller} />
-                                )}
                             </Group>
                         )}
                     </Box>

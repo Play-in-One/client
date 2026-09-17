@@ -13,11 +13,14 @@ declare global {
     }
 }
 
-/* Alto reservado, en px. `data-ad-format="horizontal"` acota el anuncio a la
-   familia 320x100 / 728x90 / 970x90, así que 100 cubre el caso alto y el hueco
-   no cambia de tamaño cuando el anuncio llega. El proyecto mide Core Web
-   Vitals reales (ver PerfTracker): un salto aquí sale en las cifras. */
+/* Alto mínimo reservado, en px. El formato responsive puede crecer si Google
+   encuentra una creatividad con mejor cobertura, pero este espacio cubre el
+   banner horizontal que ya usaba el sitio. Como el anuncio se solicita 400 px
+   antes del viewport, normalmente termina de tomar su tamaño antes de que la
+   persona lo vea. El proyecto mide Core Web Vitals reales (ver PerfTracker). */
 const RESERVED_HEIGHT = 100;
+
+type AdStatus = 'pending' | 'filled' | 'unfilled';
 
 /**
  * Un bloque de Google AdSense.
@@ -30,7 +33,8 @@ const RESERVED_HEIGHT = 100;
  * 2. **Espera al `ready` del consentimiento**, como todo tracker del proyecto.
  *    React corre los efectos de los hijos antes que los del padre: sin esperar,
  *    se pediría anuncio personalizado a quien todavía no ha dicho nada.
- * 3. **El alto está reservado desde el primer render**, llene o no llene.
+ * 3. **Reserva un alto mínimo desde el primer render** y, si Google no tiene
+ *    inventario, solo retira el hueco mientras siga debajo del viewport.
  *
  * Sin `NEXT_PUBLIC_ADSENSE_CLIENT` o sin `slot` devuelve `null` y no queda ni
  * el hueco: así en local no aparece nada.
@@ -61,7 +65,8 @@ export default function AdSlot({
     const ins = useRef<HTMLModElement>(null);
     const pushed = useRef(false);
     const [near, setNear] = useState(false);
-    const [filled, setFilled] = useState(false);
+    const [adStatus, setAdStatus] = useState<AdStatus>('pending');
+    const [collapsed, setCollapsed] = useState(false);
     /* `null` = todavía no se sabe (solo en páginas estáticas, hasta que
        responda /api/geo). Nunca se pide anuncio con este valor. */
     const [geoAllowed, setGeoAllowed] = useState<boolean | null>(allowed ?? null);
@@ -128,14 +133,28 @@ export default function AdSlot({
         }
     }, [enabled, near, ready, adsPersonalized]);
 
-    /* AdSense escribe `data-ad-status="filled" | "unfilled"` en el `<ins>`. La
-       etiqueta "Publicidad" solo aparece cuando hay algo que etiquetar, y lo
-       hace con opacidad para no mover ni un píxel: sobre un hueco vacío esa
-       palabra sobra, pero ocultarla reservando su espacio evita el salto. */
+    /* AdSense escribe `data-ad-status="filled" | "unfilled"` en el `<ins>`.
+       Si la respuesta vacía llega cuando el bloque aún está debajo del
+       viewport, se puede retirar sin que la persona vea un salto. Si ya entró
+       en pantalla se conserva hasta abandonar la página: mover el contenido
+       bajo el cursor cuesta más que ese espacio en blanco. */
     useEffect(() => {
         const node = ins.current;
         if (!enabled || !near || !node) return;
-        const check = () => setFilled(node.getAttribute('data-ad-status') === 'filled');
+        const check = () => {
+            const rawStatus = node.getAttribute('data-ad-status');
+            if (rawStatus === 'filled') {
+                setAdStatus('filled');
+                return;
+            }
+            if (rawStatus !== 'unfilled' && rawStatus !== 'unfill-optimized') return;
+
+            setAdStatus('unfilled');
+            const holderNode = holder.current;
+            if (!holderNode) return;
+            const { top } = holderNode.getBoundingClientRect();
+            if (top >= window.innerHeight) setCollapsed(true);
+        };
         check();
         const observer = new MutationObserver(check);
         observer.observe(node, { attributes: true, attributeFilter: ['data-ad-status'] });
@@ -149,7 +168,9 @@ export default function AdSlot({
        `geoAllowed === false`, que es la misma negativa llegando tarde desde
        /api/geo: para entonces el hueco ya está pintado, y quitarlo movería la
        página. Se queda en blanco, que cuesta menos. */
-    if (!configured || allowed === false) return null;
+    if (!configured || allowed === false || collapsed) return null;
+
+    const filled = adStatus === 'filled';
 
     return (
         <Container
@@ -159,6 +180,7 @@ export default function AdSlot({
             pb={60}
             aria-label={label}
             data-ad-slot-holder
+            data-ad-state={adStatus}
         >
             <Text
                 fz="xs"
@@ -170,10 +192,10 @@ export default function AdSlot({
             >
                 {label}
             </Text>
-            {/* El alto está en el Box, no en el `<ins>`: así el hueco mide lo
-                mismo antes y después de saberse el país, y el anuncio puede
-                aparecer sin mover nada. */}
-            <Box mih={RESERVED_HEIGHT} style={{ overflow: 'hidden' }}>
+            {/* El alto mínimo está en el Box, no en el `<ins>`: así el hueco
+                existe antes de saberse el país. No se fija un alto máximo
+                porque el formato responsive debe poder elegir más inventario. */}
+            <Box mih={RESERVED_HEIGHT}>
                 {enabled && (
                     <ins
                         ref={ins}
@@ -181,12 +203,8 @@ export default function AdSlot({
                         style={{ display: 'block', minHeight: RESERVED_HEIGHT }}
                         data-ad-client={ADSENSE_CLIENT}
                         data-ad-slot={slot}
-                        data-ad-format="horizontal"
-                        /* `false` a propósito: en true el anuncio se va a ancho
-                           completo en móvil y su alto deja de ser predecible,
-                           que es justo lo que el hueco reservado intenta
-                           evitar. */
-                        data-full-width-responsive="false"
+                        data-ad-format="auto"
+                        data-full-width-responsive="true"
                     />
                 )}
             </Box>

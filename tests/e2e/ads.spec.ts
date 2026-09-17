@@ -74,6 +74,68 @@ test('el hueco reserva su alto desde el primer render', async ({ page }) => {
     expect(box?.height ?? 0).toBeGreaterThanOrEqual(100);
 });
 
+test('la unidad permite a Google elegir un formato responsive', async ({ page }) => {
+    await stubGoogle(page);
+    await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'CL' });
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+
+    await scrollToBottom(page);
+
+    const ad = page.locator('ins.adsbygoogle');
+    await expect(ad).toHaveCount(1);
+    await expect(ad).toHaveAttribute('data-ad-format', 'auto');
+    await expect(ad).toHaveAttribute('data-full-width-responsive', 'true');
+});
+
+test('un anuncio lleno muestra su etiqueta', async ({ page }) => {
+    await stubGoogle(page);
+    await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'CL' });
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+
+    await scrollToBottom(page);
+    const ad = page.locator('ins.adsbygoogle');
+    await expect(ad).toHaveCount(1);
+    await ad.evaluate((node) => node.setAttribute('data-ad-status', 'filled'));
+
+    await expect(holder(page)).toHaveAttribute('data-ad-state', 'filled');
+    await expect(holder(page).getByText('Publicidad')).toHaveAttribute('aria-hidden', 'false');
+});
+
+test('un anuncio vacío se conserva si ya está visible', async ({ page }) => {
+    await stubGoogle(page);
+    await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'CL' });
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+
+    await scrollToBottom(page);
+    const ad = page.locator('ins.adsbygoogle');
+    await expect(ad).toHaveCount(1);
+    await ad.evaluate((node) => node.setAttribute('data-ad-status', 'unfilled'));
+
+    await expect(holder(page)).toHaveCount(1);
+    await expect(holder(page)).toHaveAttribute('data-ad-state', 'unfilled');
+    await expect(holder(page).getByText('Publicidad')).toHaveAttribute('aria-hidden', 'true');
+});
+
+test('un anuncio vacío se retira si todavía está bajo el viewport', async ({ page }) => {
+    await stubGoogle(page);
+    await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'CL' });
+    test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
+
+    // Entra en el margen de 400 px del IntersectionObserver, pero el bloque
+    // sigue 200 px bajo la pantalla cuando simulamos la respuesta de Google.
+    await holder(page).evaluate((node) => {
+        const top = node.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo(0, top - window.innerHeight - 200);
+    });
+    const ad = page.locator('ins.adsbygoogle');
+    await expect(ad).toHaveCount(1);
+    await expect.poll(() => ad.evaluate((node) => node.getBoundingClientRect().top))
+        .toBeGreaterThanOrEqual(720);
+    await ad.evaluate((node) => node.setAttribute('data-ad-status', 'unfilled'));
+
+    await expect(holder(page)).toHaveCount(0);
+});
+
 test('no se pide anuncio desde el EEE', async ({ page }) => {
     // Servir publicidad ahí exigiría un CMP certificado del TCF. En vez de
     // montarlo, el bloque no se renderiza para esos países.

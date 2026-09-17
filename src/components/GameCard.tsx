@@ -7,8 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import ConditionIcon from './ConditionIcon';
-import ShippingInfo from './ShippingInfo';
-import CouponInfo from './CouponInfo';
+import PriceInfo from './PriceInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
@@ -202,10 +201,11 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                         <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                             {formatCLP(price)}
                                         </Text>
-                                        <ShippingInfo basePrice={basePrice} shippingCost={shippingCost} />
-                                        {game.min_price_seller && (
-                                            <CouponInfo basePrice={basePrice} seller={game.min_price_seller} />
-                                        )}
+                                        <PriceInfo
+                                            basePrice={basePrice}
+                                            shippingCost={shippingCost}
+                                            seller={game.min_price_seller}
+                                        />
                                     </Group>
                                 </Box>
                                 <Box ta="right">

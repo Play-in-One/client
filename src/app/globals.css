@@ -95,6 +95,27 @@ body {
   background-color: var(--mantine-color-dark-6) !important;
 }
 
+/* En móvil una oferta completa abre la tienda; el logo conserva su propio
+   enlace a la ficha del vendedor. El cursor y el realce hacen explícita esa
+   acción en dispositivos compactos con mouse o trackpad. */
+@media (max-width: 47.99em) {
+  .game-offer-row {
+    cursor: pointer;
+  }
+
+  .game-offer-row > td {
+    transition: background-color 0.15s;
+  }
+
+  .game-offer-row:hover > td {
+    background-color: var(--mantine-color-gray-0);
+  }
+
+  [data-mantine-color-scheme='dark'] .game-offer-row:hover > td {
+    background-color: var(--mantine-color-dark-6);
+  }
+}
+
 /* Condition filter switch — adapts to site theme, keeps the neon cyan indicator */
 .condition-switch.mantine-SegmentedControl-root {
   background-color: var(--mantine-color-gray-1);
@@ -117,6 +138,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Con ancho completo, cada segmento ocupa exactamente un tercio. Así el largo
+   de "Físico", "Código" o sus íconos no desplaza el centro de las opciones. */
+.condition-switch[data-full-width] .mantine-SegmentedControl-control {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .condition-switch .mantine-SegmentedControl-label svg {

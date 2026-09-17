@@ -30,10 +30,10 @@ export const SEEDED = {
     internationalSeller: 'E2E Importadora',
     /** Nacional, nueva, sin envío: su precio efectivo es el de lista. */
     nationalPrice: 19990,
-    /** Importada y usada: 14.990 de lista + 9.990 de envío. */
+    /** Importada y usada: 14.990 con cupón de 10% + 9.990 de envío. */
     internationalListPrice: 14990,
     internationalShipping: 9990,
-    internationalEffectivePrice: 24980,
+    internationalEffectivePrice: 23481,
     posts: [
         { title: 'E2E Las mejores ofertas del mes', category: 'deals' },
         { title: 'E2E Nuevo juego anunciado', category: 'news' },
