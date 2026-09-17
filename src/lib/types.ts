@@ -501,7 +501,8 @@ export interface PlatformMatrixRow {
     family: string;
     new: number;
     used: number;
-    digital: number;
+    store: number;
+    key: number;
 }
 
 export interface LastScrapeRun {

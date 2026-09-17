@@ -35,16 +35,6 @@ import {
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
 import { trackEvent, type SocialNetwork } from '@/lib/api';
-import { PLATFORMS } from '@/lib/platforms';
-
-/* Landings por consola enlazadas desde el pie de TODAS las páginas: el catálogo
-   entero, en el orden del menú. Antes se armaba con los grupos del Navbar más
-   dos entradas sueltas cosidas a mano, porque `xbox` y `pc` existían en el
-   backend pero no en ningún grupo. Ahora ninguna consola se queda fuera. */
-const FOOTER_LANDINGS: { slug: string; label: string }[] = PLATFORMS.map((p) => ({
-    slug: p.slug,
-    label: p.long,
-}));
 
 const YEAR = new Date().getFullYear();
 
@@ -133,36 +123,22 @@ export default function Footer() {
                         </Text>
                     </Stack>
 
-                    {/* Categorías */}
+                    {/* Información */}
                     <Stack gap="xs">
-                        <Text fw={700} mb={4}>Categorías</Text>
-                        {/* A la landing por consola, no a /search?platform=:
-                            esa variante va noindex y se renderiza en el cliente,
-                            así que estos enlaces no llevaban a nada indexable.
-                            Van TODAS las consolas y no una muestra: el menú del
-                            Navbar es un dropdown que no existe en el HTML del
-                            servidor, así que este bloque es el único enlace que
-                            recibe cada landing desde todas las páginas. */}
-                        <SimpleGrid cols={2} spacing={4} verticalSpacing={4}>
-                            {FOOTER_LANDINGS.map((l) => (
-                                <Anchor key={l.slug} component={Link} href={`/juegos/${l.slug}`} fz="sm" c="dimmed" underline="never">
-                                    {l.label}
-                                </Anchor>
-                            ))}
-                        </SimpleGrid>
-                    </Stack>
-
-                    {/* Empresa */}
-                    <Stack gap="xs">
-                        <Text fw={700} mb={4}>Empresa</Text>
+                        <Text fw={700} mb={4}>Información</Text>
                         <Anchor component={Link} href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
                         <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
-                        <Anchor component={Link} href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
-                        <Anchor component={Link} href="/privacy" fz="sm" c="dimmed" underline="never">Política de Privacidad</Anchor>
-                        <Anchor component={Link} href="/cookies" fz="sm" c="dimmed" underline="never">Cookies</Anchor>
                         <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
                         <Anchor component={Link} href="/faq" fz="sm" c="dimmed" underline="never">Preguntas frecuentes</Anchor>
                         <Anchor component={Link} href="/scrap" fz="sm" c="dimmed" underline="never">Estadísticas</Anchor>
+                    </Stack>
+
+                    {/* Legal */}
+                    <Stack gap="xs">
+                        <Text fw={700} mb={4}>Legal</Text>
+                        <Anchor component={Link} href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
+                        <Anchor component={Link} href="/privacy" fz="sm" c="dimmed" underline="never">Política de Privacidad</Anchor>
+                        <Anchor component={Link} href="/cookies" fz="sm" c="dimmed" underline="never">Cookies</Anchor>
                     </Stack>
 
                     {/* Newsletter */}

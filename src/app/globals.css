@@ -188,6 +188,76 @@ body {
   border-color: var(--mantine-color-dark-4);
 }
 
+/* Resumen de la última corrida en /scrap. Las tarjetas mantienen el mismo
+   alto mediante una grilla y tres líneas de contenido predecibles. */
+.scrape-run-date {
+  color: var(--mantine-color-primaryRed-6);
+  margin-left: auto;
+  text-align: right;
+}
+.scrape-run-date-label {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.scrape-run-date-value {
+  margin-top: 2px;
+  font-size: var(--mantine-font-size-md);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.scrape-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--mantine-spacing-sm);
+}
+.scrape-kpi {
+  min-width: 0;
+  padding: var(--mantine-spacing-md);
+  border: 1px solid var(--mantine-color-gray-2);
+  border-radius: var(--mantine-radius-md);
+}
+.scrape-kpi-icon {
+  flex: none;
+}
+.scrape-kpi-label {
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.scrape-kpi-value {
+  margin-top: 4px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.scrape-kpi-hint {
+  margin-top: 5px;
+  color: var(--mantine-color-dimmed);
+  font-size: var(--mantine-font-size-xs);
+  line-height: 1.35;
+}
+.scrape-kpi-created .scrape-kpi-icon { color: var(--mantine-color-blue-6); }
+.scrape-kpi-updated .scrape-kpi-icon { color: var(--mantine-color-indigo-6); }
+.scrape-kpi-unchanged .scrape-kpi-icon { color: var(--mantine-color-gray-6); }
+.scrape-kpi-price-drop .scrape-kpi-icon { color: var(--mantine-color-teal-6); }
+.scrape-empty-state { padding-block: var(--mantine-spacing-xs); }
+[data-mantine-color-scheme='dark'] .scrape-kpi {
+  border-color: var(--mantine-color-dark-4);
+}
+[data-mantine-color-scheme='dark'] .scrape-kpi-created .scrape-kpi-icon { color: var(--mantine-color-blue-4); }
+[data-mantine-color-scheme='dark'] .scrape-kpi-updated .scrape-kpi-icon { color: var(--mantine-color-indigo-4); }
+[data-mantine-color-scheme='dark'] .scrape-kpi-unchanged .scrape-kpi-icon { color: var(--mantine-color-gray-5); }
+[data-mantine-color-scheme='dark'] .scrape-kpi-price-drop .scrape-kpi-icon { color: var(--mantine-color-teal-4); }
+@media (min-width: 62em) {
+  .scrape-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
 /* Tabla estática de /scrap — plain HTML a propósito: los compuestos de Table
    de Mantine llegan `undefined` en un Server Component (ver CLAUDE.md). */
 .scrap-table {
@@ -204,6 +274,10 @@ body {
 }
 .scrap-table .value-col {
   text-align: center;
+}
+.scrap-table .total-col,
+.scrap-table tfoot {
+  font-weight: 700;
 }
 .scrap-table th {
   font-weight: 600;

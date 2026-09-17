@@ -40,6 +40,13 @@ export const darkScale: MantineColorsTuple = [
     '#080808', // 9  el más profundo
 ];
 
+export const foregrounds = {
+    light: {
+        /** Softer than pure black while preserving strong contrast on white. */
+        primary: '#222222',
+    },
+};
+
 export const surfaces = {
     light: {
         navbar: 'rgba(255, 255, 255, 0.9)',

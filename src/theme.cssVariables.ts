@@ -1,5 +1,5 @@
 import type { CSSVariablesResolver } from '@mantine/core';
-import { surfaces } from '@/lib/colors';
+import { foregrounds, surfaces } from '@/lib/colors';
 
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
     variables: {
@@ -9,6 +9,7 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
     light: {
         '--pio-navbar-bg': surfaces.light.navbar,
         '--pio-condition-switch-bg': surfaces.light.conditionSwitchTrack,
+        '--mantine-color-black': foregrounds.light.primary,
         '--mantine-color-body': surfaces.light.body,
     },
     dark: {
