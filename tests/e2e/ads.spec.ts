@@ -101,7 +101,7 @@ test('un anuncio lleno muestra su etiqueta', async ({ page }) => {
     await expect(holder(page).getByText('Publicidad')).toHaveAttribute('aria-hidden', 'false');
 });
 
-test('un anuncio vacío se conserva si ya está visible', async ({ page }) => {
+test('un anuncio vacío se retira aunque ya esté visible', async ({ page }) => {
     await stubGoogle(page);
     await page.setExtraHTTPHeaders({ 'CF-IPCountry': 'CL' });
     test.skip(!(await homeAdsConfigured(page)), 'sin ID de editor no hay bloque');
@@ -111,9 +111,7 @@ test('un anuncio vacío se conserva si ya está visible', async ({ page }) => {
     await expect(ad).toHaveCount(1);
     await ad.evaluate((node) => node.setAttribute('data-ad-status', 'unfilled'));
 
-    await expect(holder(page)).toHaveCount(1);
-    await expect(holder(page)).toHaveAttribute('data-ad-state', 'unfilled');
-    await expect(holder(page).getByText('Publicidad')).toHaveAttribute('aria-hidden', 'true');
+    await expect(holder(page)).toHaveCount(0);
 });
 
 test('un anuncio vacío se retira si todavía está bajo el viewport', async ({ page }) => {

@@ -33,8 +33,8 @@ type AdStatus = 'pending' | 'filled' | 'unfilled';
  * 2. **Espera al `ready` del consentimiento**, como todo tracker del proyecto.
  *    React corre los efectos de los hijos antes que los del padre: sin esperar,
  *    se pediría anuncio personalizado a quien todavía no ha dicho nada.
- * 3. **Reserva un alto mínimo desde el primer render** y, si Google no tiene
- *    inventario, solo retira el hueco mientras siga debajo del viewport.
+ * 3. **Reserva un alto mínimo mientras Google responde** y retira todo el
+ *    bloque si no hay inventario, para no dejar una franja vacía en la página.
  *
  * Sin `NEXT_PUBLIC_ADSENSE_CLIENT` o sin `slot` devuelve `null` y no queda ni
  * el hueco: así en local no aparece nada.
@@ -134,10 +134,9 @@ export default function AdSlot({
     }, [enabled, near, ready, adsPersonalized]);
 
     /* AdSense escribe `data-ad-status="filled" | "unfilled"` en el `<ins>`.
-       Si la respuesta vacía llega cuando el bloque aún está debajo del
-       viewport, se puede retirar sin que la persona vea un salto. Si ya entró
-       en pantalla se conserva hasta abandonar la página: mover el contenido
-       bajo el cursor cuesta más que ese espacio en blanco. */
+       Una respuesta vacía retira el bloque completo: puede producir un salto
+       pequeño si alguien llega antes que Google, pero evita dejar una franja
+       blanca permanente, que es mucho más visible con la cobertura actual. */
     useEffect(() => {
         const node = ins.current;
         if (!enabled || !near || !node) return;
@@ -150,10 +149,7 @@ export default function AdSlot({
             if (rawStatus !== 'unfilled' && rawStatus !== 'unfill-optimized') return;
 
             setAdStatus('unfilled');
-            const holderNode = holder.current;
-            if (!holderNode) return;
-            const { top } = holderNode.getBoundingClientRect();
-            if (top >= window.innerHeight) setCollapsed(true);
+            setCollapsed(true);
         };
         check();
         const observer = new MutationObserver(check);
