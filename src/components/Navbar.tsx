@@ -32,6 +32,7 @@ import {
     IconSettings,
     IconDisc,
     IconCloudDownload,
+    IconDeviceFloppy,
     IconKey,
     IconRecycle,
     IconSparkles,
@@ -68,7 +69,7 @@ const FORMAT_OPTIONS = [
     {
         label: (
             <Group gap={6} wrap="nowrap">
-                <IconCloudDownload size={18} stroke={2.25} />
+                <IconDeviceFloppy size={18} stroke={2.25} />
                 <span>Digital</span>
             </Group>
         ),
