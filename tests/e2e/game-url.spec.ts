@@ -5,7 +5,7 @@ import { test, expect, type APIRequestContext } from '@playwright/test';
  * interceptan los fetch del servidor), así que el juego se toma del catálogo
  * que haya en la base de dev. */
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
 
 async function anyGame(request: APIRequestContext) {
     const res = await request.get(`${API}/games/?page=1`);

@@ -11,7 +11,7 @@ import { PLATFORMS, PLATFORMS_BY_SLUG, FAMILIES } from '../../src/lib/platforms'
  * desde siempre.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
 
 test.describe('catálogo de consolas', () => {
     test('el catálogo cubre todas las plataformas que publica la API', async ({ request }) => {

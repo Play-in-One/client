@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
  * Datos sembrados por `manage.py seed_e2e` en el backend de desarrollo.
  *
  * Los tests que dependen del render del SERVIDOR no pueden mockear nada: en dev
- * el navegador pide a `localhost:8001` y el render de Next sale del contenedor
+ * el navegador pide a `pio.localhost:8080/api` y el render de Next sale del contenedor
  * hacia `backend:8001` por la red interna de Docker, así que `page.route` —que
  * solo intercepta el navegador— nunca ve ese fetch. Los componentes de cliente
  * tampoco vuelven a pedir: consumen el prop del servidor. Por eso estos specs
@@ -40,6 +40,8 @@ export const SEEDED = {
     ],
 } as const;
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
+
 /**
  * La URL canónica de una ficha, `/juego/<slug>-<id>`.
  *
@@ -47,7 +49,7 @@ export const SEEDED = {
  * y un test que fuera ahí leería el cuerpo vacío de la redirección.
  */
 export async function seededGamePath(page: Page, id: number = SEEDED.gameId): Promise<string> {
-    const res = await page.request.get(`http://localhost:8001/api/games/${id}/`);
+    const res = await page.request.get(`${API_URL}/games/${id}/`);
     if (!res.ok()) {
         throw new Error(
             `No está el juego ${id}. Corre: docker exec develop-backend-1 python manage.py seed_e2e`,
@@ -60,7 +62,7 @@ export async function seededGamePath(page: Page, id: number = SEEDED.gameId): Pr
 /** El id de un post sembrado, por su título. */
 export async function seededPostId(page: Page, title: string): Promise<number> {
     const res = await page.request.get(
-        `http://localhost:8001/api/posts/?search=${encodeURIComponent(title)}`,
+        `${API_URL}/posts/?search=${encodeURIComponent(title)}`,
     );
     const { results } = await res.json();
     const post = results.find((p: { title: string }) => p.title === title);

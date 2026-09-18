@@ -134,6 +134,24 @@ export interface GameFacets {
     sellers: Record<number, number>;
 }
 
+export type GameRatingSource =
+    | 'metacritic'
+    | 'opencritic'
+    | 'igdb_critics'
+    | 'igdb_users'
+    | 'steam';
+
+/** Calificación externa individual incluida únicamente en el detalle. */
+export interface GameRating {
+    source: GameRatingSource;
+    score: string;
+    scale: number;
+    count: number | null;
+    label: string;
+    url: string;
+    fetched_at: string;
+}
+
 export interface Game {
     id: number;
     name: string;
@@ -151,6 +169,8 @@ export interface Game {
      *  Solo lo envía el detalle: la galería resuelve la portada en el servidor. */
     image_is_custom?: boolean;
     rating: string | null;
+    /** Desglose por fuente; cada valor conserva su escala original. */
+    ratings?: GameRating[];
     /** Precio EFECTIVO de la mejor oferta: lista + envío de su tienda. */
     min_price: string | null;
     /** Desglose de min_price. Viaja en la galería porque la tarjeta se

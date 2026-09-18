@@ -28,6 +28,33 @@ test('la página de detalle carga con el título del juego', async ({ page }) =>
     await expect(page.getByRole('heading', { name: SEEDED.game })).toBeVisible();
 });
 
+test('muestra las calificaciones normalizadas por fuente en un radar', async ({ page }) => {
+    await page.goto(gamePath);
+
+    await expect(page.getByText('Calificaciones', { exact: true })).toBeVisible();
+    await expect(page.getByText('8.5/10', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('ratings-radar')).toBeVisible();
+    for (const source of ['MC', 'OC', 'IGDB-C', 'IGDB-U', 'Steam']) {
+        await expect(page.getByText(source, { exact: true })).toBeVisible();
+    }
+    await page.getByText('MC', { exact: true }).hover();
+    await expect(page.getByRole('tooltip').getByText('Metacritic: 8.6/10')).toBeVisible();
+});
+
+test('usa barras cuando solo hay una o dos fuentes de calificación', async ({ page }) => {
+    await page.goto(noHistoryGamePath);
+
+    await expect(page.getByTestId('ratings-bars')).toBeVisible();
+    await expect(page.getByTestId('ratings-radar')).toHaveCount(0);
+    await expect(page.getByText('7.5/10', { exact: true })).toBeVisible();
+    await expect(page.getByText('8.5/10', { exact: true })).toBeVisible();
+});
+
+test('omite el bloque de calificaciones cuando no hay datos', async ({ page }) => {
+    await page.goto(emptyGamePath);
+    await expect(page.getByText('Calificaciones', { exact: true })).toHaveCount(0);
+});
+
 test('la tabla de productos muestra los vendedores y precios', async ({ page }) => {
     await page.goto(gamePath);
     // Acotado a la tabla: el nombre de la tienda se repite en la fila, en el
@@ -37,8 +64,8 @@ test('la tabla de productos muestra los vendedores y precios', async ({ page }) 
     await expect(tabla.getByText(SEEDED.internationalSeller).first()).toBeVisible();
     // Los precios también salen en el bloque de mejor precio y en las tarjetas
     // de "otros juegos", así que la comprobación va contra la tabla.
-    await expect(tabla.getByText(/\$19\.990/).first()).toBeVisible();   // nacional, sin envío
-    await expect(tabla.getByText(/\$23\.481/).first()).toBeVisible();   // importada, con envío y cupón
+    await expect(tabla.locator('p:visible', { hasText: '$19.990' }).first()).toBeVisible();   // nacional, sin envío
+    await expect(tabla.locator('p:visible', { hasText: '$23.481' }).first()).toBeVisible();   // importada, con envío y cupón
 });
 
 test('el precio con envío y convenio ofrece un solo desglose combinado', async ({ page }) => {
@@ -114,7 +141,7 @@ test('el historial sigue al filtro de condición sin recargar', async ({ page })
         apiCalls += 1;
         route.continue();
     });
-    await page.locator('input[value="Cualquier Estado"]').click();
+    await page.getByPlaceholder('Filtrar por estado').click();
     await page.getByRole('option', { name: 'Usado' }).click();
 
     await expect(heading).toBeVisible();

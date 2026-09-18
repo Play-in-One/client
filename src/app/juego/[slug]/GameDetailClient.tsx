@@ -23,6 +23,9 @@ import {
     Grid,
     SimpleGrid,
     Select,
+    HoverCard,
+    Center,
+    Loader,
     Tooltip as MantineTooltip,
 } from '@mantine/core';
 import {
@@ -53,7 +56,6 @@ import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@
 import { surfaces, decorative } from '@/lib/colors';
 import { bestPriceSentence } from '@/lib/seo';
 import CollapsibleText from '@/components/CollapsibleText';
-import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
 import CouponModal, { type PendingOffer } from '@/components/CouponModal';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
@@ -68,6 +70,14 @@ import {
 // recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
 // (fuera del bundle inicial del detalle) y solo en el cliente.
 const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), { ssr: false });
+const GameRatingsChart = dynamic(() => import('@/components/GameRatingsChart'), {
+    ssr: false,
+    loading: () => (
+        <Center h="100%" mih={96}>
+            <Loader size="sm" color="primaryRed" />
+        </Center>
+    ),
+});
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
 import { AdminGameControls, AdminProductEditor } from './AdminControls';
@@ -111,6 +121,62 @@ function formatPriceUpdateDate(iso: string | null | undefined): string | null {
         year: 'numeric',
         timeZone: 'America/Santiago',
     }).format(date);
+}
+
+function ratingColor(rating: string): string {
+    const score = Number(rating);
+    if (!Number.isFinite(score)) return 'gray';
+    if (score >= 8) return 'green';
+    if (score >= 6) return 'yellow';
+    if (score >= 4) return 'orange';
+    return 'red';
+}
+
+function ProductImagePreview({ src, title }: { src: string; title: string }) {
+    const [loading, setLoading] = useState(true);
+    const [failed, setFailed] = useState(false);
+
+    return (
+        <Box
+            h={260}
+            pos="relative"
+            style={{
+                overflow: 'hidden',
+                borderRadius: 'var(--mantine-radius-sm)',
+                background: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-7))',
+            }}
+        >
+            {loading && !failed && (
+                <Center pos="absolute" inset={0}>
+                    <Loader size="sm" color="primaryRed" />
+                </Center>
+            )}
+            {failed ? (
+                <Center h="100%">
+                    <Text fz="xs" c="dimmed">Imagen no disponible</Text>
+                </Center>
+            ) : (
+                <img
+                    src={src}
+                    alt={`Vista previa de ${title}`}
+                    onLoad={() => setLoading(false)}
+                    onError={() => {
+                        setLoading(false);
+                        setFailed(true);
+                    }}
+                    style={{
+                        display: 'block',
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        opacity: loading ? 0 : 1,
+                        transform: loading ? 'scale(0.98)' : 'scale(1)',
+                        transition: 'opacity 180ms ease, transform 180ms ease',
+                    }}
+                />
+            )}
+        </Box>
+    );
 }
 
 export default function GameDetailClient({
@@ -179,7 +245,6 @@ export default function GameDetailClient({
             setConditionFilter(selectValueFor(format, condition, digital));
         }
     }, [condition, format, digital, conditionManuallySet, ready]);
-    const [hoveredProductImage, setHoveredProductImage] = useState<string | null>(null);
     // Edición admin: toggles independientes para el panel del juego y por producto.
     const [editingGame, setEditingGame] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -398,17 +463,8 @@ export default function GameDetailClient({
             <Grid gutter="xl">
                 {/* ── Sidebar: Cover + info ── */}
                 <Grid.Col span={{ base: 12, lg: 4 }}>
-                    {/* Cover art (sticky) */}
-                    <Box
-                        style={{
-                            position: 'sticky',
-                            top: 73,
-                            zIndex: 5,
-                            paddingTop: 15,
-                            marginTop: -15,
-                            background: 'var(--mantine-color-body)',
-                        }}
-                    >
+                    {/* Cover art */}
+                    <Box>
                         <Box
                             pos="relative"
                             maw={{ base: '85%', lg: '100%' }}
@@ -431,66 +487,73 @@ export default function GameDetailClient({
                                     width: '100%',
                                     height: '100%',
                                     objectFit: 'cover',
-                                    transition: 'opacity 0.4s ease',
-                                    opacity: hoveredProductImage ? 0.3 : 1,
                                 }}
                                 onError={handleImageError('/placeholder-game.png')}
                             />
-
-                            {/* Product image (hover overlay) */}
-                            {hoveredProductImage && (
-                                <img
-                                    src={hoveredProductImage}
-                                    alt={`Oferta de ${game.name}`}
-                                    style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                        objectFit: 'cover',
-                                        transition: 'opacity 0.4s ease',
-                                        opacity: 1,
-                                        zIndex: 1,
-                                    }}
-                                />
-                            )}
                         </Box>
                     </Box>
 
                     <Stack gap="md" mt="md">
                         {/* Info card */}
                         <Card withBorder radius="lg" p="lg">
-                            <Stack gap="xs">
-                                {game.rating && (
-                                    <Group justify="space-between" pb={8} style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                                        <Text fz="sm" c="dimmed">Rating</Text>
-                                        <Badge color="green" variant="light" size="sm">{game.rating}</Badge>
-                                    </Group>
+                            <Stack gap="md">
+                                {(game.rating || (game.ratings?.length ?? 0) > 0) && (
+                                    <Box
+                                        pb={(game.release_date || game.developer) ? 'sm' : 0}
+                                        style={(game.release_date || game.developer)
+                                            ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
+                                            : undefined}
+                                    >
+                                        <Group justify="space-between" mb={(game.ratings?.length ?? 0) > 0 ? 'xs' : 0}>
+                                            <Text fz="lg" fw={700}>Calificaciones</Text>
+                                            {game.rating && (
+                                                <Badge
+                                                    color={ratingColor(game.rating)}
+                                                    variant="light"
+                                                    size="lg"
+                                                    radius="xl"
+                                                    aria-label={`Calificación general: ${game.rating} de 10`}
+                                                >
+                                                    {game.rating}/10
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                        {(game.ratings?.length ?? 0) > 0 && (
+                                            <Box
+                                                h={(game.ratings?.length ?? 0) >= 3 ? 240 : undefined}
+                                                mih={(game.ratings?.length ?? 0) < 3 ? 96 : undefined}
+                                            >
+                                                <GameRatingsChart ratings={game.ratings ?? []} />
+                                            </Box>
+                                        )}
+                                    </Box>
                                 )}
-                                {game.release_date && (
-                                    <Group justify="space-between" pb={8} style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                                        <Text fz="sm" c="dimmed">Lanzamiento</Text>
-                                        <Text fz="sm" fw={500}>
-                                            {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
-                                                interpreta como medianoche UTC. Sin fijar el timeZone acá, el
-                                                formateo cae al del entorno que ejecuta el código: el servidor
-                                                (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
-                                                el día anterior en horario local — mismatch de hidratación. */}
-                                            {new Date(game.release_date).toLocaleDateString('es-CL', {
-                                                day: '2-digit',
-                                                month: 'short',
-                                                year: 'numeric',
-                                                timeZone: 'UTC',
-                                            })}
-                                        </Text>
-                                    </Group>
-                                )}
-                                {game.developer && (
-                                    <Group justify="space-between">
-                                        <Text fz="sm" c="dimmed">Desarrollador</Text>
-                                        <Text fz="sm" fw={500}>{game.developer}</Text>
-                                    </Group>
-                                )}
+                                <Stack gap="xs">
+                                    {game.release_date && (
+                                        <Group justify="space-between" pb={8} style={game.developer ? { borderBottom: '1px solid var(--mantine-color-default-border)' } : undefined}>
+                                            <Text fz="sm" c="dimmed">Lanzamiento</Text>
+                                            <Text fz="sm" fw={500}>
+                                                {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
+                                                    interpreta como medianoche UTC. Sin fijar el timeZone acá, el
+                                                    formateo cae al del entorno que ejecuta el código: el servidor
+                                                    (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
+                                                    el día anterior en horario local — mismatch de hidratación. */}
+                                                {new Date(game.release_date).toLocaleDateString('es-CL', {
+                                                    day: '2-digit',
+                                                    month: 'short',
+                                                    year: 'numeric',
+                                                    timeZone: 'UTC',
+                                                })}
+                                            </Text>
+                                        </Group>
+                                    )}
+                                    {game.developer && (
+                                        <Group justify="space-between">
+                                            <Text fz="sm" c="dimmed">Desarrollador</Text>
+                                            <Text fz="sm" fw={500}>{game.developer}</Text>
+                                        </Group>
+                                    )}
+                                </Stack>
                             </Stack>
                         </Card>
 
@@ -519,10 +582,37 @@ export default function GameDetailClient({
                                 background: 'var(--mantine-color-body)',
                                 paddingTop: 15,
                                 marginTop: -15,
-                                paddingBottom: 8,
+                                paddingBottom: 0,
+                                marginBottom: -16,
                             }}
                         >
-                            <Group gap="sm" mb={6}>
+                            <Group gap="sm" mb={6} wrap="wrap">
+                                <Group gap="xs" wrap="nowrap">
+                                    <ActionIcon
+                                        variant={isSaved(game.id) ? 'filled' : 'default'}
+                                        color={isSaved(game.id) ? 'primaryRed' : undefined}
+                                        size="lg"
+                                        radius="xl"
+                                        onClick={handleToggleSave}
+                                        aria-label={isSaved(game.id) ? 'Quitar de guardados' : 'Guardar juego'}
+                                    >
+                                        {isSaved(game.id) ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
+                                    </ActionIcon>
+                                    <MantineTooltip
+                                        label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
+                                        withArrow
+                                    >
+                                        <ActionIcon
+                                            variant="default"
+                                            size="lg"
+                                            radius="xl"
+                                            onClick={handleShare}
+                                            aria-label={copied ? 'Enlace copiado' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
+                                        >
+                                            {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
+                                        </ActionIcon>
+                                    </MantineTooltip>
+                                </Group>
                                 {game.genres && game.genres.length > 0 && (
                                     game.genres.map((genre) => (
                                         <Badge key={genre.id} variant="light" color="gray" size="sm">
@@ -571,56 +661,10 @@ export default function GameDetailClient({
                                 </Group>
                             )}
 
-                            {/* La frase citable (GEO): responde en una línea la
-                                pregunta con la que se llega ("¿cuánto cuesta X
-                                y dónde?"). Sale del mismo helper que la meta
-                                description y la FAQ, y se recalcula con los
-                                filtros activos para no contradecir a la tarjeta
-                                de al lado.
-
-                                Va PLEGADA para no cargar la cabecera de texto.
-                                Plegar no cuesta nada en SEO ni en GEO —el texto
-                                sigue entero en el HTML y un `<details>` cerrado
-                                se indexa y se lee igual—, a diferencia de
-                                esconderlo con display:none, que sería cloaking. */}
-                            {geoSummary ? (
-                                <CollapsibleText label="Ver resumen de precios">
-                                    {geoSummary}
-                                </CollapsibleText>
-                            ) : (
-                                <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
-                                    Compara precios entre distintas tiendas y encuentra la mejor oferta.
-                                </Text>
-                            )}
-
                             {/* Action buttons */}
-                            <Group gap="xs" mt="sm">
-                                <ActionIcon
-                                    variant={isSaved(game.id) ? 'filled' : 'default'}
-                                    color={isSaved(game.id) ? 'primaryRed' : undefined}
-                                    size="lg"
-                                    radius="xl"
-                                    onClick={handleToggleSave}
-                                    aria-label={isSaved(game.id) ? 'Quitar de guardados' : 'Guardar juego'}
-                                >
-                                    {isSaved(game.id) ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
-                                </ActionIcon>
-                                <MantineTooltip
-                                    label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                    withArrow
-                                >
-                                    <ActionIcon
-                                        variant="default"
-                                        size="lg"
-                                        radius="xl"
-                                        onClick={handleShare}
-                                        aria-label={copied ? 'Enlace copiado' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                    >
-                                        {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
-                                    </ActionIcon>
-                                </MantineTooltip>
-                                {showAdminControls && <GameClickBadge stats={clickStats} />}
-                                {showAdminControls && (
+                            {showAdminControls && (
+                                <Group gap="xs" mt="sm">
+                                    <GameClickBadge stats={clickStats} />
                                     <Button
                                         size="sm"
                                         radius="xl"
@@ -631,8 +675,20 @@ export default function GameDetailClient({
                                     >
                                         {editingGame ? 'Cerrar edición' : 'Editar juego'}
                                     </Button>
-                                )}
-                            </Group>
+                                </Group>
+                            )}
+                        </Box>
+
+                        <Box mb={-16}>
+                            {geoSummary ? (
+                                <CollapsibleText label="Ver resumen de precios">
+                                    {geoSummary}
+                                </CollapsibleText>
+                            ) : (
+                                <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
+                                    Compara precios entre distintas tiendas y encuentra la mejor oferta.
+                                </Text>
+                            )}
                         </Box>
 
                         {/* ══════ Panel admin: nombre, imagen, fusión (tras "Editar juego") ══════ */}
@@ -843,13 +899,34 @@ export default function GameDetailClient({
                                         ) : (
                                             sorted.map((p, idx) => (
                                             <Fragment key={p.id}>
-                                                <Table.Tr
-                                                    className="game-offer-row"
-                                                    style={{ transition: 'background 0.15s' }}
-                                                    onMouseEnter={() => p.image ? setHoveredProductImage(p.image) : undefined}
-                                                    onMouseLeave={() => setHoveredProductImage(null)}
-                                                    onClick={(e) => handleMobileOfferRowClick(e, p)}
+                                                <HoverCard
+                                                    width={240}
+                                                    position="left"
+                                                    offset={12}
+                                                    openDelay={120}
+                                                    closeDelay={80}
+                                                    withArrow
+                                                    shadow="lg"
+                                                    radius="md"
+                                                    disabled={!p.image}
+                                                    transitionProps={{
+                                                        transition: {
+                                                            in: { opacity: 1, transform: 'translateX(0) scale(1)' },
+                                                            out: { opacity: 0, transform: 'translateX(14px) scale(0.86)' },
+                                                            common: { transformOrigin: 'right center' },
+                                                            transitionProperty: 'opacity, transform',
+                                                        },
+                                                        duration: 190,
+                                                        exitDuration: 120,
+                                                        timingFunction: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+                                                    }}
                                                 >
+                                                    <HoverCard.Target>
+                                                        <Table.Tr
+                                                            className="game-offer-row"
+                                                            style={{ transition: 'background 0.15s' }}
+                                                            onClick={(e) => handleMobileOfferRowClick(e, p)}
+                                                        >
                                                     <Table.Td style={{ width: '100%' }}>
                                                         <Group gap="sm" wrap="nowrap">
                                                             <Anchor
@@ -1016,7 +1093,12 @@ export default function GameDetailClient({
                                                             )}
                                                         </Group>
                                                     </Table.Td>
-                                                </Table.Tr>
+                                                        </Table.Tr>
+                                                    </HoverCard.Target>
+                                                    <HoverCard.Dropdown p={8}>
+                                                        <ProductImagePreview src={p.image || ''} title={p.title} />
+                                                    </HoverCard.Dropdown>
+                                                </HoverCard>
                                                 {showAdminControls && editingProductId === p.id && (
                                                     <Table.Tr>
                                                         <Table.Td colSpan={4} p="md">
