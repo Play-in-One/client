@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { getGames } from '@/lib/api';
-import type { Game } from '@/lib/types';
+import { getGames, getPlatforms } from '@/lib/api';
+import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
 import { priceClause } from '@/lib/utils';
@@ -71,9 +71,11 @@ export default async function SearchPage({
 }) {
     const sp = await searchParams;
     const isCleanEntry = Object.keys(sp).length === 0;
-    const { games, total } = isCleanEntry
-        ? await fetchFirstPage()
-        : { games: [] as Game[], total: 0 };
+    const [firstPage, platformList] = await Promise.all([
+        isCleanEntry ? fetchFirstPage() : Promise.resolve({ games: [] as Game[], total: 0 }),
+        getPlatforms({ revalidate }).then((result) => result.results).catch(() => [] as Platform[]),
+    ]);
+    const { games, total } = firstPage;
 
     const cheapest = games.find((g) => g.min_price != null);
     const description = cheapest
@@ -97,7 +99,8 @@ export default async function SearchPage({
     return (
         <>
             {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
-            <SearchClient initialGames={games} initialTotal={total} />
+            <SearchClient initialGames={games} initialTotal={total}
+                initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0} />
         </>
     );
 }

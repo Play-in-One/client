@@ -19,8 +19,8 @@ import {
     Tooltip,
 } from '@mantine/core';
 
-import { getAnalyticsPerformance, getAnalyticsSlowest } from '@/lib/api';
-import type { PageLoadDetail, PagePerfRow, PerformanceReport, SlowestReport } from '@/lib/types';
+import { getAnalyticsPerformance, getAnalyticsSlowest, getCatalogFilterPerformance } from '@/lib/api';
+import type { CatalogFilterPerformanceReport, PageLoadDetail, PagePerfRow, PerformanceReport, SlowestReport } from '@/lib/types';
 
 // Igual que el resto del dashboard: Recharts fuera del bundle inicial.
 const PerfChart = dynamic(() => import('./charts').then((m) => m.PerfChart), { ssr: false });
@@ -217,6 +217,7 @@ export function PerformancePanel() {
     const [metric, setMetric] = useState('lcp');
     const [report, setReport] = useState<PerformanceReport | null>(null);
     const [slowest, setSlowest] = useState<SlowestReport | null>(null);
+    const [catalogFilters, setCatalogFilters] = useState<CatalogFilterPerformanceReport | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -224,12 +225,14 @@ export function PerformancePanel() {
         setLoading(true);
         setError(null);
         try {
-            const [perf, worst] = await Promise.all([
+            const [perf, worst, filters] = await Promise.all([
                 getAnalyticsPerformance(range),
                 getAnalyticsSlowest(range, sortBy),
+                getCatalogFilterPerformance(range),
             ]);
             setReport(perf);
             setSlowest(worst);
+            setCatalogFilters(filters);
         } catch {
             setError('No se pudieron cargar los tiempos de carga.');
         } finally {
@@ -266,6 +269,29 @@ export function PerformancePanel() {
                     el rango se recortó. Los percentiles diarios del gráfico sí llegan más atrás.
                 </Alert>
             )}
+
+            <Panel title="Filtros y galería" subtitle="Tiempo observado en el navegador para resultados y contadores, medidos por separado.">
+                <Table striped highlightOnHover>
+                    <Table.Thead><Table.Tr>
+                        <Table.Th>Vista</Table.Th><Table.Th>Fase</Table.Th>
+                        <Table.Th>Muestras</Table.Th><Table.Th>Fallos</Table.Th><Table.Th>p50</Table.Th>
+                        <Table.Th>p75</Table.Th><Table.Th>p95</Table.Th>
+                    </Table.Tr></Table.Thead>
+                    <Table.Tbody>
+                        {catalogFilters?.rows.map((row) => (
+                            <Table.Tr key={`${row.surface}-${row.phase}`}>
+                                <Table.Td>{row.surface === 'search' ? 'Búsqueda' : 'Consola'}</Table.Td>
+                                <Table.Td>{row.phase === 'results' ? 'Resultados' : 'Contadores'}</Table.Td>
+                                <Table.Td>{row.samples}</Table.Td>
+                                <Table.Td>{row.failures}</Table.Td>
+                                <Table.Td>{ms(row.p50)}</Table.Td>
+                                <Table.Td>{ms(row.p75)}</Table.Td>
+                                <Table.Td>{ms(row.p95)}</Table.Td>
+                            </Table.Tr>
+                        ))}
+                    </Table.Tbody>
+                </Table>
+            </Panel>
 
             {measured === 0 ? (
                 <Alert color="yellow" title="Todavía no hay mediciones">

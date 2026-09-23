@@ -113,3 +113,27 @@ test('la URL con ?platform= carga la búsqueda filtrada', async ({ page }) => {
     // La página carga (no error 404, no blank)
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
 });
+
+test('conserva los juegos mientras cambia la consola y omite el conteo de tiendas', async ({ page }) => {
+    const facetRequests: string[] = [];
+    await page.route(/\/api\/games\/(?!facets)/, async (route) => {
+        if (new URL(route.request().url()).searchParams.has('platforms')) {
+            await new Promise((resolve) => setTimeout(resolve, 800));
+        }
+        await route.fulfill({ json: makeResults(2) });
+    });
+    page.on('request', (request) => {
+        if (new URL(request.url()).pathname.endsWith('/api/games/facets/')) {
+            facetRequests.push(request.url());
+        }
+    });
+
+    await page.goto('/search');
+    await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
+    await page.getByRole('checkbox', { name: /PlayStation 5/ }).first().click();
+    await expect(page.getByText('Actualizando resultados...')).toBeVisible();
+    await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
+    await expect(page.getByText('Actualizando resultados...')).toBeHidden();
+    expect(facetRequests.length).toBeGreaterThan(0);
+    expect(facetRequests.every((url) => new URL(url).searchParams.get('include_sellers') === '0')).toBe(true);
+});

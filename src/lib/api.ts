@@ -1,7 +1,7 @@
 import type {
     Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
-    PerformanceReport, SlowestReport, GameClickStats, Stats,
+    PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
 } from './types';
 import { tryServerPerf } from './serverPerf';
 
@@ -300,6 +300,26 @@ export function sendPageLoad(payload: PageLoadPayload): void {
     } catch { /* never break the UI for analytics */ }
 }
 
+export function sendCatalogFilterLoad(payload: {
+    phase: 'results' | 'facets';
+    surface: 'search' | 'landing';
+    duration_ms: number;
+    success: boolean;
+}): void {
+    if (typeof window === 'undefined' || !measurementEnabled) return;
+    if (!Number.isFinite(payload.duration_ms) || payload.duration_ms < 0 || payload.duration_ms > 120_000) return;
+    try {
+        const fd = new FormData();
+        fd.append('phase', payload.phase);
+        fd.append('surface', payload.surface);
+        fd.append('duration_ms', String(Math.round(payload.duration_ms)));
+        fd.append('success', String(payload.success));
+        const url = `${API_BASE}/rum/catalog-filter/`;
+        if (navigator.sendBeacon?.(url, fd)) return;
+        fetch(url, { method: 'POST', body: fd, keepalive: true }).catch(() => {});
+    } catch { /* measurement must never interrupt the catalog */ }
+}
+
 /* ── Games ── */
 export async function getGames(params?: {
     search?: string;
@@ -385,6 +405,7 @@ export async function getGameFacets(params?: {
     on_sale?: boolean;
     /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
     seller_scope?: string;
+    include_sellers?: 0 | 1;
     signal?: AbortSignal;
 }) {
     const { signal, ...qsParams } = params ?? {};
@@ -417,8 +438,10 @@ export async function getGamesForSitemap() {
 }
 
 /* ── Platforms ── */
-export async function getPlatforms() {
-    return fetcher<PaginatedResponse<Platform>>('/platforms/');
+export async function getPlatforms(options?: { revalidate?: number }) {
+    return fetcher<PaginatedResponse<Platform>>('/platforms/', {
+        ...(options?.revalidate !== undefined ? { next: { revalidate: options.revalidate } } : {}),
+    });
 }
 
 /* ── Genres ── */
@@ -573,6 +596,12 @@ export async function getAnalyticsPerformance(days = 28, minSamples = 5) {
     return fetcher<PerformanceReport>(
         `/analytics/performance/?days=${days}&min_samples=${minSamples}&top=25`,
         { admin: true },
+    );
+}
+
+export async function getCatalogFilterPerformance(days = 7) {
+    return fetcher<CatalogFilterPerformanceReport>(
+        `/analytics/performance/catalog-filter/?days=${days}`, { admin: true },
     );
 }
 

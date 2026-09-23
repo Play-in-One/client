@@ -20,9 +20,13 @@ const DEFAULT_ORDERING = '-traffic_score,name';
 function SearchContent({
     initialGames,
     initialTotal,
+    initialPlatforms,
+    initialResultsMatchFilters,
 }: {
     initialGames: Game[];
     initialTotal: number;
+    initialPlatforms: Platform[];
+    initialResultsMatchFilters: boolean;
 }) {
     const router = useRouter();
     const params = useSearchParams();
@@ -37,16 +41,17 @@ function SearchContent({
 
     /* Platform is derived from the URL — the URL is the single source of truth,
        so header links and the sidebar selector stay in sync automatically. */
-    const [platforms, setPlatforms] = useState<Platform[]>([]);
+    const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
     // También al fallar: sin catálogo de consolas la galería degrada a no
     // filtrar por consola, en vez de quedarse en el skeleton para siempre.
-    const [platformsLoaded, setPlatformsLoaded] = useState(false);
+    const [platformsLoaded, setPlatformsLoaded] = useState(initialPlatforms.length > 0);
     useEffect(() => {
+        if (initialPlatforms.length > 0) return;
         getPlatforms()
             .then((res) => setPlatforms(res.results))
             .catch(() => { })
             .finally(() => setPlatformsLoaded(true));
-    }, []);
+    }, [initialPlatforms]);
 
     const selectedPlatforms = useMemo(() => {
         if (!platformSlug) return [];
@@ -109,6 +114,8 @@ function SearchContent({
         <GameExplorer
             initialGames={initialGames}
             initialTotal={initialTotal}
+            initialPlatforms={platforms}
+            initialResultsMatchFilters={initialResultsMatchFilters}
             pageSize={GAMES_PAGE_SIZE}
             defaultOrdering={ordering}
             selectedPlatformIds={selectedPlatforms}
@@ -138,12 +145,16 @@ function SearchContent({
 export default function SearchClient({
     initialGames = [],
     initialTotal = 0,
+    initialPlatforms = [],
+    initialResultsMatchFilters = false,
 }: {
     /** Primera página resuelta en el servidor, solo para la entrada limpia a
      *  /search (sin filtros ni búsqueda). Es lo que hace que la galería exista
      *  en el HTML: los crawlers de IA no ejecutan el useEffect que la llenaba. */
     initialGames?: Game[];
     initialTotal?: number;
+    initialPlatforms?: Platform[];
+    initialResultsMatchFilters?: boolean;
 }) {
     return (
         // El fallback NO es un spinner: es la galería que resolvió el servidor.
@@ -166,7 +177,9 @@ export default function SearchClient({
                 )
             }
         >
-            <SearchContent initialGames={initialGames} initialTotal={initialTotal} />
+            <SearchContent initialGames={initialGames} initialTotal={initialTotal}
+                initialPlatforms={initialPlatforms}
+                initialResultsMatchFilters={initialResultsMatchFilters} />
         </Suspense>
     );
 }

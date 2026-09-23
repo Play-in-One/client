@@ -28,24 +28,25 @@ test('la página de detalle carga con el título del juego', async ({ page }) =>
     await expect(page.getByRole('heading', { name: SEEDED.game })).toBeVisible();
 });
 
-test('muestra las calificaciones normalizadas por fuente en un radar', async ({ page }) => {
+test('muestra las calificaciones como gauges por fuente', async ({ page }) => {
     await page.goto(gamePath);
 
     await expect(page.getByText('Calificaciones', { exact: true })).toBeVisible();
-    await expect(page.getByText('8.5/10', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('ratings-radar')).toBeVisible();
-    for (const source of ['MC', 'OC', 'IGDB-C', 'IGDB-U', 'Steam']) {
-        await expect(page.getByText(source, { exact: true })).toBeVisible();
-    }
-    await page.getByText('MC', { exact: true }).hover();
-    await expect(page.getByRole('tooltip').getByText('Metacritic: 8.6/10')).toBeVisible();
+    await expect(page.getByTestId('ratings-gauges')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-average')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-metacritic')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-igdb')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-steam')).toBeVisible();
+    await expect(page.getByText('8.6/10', { exact: true })).toBeVisible();
+    await expect(page.getByText('8.5/10', { exact: true }).first()).toBeVisible();
 });
 
-test('usa barras cuando solo hay una o dos fuentes de calificación', async ({ page }) => {
+test('omite el gauge de la fuente ausente', async ({ page }) => {
     await page.goto(noHistoryGamePath);
 
-    await expect(page.getByTestId('ratings-bars')).toBeVisible();
-    await expect(page.getByTestId('ratings-radar')).toHaveCount(0);
+    await expect(page.getByTestId('rating-gauge-metacritic')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-steam')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-igdb')).toHaveCount(0);
     await expect(page.getByText('7.5/10', { exact: true })).toBeVisible();
     await expect(page.getByText('8.5/10', { exact: true })).toBeVisible();
 });

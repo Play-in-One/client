@@ -97,6 +97,18 @@ export const chart = {
     tooltipBg: { light: '#fff', dark: '#1c1c1c' },
 };
 
+/** Color semántico según la nota (0-10): rojo/naranja/amarillo/verde. Único
+ *  criterio de color para toda calificación de la ficha — el badge agregado
+ *  (`GameDetailClient`) y cada gauge por fuente (`RatingGauge`) comparten esta
+ *  función para no tener dos escalas de color divergentes. */
+export function ratingColor(value: number): string {
+    if (!Number.isFinite(value)) return 'gray';
+    if (value >= 8) return 'green';
+    if (value >= 6) return 'yellow';
+    if (value >= 4) return 'orange';
+    return 'red';
+}
+
 export const social = {
     instagram: '#E1306C',
     facebook: '#1877F2',

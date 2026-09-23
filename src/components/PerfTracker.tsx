@@ -76,6 +76,7 @@ export default function PerfTracker() {
 
     const vitals = useRef<Vitals>({});
     const sent = useRef(false);
+    const serverPerf = useRef<{ payload: ServerPerfPayload | null; fresh: boolean } | null>(null);
     // La ruta se congela al montar: si alguien navega antes de que la página se
     // oculte, el beacon debe seguir describiendo la carga que se midió, no la
     // página en la que acabó.
@@ -103,16 +104,15 @@ export default function PerfTracker() {
         sent.current = true;
 
         const nav = navigationEntry();
-        const server = readServerPerf();
-        const fresh =
-            server && Date.now() - Date.parse(server.rendered_at) < FRESH_RENDER_MS;
+        const server = serverPerf.current?.payload ?? null;
+        const fresh = serverPerf.current?.fresh ?? false;
 
         const payload: PageLoadPayload = {
             page_path: path,
             ...vitals.current,
             // Sin identificador, el backend no puede añadir su mitad; la carga
             // se guarda igual con lo que midió el navegador.
-            request_id: fresh ? server.nav_id : undefined,
+            request_id: fresh ? server?.nav_id : undefined,
             cache_state: server ? (fresh ? 'miss' : 'hit') : 'dynamic',
         };
 
@@ -140,6 +140,13 @@ export default function PerfTracker() {
     }, [ready]);
 
     useEffect(() => {
+        if (serverPerf.current === null) {
+            const payload = readServerPerf();
+            serverPerf.current = {
+                payload,
+                fresh: !!payload && Date.now() - Date.parse(payload.rendered_at) < FRESH_RENDER_MS,
+            };
+        }
         if (!pathname || measuredPath.current !== null) return;
         if (EXCLUDED.some((prefix) => pathname.startsWith(prefix))) return;
         measuredPath.current = routePattern(pathname);

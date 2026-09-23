@@ -136,9 +136,7 @@ export interface GameFacets {
 
 export type GameRatingSource =
     | 'metacritic'
-    | 'opencritic'
-    | 'igdb_critics'
-    | 'igdb_users'
+    | 'igdb'
     | 'steam';
 
 /** Calificación externa individual incluida únicamente en el detalle. */
@@ -460,6 +458,19 @@ export interface PerformanceReport {
     raw_window_days: number;
     /** `true` si se pidió un rango mayor del que existe en crudo. */
     truncated: boolean;
+}
+
+export interface CatalogFilterPerformanceReport {
+    days: number;
+    rows: {
+        surface: 'search' | 'landing';
+        phase: 'results' | 'facets';
+        samples: number;
+        failures: number;
+        p50: number | null;
+        p75: number | null;
+        p95: number | null;
+    }[];
 }
 
 /** Una carga concreta, con todo su detalle. Lo que se mira para un caso suelto. */

@@ -1,6 +1,6 @@
 'use client';
 
-import { Group, Loader, Pagination, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Box, Group, Loader, Pagination, SimpleGrid, Stack, Text } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import type { Game } from '@/lib/types';
@@ -28,7 +28,7 @@ export default function GameResultsGrid({
     selected,
     onToggleSelect,
 }: Props) {
-    if (loading) {
+    if (loading && games.length === 0) {
         return (
             <Stack align="center" py={80}>
                 <Loader color="primaryRed" size="lg" />
@@ -48,7 +48,14 @@ export default function GameResultsGrid({
     }
 
     return (
-        <>
+        <Box aria-busy={loading}>
+            {loading && (
+                <Group justify="center" mb="md" role="status">
+                    <Loader color="primaryRed" size="sm" />
+                    <Text c="dimmed" size="sm">Actualizando resultados...</Text>
+                </Group>
+            )}
+            <Box style={{ opacity: loading ? 0.55 : 1, transition: 'opacity 150ms' }}>
             <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
                 {games.map((g, i) => (
                     <GameCard
@@ -74,6 +81,7 @@ export default function GameResultsGrid({
                     />
                 </Group>
             )}
-        </>
+            </Box>
+        </Box>
     );
 }

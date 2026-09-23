@@ -18,7 +18,7 @@ import {
     Title,
 } from '@mantine/core';
 import { IconAdjustmentsHorizontal, IconGitMerge, IconX } from '@tabler/icons-react';
-import { getGames, getGameFacets, getPlatforms, getGenres, trackEvent, mergeGames, ApiError } from '@/lib/api';
+import { getGames, getGameFacets, getPlatforms, getGenres, trackEvent, sendCatalogFilterLoad, mergeGames, ApiError } from '@/lib/api';
 import type { Game, Platform, Genre, GameFacets } from '@/lib/types';
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
@@ -35,6 +35,8 @@ interface LockedPlatform {
 interface Props {
     initialGames: Game[];
     initialTotal: number;
+    initialPlatforms?: Platform[];
+    initialResultsMatchFilters?: boolean;
     pageSize?: number;
     defaultOrdering: string;
 
@@ -89,6 +91,8 @@ interface Props {
 export default function GameExplorer({
     initialGames,
     initialTotal,
+    initialPlatforms = [],
+    initialResultsMatchFilters = false,
     pageSize = 24,
     defaultOrdering,
     lockedPlatform,
@@ -138,7 +142,7 @@ export default function GameExplorer({
     const [activeQuery, setActiveQuery] = useState(query);
     const [ordering, setOrdering] = useState<string>(defaultOrdering);
 
-    const [platforms, setPlatforms] = useState<Platform[]>([]);
+    const [platforms, setPlatforms] = useState<Platform[]>(initialPlatforms);
     const [genres, setGenres] = useState<Genre[]>([]);
 
     const [selectedGenre, setSelectedGenre] = useState<number | null>(initialGenre);
@@ -228,18 +232,25 @@ export default function GameExplorer({
         }
     };
 
-    /* Fetch de opciones de filtro. La plataforma nunca hace falta cuando está
-       fija: no hay selector que poblar. */
+    /* /search already owns the platform list for URL slug translation. */
+    const hasParentPlatformOptions = !!onPlatformFilterChange;
     useEffect(() => {
-        if (!lockedPlatform) {
+        if (!lockedPlatform && !hasParentPlatformOptions) {
             getPlatforms()
                 .then((res) => setPlatforms(res.results))
                 .catch(() => { });
         }
+    }, [lockedPlatform, hasParentPlatformOptions]);
+
+    useEffect(() => {
+        if (hasParentPlatformOptions) setPlatforms(initialPlatforms);
+    }, [initialPlatforms, hasParentPlatformOptions]);
+
+    useEffect(() => {
         getGenres()
             .then((res) => setGenres(res.results))
             .catch(() => { });
-    }, [lockedPlatform]);
+    }, []);
 
     /* Reacciona a que el término de búsqueda cambie por fuera (p.ej. el Navbar
        manda a /search?q=... mientras ya se está parado ahí, sin remontar).
@@ -284,13 +295,29 @@ export default function GameExplorer({
     }, [effectivePlatformIds.join(','), platforms, consentReady, lockedPlatform]);
 
     const trackedSearch = useRef<string | null>(null);
+    const initialResultsPending = useRef(initialResultsMatchFilters);
+    const [facetsRequestKey, setFacetsRequestKey] = useState<string | null>(null);
+    const facetsKey = JSON.stringify([
+        activeQuery, effectivePlatformIds, selectedGenre, conditionParam,
+        priceMin, priceMax, onSale, sellerScopeParam,
+    ]);
 
     useEffect(() => {
         // En modo estático (landing sin interactuar) no se toca la red: el
         // HTML que ya sirvió el servidor es el contenido real.
         if (isStaticMode && !interactive && !globalFiltersActive) return;
         if (!ready || !filtersReady) return;
+        if (initialResultsPending.current) {
+            if (!globalFiltersActive && !activeQuery && effectivePlatformIds.length === 0 &&
+                selectedGenre === null && priceMin === undefined && priceMax === undefined &&
+                !onSale && ordering === defaultOrdering && page === 1 && refreshKey === 0) {
+                setFacetsRequestKey(facetsKey);
+                return;
+            }
+            initialResultsPending.current = false;
+        }
         const controller = new AbortController();
+        const started = performance.now();
         setLoading(true);
         getGames({
             search: activeQuery || undefined,
@@ -306,8 +333,10 @@ export default function GameExplorer({
             signal: controller.signal,
         })
             .then((res) => {
+                sendCatalogFilterLoad({ phase: 'results', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: true });
                 setGames(res.results);
                 setTotal(res.count);
+                setFacetsRequestKey(facetsKey);
                 const query = activeQuery.trim();
                 if (query && trackedSearch.current !== query) {
                     trackedSearch.current = query;
@@ -316,7 +345,9 @@ export default function GameExplorer({
             })
             .catch((err) => {
                 if (err?.name === 'AbortError') return;
+                sendCatalogFilterLoad({ phase: 'results', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: false });
                 setGames([]);
+                setFacetsRequestKey(facetsKey);
                 const failed = activeQuery.trim();
                 if (failed && trackedSearch.current !== failed) {
                     trackedSearch.current = failed;
@@ -332,7 +363,9 @@ export default function GameExplorer({
        sidebar, nunca reemplazan el grid/paginación visibles. */
     useEffect(() => {
         if (!ready || !filtersReady) return;
+        if (!(isStaticMode && !interactive && !globalFiltersActive) && facetsRequestKey !== facetsKey) return;
         const controller = new AbortController();
+        const started = performance.now();
         getGameFacets({
             search: activeQuery || undefined,
             platforms: effectivePlatformIds.length > 0 ? effectivePlatformIds : undefined,
@@ -342,13 +375,21 @@ export default function GameExplorer({
             price_max: priceMax,
             on_sale: onSale || undefined,
             seller_scope: sellerScopeParam,
+            include_sellers: 0,
             signal: controller.signal,
         })
-            .then(setFacets)
-            .catch((err) => { if (err?.name !== 'AbortError') setFacets({ platforms: {}, genres: {}, sellers: {} }); });
+            .then((result) => {
+                sendCatalogFilterLoad({ phase: 'facets', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: true });
+                setFacets({ ...result, sellers: result.sellers ?? {} });
+            })
+            .catch((err) => {
+                if (err?.name === 'AbortError') return;
+                sendCatalogFilterLoad({ phase: 'facets', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: false });
+                setFacets({ platforms: {}, genres: {}, sellers: {} });
+            });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam]);
+    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, facetsRequestKey, facetsKey, isStaticMode, interactive, globalFiltersActive]);
 
     const totalPages = Math.ceil(total / pageSize);
 

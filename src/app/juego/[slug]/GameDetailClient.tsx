@@ -123,15 +123,6 @@ function formatPriceUpdateDate(iso: string | null | undefined): string | null {
     }).format(date);
 }
 
-function ratingColor(rating: string): string {
-    const score = Number(rating);
-    if (!Number.isFinite(score)) return 'gray';
-    if (score >= 8) return 'green';
-    if (score >= 6) return 'yellow';
-    if (score >= 4) return 'orange';
-    return 'red';
-}
-
 function ProductImagePreview({ src, title }: { src: string; title: string }) {
     const [loading, setLoading] = useState(true);
     const [failed, setFailed] = useState(false);
@@ -497,35 +488,17 @@ export default function GameDetailClient({
                         {/* Info card */}
                         <Card withBorder radius="lg" p="lg">
                             <Stack gap="md">
-                                {(game.rating || (game.ratings?.length ?? 0) > 0) && (
+                                {(game.ratings?.length ?? 0) > 0 && (
                                     <Box
                                         pb={(game.release_date || game.developer) ? 'sm' : 0}
                                         style={(game.release_date || game.developer)
                                             ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
                                             : undefined}
                                     >
-                                        <Group justify="space-between" mb={(game.ratings?.length ?? 0) > 0 ? 'xs' : 0}>
-                                            <Text fz="lg" fw={700}>Calificaciones</Text>
-                                            {game.rating && (
-                                                <Badge
-                                                    color={ratingColor(game.rating)}
-                                                    variant="light"
-                                                    size="lg"
-                                                    radius="xl"
-                                                    aria-label={`Calificación general: ${game.rating} de 10`}
-                                                >
-                                                    {game.rating}/10
-                                                </Badge>
-                                            )}
-                                        </Group>
-                                        {(game.ratings?.length ?? 0) > 0 && (
-                                            <Box
-                                                h={(game.ratings?.length ?? 0) >= 3 ? 240 : undefined}
-                                                mih={(game.ratings?.length ?? 0) < 3 ? 96 : undefined}
-                                            >
-                                                <GameRatingsChart ratings={game.ratings ?? []} />
-                                            </Box>
-                                        )}
+                                        <Text fz="lg" fw={700}>Calificaciones</Text>
+                                        <Box mt="sm">
+                                            <GameRatingsChart ratings={game.ratings ?? []} />
+                                        </Box>
                                     </Box>
                                 )}
                                 <Stack gap="xs">
