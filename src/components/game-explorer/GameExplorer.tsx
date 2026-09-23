@@ -296,11 +296,6 @@ export default function GameExplorer({
 
     const trackedSearch = useRef<string | null>(null);
     const initialResultsPending = useRef(initialResultsMatchFilters);
-    const [facetsRequestKey, setFacetsRequestKey] = useState<string | null>(null);
-    const facetsKey = JSON.stringify([
-        activeQuery, effectivePlatformIds, selectedGenre, conditionParam,
-        priceMin, priceMax, onSale, sellerScopeParam,
-    ]);
 
     useEffect(() => {
         // En modo estático (landing sin interactuar) no se toca la red: el
@@ -311,7 +306,6 @@ export default function GameExplorer({
             if (!globalFiltersActive && !activeQuery && effectivePlatformIds.length === 0 &&
                 selectedGenre === null && priceMin === undefined && priceMax === undefined &&
                 !onSale && ordering === defaultOrdering && page === 1 && refreshKey === 0) {
-                setFacetsRequestKey(facetsKey);
                 return;
             }
             initialResultsPending.current = false;
@@ -336,7 +330,6 @@ export default function GameExplorer({
                 sendCatalogFilterLoad({ phase: 'results', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: true });
                 setGames(res.results);
                 setTotal(res.count);
-                setFacetsRequestKey(facetsKey);
                 const query = activeQuery.trim();
                 if (query && trackedSearch.current !== query) {
                     trackedSearch.current = query;
@@ -347,7 +340,6 @@ export default function GameExplorer({
                 if (err?.name === 'AbortError') return;
                 sendCatalogFilterLoad({ phase: 'results', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: false });
                 setGames([]);
-                setFacetsRequestKey(facetsKey);
                 const failed = activeQuery.trim();
                 if (failed && trackedSearch.current !== failed) {
                     trackedSearch.current = failed;
@@ -363,7 +355,6 @@ export default function GameExplorer({
        sidebar, nunca reemplazan el grid/paginación visibles. */
     useEffect(() => {
         if (!ready || !filtersReady) return;
-        if (!(isStaticMode && !interactive && !globalFiltersActive) && facetsRequestKey !== facetsKey) return;
         const controller = new AbortController();
         const started = performance.now();
         getGameFacets({
@@ -389,7 +380,7 @@ export default function GameExplorer({
             });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, facetsRequestKey, facetsKey, isStaticMode, interactive, globalFiltersActive]);
+    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, refreshKey]);
 
     const totalPages = Math.ceil(total / pageSize);
 

@@ -78,6 +78,38 @@ test('la página de búsqueda carga con resultados', async ({ page }) => {
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
 });
 
+test('muestra las facetas mientras la petición de resultados sigue pendiente', async ({ page }) => {
+    let releaseResults = () => {};
+    const resultsPending = new Promise<void>((resolve) => { releaseResults = resolve; });
+    let resultsRequested = false;
+    let facetsRequestedBeforeResults = false;
+
+    page.on('request', (request) => {
+        const url = new URL(request.url());
+        if (url.pathname.endsWith('/api/games/') && url.searchParams.get('search') === 'mario') {
+            resultsRequested = true;
+        }
+        if (url.pathname.endsWith('/api/games/facets/') && url.searchParams.get('search') === 'mario' && resultsRequested) {
+            facetsRequestedBeforeResults = true;
+        }
+    });
+    await page.route(/\/api\/games\/(?!facets)/, async (route) => {
+        await resultsPending;
+        await route.fulfill({ json: makeResults(2) });
+    });
+    await page.route(/\/api\/games\/facets\//, (route) =>
+        route.fulfill({ json: { platforms: { 1: 7 }, genres: {}, sellers: {} } }));
+
+    try {
+        await page.goto('/search?q=mario');
+        await expect.poll(() => facetsRequestedBeforeResults).toBe(true);
+        await expect(page.getByRole('checkbox', { name: /PlayStation 5 \(7\)/ }).first()).toBeVisible();
+    } finally {
+        releaseResults();
+    }
+    await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
+});
+
 test('los filtros de plataforma se muestran en el sidebar', async ({ page }) => {
     await page.goto('/search');
     // Por rol y nombre, no por texto suelto: "PS5" aparece cinco veces en la
