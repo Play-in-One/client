@@ -12,7 +12,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, breadcrumbJsonLd, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
 
 const ORDERING = 'min_price';
-export const PAGE_SIZE = 24;
+const PAGE_SIZE = 24;
 
 // El listado de una saga cambia con el catálogo (precios, stock); 5 min lo
 // mantiene fresco sin pagar el fetch en cada visita.
