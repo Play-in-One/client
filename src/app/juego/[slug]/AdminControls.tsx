@@ -112,6 +112,12 @@ export function AdminGameControls({ game }: { game: Game }) {
     const [isFeatured, setIsFeatured] = useState(game.is_featured ?? false);
     const [featuredOrder, setFeaturedOrder] = useState<number | ''>(game.featured_order ?? '');
     const [featuredDescription, setFeaturedDescription] = useState(game.featured_description ?? '');
+    const sagas = game.sagas ?? [];
+    const savedSagaFeatured = sagas.filter((s) => s.is_featured).map((s) => s.id);
+    const [sagaFeatured, setSagaFeatured] = useState<number[]>(savedSagaFeatured);
+    const sagaFeaturedDirty =
+        sagaFeatured.length !== savedSagaFeatured.length ||
+        sagaFeatured.some((id) => !savedSagaFeatured.includes(id));
     const [sources, setSources] = useState<{ id: number; name: string }[]>([]);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -232,6 +238,43 @@ export function AdminGameControls({ game }: { game: Game }) {
                         Guardar
                     </Button>
                 </Stack>
+
+                <Divider label="Destacado en su saga" labelPosition="left" />
+
+                {sagas.length === 0 ? (
+                    <Text fz="xs" c="dimmed">
+                        Este juego no pertenece a ninguna saga. Se agrega desde el admin de sagas.
+                    </Text>
+                ) : (
+                    <Group align="center" gap="sm">
+                        <Stack gap={6}>
+                            {sagas.map((s) => (
+                                <Switch
+                                    key={s.id}
+                                    label={`Mostrar en destacados de ${s.name}`}
+                                    checked={sagaFeatured.includes(s.id)}
+                                    onChange={(e) => {
+                                        const on = e.currentTarget.checked;
+                                        setSagaFeatured((prev) =>
+                                            on ? [...prev, s.id] : prev.filter((id) => id !== s.id),
+                                        );
+                                    }}
+                                />
+                            ))}
+                        </Stack>
+                        <Button
+                            disabled={busy || !sagaFeaturedDirty}
+                            onClick={() =>
+                                run(
+                                    () => updateGame(game.id, { featured_in_sagas: sagaFeatured }),
+                                    'Destacado de saga actualizado.',
+                                )
+                            }
+                        >
+                            Guardar
+                        </Button>
+                    </Group>
+                )}
 
                 <Divider label="Fusionar juegos" labelPosition="left" />
                 <Text fz="xs" c="dimmed">

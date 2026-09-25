@@ -32,6 +32,11 @@ interface LockedPlatform {
     display_name: string;
 }
 
+interface LockedSaga {
+    slug: string;
+    name: string;
+}
+
 interface Props {
     initialGames: Game[];
     initialTotal: number;
@@ -43,6 +48,11 @@ interface Props {
     /** Consola fija (landing): no hay selector de plataforma y toda consulta
      *  se acota a esta consola. */
     lockedPlatform?: LockedPlatform;
+    /** Saga fija (ficha de saga): toda consulta se acota a sus juegos, pero
+     *  a diferencia de `lockedPlatform` NO oculta ningún filtro — una saga
+     *  cruza consolas y géneros, así que plataforma/género/precio/
+     *  calificación/oferta siguen siendo útiles. */
+    lockedSaga?: LockedSaga;
     /** Solo cuando NO hay `lockedPlatform` (caso /search): la selección de
      *  plataforma la controla el padre (vive en la URL). */
     selectedPlatformIds?: number[];
@@ -73,6 +83,8 @@ interface Props {
     onPriceMaxChange?: (v: number | undefined) => void;
     onSale?: boolean;
     onOnSaleChange?: (v: boolean) => void;
+    ratingMin?: number;
+    onRatingMinChange?: (v: number | undefined) => void;
     onOrderingChange?: (v: string) => void;
     /** Reemplaza el reset de plataforma que hacía `handleClearFilters` — una
      *  sola escritura de URL que limpia todos los filtros a la vez. */
@@ -96,6 +108,7 @@ export default function GameExplorer({
     pageSize = 24,
     defaultOrdering,
     lockedPlatform,
+    lockedSaga,
     selectedPlatformIds,
     onPlatformFilterChange,
     filtersReady = true,
@@ -112,6 +125,8 @@ export default function GameExplorer({
     onPriceMaxChange,
     onSale: initialOnSale = false,
     onOnSaleChange,
+    ratingMin: initialRatingMin,
+    onRatingMinChange,
     onOrderingChange,
     onClearFilters,
     staticFallback,
@@ -151,6 +166,7 @@ export default function GameExplorer({
     const [priceMinInput, setPriceMinInput] = useState<string | number>(initialPriceMin ?? '');
     const [priceMaxInput, setPriceMaxInput] = useState<string | number>(initialPriceMax ?? '');
     const [onSale, setOnSale] = useState(initialOnSale);
+    const [ratingMin, setRatingMin] = useState<number | undefined>(initialRatingMin);
 
     const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -305,6 +321,7 @@ export default function GameExplorer({
         if (initialResultsPending.current) {
             if (!globalFiltersActive && !activeQuery && effectivePlatformIds.length === 0 &&
                 selectedGenre === null && priceMin === undefined && priceMax === undefined &&
+                ratingMin === undefined &&
                 !onSale && ordering === defaultOrdering && page === 1 && refreshKey === 0) {
                 return;
             }
@@ -317,10 +334,12 @@ export default function GameExplorer({
             search: activeQuery || undefined,
             platforms: effectivePlatformIds.length > 0 ? effectivePlatformIds : undefined,
             genres: selectedGenre ?? undefined,
+            saga: lockedSaga?.slug,
             condition: conditionParam,
             price_min: priceMin,
             price_max: priceMax,
             on_sale: onSale || undefined,
+            rating_min: ratingMin,
             seller_scope: sellerScopeParam,
             ordering,
             page,
@@ -349,7 +368,7 @@ export default function GameExplorer({
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, refreshKey]);
+    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerScopeParam, refreshKey]);
 
     /* Los contadores del sidebar sí corren en modo estático: solo decoran el
        sidebar, nunca reemplazan el grid/paginación visibles. */
@@ -361,10 +380,12 @@ export default function GameExplorer({
             search: activeQuery || undefined,
             platforms: effectivePlatformIds.length > 0 ? effectivePlatformIds : undefined,
             genres: selectedGenre ?? undefined,
+            saga: lockedSaga?.slug,
             condition: conditionParam,
             price_min: priceMin,
             price_max: priceMax,
             on_sale: onSale || undefined,
+            rating_min: ratingMin,
             seller_scope: sellerScopeParam,
             include_sellers: 0,
             signal: controller.signal,
@@ -380,7 +401,7 @@ export default function GameExplorer({
             });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, conditionParam, priceMin, priceMax, onSale, sellerScopeParam, refreshKey]);
+    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerScopeParam, refreshKey]);
 
     const totalPages = Math.ceil(total / pageSize);
 
@@ -399,6 +420,7 @@ export default function GameExplorer({
         setPriceMinInput('');
         setPriceMaxInput('');
         setOnSale(false);
+        setRatingMin(undefined);
         markInteractive();
         setPage(1);
         // `onClearFilters` (cuando existe) ya limpia platform+genre+price+
@@ -439,6 +461,14 @@ export default function GameExplorer({
         onOnSaleChange?.(next);
     };
 
+    const applyRatingMin = (v: number) => {
+        markInteractive();
+        const next = v > 0 ? v : undefined;
+        setRatingMin(next);
+        setPage(1);
+        onRatingMinChange?.(next);
+    };
+
     const handleOrderingChange = (v: string) => {
         markInteractive();
         setOrdering(v);
@@ -457,6 +487,7 @@ export default function GameExplorer({
         selectedGenre !== null ||
         priceMin !== undefined ||
         priceMax !== undefined ||
+        ratingMin !== undefined ||
         onSale;
 
     const content = (
@@ -515,6 +546,8 @@ export default function GameExplorer({
                             onSelectGenre={handleSelectGenre}
                             onSale={onSale}
                             onToggleOnSale={handleToggleOnSale}
+                            ratingMin={ratingMin ?? 0}
+                            onRatingMinChange={applyRatingMin}
                             facets={facets}
                             hasActiveFilters={hasActiveFilters}
                             onClearFilters={handleClearFilters}
@@ -578,6 +611,8 @@ export default function GameExplorer({
                             onSelectGenre={handleSelectGenre}
                             onSale={onSale}
                             onToggleOnSale={handleToggleOnSale}
+                            ratingMin={ratingMin ?? 0}
+                            onRatingMinChange={applyRatingMin}
                             facets={facets}
                             hasActiveFilters={hasActiveFilters}
                             onClearFilters={handleClearFilters}

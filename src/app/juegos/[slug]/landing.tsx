@@ -30,7 +30,7 @@ import { priceClause } from '@/lib/utils';
  * salida. Con ~10.000 juegos, eso dejaba al 96% sin ningún enlace entrante.
  */
 
-const ORDERING = 'min_price';
+const ORDERING = '-traffic_score,name';
 
 /** Lo que devuelve una página de la API (`PAGE_SIZE` de DRF, en settings.py). */
 export const PAGE_SIZE = 24;
@@ -223,10 +223,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         withContainer={false}
                         staticFallback={
                             <>
-                                <Title order={2} fz="xl" fw={700} mb="md">
-                                    {isFirst ? 'Los más baratos ahora' : `Página ${page} de ${totalPages}`}
-                                </Title>
-                                <SimpleGrid cols={{ base: 2, sm: 3, md: 4, lg: 6 }} spacing="md">
+                                <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing="md">
                                     {games.map((game, i) => (
                                         <GameCard
                                             key={game.id}

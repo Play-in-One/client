@@ -36,6 +36,7 @@ function SearchContent({
     const genre = params.get('genre') ? Number(params.get('genre')) : null;
     const priceMin = params.get('price_min') ? Number(params.get('price_min')) : undefined;
     const priceMax = params.get('price_max') ? Number(params.get('price_max')) : undefined;
+    const ratingMin = params.get('rating_min') ? Number(params.get('rating_min')) : undefined;
     const onSale = params.get('on_sale') === '1';
     const ordering = params.get('ordering') || DEFAULT_ORDERING;
 
@@ -86,6 +87,10 @@ function SearchContent({
         if (v != null) usp.set('price_max', String(v)); else usp.delete('price_max');
         usp.delete('page');
     });
+    const onRatingMinChange = (v: number | undefined) => replaceParams((usp) => {
+        if (v != null) usp.set('rating_min', String(v)); else usp.delete('rating_min');
+        usp.delete('page');
+    });
     const onOnSaleChange = (v: boolean) => replaceParams((usp) => {
         if (v) usp.set('on_sale', '1'); else usp.delete('on_sale');
         usp.delete('page');
@@ -105,6 +110,7 @@ function SearchContent({
         usp.delete('genre');
         usp.delete('price_min');
         usp.delete('price_max');
+        usp.delete('rating_min');
         usp.delete('on_sale');
         usp.delete('page');
         usp.delete('platform');
@@ -131,6 +137,8 @@ function SearchContent({
             onPriceMinChange={onPriceMinChange}
             priceMax={priceMax}
             onPriceMaxChange={onPriceMaxChange}
+            ratingMin={ratingMin}
+            onRatingMinChange={onRatingMinChange}
             onSale={onSale}
             onOnSaleChange={onOnSaleChange}
             onOrderingChange={onOrderingChange}

@@ -394,3 +394,18 @@ html[data-prefs='pending'] [data-prefs-dependent] {
     animation: none;
   }
 }
+
+/* Título "Explora tus sagas favoritas" del home: es el link a /sagas. En
+   reposo hereda el aspecto del título (color atenuado del <Text>); solo el
+   hover y el foco de teclado lo delatan como clickeable. */
+a.saga-banner-link {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+a.saga-banner-link:hover,
+a.saga-banner-link:focus-visible {
+  color: var(--mantine-color-primaryRed-5);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}

@@ -169,3 +169,28 @@ test('conserva los juegos mientras cambia la consola y omite el conteo de tienda
     expect(facetRequests.length).toBeGreaterThan(0);
     expect(facetRequests.every((url) => new URL(url).searchParams.get('include_sellers') === '0')).toBe(true);
 });
+
+/* Con el admin de Django abierto en el mismo navegador, la cookie `sessionid`
+   viajaba en cada fetch del catálogo y el backend autenticaba al visitante como
+   staff, que ve los juegos sin oferta pública (ordenando por popularidad suben
+   arriba por su tráfico histórico). Solo discrimina cuando el sitio y la API
+   comparten origen, como en el stack dev (`pio.localhost:8080`); con orígenes
+   distintos el navegador no manda la cookie de todos modos. */
+test('la galería pide como anónimo aunque haya una sesión del admin abierta', async ({ page, context }) => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
+    await context.addCookies([{
+        name: 'sessionid',
+        value: 'sesion-del-admin',
+        domain: new URL(apiUrl).hostname,
+        path: '/',
+    }]);
+    const cookieHeaders: string[] = [];
+    await page.route(/\/api\/games\//, async (route) => {
+        cookieHeaders.push((await route.request().allHeaders())['cookie'] ?? '');
+        await route.continue();
+    });
+
+    await page.goto('/search?ordering=-traffic_score');
+    await expect.poll(() => cookieHeaders.length, { timeout: 15_000 }).toBeGreaterThan(0);
+    expect(cookieHeaders.filter((c) => c.includes('sessionid'))).toEqual([]);
+});

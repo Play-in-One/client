@@ -1,5 +1,6 @@
 import type {
-    Game, Genre, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets, Product, PriceHistory,
+    Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets,
+    Product, PriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
 } from './types';
@@ -64,7 +65,14 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     // requiere el permiso de escritura); un GET solo lo lleva si el llamador
     // pide explícitamente `admin: true` (p. ej. el buscador de duplicados al
     // fusionar juegos, que sí necesita ver ocultos).
+    //
+    // La cookie de sesión del admin de Django es la misma fuga por otra vía:
+    // cuando el sitio y la API comparten origen (el stack dev en
+    // `pio.localhost:8080`), el navegador la manda sola y SessionAuthentication
+    // autentica al visitante como staff. Por eso esos GETs van sin credenciales.
+    // En producción los orígenes difieren y no se mandaba igual.
     const attachToken = isMutation || admin;
+    const omitCredentials = !attachToken && typeof window !== 'undefined';
 
     // Solo en SSR. `X-Request-Id` etiqueta esta llamada con la navegación que
     // la provocó, para que el beacon del navegador pueda preguntarle a Django
@@ -83,6 +91,7 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     let res: Response;
     try {
         res = await fetch(`${API_BASE}${path}`, {
+            ...(omitCredentials ? { credentials: 'omit' as const } : {}),
             ...requestInit,
             headers: {
                 // Solo en mutaciones: un GET con Content-Type deja de ser "simple
@@ -325,11 +334,15 @@ export async function getGames(params?: {
     search?: string;
     platforms?: number[];
     genres?: number;
+    /** Slug de una saga (`Saga.slug`): acota a sus juegos. */
+    saga?: string;
     seller?: number;
     condition?: string;
     price_min?: number;
     price_max?: number;
     on_sale?: boolean;
+    /** Solo juegos con rating estrictamente mayor a este valor. */
+    rating_min?: number;
     /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
     seller_scope?: string;
     ordering?: string;
@@ -398,11 +411,14 @@ export async function getGameFacets(params?: {
     search?: string;
     platforms?: number[];
     genres?: number;
+    saga?: string;
     seller?: number;
     condition?: string;
     price_min?: number;
     price_max?: number;
     on_sale?: boolean;
+    /** Solo juegos con rating estrictamente mayor a este valor. */
+    rating_min?: number;
     /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
     seller_scope?: string;
     include_sellers?: 0 | 1;
@@ -447,6 +463,21 @@ export async function getPlatforms(options?: { revalidate?: number }) {
 /* ── Genres ── */
 export async function getGenres() {
     return fetcher<PaginatedResponse<Genre>>('/genres/');
+}
+
+/* ── Sagas ── */
+/** Sagas curadas a mano por el admin para el banner del home (máx. 5). */
+export async function getFeaturedSagas() {
+    return fetcher<PaginatedResponse<Saga>>('/sagas/featured/');
+}
+
+/** Todas las sagas, para la grilla de `/sagas`. */
+export async function getSagas() {
+    return fetcher<PaginatedResponse<Saga>>('/sagas/');
+}
+
+export async function getSaga(slug: string) {
+    return fetcher<SagaDetail>(`/sagas/${slug}/`);
 }
 
 /* ── Sellers ── */
@@ -512,7 +543,13 @@ export async function logout() {
 }
 
 /** Edita campos del juego (nombre, imagen, etc.). PATCH /api/games/{id}/ */
-export async function updateGame(id: number, patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating' | 'is_featured' | 'featured_order' | 'featured_description'>>) {
+export async function updateGame(
+    id: number,
+    patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating' | 'is_featured' | 'featured_order' | 'featured_description'>> & {
+        /** Ids de las sagas en las que va destacado (lista completa). */
+        featured_in_sagas?: number[];
+    },
+) {
     return fetcher<Game>(`/games/${id}/`, {
         method: 'PATCH',
         body: JSON.stringify(patch),

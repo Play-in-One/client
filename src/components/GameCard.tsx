@@ -2,6 +2,7 @@
 
 import { useState, useEffect, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox } from '@mantine/core';
+import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -11,6 +12,7 @@ import PriceInfo from './PriceInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
+import { ratingColor } from '@/lib/colors';
 import type { Game, Product } from '@/lib/types';
 
 const PLACEHOLDER = '/placeholder-game.png';
@@ -169,6 +171,37 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         >
                             <ConditionIcon condition={game.min_price_condition} size={15} />
+                        </Box>
+                    )}
+
+                    {/* Calificación (0-10, la calcula el enricher). Esquina
+                        inferior derecha: la superior ya la ocupan el checkbox
+                        de fusión (izquierda) y la condición de la oferta
+                        (derecha). Mismo criterio de color que RatingGauge y la
+                        ficha de detalle (ratingColor). */}
+                    {game.rating && (
+                        <Box
+                            pos="absolute"
+                            bottom={8}
+                            right={8}
+                            px={6}
+                            py={2}
+                            style={{
+                                zIndex: 2,
+                                borderRadius: 'var(--mantine-radius-sm)',
+                                background: 'rgba(0,0,0,0.65)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                            }}
+                        >
+                            <IconStarFilled
+                                size={12}
+                                color={`var(--mantine-color-${ratingColor(Number(game.rating))}-5)`}
+                            />
+                            <Text fz={11} fw={700} c="white">
+                                {Number(game.rating).toFixed(1)}
+                            </Text>
                         </Box>
                     )}
                 </Box>

@@ -1,7 +1,6 @@
 'use client';
 
 import { startTransition, useEffect, useRef, useState, type FormEvent } from 'react';
-import type { EmblaCarouselType } from 'embla-carousel';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -19,40 +18,22 @@ import {
     Stack,
     Skeleton,
 } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
-import { Carousel } from '@mantine/carousel';
 import {
     IconSearch,
     IconFlame,
     IconArrowRight,
     IconDeviceGamepad,
 } from '@tabler/icons-react';
-import type { Post, Game } from '@/lib/types';
+import type { Post, Game, Saga } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
+import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
 import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
-import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
-
-/* Skeleton con la silueta del carrusel de Destacados: tarjeta activa
-   expandida (carátula 200px + panel de info) al centro y carátulas
-   comprimidas a los lados. Mismas alturas que FeaturedGameCard y mismo
-   padding vertical que el track del carrusel, para que el reemplazo
-   skeleton ↔ carrusel no mueva el layout — de ahí el `compact`, que en
-   mobile baja el alto al de la tarjeta compacta. */
-function FeaturedCarouselSkeleton({ compact }: { compact: boolean }) {
-    const height = compact ? CARD_HEIGHT_COMPACT : CARD_HEIGHT;
-    return (
-        <Group justify="center" align="center" gap={70} wrap="nowrap" pt={12} pb={8} style={{ overflow: 'hidden' }}>
-            <Skeleton radius="lg" height={height} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
-            <Skeleton radius="lg" height={height} style={{ width: 'min(520px, 100%)', flexShrink: 0 }} />
-            <Skeleton radius="lg" height={height} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
-        </Group>
-    );
-}
+import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
 
 /* Skeleton de la grilla de Populares — mismas proporciones que GameCard,
    mismo patrón visual que search/loading.tsx. */
@@ -73,154 +54,21 @@ function TrendingGridSkeleton() {
     );
 }
 
-/* ── Sagas Favoritas ── */
-const SAGAS = [
-    { name: 'Pokémon', query: 'pokemon', logo: '/logos/pokemon.svg' },
-    { name: 'Minecraft', query: 'minecraft', logo: '/logos/minecraft.svg' },
-    { name: 'Grand Theft Auto', query: 'gta', logo: '/logos/gta.svg' },
-    { name: 'Resident Evil', query: 'resident evil', logo: '/logos/resident-evil.png' },
-    { name: 'The Legend of Zelda', query: 'zelda', logo: '/logos/zelda.png' },
-];
-
 export default function HomeClient({
     initialPosts,
     initialTrending,
     initialFeatured,
+    initialSagas,
 }: {
     initialPosts: Post[];
     initialTrending: Game[];
     initialFeatured: Game[];
+    initialSagas: Saga[];
 }) {
     const router = useRouter();
     const [query, setQuery] = useState('');
     const posts = initialPosts;
     const { conditionParam, sellerScopeParam, ready } = useApp();
-
-    /* El efecto coverflow del carrusel de Destacados (tarjeta activa expandida
-       de 520px, laterales comprimidas a la carátula) está construido con anchos
-       fijos y no cabe en el slot de mobile, donde la tarjeta activa terminaba
-       desbordando la pantalla y la animación "se pasaba" de posición. Bajo `md`
-       se usa el layout compacto: una tarjeta por pantalla, siempre expandida y
-       sin animaciones de ancho ni translateX. Es una decisión de layout que vive
-       en JS (no alcanza con visibleFrom/hiddenFrom), de ahí el media query.
-       `undefined` en SSR y en el primer render → desktop; ese frame queda tapado
-       por el skeleton (`carouselsReady`). */
-    const isDesktop = useMediaQuery('(min-width: 62em)');
-    const compactFeatured = isDesktop === false;
-
-    /* Los carruseles (Embla) miden su contenedor y recién ahí centran la
-       tarjeta activa; hasta entonces se ven alineados a la izquierda. Se
-       ocultan con un fade breve para no mostrar ese salto. */
-    const [carouselsReady, setCarouselsReady] = useState(false);
-    useEffect(() => {
-        let idInner: number | null = null;
-        const idOuter = requestAnimationFrame(() => {
-            idInner = requestAnimationFrame(() => setCarouselsReady(true));
-        });
-        /* requestAnimationFrame NO corre en una pestaña en segundo plano: abrir
-           la home con "abrir en pestaña nueva" dejaba los carruseles ocultos
-           hasta que la pestaña se mostraba. El timer sí corre ahí, así que
-           actúa de red de seguridad; en la pestaña visible siempre gana el
-           doble rAF, que es más rápido. */
-        const idFallback = setTimeout(() => setCarouselsReady(true), 300);
-        return () => {
-            cancelAnimationFrame(idOuter);
-            if (idInner !== null) cancelAnimationFrame(idInner);
-            clearTimeout(idFallback);
-        };
-    }, []);
-
-    /* Efecto "coverflow": solo la tarjeta centrada del carrusel de Destacados
-       se ve horizontal completa; las laterales se comprimen a la carátula.
-       Siempre guarda el índice REAL dentro de `featured` (nunca el índice
-       de Embla, que incluye los clones de abajo). */
-    const [activeFeaturedIndex, setActiveFeaturedIndex] = useState(0);
-
-    /* @mantine/carousel expone una prop `speed`, pero es un remanente de la
-       API de Embla v7 (donde era un multiplicador de fricción); el paquete
-       instalado es embla-carousel v8, que renombró esa opción a `duration`
-       — `speed` llega a Embla como una key que no reconoce y no hace nada.
-       Aun corrigiéndolo con `duration` real, Embla converge en ~100-150ms
-       para saltar a la tarjeta adyacente sin importar el valor (afecta más
-       a distancias largas), mucho más rápido que la animación de expandir
-       la tarjeta (~0.7s) — por eso se sentía "sin transición".
-       Solución: una transición CSS sobre el transform del track, mostrando
-       recién ahí el movimiento a la misma velocidad que la tarjeta. Debe
-       activarse SOLO al usar las flechas, nunca durante el arrastre (si el
-       track tuviera esta transición todo el tiempo, el drag se vería con
-       lag, siguiendo al mouse con retraso, en vez de responder en vivo). */
-    const [featuredTransitioning, setFeaturedTransitioning] = useState(false);
-    const featuredTransitionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const triggerFeaturedTransition = () => {
-        setFeaturedTransitioning(true);
-        if (featuredTransitionTimeout.current) clearTimeout(featuredTransitionTimeout.current);
-        featuredTransitionTimeout.current = setTimeout(() => setFeaturedTransitioning(false), 800);
-    };
-
-    /* Loop manual: en vez de dejar que Embla clone los extremos internamente
-       (`loop`), se agregan a mano copias de los últimos y primeros juegos
-       en los bordes (`paddedFeatured`, más abajo). Cruzar hacia una copia es
-       una transición normal — se anima igual que cualquier otro click. Una
-       vez asentado sobre la copia, se reubica en silencio (sin animación)
-       sobre el juego real equivalente, que es visualmente idéntico, así que
-       el salto es imperceptible. Intentar animar el salto interno que hace
-       `loop` por su cuenta (probado en una versión anterior) se veía como
-       si el carrusel entero "se devolviera" hasta el principio.
-       Se clonan 2 juegos de cada lado (no solo 1): con un click rápido y
-       sucesivo, un solo clon de colchón no alcanza a corregirse antes de
-       que el siguiente click intente cruzar OTRA VEZ el límite — con
-       `loop={false}` eso deja al carrusel sin más adónde ir (atascado). Dos
-       clones dan margen para un par de clicks rápidos seguidos. */
-    const FEATURED_CLONE_COUNT = 2;
-    const emblaFeaturedApi = useRef<EmblaCarouselType | null>(null);
-    const featuredCorrectionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const handleFeaturedEmblaApi = (emblaApi: EmblaCarouselType) => {
-        /* Mientras el track hace la transición CSS de arriba, la tarjeta
-           activa también está cambiando de ancho (comprimida ↔ expandida) —
-           Embla observa el tamaño de las tarjetas por defecto (`watchResize`)
-           y recalcula la geometría del carrusel en pleno vuelo, lo que se
-           veía como un freno a mitad de camino seguido de un salto. El
-           carrusel tiene un número fijo de tarjetas con `slideSize` fijo
-           por breakpoint, así que no necesita ese watcher. */
-        emblaApi.reInit({ watchResize: false });
-        emblaFeaturedApi.current = emblaApi;
-    };
-    const handleFeaturedSlideChange = (paddedIndex: number) => {
-        /* Con 0 o 1 juego destacado no hay clones (`paddedFeatured` es
-           `featured` tal cual, ver más abajo) — el índice de Embla ya es el
-           real, sin traducción ni corrección. */
-        if (featured.length <= 1) {
-            setActiveFeaturedIndex(paddedIndex);
-            return;
-        }
-        const n = featured.length;
-        const isCloneBefore = paddedIndex < FEATURED_CLONE_COUNT;
-        const isCloneAfter = paddedIndex >= FEATURED_CLONE_COUNT + n;
-        const realIndex = isCloneBefore
-            ? (n - FEATURED_CLONE_COUNT + paddedIndex) % n
-            : isCloneAfter
-                ? paddedIndex - (FEATURED_CLONE_COUNT + n)
-                : paddedIndex - FEATURED_CLONE_COUNT;
-        setActiveFeaturedIndex(realIndex);
-
-        /* Cancela cualquier corrección pendiente de un click anterior: si el
-           usuario hizo varios clicks rápidos seguidos, solo debe sobrevivir
-           la corrección hacia la posición donde terminó asentado, no una
-           corrección vieja apuntando a una posición ya superada. */
-        if (featuredCorrectionTimeout.current) clearTimeout(featuredCorrectionTimeout.current);
-        if (isCloneBefore || isCloneAfter) {
-            /* Espera un poco más que el apagado de la transición CSS (800ms)
-               para no arriesgarse a que el salto silencioso ocurra mientras
-               esa transición sigue activa, lo que lo animaría. */
-            featuredCorrectionTimeout.current = setTimeout(() => {
-                emblaFeaturedApi.current?.scrollTo(FEATURED_CLONE_COUNT + realIndex, true);
-            }, 850);
-        }
-    };
-    useEffect(() => () => {
-        if (featuredTransitionTimeout.current) clearTimeout(featuredTransitionTimeout.current);
-        if (featuredCorrectionTimeout.current) clearTimeout(featuredCorrectionTimeout.current);
-    }, []);
 
     /* El filtro Usados/Nuevos/Todos del header (AppContext) también debe
        acotar Destacados y Populares: se re-piden al cambiar `condition`,
@@ -312,21 +160,6 @@ export default function HomeClient({
         e.preventDefault();
         if (query.trim()) router.push(`/search?q=${encodeURIComponent(query)}`);
     };
-
-    /* Clones a mano en los bordes para el loop manual del carrusel de
-       Destacados (ver comentario junto a `handleFeaturedSlideChange`). Usa
-       módulo para no romperse si hay menos juegos que clones deseados. */
-    const paddedFeatured =
-        featured.length > 1
-            ? [
-                ...Array.from(
-                    { length: FEATURED_CLONE_COUNT },
-                    (_, i) => featured[(featured.length - FEATURED_CLONE_COUNT + i + featured.length) % featured.length],
-                ),
-                ...featured,
-                ...Array.from({ length: FEATURED_CLONE_COUNT }, (_, i) => featured[i % featured.length]),
-            ]
-            : featured;
 
     return (
         <>
@@ -444,53 +277,49 @@ export default function HomeClient({
             </Box>
 
             {/* ══════ SAGAS BANNER ══════ */}
-            <Box
-                py="xl"
-                style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)', background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}
-            >
-                <Container size="lg">
-                    <Text fz="sm" fw={700} tt="uppercase" ta="center" c="dimmed" mb="xl" style={{ letterSpacing: 3 }}>
-                        Explora tus sagas favoritas
-                    </Text>
-                    <Group justify="center" gap={60} align="center" mt="xl">
-                        {SAGAS.map((s) => (
-                            <Anchor
-                                key={s.name}
-                                component={Link}
-                                href={`/search?q=${encodeURIComponent(s.query)}`}
-                                style={{
-                                    display: 'block',
-                                    transition: 'all 0.3s ease',
-                                    filter: 'grayscale(1)',
-                                    opacity: 0.6,
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1.1)';
-                                    e.currentTarget.style.filter = 'grayscale(0)';
-                                    e.currentTarget.style.opacity = '1';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.transform = 'scale(1)';
-                                    e.currentTarget.style.filter = 'grayscale(1)';
-                                    e.currentTarget.style.opacity = '0.6';
-                                }}
-                            >
-                                <img
-                                    src={s.logo}
-                                    alt={`Logo de ${s.name}`}
+            {/* Sin datos aún (el admin no cargó ninguna saga como destacada):
+                se omite en vez de mostrar una sección vacía. */}
+            {initialSagas.length > 0 && (
+                <Box
+                    py="xl"
+                    style={{ borderTop: '1px solid var(--mantine-color-default-border)', borderBottom: '1px solid var(--mantine-color-default-border)', background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}
+                >
+                    <Container size="lg">
+                        <Text fz="sm" fw={700} tt="uppercase" ta="center" c="dimmed" mb="xl" style={{ letterSpacing: 3 }}>
+                            <Link href="/sagas" className="saga-banner-link">
+                                Explora tus sagas favoritas
+                            </Link>
+                        </Text>
+                        <Group justify="center" gap={60} align="center" mt="xl">
+                            {initialSagas.map((s) => (
+                                <Anchor
+                                    key={s.slug}
+                                    component={Link}
+                                    href={`/saga/${s.slug}`}
                                     style={{
-                                        height: 60,
-                                        width: 'auto',
-                                        maxWidth: 160,
-                                        objectFit: 'contain',
-                                        display: 'block'
+                                        display: 'block',
+                                        transition: 'all 0.3s ease',
+                                        filter: 'grayscale(1)',
+                                        opacity: 0.6,
                                     }}
-                                />
-                            </Anchor>
-                        ))}
-                    </Group>
-                </Container>
-            </Box>
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1.1)';
+                                        e.currentTarget.style.filter = 'grayscale(0)';
+                                        e.currentTarget.style.opacity = '1';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.transform = 'scale(1)';
+                                        e.currentTarget.style.filter = 'grayscale(1)';
+                                        e.currentTarget.style.opacity = '0.6';
+                                    }}
+                                >
+                                    <SagaLogo saga={s} />
+                                </Anchor>
+                            ))}
+                        </Group>
+                    </Container>
+                </Box>
+            )}
 
             {/* ══════ JUEGOS DESTACADOS ══════ */}
             {(featured.length > 0 || filtering) && (
@@ -505,93 +334,8 @@ export default function HomeClient({
                             </Text>
                         </Box>
 
-                        <Box pos="relative" data-prefs-dependent>
-                            {/* Skeleton superpuesto (no reemplaza al carrusel en el
-                                árbol: desmontarlo re-inicializaría Embla y volvería
-                                el salto de centrado que este gating evita). Cubre la
-                                espera de hidratación inicial y el refetch del toggle. */}
-                            {(!carouselsReady || filtering) && (
-                                /* `pointerEvents: none` no es decorativo: este Box
-                                   cubre el carrusel entero con `inset: 0`, así que
-                                   mientras esté montado se come TODOS los clics de
-                                   las tarjetas destacadas. Sin él, cualquier
-                                   demora en apagarlo se ve como "el juego no es
-                                   clickeable" en vez de como un skeleton lento. */
-                                <Box pos="absolute" style={{ inset: 0, zIndex: 2, pointerEvents: 'none' }}>
-                                    <FeaturedCarouselSkeleton compact={compactFeatured} />
-                                </Box>
-                            )}
-                            <Box style={{ opacity: carouselsReady && !filtering ? 1 : 0, transition: 'opacity 0.25s ease' }}>
-                            <Carousel
-                                /* En mobile: una tarjeta completa por pantalla y un gap
-                                   normal — 70px era ~20% del ancho de un teléfono. */
-                                slideSize={{ base: '100%', md: '58%' }}
-                                slideGap={{ base: 'md', md: '70px' }}
-                                align="center"
-                                loop={false}
-                                initialSlide={featured.length > 1 ? FEATURED_CLONE_COUNT : 0}
-                                withIndicators={false}
-                                /* Sin flechas en mobile: se navega con swipe, y así
-                                   tampoco se activa la transición CSS del track (ver
-                                   `triggerFeaturedTransition`), cuyo apagado por timer
-                                   se veía como un salto seco en pantallas chicas. */
-                                withControls={!compactFeatured}
-                                controlsOffset="-20px"
-                                getEmblaApi={handleFeaturedEmblaApi}
-                                onSlideChange={handleFeaturedSlideChange}
-                                previousControlProps={{ onClick: triggerFeaturedTransition }}
-                                nextControlProps={{ onClick: triggerFeaturedTransition }}
-                                styles={{
-                                    container: {
-                                        paddingTop: 12,
-                                        paddingBottom: 8,
-                                        transition:
-                                            !compactFeatured && featuredTransitioning
-                                                ? 'transform 0.7s ease'
-                                                : 'none',
-                                    },
-                                    controls: { zIndex: 3 },
-                                }}
-                            >
-                                {paddedFeatured.map((g, paddedIndex) => {
-                                    /* `paddedIndex` recorre los clones también (los primeros y
-                                       últimos `FEATURED_CLONE_COUNT`); se traduce al índice REAL
-                                       dentro de `featured` para decidir si esta tarjeta es la activa
-                                       y su posición relativa — un clon "hereda" el estado del juego
-                                       real que representa. Misma fórmula que `handleFeaturedSlideChange`. */
-                                    const isCloneBefore = paddedIndex < FEATURED_CLONE_COUNT;
-                                    const isCloneAfter = paddedIndex >= FEATURED_CLONE_COUNT + featured.length;
-                                    const realIndex = isCloneBefore
-                                        ? (featured.length - FEATURED_CLONE_COUNT + paddedIndex) % featured.length
-                                        : isCloneAfter
-                                            ? paddedIndex - (FEATURED_CLONE_COUNT + featured.length)
-                                            : paddedIndex - FEATURED_CLONE_COUNT;
-                                    return (
-                                        <Carousel.Slide key={`${g.id}-${paddedIndex}`}>
-                                            <FeaturedGameCard
-                                                game={g}
-                                                compact={compactFeatured}
-                                                isActive={realIndex === activeFeaturedIndex}
-                                                priority={realIndex === activeFeaturedIndex}
-                                                /* Distancia circular (no un simple index < active): con loop,
-                                                   comparar índices lineales clasifica mal a la tarjeta que da
-                                                   la vuelta (ej. si la activa es la 0, la última técnicamente
-                                                   tiene índice mayor pero visualmente está "antes", a la
-                                                   izquierda). */
-                                                side={
-                                                    realIndex === activeFeaturedIndex
-                                                        ? 'active'
-                                                        : (realIndex - activeFeaturedIndex + featured.length) % featured.length <=
-                                                            featured.length / 2
-                                                            ? 'after'
-                                                            : 'before'
-                                                }
-                                            />
-                                        </Carousel.Slide>
-                                    );
-                                })}
-                            </Carousel>
-                            </Box>
+                        <Box data-prefs-dependent>
+                            <FeaturedGamesCarousel games={featured} loading={filtering} />
                         </Box>
                     </Container>
                 </Box>

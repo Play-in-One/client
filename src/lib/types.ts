@@ -128,6 +128,27 @@ export interface Genre {
     game_count?: number;
 }
 
+/** Franquicia curada a mano en el admin (p. ej. "The Legend of Zelda"),
+ *  para la sección de sagas del home y `/sagas`. */
+export interface Saga {
+    id: number;
+    name: string;
+    slug: string;
+    logo: string;
+    /** Ancho del logo en px (el alto sale de la proporción). Opcional: una
+     *  respuesta cacheada de antes del campo no lo trae. */
+    logo_width?: number;
+    game_count: number;
+}
+
+/** La saga + su banner y destacados, para `/saga/<slug>`. El listado completo
+ *  de juegos NO viaja acá: sale de `getGames({ saga: slug })`, que filtra
+ *  visibilidad y anota precio igual que la galería normal. */
+export interface SagaDetail extends Saga {
+    banner: string;
+    featured_games: Game[];
+}
+
 export interface GameFacets {
     platforms: Record<number, number>;
     genres: Record<number, number>;
@@ -205,6 +226,8 @@ export interface Game {
     is_featured?: boolean;
     featured_order?: number | null;
     featured_description?: string | null;
+    /** Sagas del juego y si está destacado en cada una. Solo en el detalle. */
+    sagas?: { id: number; slug: string; name: string; is_featured: boolean }[];
 }
 
 export interface Post {

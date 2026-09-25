@@ -11,6 +11,7 @@ import {
     Group,
     NumberInput,
     Select,
+    Slider,
     Stack,
     Text,
     TextInput,
@@ -234,6 +235,10 @@ interface Props {
     onSale: boolean;
     onToggleOnSale: () => void;
 
+    /** 0 = filtro inactivo (sin mínimo). */
+    ratingMin: number;
+    onRatingMinChange: (value: number) => void;
+
     facets: GameFacets;
     hasActiveFilters: boolean;
     onClearFilters: () => void;
@@ -259,6 +264,8 @@ export default function GameFilterBar({
     onSelectGenre,
     onSale,
     onToggleOnSale,
+    ratingMin,
+    onRatingMinChange,
     facets,
     hasActiveFilters,
     onClearFilters,
@@ -267,6 +274,7 @@ export default function GameFilterBar({
     const [genresOpen, setGenresOpen] = useState(true);
     const [priceOpen, setPriceOpen] = useState(true);
     const [saleOpen, setSaleOpen] = useState(true);
+    const [ratingOpen, setRatingOpen] = useState(true);
 
     return (
         <Stack gap="sm">
@@ -302,6 +310,29 @@ export default function GameFilterBar({
                         hideControls
                     />
                 </Group>
+            </FilterSection>
+
+            <Divider />
+
+            {/* Calificación */}
+            <FilterSection title="Calificación" open={ratingOpen} onToggle={() => setRatingOpen((v) => !v)}>
+                <Box px={4}>
+                    <Text fz="xs" c="dimmed" mb={6}>
+                        {ratingMin === 0 ? 'Todas' : `Mayor a ${ratingMin}`}
+                    </Text>
+                    <Slider
+                        min={0}
+                        max={10}
+                        step={0.5}
+                        value={ratingMin}
+                        onChange={onRatingMinChange}
+                        marks={[{ value: 5 }]}
+                        label={(v) => (v === 0 ? 'Todas' : `> ${v}`)}
+                        color="primaryRed"
+                        size="sm"
+                        mb="md"
+                    />
+                </Box>
             </FilterSection>
 
             <Divider />
