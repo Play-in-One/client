@@ -71,7 +71,9 @@ function historicLow(game: Game): number | null {
 
 export function buildGameFaq(game: Game): FaqEntry[] {
     const entries: FaqEntry[] = [];
-    const products = (game.products ?? []).filter((p) => p.current_price != null);
+    // Sin stock (delisted) no es una oferta real: publicarla aqui afirmaria
+    // que el juego "esta disponible" en una tienda con un precio caducado.
+    const products = (game.products ?? []).filter((p) => p.current_price != null && p.in_stock);
 
     const best = bestPriceSentence(game);
     if (best) {

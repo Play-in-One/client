@@ -287,8 +287,11 @@ export function gameJsonLd(game: Game): JsonLdObject {
     // Ordenadas por precio EFECTIVO, el mismo criterio con el que PIO elige la
     // mejor oferta. El backend ya las manda así; reordenar aquí mantiene el
     // invariante aunque este builder reciba una lista de otra procedencia.
+    // Las ofertas sin stock (delisted) se siguen mostrando en la ficha, pero
+    // no son una oferta real: anunciarlas aquí publicaría un precio caducado
+    // como disponible.
     const offers = [...(game.products ?? [])]
-        .filter((p) => p.base_price != null)
+        .filter((p) => p.base_price != null && p.in_stock)
         .sort((a, b) => (num(a.current_price) ?? Infinity) - (num(b.current_price) ?? Infinity));
     const listPrices = offers.map((p) => num(p.base_price)).filter((n): n is number => n != null);
 
@@ -381,10 +384,13 @@ export function bestPriceSentence(game: Game, opts: BestPriceOptions = {}): stri
 
     let text = `El precio más barato de ${game.name}${platform} es ${formatCLP(price)}${where}${withShipping}.`;
 
-    const offerCount = opts.offerCount ?? game.products?.length ?? 0;
+    // Las ofertas sin stock (delisted) siguen viajando en `game.products` para
+    // que la ficha las muestre grisadas, pero no cuentan como oferta vigente.
+    const liveProducts = game.products?.filter((p) => p.in_stock);
+    const offerCount = opts.offerCount ?? liveProducts?.length ?? 0;
     const sellerCount =
         opts.sellerCount ??
-        (game.products ? new Set(game.products.map((p) => p.seller.id)).size : 0);
+        (liveProducts ? new Set(liveProducts.map((p) => p.seller.id)).size : 0);
     if (offerCount > 0) {
         const offerLabel = offerCount === 1 ? '1 oferta' : `${offerCount} ofertas`;
         const sellerLabel = sellerCount === 1 ? '1 tienda chilena' : `${sellerCount} tiendas chilenas`;

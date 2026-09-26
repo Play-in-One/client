@@ -119,6 +119,9 @@ export interface Product {
      *  despacho; null cuando la oferta no tiene precio. */
     shipping_cost: string | null;
     rating: string | null;
+    /** `false` cuando la oferta dejo de escrapearse (delisted): se sigue
+     *  mostrando en la ficha, pero grisada y sin pesar en el precio/orden. */
+    in_stock: boolean;
 }
 
 export interface Genre {

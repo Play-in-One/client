@@ -69,6 +69,33 @@ test('la tabla de productos muestra los vendedores y precios', async ({ page }) 
     await expect(tabla.locator('p:visible', { hasText: '$23.481' }).first()).toBeVisible();   // importada, con envío y cupón
 });
 
+test('una oferta sin stock se muestra grisada al final, sin ganar por precio', async ({ page }) => {
+    // `seed_e2e` agrega una tercera oferta (delisted) mas barata que las dos
+    // vigentes, justo para probar que no le gana el "mejor precio" ni el orden.
+    await page.goto(gamePath);
+    const tabla = page.getByRole('table');
+    const filas = tabla.getByRole('row');
+
+    await expect(tabla.getByText('No actualizado · Sin stock')).toBeVisible();
+
+    // La oferta sin stock es la mas barata ($1.990): si el orden fuera solo
+    // por precio iria primera. Tiene que quedar despues de las dos vigentes.
+    const count = await filas.count();
+    const lastRowText = await filas.nth(count - 1).innerText();
+    // `innerText` refleja el text-transform:uppercase del Badge de Mantine.
+    expect(lastRowText.toLowerCase()).toContain('no actualizado · sin stock');
+    expect(lastRowText).toContain('$1.990');
+    // nth(0) es la fila de encabezado (Tienda & Producto / Precio / Estado);
+    // la primera fila de datos es nth(1).
+    const firstRowText = await filas.nth(1).innerText();
+    expect(firstRowText.toLowerCase()).not.toContain('sin stock');
+
+    // El precio de $1.990 (la oferta sin stock) no debe aparecer como "Mejor
+    // Precio": ese bloque sigue mostrando la oferta nacional vigente.
+    const mejorPrecio = page.getByText('Mejor Precio', { exact: false }).locator('..');
+    await expect(mejorPrecio.getByText('$1.990')).toHaveCount(0);
+});
+
 test('el precio con envío y convenio ofrece un solo desglose combinado', async ({ page }) => {
     await page.goto(gamePath);
     // La importadora tiene envío y convenio, pero ambos usan el mismo ícono.

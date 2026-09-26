@@ -48,6 +48,10 @@ function resolveForFilters(
     if (noFilters) return game;
 
     const matching = (game.products ?? []).filter((p) => {
+        // La ficha ahora incluye tambien las ofertas sin stock (delisted),
+        // grisadas; esta tarjeta usa el mismo catalogo que la galeria y no
+        // debe elegir su precio ni su portada.
+        if (!p.in_stock) return false;
         if (platformSlugs.length > 0 && !platformSlugs.includes(p.platform.slug)) return false;
         if (allowed && !allowed.has(p.condition)) return false;
         if (!prefs.international && p.seller.is_international) return false;

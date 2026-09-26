@@ -327,14 +327,17 @@ export default function GameDetailClient({
         return true;
     });
 
-    // Sort by price ascending
+    // Vigentes primero (por precio ascendente), sin stock al final: una oferta
+    // que dejo de escrapearse no debe ganarle a una vigente por ser mas barata.
     const sorted = [...products].sort((a, b) => {
+        if (a.in_stock !== b.in_stock) return a.in_stock ? -1 : 1;
         const pa = parseFloat(a.current_price ?? '999999');
         const pb = parseFloat(b.current_price ?? '999999');
         return pa - pb;
     });
 
-    const bestProduct = sorted[0] ?? null;
+    const inStockOffers = sorted.filter((p) => p.in_stock);
+    const bestProduct = inStockOffers[0] ?? null;
     // `current_price` ya viene con el envío de la tienda sumado: es el precio con
     // el que se compara y el que se ordena arriba.
     const bestPrice = bestProduct && bestProduct.current_price != null
@@ -352,8 +355,8 @@ export default function GameDetailClient({
             price: bestProduct.current_price,
             sellerName: bestProduct.seller.name,
             shipping: bestProduct.shipping_cost,
-            offerCount: sorted.length,
-            sellerCount: new Set(sorted.map((p) => p.seller.id)).size,
+            offerCount: inStockOffers.length,
+            sellerCount: new Set(inStockOffers.map((p) => p.seller.id)).size,
         })
         : null;
 
@@ -870,7 +873,9 @@ export default function GameDetailClient({
                                                 </Table.Td>
                                             </Table.Tr>
                                         ) : (
-                                            sorted.map((p, idx) => (
+                                            sorted.map((p, idx) => {
+                                            const isBest = bestProduct?.id === p.id;
+                                            return (
                                             <Fragment key={p.id}>
                                                 <HoverCard
                                                     width={240}
@@ -897,7 +902,10 @@ export default function GameDetailClient({
                                                     <HoverCard.Target>
                                                         <Table.Tr
                                                             className="game-offer-row"
-                                                            style={{ transition: 'background 0.15s' }}
+                                                            style={{
+                                                                transition: 'background 0.15s',
+                                                                opacity: p.in_stock ? 1 : 0.55,
+                                                            }}
                                                             onClick={(e) => handleMobileOfferRowClick(e, p)}
                                                         >
                                                     <Table.Td style={{ width: '100%' }}>
@@ -970,11 +978,16 @@ export default function GameDetailClient({
                                                                     <Text fw={{ base: 500, sm: 400 }} fz={{ base: 'sm', sm: 'xs' }} c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
                                                                         {p.title}
                                                                     </Text>
+                                                                    {!p.in_stock && (
+                                                                        <Badge color="gray" variant="light" size="xs" mt={2}>
+                                                                            No actualizado · Sin stock
+                                                                        </Badge>
+                                                                    )}
                                                                     <Group gap={2} wrap="nowrap" align="center" hiddenFrom="sm">
                                                                         <Text
                                                                             fw={700}
                                                                             fz="xl"
-                                                                            c={idx === 0 ? 'var(--mantine-color-primaryRed-5)' : undefined}
+                                                                            c={isBest ? 'var(--mantine-color-primaryRed-5)' : undefined}
                                                                         >
                                                                             {p.current_price ? formatCLP(p.current_price) : '—'}
                                                                         </Text>
@@ -1007,7 +1020,7 @@ export default function GameDetailClient({
                                                             <Text
                                                                 fw={700}
                                                                 fz="md"
-                                                                c={idx === 0 ? 'var(--mantine-color-primaryRed-5)' : undefined}
+                                                                c={isBest ? 'var(--mantine-color-primaryRed-5)' : undefined}
                                                             >
                                                                 {p.current_price ? formatCLP(p.current_price) : '—'}
                                                             </Text>
@@ -1040,8 +1053,8 @@ export default function GameDetailClient({
                                                                     onClick={(e) => handleOfferClick(e, p)}
                                                                     size="lg"
                                                                     radius="md"
-                                                                    variant={idx === 0 ? 'filled' : 'default'}
-                                                                    color={idx === 0 ? 'dark' : undefined}
+                                                                    variant={isBest ? 'filled' : 'default'}
+                                                                    color={isBest ? 'dark' : undefined}
                                                                     aria-label="Ver en Tienda"
                                                                 >
                                                                     <IconExternalLink size={16} />
@@ -1080,7 +1093,8 @@ export default function GameDetailClient({
                                                     </Table.Tr>
                                                 )}
                                             </Fragment>
-                                            ))
+                                            );
+                                            })
                                         )}
                                     </Table.Tbody>
                                 </Table>
