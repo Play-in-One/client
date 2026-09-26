@@ -26,6 +26,12 @@ export const SEEDED = {
      *  cosa que el juego sin ofertas no puede hacer —ahí ni se pinta. */
     noHistoryGameId: 999003,
     noHistoryGame: 'E2E Juego Sin Historial',
+    /** Con historial (tuvo una oferta) pero SIN ninguna oferta vigente hoy:
+     *  a diferencia de `emptyGame` (que nunca tuvo nada), este caso cubre el
+     *  badge "Sin stock" en catálogo/búsqueda/sagas — el juego debe listarse
+     *  igual, sólo sin precio, en vez de desaparecer del todo. */
+    outOfStockGameId: 999004,
+    outOfStockGame: 'E2E Juego Sin Oferta Vigente',
     nationalSeller: 'E2E Tienda Nacional',
     internationalSeller: 'E2E Importadora',
     /** Nacional, nueva, sin envío: su precio efectivo es el de lista. */
