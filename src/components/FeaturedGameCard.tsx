@@ -218,7 +218,7 @@ function FeaturedGameCard({
                             {game.featured_description}
                         </Text>
 
-                        {hasPrice && (
+                        {hasPrice ? (
                             <Group gap={2} wrap="nowrap" align="center" mt="auto">
                                 <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
                                     {formatCLP(game.min_price as string)}
@@ -228,6 +228,10 @@ function FeaturedGameCard({
                                     shippingCost={game.min_price_shipping}
                                     seller={game.min_price_seller}
                                 />
+                            </Group>
+                        ) : (
+                            <Group mt="auto">
+                                <Badge color="gray" variant="light" size="sm">Sin stock</Badge>
                             </Group>
                         )}
                     </Box>
