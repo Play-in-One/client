@@ -130,17 +130,21 @@ export function buildGameFaq(game: Game): FaqEntry[] {
         });
     }
 
-    if (game.platforms?.length) {
-        const names = game.platforms.map(platformLongName);
+    // Se deriva de las ofertas VIGENTES (`products`, ya filtrado arriba a
+    // `in_stock`), no de `game.platforms`: esa M2M ahora incluye tambien
+    // consolas cuya unica oferta esta delisteada (ver
+    // recompute_game_platforms), y afirmar "en stock" ahi seria falso.
+    const inStockPlatforms = [...new Map(
+        products.map((p) => [p.platform.slug, p.platform]),
+    ).values()];
+    if (inStockPlatforms.length) {
+        const names = inStockPlatforms.map(platformLongName);
         const list =
             names.length === 1
                 ? names[0]
                 : `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
         entries.push({
             question: `¿Para qué consolas está disponible ${game.name}?`,
-            // "con ofertas en stock" no es un matiz: Game.platforms es derivado
-            // de los productos visibles, así que una consola desaparece de la
-            // lista cuando se agota su última oferta.
             answer: `${game.name} tiene ofertas en stock para ${list}.`,
         });
     }
