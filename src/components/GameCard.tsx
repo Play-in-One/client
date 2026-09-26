@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, memo } from 'react';
-import { Card, Text, Group, Box, Anchor, Checkbox } from '@mantine/core';
+import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -222,7 +222,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                     </Text>
 
                     {/* Price row */}
-                    {hasPrice && (
+                    {hasPrice ? (
                         <Box
                             mt="auto"
                             pt="sm"
@@ -278,6 +278,14 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                     )}
                                 </Box>
                             </Group>
+                        </Box>
+                    ) : (
+                        <Box
+                            mt="auto"
+                            pt="sm"
+                            style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
+                        >
+                            <Badge color="gray" variant="light" size="sm">Sin stock</Badge>
                         </Box>
                     )}
                 </Box>
