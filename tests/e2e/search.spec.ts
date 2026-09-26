@@ -78,6 +78,36 @@ test('la página de búsqueda carga con resultados', async ({ page }) => {
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
 });
 
+test('un juego sin ninguna oferta vigente se muestra con el badge "Sin stock"', async ({ page }) => {
+    // Mismo lookahead que el resto del archivo: sin (?!facets) este override
+    // tapa el mock de facetas del beforeEach (Playwright evalúa las rutas en
+    // orden inverso al registro) y el sidebar recibe la forma equivocada.
+    await page.route(/\/api\/games\/(?!facets)/, (route) =>
+        route.fulfill({
+            json: {
+                count: 1,
+                next: null,
+                previous: null,
+                results: [{
+                    id: 1,
+                    name: 'Juego Sin Stock',
+                    description: null,
+                    developer: 'Estudio Test',
+                    release_date: null,
+                    platforms: [MOCK_PLATFORMS[0]],
+                    genres: [],
+                    image: null,
+                    rating: null,
+                    min_price: null,
+                }],
+            },
+        })
+    );
+    await page.goto('/search');
+    await expect(page.getByText('Juego Sin Stock')).toBeVisible();
+    await expect(page.getByText('Sin stock')).toBeVisible();
+});
+
 test('muestra las facetas mientras la petición de resultados sigue pendiente', async ({ page }) => {
     let releaseResults = () => {};
     const resultsPending = new Promise<void>((resolve) => { releaseResults = resolve; });
