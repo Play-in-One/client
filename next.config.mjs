@@ -7,6 +7,15 @@ const nextConfig = {
     images: {
         // Servir AVIF/WebP cuando el navegador lo soporte.
         formats: ['image/avif', 'image/webp'],
+        // Default de Next (60s) hacía que cualquier imagen con poco tráfico
+        // individual (los logos de saga, repartidos entre decenas de
+        // franquicias) expirara de la caché entre una visita y la siguiente,
+        // pagando de nuevo la descarga + reencode del host externo en cada
+        // miss. Los orígenes de estas imágenes (logo de saga, portada de
+        // juego/producto) no mutan el contenido de una URL ya existente: un
+        // cambio de imagen llega con una URL nueva, así que un TTL largo no
+        // sirve contenido desactualizado.
+        minimumCacheTTL: 2678400, // 31 días
         remotePatterns: [
             {
                 protocol: apiUrl.protocol.replace(':', ''),
