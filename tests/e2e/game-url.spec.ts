@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
+import { SEEDED } from './helpers';
 
 /* URLs de ficha: `/juego/<slug>-<id>`, con `/game/<id>` como redirección
  * permanente. Van contra el backend real (los mocks de `page.route` no
@@ -57,4 +58,11 @@ test('un juego inexistente es un 404 de verdad, no un 200 con noindex', async ({
 test('un segmento sin id es 404', async ({ request }) => {
     const res = await request.get('/juego/sin-numero', { maxRedirects: 0 });
     expect(res.status()).toBe(404);
+});
+
+test('la tarjeta abre la ficha en la consola del precio que muestra', async ({ page }) => {
+    // Sin filtro de consola: antes la tarjeta enlazaba la ficha a secas.
+    await page.goto(`/search?q=${encodeURIComponent(SEEDED.game)}`);
+    const card = page.locator(`a[href*="-${SEEDED.gameId}"]`).first();
+    await expect(card).toHaveAttribute('href', new RegExp(`-${SEEDED.gameId}\\?platform=ps5$`));
 });

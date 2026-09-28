@@ -55,9 +55,13 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     const seller = bestProduct?.seller ?? null;
     const hasPrice = price !== null;
 
+    // La ficha abre en la consola del precio que muestra la tarjeta; sin
+    // precio, en la del filtro activo (si lo hay).
+    const targetPlatform = game.min_price_platform ?? platformSlug;
+
     const trackGameClick = () => {
-        const platformId = platformSlug
-            ? game.platforms?.find((p) => p.slug === platformSlug)?.id
+        const platformId = targetPlatform
+            ? game.platforms?.find((p) => p.slug === targetPlatform)?.id
             : undefined;
         trackEvent({ event_type: 'game_click', game: game.id, platform: platformId });
     };
@@ -69,7 +73,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     // "todos los juegos". En modo selectable el click nunca navega
     // (preventDefault cancela la navegación de Link), así que el href es
     // solo un placeholder.
-    const gameHref = gamePath(game, platformSlug);
+    const gameHref = gamePath(game, targetPlatform);
 
     return (
         <Anchor

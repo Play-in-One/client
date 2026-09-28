@@ -227,6 +227,9 @@ export interface Game {
      *  almacenamiento. Opcional: un backend anterior no lo manda y la tarjeta
      *  simplemente no pinta el 💾. */
     min_price_condition?: Product['condition'] | null;
+    /** Slug de la consola de esa MISMA oferta. La tarjeta abre la ficha en
+     *  ella, para que la ficha muestre primero el precio de la tarjeta. */
+    min_price_platform?: string | null;
     /** Si esa MISMA oferta es de una tienda afiliada (ver `isAffiliateOffer`).
      *  Solo lo pinta la marca 💸 de admin. Opcional: un backend anterior no lo
      *  manda. */

@@ -95,7 +95,7 @@ function FeaturedGameCard({
         <Anchor
             ref={anchorRef}
             component={Link}
-            href={gamePath(game)}
+            href={gamePath(game, game.min_price_platform)}
             underline="never"
             /* `fit-content` acota el enlace a la tarjeta que se ve. Por defecto
                el <a> se estiraba al ancho COMPLETO del slide (~575px con
