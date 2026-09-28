@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
 import { gamePath } from '@/lib/seo';
-import { useSearchParams } from 'next/navigation';
 import {
     Container,
     Title,
@@ -48,6 +47,7 @@ import {
 } from '@tabler/icons-react';
 
 import { trackEvent, getGameClickStats } from '@/lib/api';
+import { useGamePlatform } from './GamePlatformContext';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
 import { platformLongName, activeCoupon, isAffiliateOffer } from '@/lib/types';
@@ -246,7 +246,6 @@ export default function GameDetailClient({
     initialGame: Game;
     initialPrefs: Prefs;
 }) {
-    const searchParams = useSearchParams();
     const { condition, format, digital, includeInternational, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     // La sesión de staff vive en localStorage, inexistente durante SSR. Aplazar
@@ -274,11 +273,11 @@ export default function GameDetailClient({
     // El backend garantiza que una consola solo está en el juego mientras tenga
     // al menos un producto visible de ella, así que no hay tabs vacíos que filtrar.
     const platformOptions = game.platforms;
-    const [selectedPlatform, setSelectedPlatform] = useState<string | null>(() => {
-        const requestedSlug = searchParams.get('platform');
-        const requested = requestedSlug ? platformOptions.find((p) => p.slug === requestedSlug) : null;
-        return requested?.slug ?? platformOptions[0]?.slug ?? null;
-    });
+    /* Compartido con `PopularGamesSection` vía contexto (ver
+       GamePlatformContext): el Provider ya lo inicializa con la misma regla
+       (`?platform=` si el juego la tiene, si no la primera), calculada en el
+       servidor en page.tsx. */
+    const { selectedPlatform, setSelectedPlatform } = useGamePlatform();
     /* Hasta que el contexto lee lo persistido manda lo que el SERVIDOR ya
        resolvió desde la cookie: el primer render coincide con el HTML y no hay
        nada que corregir después. Sin esto, las ofertas importadas asomaban un

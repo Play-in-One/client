@@ -16,25 +16,29 @@ import FaqSection from '@/components/FaqSection';
 import PopularGamesSection from '@/components/PopularGamesSection';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
 import GameDetailClient from './GameDetailClient';
+import { GamePlatformProvider } from './GamePlatformContext';
 import { fetchGame, parseGameSegment } from './resolve';
 
-/* Pool del que sale la muestra de "Otros juegos populares". Se pide SIN filtros
-   y sin el id a excluir, para que la URL sea idéntica en todas las fichas y su
-   respuesta se comparta en el Data Cache de Next.
+/* Pool del que sale la muestra de "Otros juegos populares", de la consola
+   vista en la ficha. Se pide SIN el id a excluir, para que la URL sea idéntica
+   en todas las fichas de esa consola y su respuesta se comparta en el Data
+   Cache de Next.
 
-   El TTL es largo a propósito: `traffic_score` solo se reescribe una vez al día
-   (el cron de `rollup_analytics`), así que revalidar cada 5 min estaría pagando
-   ~72 veces más misses de los que el dato justifica. */
+   El TTL es largo a propósito: el pool es el pull NOCTURNO de
+   `refresh_popular_pools` (afiliados de esa consola, sin los que salen en el
+   Home), así que revalidar cada 5 min estaría pagando muchas más veces de lo
+   que el dato justifica. */
 const POPULAR_POOL_SIZE = 40;
 const POPULAR_POOL_REVALIDATE = 60 * 60 * 6;
 
 /** Los 4 de la muestra, o `[]` si el API falla: la ficha no se cae por una
  *  sección de descubrimiento. */
-async function fetchPopularSample(excludeId: number) {
+async function fetchPopularSample(excludeId: number, platform?: string) {
     try {
         const res = await getPopularGames({
             limit: POPULAR_POOL_SIZE,
             revalidate: POPULAR_POOL_REVALIDATE,
+            platform,
         });
         // El barajado corre en el SERVIDOR: el HTML ya lleva los 4 elegidos y
         // el cliente hidrata sobre ellos, sin mismatch.
@@ -111,6 +115,13 @@ export default async function GameDetailPage({
     // Dos URLs con la misma ficha se resuelven con una sola, no con un canonical.
     if (parsed.slug !== game.slug) permanentRedirect(gamePath(game, platform));
 
+    // La consola de `?platform=` si el juego la tiene, si no la primera. La
+    // usan la miga estructurada, `GameDetailClient` (vía GamePlatformProvider,
+    // más abajo) Y el pool de "Otros juegos populares": es exactamente "la
+    // consola que se está viendo" en la ficha.
+    const crumbPlatform =
+        (platform ? game.platforms.find((p) => p.slug === platform) : undefined) ?? game.platforms[0];
+
     /* Los filtros globales se leen de la cookie y viajan como props: así el
        HTML sale ya filtrado y no hay nada que corregir tras hidratar, que es lo
        que hacía parpadear las ofertas de tiendas internacionales.
@@ -118,7 +129,7 @@ export default async function GameDetailPage({
        nada porque `getGame` ya se resuelve en cada petición, pero conviene
        saberlo antes de intentar cachearla. */
     const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
-    const popular = await fetchPopularSample(game.id);
+    const popular = await fetchPopularSample(game.id, crumbPlatform?.slug);
 
     /* El geo-bloqueo de la publicidad se resuelve AQUÍ y no en el layout raíz:
        `headers()` allí sacaría del render estático a toda la app y se llevaría
@@ -127,12 +138,6 @@ export default async function GameDetailPage({
        cuesta nada. */
     const adsAllowed = adsAllowedForCountry((await headers()).get('cf-ipcountry'));
 
-    // La miga estructurada dice lo mismo que la visible (`GameDetailClient`):
-    // la consola de `?platform=` si el juego la tiene, si no la primera. Pasa
-    // por la landing, que reparte autoridad hacia el camino que descubre las
-    // fichas; `/search` solo si el juego no tiene ninguna consola.
-    const crumbPlatform =
-        (platform ? game.platforms.find((p) => p.slug === platform) : undefined) ?? game.platforms[0];
     const faq = buildGameFaq(game);
     const jsonLd = [
         gameJsonLd(game),
@@ -149,21 +154,27 @@ export default async function GameDetailPage({
     return (
         <>
             <JsonLd data={jsonLd} />
-            <Suspense fallback={null}>
-                <GameDetailClient initialGame={game} initialPrefs={prefs} />
-            </Suspense>
-            <FaqSection
-                entries={faq}
-                title={`Preguntas frecuentes sobre ${game.name}`}
-                collapsible
-                /* 'lg' como el Container de GameDetailClient: con el 'xl' por
-                   defecto la sección se salía por la izquierda del resto. */
-                size="lg"
-            />
-            {/* Al fondo del todo. Sin JSON-LD: son enlaces internos hacia otras
-                fichas, no una lista que ESTA página sea — un `ItemList` aquí
-                declararía un catálogo que la ficha no es. */}
-            <PopularGamesSection initialGames={popular} excludeId={game.id} />
+            <GamePlatformProvider initialPlatform={crumbPlatform?.slug ?? null}>
+                <Suspense fallback={null}>
+                    <GameDetailClient initialGame={game} initialPrefs={prefs} />
+                </Suspense>
+                <FaqSection
+                    entries={faq}
+                    title={`Preguntas frecuentes sobre ${game.name}`}
+                    collapsible
+                    /* 'lg' como el Container de GameDetailClient: con el 'xl' por
+                       defecto la sección se salía por la izquierda del resto. */
+                    size="lg"
+                />
+                {/* Al fondo del todo. Sin JSON-LD: son enlaces internos hacia otras
+                    fichas, no una lista que ESTA página sea — un `ItemList` aquí
+                    declararía un catálogo que la ficha no es. */}
+                <PopularGamesSection
+                    initialGames={popular}
+                    initialPlatform={crumbPlatform?.slug ?? null}
+                    excludeId={game.id}
+                />
+            </GamePlatformProvider>
             {/* Debajo de todo el contenido, nunca junto a la tabla de precios:
                 un anuncio que compita con las ofertas convierte el producto en
                 el señuelo. Sin configurar o fuera de zona no renderiza nada,

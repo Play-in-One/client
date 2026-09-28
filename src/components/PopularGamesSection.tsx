@@ -16,6 +16,7 @@ import { IconArrowRight } from '@tabler/icons-react';
 
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
+import { useGamePlatform } from '@/app/juego/[slug]/GamePlatformContext';
 import { getPopularGames } from '@/lib/api';
 import { sampleBy, POPULAR_SAMPLE_SIZE } from '@/lib/utils';
 import type { Game } from '@/lib/types';
@@ -35,26 +36,33 @@ function SampleSkeleton() {
 }
 
 /**
- * Cuatro juegos al azar del top 40 por tráfico, al fondo de la ficha.
+ * Cuatro juegos al azar del pool nocturno de la consola vista, al fondo de la
+ * ficha (afiliados, sin repetir el Home — ver `refresh_popular_pools` en el
+ * backend).
  *
  * El muestreo ya viene hecho desde el servidor (`initialGames`), así que el
  * primer render es el definitivo y no hay hydration mismatch: `Math.random()`
  * corre una sola vez, en el servidor.
  *
- * Solo se vuelve a pedir cuando los filtros globales se desvían del default. El
- * pool del SSR sale del Data Cache de Next, que se comparte entre todas las
- * fichas y por tanto NO puede venir filtrado — mismo trato que "Populares" en
- * la home, incluido el `data-prefs-dependent` que tapa el hueco hasta que llega
- * el refetch.
+ * Se vuelve a pedir cuando los filtros globales se desvían del default O
+ * cuando la consola seleccionada (contexto `GamePlatformContext`, compartido
+ * con los tabs de `GameDetailClient`) cambia respecto de la que trajo el SSR.
+ * El pool del SSR sale del Data Cache de Next, que se comparte entre todas las
+ * fichas de esa consola y por tanto NO puede venir filtrado por
+ * condición/tienda — mismo trato que "Populares" en la home, incluido el
+ * `data-prefs-dependent` que tapa el hueco hasta que llega el refetch.
  */
 export default function PopularGamesSection({
     initialGames,
+    initialPlatform,
     excludeId,
 }: {
     initialGames: Game[];
+    initialPlatform: string | null;
     excludeId: number;
 }) {
     const { conditionParam, sellerScopeParam, ready } = useApp();
+    const { selectedPlatform } = useGamePlatform();
     const [games, setGames] = useState<Game[]>(initialGames);
     const [filtering, setFiltering] = useState(false);
 
@@ -62,9 +70,10 @@ export default function PopularGamesSection({
         // Sin las preferencias leídas, los params valen su default optimista:
         // pedir con ellos gasta un fetch que hay que repetir.
         if (!ready) return;
+        const platformChanged = selectedPlatform !== initialPlatform;
         // Sobre los params DERIVADOS, no sobre `condition`: con formato "físico"
         // y estado "todos" la condición sigue siendo 'all' pero el filtro acota.
-        if (!conditionParam && !sellerScopeParam) {
+        if (!conditionParam && !sellerScopeParam && !platformChanged) {
             setGames(initialGames);
             setFiltering(false);
             return;
@@ -76,6 +85,7 @@ export default function PopularGamesSection({
         getPopularGames({
             condition: conditionParam,
             seller_scope: sellerScopeParam,
+            platform: selectedPlatform ?? undefined,
             signal: controller.signal,
         })
             .then((res) => {
@@ -93,7 +103,7 @@ export default function PopularGamesSection({
             superseded = true;
             controller.abort();
         };
-    }, [ready, conditionParam, sellerScopeParam, initialGames, excludeId]);
+    }, [ready, conditionParam, sellerScopeParam, selectedPlatform, initialPlatform, initialGames, excludeId]);
 
     if (games.length === 0 && !filtering) return null;
 
@@ -108,7 +118,7 @@ export default function PopularGamesSection({
                             Otros juegos populares
                         </Title>
                         <Text c="dimmed" mt={6} fz="sm">
-                            Una selección al azar entre los más vistos del catálogo.
+                            Una selección al azar de esta consola, en tiendas afiliadas.
                         </Text>
                     </Box>
                     <Anchor

@@ -383,12 +383,15 @@ export async function getFeaturedGames(params?: {
 }
 
 /**
- * Top del catálogo por tráfico (máx. 40), como LISTA estable.
+ * Top de una consola por tráfico (máx. 40), como LISTA estable.
  *
- * La misma URL sirve a todas las fichas del sitio, y ahí está la gracia: la
- * respuesta se cachea en Redis (backend), en el Data Cache de Next (`revalidate`)
- * y en el navegador (`Cache-Control` del endpoint). Quien la consume baraja por
- * su cuenta con `sampleBy()`; pedirle al backend la muestra ya hecha —o pasarle
+ * Con `platform`, es el pool NOCTURNO de esa consola (afiliados, sin los que
+ * ya salen en el Home — ver `refresh_popular_pools` en el backend); sin él,
+ * el comportamiento histórico de siempre. La misma URL sirve a todas las
+ * fichas de una misma consola, y ahí está la gracia: la respuesta se cachea
+ * en Redis (backend), en el Data Cache de Next (`revalidate`) y en el
+ * navegador (`Cache-Control` del endpoint). Quien la consume baraja por su
+ * cuenta con `sampleBy()`; pedirle al backend la muestra ya hecha —o pasarle
  * el id a excluir— rompería los tres niveles.
  */
 export async function getPopularGames(params?: {
@@ -396,6 +399,8 @@ export async function getPopularGames(params?: {
     limit?: number;
     condition?: string;
     seller_scope?: string;
+    /** Slug de la consola vista en la ficha. */
+    platform?: string;
     signal?: AbortSignal;
     /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
     revalidate?: number;
