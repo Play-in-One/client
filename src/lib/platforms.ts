@@ -19,8 +19,8 @@ import { WiiULogo, WiiLogo, NintendoDSLogo } from '@/components/icons/PlatformLo
  *
  * Antes eran seis tablas independientes indexadas por string, y **ninguna
  * omisión rompía el build**: una consola que faltara aparecía como gamepad
- * gris, sin nombre largo y ausente del Navbar, el Footer y la home. `xbox` y
- * `pc` llevaban así desde siempre — existían en el backend y no en el menú.
+ * gris, sin nombre largo y ausente del Navbar, el Footer y la home. `pc`
+ * llevaba así desde siempre — existía en el backend y no en el menú.
  *
  * `slug` es el del backend (`Develop/backend/games/platforms.py`) y es la clave
  * de todo: el routing (`/juegos/<slug>`), el filtro (`?platform=<slug>`) y estos
@@ -85,12 +85,6 @@ const CATALOG = [
         icon: FaPlaystation, hex: '#1E40AF', mantine: 'indigo',
         cssVar: 'var(--mantine-color-indigo-filled)',
         family: 'playstation',
-    },
-    {
-        slug: 'xbox', short: 'Xbox', long: 'Xbox',
-        icon: FaXbox, hex: '#16A34A', mantine: 'green',
-        cssVar: 'var(--mantine-color-green-filled)',
-        family: 'xbox',
     },
     {
         slug: 'xbox360', short: 'X360', long: 'Xbox 360',

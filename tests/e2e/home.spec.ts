@@ -6,8 +6,8 @@ const MOCK_PLATFORMS = [
       long_name: 'PlayStation 5', family: 'playstation', order: 12 },
     { id: 2, name: 'switch', slug: 'switch', display_name: 'NS',
       long_name: 'Nintendo Switch', family: 'nintendo', order: 34 },
-    { id: 3, name: 'xbox', slug: 'xbox', display_name: 'Xbox',
-      long_name: 'Xbox', family: 'xbox', order: 20 },
+    { id: 3, name: 'xboxone', slug: 'xboxone', display_name: 'XOne',
+      long_name: 'Xbox One', family: 'xbox', order: 22 },
 ];
 
 const MOCK_GAMES = {

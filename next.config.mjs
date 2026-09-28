@@ -60,6 +60,14 @@ const nextConfig = {
                 destination: '/juegos/ds/pagina/:page',
                 permanent: true,
             },
+            // `xbox` genérico se retiró del catálogo (queda xbox360/xboxone/
+            // xboxseries), y su landing también estaba indexada.
+            { source: '/juegos/xbox', destination: '/juegos/xboxseries', permanent: true },
+            {
+                source: '/juegos/xbox/pagina/:page',
+                destination: '/juegos/xboxseries/pagina/:page',
+                permanent: true,
+            },
         ];
     },
     experimental: {
