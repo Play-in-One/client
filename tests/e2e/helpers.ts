@@ -41,6 +41,10 @@ export const SEEDED = {
      *  logo de la saga en la sección de información de la ficha del juego. */
     sagaGameAId: 999102,
     sagaGameA: 'E2E Juego De Saga Uno',
+    /** El otro juego de `sagaSlug` (rating 6.0). A diferencia de A, tiene una
+     *  oferta extra en Switch: A solo está en PS5, B está en PS5 y Switch.
+     *  Sirve para probar el selector de plataforma de /saga/<slug>. */
+    sagaGameB: 'E2E Juego De Saga Dos',
     nationalSeller: 'E2E Tienda Nacional',
     internationalSeller: 'E2E Importadora',
     /** Nacional, nueva, sin envío: su precio efectivo es el de lista. */

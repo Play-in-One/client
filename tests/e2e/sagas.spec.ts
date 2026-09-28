@@ -38,6 +38,25 @@ test('la ficha de saga muestra descripción al centro y el gauge sin banner', as
     await expect(page.locator('img[alt=""]')).toHaveCount(0);
 });
 
+test('la ficha de saga permite filtrar sus juegos por consola', async ({ page }) => {
+    await page.goto(`/saga/${SEEDED.sagaSlug}`);
+
+    // Los dos juegos de la saga están en PS5; solo el B además está en Switch.
+    await expect(page.getByText(SEEDED.sagaGameA)).toBeVisible();
+    await expect(page.getByText(SEEDED.sagaGameB)).toBeVisible();
+
+    // `exact` importa: "Nintendo Switch" también casa con "Nintendo Switch 2".
+    const switchCheckbox = page.getByRole('checkbox', { name: /Nintendo Switch \(/ });
+    await switchCheckbox.click();
+    await expect(page.getByText(SEEDED.sagaGameB)).toBeVisible();
+    await expect(page.getByText(SEEDED.sagaGameA)).toBeHidden();
+
+    // Volver a des-marcar restaura los dos juegos.
+    await switchCheckbox.click();
+    await expect(page.getByText(SEEDED.sagaGameA)).toBeVisible();
+    await expect(page.getByText(SEEDED.sagaGameB)).toBeVisible();
+});
+
 test('la ficha del juego muestra el logo de su saga en la sección de información', async ({ page }) => {
     const gamePath = await seededGamePath(page, SEEDED.sagaGameAId);
     await page.goto(gamePath);

@@ -178,7 +178,19 @@ export default function GameExplorer({
     const [mergeError, setMergeError] = useState<string | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    const effectivePlatformIds = lockedPlatform ? [lockedPlatform.id] : selectedPlatformIds ?? [];
+    /* Sin `onPlatformFilterChange` (ficha de saga: un Server Component, no
+     *  puede dueñar este estado) el filtro de plataforma se auto-gestiona acá,
+     *  mismo patrón que género/precio/calificación. Con `onPlatformFilterChange`
+     *  (/search) sigue 100% controlado por el padre, que lo sincroniza con la
+     *  URL — no tocar ese camino. */
+    const hasParentPlatformOptions = !!onPlatformFilterChange;
+    const [internalPlatformIds, setInternalPlatformIds] = useState<number[]>(selectedPlatformIds ?? []);
+
+    const effectivePlatformIds = lockedPlatform
+        ? [lockedPlatform.id]
+        : hasParentPlatformOptions
+            ? selectedPlatformIds ?? []
+            : internalPlatformIds;
 
     const platformSlugFor = (game: Game) => {
         if (lockedPlatform) return lockedPlatform.slug;
@@ -191,14 +203,16 @@ export default function GameExplorer({
         const next = effectivePlatformIds.includes(id)
             ? effectivePlatformIds.filter((x) => x !== id)
             : [...effectivePlatformIds, id];
-        onPlatformFilterChange?.(next);
+        if (hasParentPlatformOptions) onPlatformFilterChange?.(next);
+        else setInternalPlatformIds(next);
         markInteractive();
         setPage(1);
     };
 
     const clearPlatforms = () => {
         if (lockedPlatform) return;
-        onPlatformFilterChange?.([]);
+        if (hasParentPlatformOptions) onPlatformFilterChange?.([]);
+        else setInternalPlatformIds([]);
         markInteractive();
         setPage(1);
     };
@@ -249,7 +263,6 @@ export default function GameExplorer({
     };
 
     /* /search already owns the platform list for URL slug translation. */
-    const hasParentPlatformOptions = !!onPlatformFilterChange;
     useEffect(() => {
         if (!lockedPlatform && !hasParentPlatformOptions) {
             getPlatforms()
@@ -413,7 +426,13 @@ export default function GameExplorer({
     };
 
     const handleClearFilters = () => {
-        if (!lockedPlatform && !onClearFilters) onPlatformFilterChange?.([]);
+        if (!lockedPlatform) {
+            if (hasParentPlatformOptions) {
+                if (!onClearFilters) onPlatformFilterChange?.([]);
+            } else {
+                setInternalPlatformIds([]);
+            }
+        }
         setSelectedGenre(null);
         setPriceMin(undefined);
         setPriceMax(undefined);
