@@ -11,7 +11,9 @@ import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, breadcrumbJsonLd, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
 
-const ORDERING = 'min_price';
+// Por defecto, los más populares de la saga primero: el mismo valor que la
+// opción "Más populares" del selector, para que se vea marcada al entrar.
+const ORDERING = '-traffic_score,name';
 const PAGE_SIZE = 24;
 
 // El listado de una saga cambia con el catálogo (precios, stock); 5 min lo

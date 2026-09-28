@@ -31,7 +31,7 @@ export default function SagaCard({ saga }: { saga: Saga }) {
     // Igual que GameCard/FeaturedGameCard, el fallo de carga se guarda por
     // índice y cae al mismo placeholder que el resto del catálogo.
     const [failed, setFailed] = useState<Record<number, boolean>>({});
-    const covers = Array.from({ length: COVER_SLOTS }, (_, i) => saga.game_covers[i] ?? null);
+    const covers = Array.from({ length: COVER_SLOTS }, (_, i) => saga.game_covers?.[i] ?? null);
 
     return (
         <Anchor component={Link} href={`/saga/${saga.slug}`} underline="never">
