@@ -77,6 +77,14 @@ export function activeCoupon(
     return { code: seller.coupon_code, percent: seller.coupon_discount_percent };
 }
 
+/** ¿La oferta es de una tienda afiliada a PIO? Tiene link de afiliado propio o
+ *  su tienda da un cupón de convenio activo. Misma regla que
+ *  `recommendations.AFFILIATE_OFFER_Q` del backend (la que decide
+ *  `min_price_is_affiliate` y los Destacados): si una cambia, la otra también. */
+export function isAffiliateOffer(p: Pick<Product, 'affiliate_url' | 'seller'>): boolean {
+    return Boolean(p.affiliate_url) || activeCoupon(p.seller) !== null;
+}
+
 export interface PriceHistory {
     id: number;
     product: number;
@@ -219,6 +227,10 @@ export interface Game {
      *  almacenamiento. Opcional: un backend anterior no lo manda y la tarjeta
      *  simplemente no pinta el 💾. */
     min_price_condition?: Product['condition'] | null;
+    /** Si esa MISMA oferta es de una tienda afiliada (ver `isAffiliateOffer`).
+     *  Solo lo pinta la marca 💸 de admin. Opcional: un backend anterior no lo
+     *  manda. */
+    min_price_is_affiliate?: boolean;
     /** Cuándo se registró por última vez ese precio. Es la señal de frescura:
      *  alimenta el priceValidUntil del dato estructurado y el "precio
      *  actualizado el …" que se muestra y se cita. */

@@ -50,7 +50,7 @@ import {
 import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
-import { platformLongName, activeCoupon } from '@/lib/types';
+import { platformLongName, activeCoupon, isAffiliateOffer } from '@/lib/types';
 import { allowedConditionsFor, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
@@ -61,6 +61,7 @@ import PriceInfo from '@/components/PriceInfo';
 import CouponModal, { type PendingOffer } from '@/components/CouponModal';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import ConditionIcon from '@/components/ConditionIcon';
+import AffiliateMark from '@/components/AffiliateMark';
 import GameClickBadge from '@/components/GameClickBadge';
 import ProductClickBadge from '@/components/ProductClickBadge';
 import SagaLogo from '@/components/SagaLogo';
@@ -1043,6 +1044,9 @@ export default function GameDetailClient({
                                                                     <Group gap={6} wrap="nowrap" align="center" visibleFrom="sm">
                                                                         <Text fw={700} fz="sm">{p.seller.name}</Text>
                                                                         <SellerScopeBadge seller={p.seller} />
+                                                                        {isAffiliateOffer(p) && (
+                                                                            <AffiliateMark label="Tienda afiliada (solo admin)" size={18} />
+                                                                        )}
                                                                     </Group>
                                                                     <Text fw={{ base: 500, sm: 400 }} fz={{ base: 'sm', sm: 'xs' }} c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
                                                                         {p.title}
@@ -1065,6 +1069,9 @@ export default function GameDetailClient({
                                                                             shippingCost={p.shipping_cost}
                                                                             seller={p.seller}
                                                                         />
+                                                                        {isAffiliateOffer(p) && (
+                                                                            <AffiliateMark label="Tienda afiliada (solo admin)" size={18} ml={4} />
+                                                                        )}
                                                                     </Group>
                                                                 </Box>
                                                             </Anchor>

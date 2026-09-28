@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
 import ConditionIcon from './ConditionIcon';
+import AffiliateMark from './AffiliateMark';
 import PriceInfo from './PriceInfo';
 import { formatCLP } from '@/lib/utils';
 import { gamePath } from '@/lib/seo';
@@ -172,6 +173,17 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         >
                             <ConditionIcon condition={game.min_price_condition} size={15} />
                         </Box>
+                    )}
+
+                    {/* Solo admin (💸): la oferta que fija el precio es de una tienda
+                        afiliada. Esquina inferior izquierda, la única libre. */}
+                    {game.min_price_is_affiliate && (
+                        <AffiliateMark
+                            label="Precio más barato en tienda afiliada (solo admin)"
+                            pos="absolute"
+                            bottom={8}
+                            left={8}
+                        />
                     )}
 
                     {/* Calificación (0-10, la calcula el enricher). Esquina
