@@ -37,6 +37,13 @@ const COOKIES = [
         needed: 'Solo si aceptas la analítica',
     },
     {
+        name: '_ga, _ga_*',
+        origin: 'Google',
+        purpose: 'Google Analytics: distinguen visitantes y sesiones para medir de dónde llegan las visitas y qué páginas se ven.',
+        duration: '13 meses',
+        needed: 'Solo si aceptas la analítica',
+    },
+    {
         name: '__gads, __gpi',
         origin: 'Google',
         purpose: 'Miden cuántas veces has visto un anuncio, limitan que se repita y detectan clics fraudulentos.',
@@ -101,7 +108,7 @@ export function CookiePreferences() {
                         disabled={!ready || busy}
                         onChange={(event) => apply(event.currentTarget.checked ? 'accept' : 'essential', ads)}
                         label="Recordar mi navegador para saber si vuelvo"
-                        description={`Guarda la cookie pio_vid durante ${MONTHS} meses. Es lo que nos permite distinguir entre mil visitas de mil personas y mil visitas de cien personas.`}
+                        description={`Guarda la cookie pio_vid durante ${MONTHS} meses y carga Google Analytics. Es lo que nos permite distinguir entre mil visitas de mil personas y mil visitas de cien personas, y saber de dónde llegan.`}
                     />
 
                     <Divider />
@@ -164,11 +171,11 @@ export function CookiePreferences() {
                 </Table.ScrollContainer>
 
                 <Text fz="sm" c="dimmed" mt="md">
-                    Las dos primeras son propias y ninguna sirve para publicidad. Las de Google
-                    las pone su sistema de anuncios (AdSense) cuando se carga el bloque del pie
-                    de una ficha de juego, y son las únicas de terceros que existen aquí: Play in
-                    One no carga Google Analytics ni píxeles de redes sociales. La lista exacta la
-                    mantiene Google en{' '}
+                    Las dos primeras son propias y ninguna sirve para publicidad. Las{' '}
+                    <code>_ga</code> son de Google Analytics y solo existen si aceptas la
+                    analítica. El resto las pone el sistema de anuncios de Google (AdSense) cuando
+                    se carga el bloque del pie de una ficha de juego. Play in One no carga píxeles
+                    de redes sociales. La lista exacta de las de anuncios la mantiene Google en{' '}
                     <Anchor href="https://business.safety.google/adscookies/" target="_blank" rel="noopener noreferrer">
                         business.safety.google/adscookies
                     </Anchor>
@@ -195,12 +202,13 @@ export function CookiePreferences() {
                         apunte a ti: no podemos borrar filas que ya no sabemos que eran tuyas.
                     </List.Item>
                     <List.Item>
-                        Las cookies de Google no las controlamos nosotros y este botón no las toca.
-                        Se gestionan desde{' '}
+                        Las cookies de Google (anuncios y Analytics) no las controlamos nosotros y
+                        este botón no las toca: se borran con los datos del sitio en tu navegador, y
+                        la personalización de anuncios se gestiona en{' '}
                         <Anchor href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer">
                             myadcenter.google.com
-                        </Anchor>{' '}
-                        o borrando los datos del sitio en tu navegador.
+                        </Anchor>
+                        . Google Analytics, eso sí, deja de medir en cuanto retiras el consentimiento.
                     </List.Item>
                 </List>
 

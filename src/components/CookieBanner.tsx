@@ -107,10 +107,10 @@ export function CookieBanner() {
                                 </Text>
                             </Group>
                             <Text fz="sm" lh={1.6} c={darkScale[1]}>
-                                Usamos una cookie propia para entender cómo se usa Play in One y
-                                mejorar el sitio, y mostramos anuncios de Google para sostenerlo. Si
-                                aceptas, esos anuncios se ajustan a tu navegación; si no, los verás
-                                igual, sin personalizar.{' '}
+                                Si aceptas, usamos una cookie propia y Google Analytics para
+                                entender cómo se usa Play in One y mejorar el sitio. También
+                                mostramos anuncios de Google para sostenerlo: aceptando se ajustan a
+                                tu navegación; si no, los verás igual, sin personalizar.{' '}
                                 <Anchor
                                     component={Link}
                                     href="/cookies"

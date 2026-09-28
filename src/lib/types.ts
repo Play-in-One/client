@@ -432,6 +432,50 @@ export interface SocialStat {
     clicks: number;
 }
 
+/** Canal de llegada. Espejo de `analytics.attribution.Channel`; `''` son las
+    sesiones anteriores a que se midiera el origen. */
+export type TrafficChannel =
+    | 'google_ads' | 'meta_ads' | 'tiktok_ads' | 'other_paid'
+    | 'google_organic' | 'search_other'
+    | 'instagram' | 'facebook' | 'tiktok' | 'youtube' | 'x' | 'whatsapp'
+    | 'ai' | 'email' | 'referral' | 'direct' | '';
+
+export interface SourceMetrics {
+    sessions: number;
+    page_views: number;
+    game_views: number;
+    offer_clicks: number;
+    store_clicks: number;
+    /** (offer_clicks + store_clicks) / sessions, en %. */
+    conversion_rate: number;
+}
+
+export interface ChannelStat extends SourceMetrics {
+    channel: TrafficChannel;
+    label: string;
+}
+
+export interface SourceStat extends SourceMetrics {
+    channel: TrafficChannel;
+    /** `utm_source` o, sin etiqueta, el host del referrer. */
+    source: string;
+}
+
+export interface CampaignStat extends SourceStat {
+    medium: string;
+    campaign: string;
+}
+
+export interface SourcesReport {
+    start: string;
+    end: string;
+    totals: SourceMetrics;
+    channels: ChannelStat[];
+    top_sources: SourceStat[];
+    campaigns: CampaignStat[];
+    series: { date: string; channel: TrafficChannel; sessions: number }[];
+}
+
 export interface SearchReport {
     start: string;
     end: string;

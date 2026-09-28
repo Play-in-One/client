@@ -11,7 +11,7 @@ import { DataTable, type DataRow } from './DataTable';
    Component y el render revienta. page.tsx sigue siendo servidor y conserva
    la metadata, que es lo que necesitan los buscadores. */
 
-const LAST_UPDATED = '7 de septiembre de 2026';
+const LAST_UPDATED = '28 de septiembre de 2026';
 
 const DATA_ROWS: readonly DataRow[] = [
     {
@@ -20,6 +20,13 @@ const DATA_ROWS: readonly DataRow[] = [
         why: 'Saber qué juegos y tiendas interesan, y qué falta en el catálogo.',
         basis: 'Consentimiento (cookie de analítica) o interés legítimo (medición anónima agregada).',
         keeps: '180 días. Las búsquedas se borran a los 30 días.',
+    },
+    {
+        what: 'Origen de la visita',
+        detail: 'Desde qué sitio llegaste (solo su dominio, por ejemplo google.cl o instagram.com, nunca la dirección completa) y las etiquetas utm_ de campaña si el enlace las traía. Si venías de un anuncio, solo que era un anuncio y de qué red: no el código único del clic.',
+        why: 'Saber qué canales traen gente y cuáles terminan en una tienda: buscadores, redes sociales o anuncios.',
+        basis: 'Consentimiento (cookie de analítica) o interés legítimo (medición anónima agregada).',
+        keeps: '180 días junto a los eventos. Los totales diarios por canal se conservan sin límite.',
     },
     {
         what: 'Tiempos de carga',
@@ -34,6 +41,13 @@ const DATA_ROWS: readonly DataRow[] = [
         why: 'Distinguir visitas nuevas de visitas que vuelven, sin saber quién eres.',
         basis: 'Consentimiento.',
         keeps: '13 meses desde que aceptaste, o hasta que borres la cookie.',
+    },
+    {
+        what: 'Datos que recoge Google Analytics',
+        detail: 'Solo si aceptas la analítica: las páginas que visitas aquí, desde dónde llegaste, tu tipo de dispositivo y ciudad aproximada, con un identificador en la cookie _ga. Google Analytics no guarda tu dirección IP.',
+        why: 'Medir de dónde vienen las visitas con las herramientas de Google, incluido el rendimiento de nuestros anuncios en Google.',
+        basis: 'Consentimiento.',
+        keeps: '14 meses, el plazo que tenemos configurado en Google Analytics.',
     },
     {
         what: 'Registro de tu decisión sobre cookies',
@@ -79,9 +93,9 @@ export function PrivacyContent() {
                 <List spacing="xs" mb="lg" c="dimmed">
                     <List.Item>No guardamos tu dirección IP en ninguna parte.</List.Item>
                     <List.Item>
-                        Nuestra analítica es propia: no usamos Google Analytics ni ninguna
-                        herramienta de terceros para medir. El único tercero que interviene es
-                        Google, y solo para los anuncios — ver el punto 5.
+                        Nuestra analítica principal es propia. Solo si aceptas la cookie de
+                        analítica se carga además Google Analytics; sin aceptar, el único tercero
+                        que interviene es Google con los anuncios — ver el punto 5.
                     </List.Item>
                     <List.Item>No vendemos ni cedemos datos a nadie.</List.Item>
                     <List.Item>Puedes navegar sin aceptar ninguna cookie y el sitio funciona igual.</List.Item>
@@ -134,10 +148,10 @@ export function PrivacyContent() {
                     <List.Item>No rastreamos tu actividad en otros sitios web ni cruzamos lo que haces aquí con nada de fuera.</List.Item>
                     <List.Item>No compartimos datos con las tiendas a las que enlazamos. Cuando haces clic en una oferta, contamos el clic de nuestro lado; a la tienda no le mandamos nada sobre ti. Lo que ocurra ya en su sitio se rige por la política de esa tienda.</List.Item>
                     <List.Item>No guardamos lo que buscas si parece un dato personal: si escribes un correo o un teléfono en el buscador, la búsqueda se descarta sin guardarse.</List.Item>
-                    <List.Item>No le pasamos a Google nada de lo que medimos: ni tus búsquedas, ni los juegos que miras, ni tu identificador de visitante.</List.Item>
+                    <List.Item>No le pasamos a Google nada de lo que medimos con nuestra analítica propia: ni tus búsquedas, ni tu identificador de visitante. Google Analytics, si lo aceptas, mide por su cuenta las páginas que visitas (punto 5).</List.Item>
                 </List>
 
-                <Title order={2} fz="lg" mb="xs">5. Publicidad</Title>
+                <Title order={2} fz="lg" mb="xs">5. Publicidad y Google Analytics</Title>
                 <Text fz="md" c="dimmed" mb="md">
                     El sitio muestra anuncios de <b>Google AdSense</b> en un único lugar: un bloque
                     al final de la ficha de cada juego, por debajo de «Otros juegos populares». No
@@ -172,10 +186,25 @@ export function PrivacyContent() {
                         </Anchor>
                     </List.Item>
                 </List>
-                <Text fz="md" c="dimmed" mb="lg">
+                <Text fz="md" c="dimmed" mb="md">
                     No mostramos anuncios a quien navega desde el Espacio Económico Europeo o el
                     Reino Unido: allí la publicidad exige un sistema de consentimiento certificado
                     que no tenemos montado, así que el bloque sencillamente no se carga.
+                </Text>
+                <Text fz="md" c="dimmed" mb="lg">
+                    <b>Google Analytics solo se carga si pulsas «Aceptar»</b> o activas la cookie
+                    de analítica en{' '}
+                    <Anchor component={Link} href="/cookies">preferencias de cookies</Anchor>. Sin
+                    eso, el script de Google Analytics ni siquiera se descarga. Si lo aceptas, Google
+                    recibe las páginas que visitas en Play in One y desde dónde llegaste, y guarda
+                    las cookies <code>_ga</code>. Lo usamos para saber de dónde vienen las visitas
+                    —buscadores, redes sociales, anuncios— y los datos se conservan 14 meses. Si
+                    después lo desactivas, deja de medir en ese mismo momento. Cómo trata Google
+                    esos datos:{' '}
+                    <Anchor href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">
+                        policies.google.com/technologies/partner-sites
+                    </Anchor>
+                    .
                 </Text>
 
                 <Title order={2} fz="lg" mb="xs">6. Tus derechos</Title>
@@ -212,10 +241,11 @@ export function PrivacyContent() {
 
                 <Title order={2} fz="lg" mb="xs">7. Dónde se guardan</Title>
                 <Text fz="md" c="dimmed" mb="lg">
-                    Todo lo que medimos vive en nuestros propios servidores, con acceso restringido
-                    al equipo del proyecto: no hay ningún proveedor de analítica de por medio. Los
-                    datos que recoge Google para los anuncios los guarda Google en su propia
-                    infraestructura, y ahí ni entramos ni podemos entrar.
+                    Lo que medimos con nuestra analítica propia vive en nuestros propios servidores,
+                    con acceso restringido al equipo del proyecto. Los datos que recoge Google para
+                    los anuncios los guarda Google en su propia infraestructura, y ahí ni entramos ni
+                    podemos entrar. Los de Google Analytics también los guarda Google; nosotros solo
+                    vemos sus informes agregados.
                 </Text>
 
                 <Title order={2} fz="lg" mb="xs">8. Cambios en esta política</Title>

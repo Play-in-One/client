@@ -27,6 +27,7 @@ import {
     getAnalyticsFunnel,
     getAnalyticsRetention,
     getAnalyticsSearch,
+    getAnalyticsSources,
     getAnalyticsSummary,
     getAnalyticsTraffic,
 } from '@/lib/api';
@@ -37,12 +38,14 @@ import type {
     FunnelReport,
     RetentionReport,
     SearchReport,
+    SourcesReport,
     TrafficReport,
 } from '@/lib/types';
 import { useAdmin } from '@/context/AdminContext';
 import { RetentionLegend, RetentionMatrix } from './RetentionMatrix';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { PerformancePanel } from './PerformancePanel';
+import { SourcesPanel } from './SourcesPanel';
 
 // Recharts pesa: se carga aparte y solo en el cliente, igual que en el detalle
 // de juego. El dashboard es interno y no necesita renderizarse en el servidor.
@@ -124,6 +127,7 @@ interface Reports {
     search: SearchReport;
     retention: RetentionReport;
     activity: ActivityReport;
+    sources: SourcesReport;
 }
 
 export function AnalyticsClient() {
@@ -137,15 +141,16 @@ export function AnalyticsClient() {
         setLoading(true);
         setError(null);
         try {
-            const [summary, traffic, funnel, search, retention, activity] = await Promise.all([
+            const [summary, traffic, funnel, search, retention, activity, sources] = await Promise.all([
                 getAnalyticsSummary(range),
                 getAnalyticsTraffic(range),
                 getAnalyticsFunnel(range),
                 getAnalyticsSearch(range),
                 getAnalyticsRetention(12),
                 getAnalyticsActivity(range),
+                getAnalyticsSources(range),
             ]);
-            setReports({ summary, traffic, funnel, search, retention, activity });
+            setReports({ summary, traffic, funnel, search, retention, activity, sources });
         } catch {
             setError('No se pudieron cargar las métricas. Revisa que la sesión siga activa.');
         } finally {
@@ -265,6 +270,13 @@ export function AnalyticsClient() {
                         subtitle="Sesiones por día: navegadores distintos, no personas. «Identificados», «nuevos» y «recurrentes» solo cuentan a quien aceptó la cookie — sin ella no se puede saber si alguien vuelve."
                     >
                         <VisitorsChart series={reports.traffic.series} />
+                    </Panel>
+
+                    <Panel
+                        title="Origen del tráfico"
+                        subtitle="De dónde llegó cada sesión y cuántas terminaron en una tienda. La sesión cuenta entera para el canal por el que entró."
+                    >
+                        <SourcesPanel report={reports.sources} />
                     </Panel>
 
                     <Panel

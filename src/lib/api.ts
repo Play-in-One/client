@@ -2,8 +2,10 @@ import type {
     Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets,
     Product, PriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
+    SourcesReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
 } from './types';
+import { appendAttribution } from './attribution';
 import { tryServerPerf } from './serverPerf';
 
 const API_BASE = typeof window === 'undefined'
@@ -241,6 +243,7 @@ export function trackEvent(payload: EventPayload): void {
         if (payload.search_query) fd.append('search_query', payload.search_query);
         if (payload.result_count != null) fd.append('result_count', String(payload.result_count));
         if (visitorToken) fd.append('visitor_id', visitorToken);
+        appendAttribution(fd);
 
         const url = `${API_BASE}/events/`;
         // sendBeacon returns false if it couldn't queue the request → fall back to fetch.
@@ -624,6 +627,10 @@ export async function getGameClickStats(gameId: number) {
 
 export async function getAnalyticsSearch(days = 30, top = 20) {
     return fetcher<SearchReport>(`/analytics/search/?days=${days}&top=${top}`, { admin: true });
+}
+
+export async function getAnalyticsSources(days = 30, top = 20) {
+    return fetcher<SourcesReport>(`/analytics/sources/?days=${days}&top=${top}`, { admin: true });
 }
 
 export async function getAnalyticsRetention(weeks = 12) {

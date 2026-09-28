@@ -8,6 +8,7 @@ import PrefsScript from '@/components/PrefsScript';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import PageViewTracker from '@/components/PageViewTracker';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 import PerfTracker from '@/components/PerfTracker';
 import PerfBeacon from '@/components/PerfBeacon';
 import ViewTransition from '@/components/ViewTransition';
@@ -87,6 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Providers>
                     <AppProvider>
                         <PageViewTracker />
+                        <GoogleAnalytics />
                         <PerfTracker />
                         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                             <Navbar />

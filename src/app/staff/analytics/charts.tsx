@@ -17,7 +17,8 @@ import {
     YAxis,
 } from 'recharts';
 
-import type { DailyFunnel, DailyTraffic, PagePerfRow, SellerStat } from '@/lib/types';
+import type { DailyFunnel, DailyTraffic, PagePerfRow, SellerStat, SourcesReport } from '@/lib/types';
+import { CHANNEL_GROUPS, channelGroup, type ChannelGroup } from './channels';
 
 /* Gráficos del dashboard interno.
  *
@@ -142,6 +143,64 @@ export function DevicesChart({ series }: { series: DailyTraffic[] }) {
                 <Bar dataKey="desktop_visits" name="Escritorio" stackId="d" fill={COLORS.known} />
                 <Bar dataKey="mobile_visits" name="Móvil" stackId="d" fill={COLORS.sessions} />
                 <Bar dataKey="tablet_visits" name="Tablet" stackId="d" fill={COLORS.fresh} />
+            </BarChart>
+        </ResponsiveContainer>
+    );
+}
+
+/* Un color por GRUPO de canales y no por canal: son dieciséis canales y ocho
+   tonos distinguibles como mucho, y el color tiene que seguir al grupo aunque
+   cambie el ranking del periodo. El detalle por canal está en la tabla de al
+   lado. Paleta validada con el validador de dataviz (claro y oscuro). */
+const GROUP_COLORS: Record<ChannelGroup, { light: string; dark: string }> = {
+    search: { light: '#2a78d6', dark: '#3987e5' },
+    paid: { light: '#eb6834', dark: '#d95926' },
+    social: { light: '#1baf7a', dark: '#199e70' },
+    direct: { light: '#eda100', dark: '#c98500' },
+    other: { light: '#e87ba4', dark: '#d55181' },
+    unknown: { light: '#adb5bd', dark: '#5c5f66' },
+};
+
+/** Sesiones por día, apiladas por grupo de canal. */
+export function SourcesChart({ series }: { series: SourcesReport['series'] }) {
+    const axis = useAxisColor();
+    const scheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
+    const byDate = new Map<string, Record<string, number | string>>();
+    for (const row of series) {
+        const entry = byDate.get(row.date) ?? { date: row.date };
+        const group = channelGroup(row.channel);
+        entry[group] = ((entry[group] as number | undefined) ?? 0) + row.sessions;
+        byDate.set(row.date, entry);
+    }
+    const data = [...byDate.values()];
+    // Solo los grupos con datos: una leyenda con entradas a cero no dice nada.
+    const present = CHANNEL_GROUPS.filter((group) => data.some((row) => row[group.key]));
+
+    return (
+        <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -18 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} vertical={false} />
+                <XAxis dataKey="date" tickFormatter={shortDate} stroke={axis} fontSize={11} />
+                <YAxis stroke={axis} fontSize={11} allowDecimals={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} labelFormatter={shortDate} />
+                {/* El texto de la leyenda va en tinta normal: el cuadrado de color
+                    ya dice qué serie es, y el naranja o el amarillo sobre fondo
+                    claro no llegan al contraste mínimo como texto. */}
+                <Legend
+                    wrapperStyle={{ fontSize: 12 }}
+                    formatter={(value: string) => <span style={{ color: 'var(--mantine-color-text)' }}>{value}</span>}
+                />
+                {present.map((group) => (
+                    <Bar
+                        key={group.key}
+                        dataKey={group.key}
+                        name={group.label}
+                        stackId="s"
+                        fill={GROUP_COLORS[group.key][scheme === 'dark' ? 'dark' : 'light']}
+                        stroke="var(--mantine-color-body)"
+                        strokeWidth={1}
+                    />
+                ))}
             </BarChart>
         </ResponsiveContainer>
     );

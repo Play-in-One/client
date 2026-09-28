@@ -26,8 +26,12 @@ export const VISITOR_COOKIE = 'pio_vid';
  *
  * 2.0 — entra publicidad de terceros (Google AdSense). Nadie que aceptara la
  * 1.0 consintió eso: la política de entonces decía explícitamente que no había
- * anunciantes, así que ese consentimiento no cubre este tratamiento. */
-export const POLICY_VERSION = '2.0';
+ * anunciantes, así que ese consentimiento no cubre este tratamiento.
+ *
+ * 2.1 — «Aceptar» carga además Google Analytics, y se anota el origen de la
+ * visita (host del referrer y etiquetas UTM). La 2.0 decía que no había
+ * ninguna herramienta de medición de terceros. */
+export const POLICY_VERSION = '2.1';
 
 /* 13 meses, el máximo habitual para una cookie analítica. Es un plazo fijo:
  * la cookie no se renueva al navegar, así que el consentimiento se vuelve a
