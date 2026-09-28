@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import { Box, Container, Stack, Text, Title } from '@mantine/core';
+import { Box, Container, Flex, Stack, Text, Title } from '@mantine/core';
 import { getGames, getSaga } from '@/lib/api';
 import type { Game, SagaDetail } from '@/lib/types';
 import { surfaces } from '@/lib/colors';
 import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
 import SagaLogo from '@/components/SagaLogo';
+import SagaRatingGauge from '@/components/SagaRatingGauge';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, breadcrumbJsonLd, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
@@ -69,37 +69,34 @@ export async function generateMetadata({
     });
 }
 
-/** Cabecera centrada: logo + nombre, sobre el banner (si existe) como fondo. */
-function SagaHero({ saga }: { saga: SagaDetail }) {
-    const heading = (
-        <Stack align="center" gap="xs">
-            {saga.logo && <SagaLogo saga={saga} scale={1.5} priority />}
-            <Title order={1} fz={{ base: 28, md: 36 }} fw={800} ta="center" c={saga.banner ? 'white' : undefined}>
-                {saga.name}
-            </Title>
-        </Stack>
-    );
-
-    if (!saga.banner) {
-        return <Box mb="sm">{heading}</Box>;
-    }
-
+/** Cabecera en 3 columnas: logo a la izquierda (sin nombre), nombre +
+ *  descripción al centro, calificación promedio a la derecha. Sin banner. */
+function SagaHero({ saga, summary }: { saga: SagaDetail; summary: string }) {
     return (
-        <Box style={{ position: 'relative', height: 220, overflow: 'hidden' }} mb="lg">
-            <Image src={saga.banner} alt="" fill style={{ objectFit: 'cover' }} priority />
-            <Box
-                style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: 'linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.6))',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                {heading}
-            </Box>
-        </Box>
+        <Container size="xl" pt="xl" pb="lg">
+            <Flex direction={{ base: 'column', sm: 'row' }} align="center" justify="center" gap="xl">
+                {saga.logo && (
+                    <Box style={{ flexShrink: 0 }}>
+                        <SagaLogo saga={saga} scale={1.5} priority />
+                    </Box>
+                )}
+                <Stack gap="xs" align="center" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+                    <Title order={1} fz={{ base: 28, md: 36 }} fw={800}>
+                        {saga.name}
+                    </Title>
+                    <Text c="dimmed">{saga.description || summary}</Text>
+                </Stack>
+                <Box style={{ flexShrink: 0 }}>
+                    {saga.avg_rating != null ? (
+                        <SagaRatingGauge value={saga.avg_rating} testId="rating-gauge-saga-average" size={110} />
+                    ) : (
+                        <Text size="sm" c="dimmed" data-testid="rating-gauge-saga-average">
+                            Sin calificación
+                        </Text>
+                    )}
+                </Box>
+            </Flex>
+        </Container>
     );
 }
 
@@ -129,12 +126,7 @@ export default async function SagaDetailPage({
     return (
         <>
             <JsonLd data={jsonLd} />
-            <SagaHero saga={saga} />
-            <Container size="xl" pt="xl">
-                <Text c="dimmed" ta="center">
-                    {summary}
-                </Text>
-            </Container>
+            <SagaHero saga={saga} summary={summary} />
 
             {/* Misma sección que "Juegos Destacados" del home (banda, ancho `lg`
                 para el que está pensado el carrusel, y títulos). */}

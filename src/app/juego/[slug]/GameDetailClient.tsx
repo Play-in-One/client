@@ -36,6 +36,7 @@ import {
     IconExternalLink,
     IconTag,
     IconTableColumn,
+    IconChevronDown,
     IconChevronRight,
     IconHome,
     IconCheck,
@@ -62,6 +63,7 @@ import SellerScopeBadge from '@/components/SellerScopeBadge';
 import ConditionIcon from '@/components/ConditionIcon';
 import GameClickBadge from '@/components/GameClickBadge';
 import ProductClickBadge from '@/components/ProductClickBadge';
+import SagaLogo from '@/components/SagaLogo';
 import {
     conditionBadgeColorFor,
     conditionBucket,
@@ -170,6 +172,72 @@ function ProductImagePreview({ src, title }: { src: string; title: string }) {
     );
 }
 
+/** Contenido de la tarjeta de información (calificaciones, logo de saga,
+ *  lanzamiento, desarrollador): en desktop va en una `Card` fija en la
+ *  columna lateral; en mobile, dentro de la tarjeta desplegable bajo el
+ *  nombre y el selector de consola (mismo contenido, dos envoltorios). */
+function GameInfoCardBody({ game }: { game: Game }) {
+    return (
+        <Stack gap="md">
+            {(game.ratings?.length ?? 0) > 0 && (
+                <Box
+                    pb={((game.sagas?.length ?? 0) > 0 || game.release_date || game.developer) ? 'sm' : 0}
+                    style={((game.sagas?.length ?? 0) > 0 || game.release_date || game.developer)
+                        ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
+                        : undefined}
+                >
+                    <Text fz="lg" fw={700}>Calificaciones</Text>
+                    <Box mt="sm">
+                        <GameRatingsChart ratings={game.ratings ?? []} />
+                    </Box>
+                </Box>
+            )}
+            {(game.sagas?.length ?? 0) > 0 && (
+                <Box
+                    pb={(game.release_date || game.developer) ? 'sm' : 0}
+                    style={(game.release_date || game.developer)
+                        ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
+                        : undefined}
+                >
+                    <Group justify="center" gap="lg">
+                        {game.sagas!.map((saga) => (
+                            <Anchor key={saga.slug} component={Link} href={`/saga/${saga.slug}`}>
+                                <SagaLogo saga={saga} height={64} />
+                            </Anchor>
+                        ))}
+                    </Group>
+                </Box>
+            )}
+            <Stack gap="xs">
+                {game.release_date && (
+                    <Group justify="space-between" pb={8} style={game.developer ? { borderBottom: '1px solid var(--mantine-color-default-border)' } : undefined}>
+                        <Text fz="sm" c="dimmed">Lanzamiento</Text>
+                        <Text fz="sm" fw={500}>
+                            {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
+                                interpreta como medianoche UTC. Sin fijar el timeZone acá, el
+                                formateo cae al del entorno que ejecuta el código: el servidor
+                                (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
+                                el día anterior en horario local — mismatch de hidratación. */}
+                            {new Date(game.release_date).toLocaleDateString('es-CL', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                timeZone: 'UTC',
+                            })}
+                        </Text>
+                    </Group>
+                )}
+                {game.developer && (
+                    <Group justify="space-between">
+                        <Text fz="sm" c="dimmed">Desarrollador</Text>
+                        <Text fz="sm" fw={500}>{game.developer}</Text>
+                    </Group>
+                )}
+            </Stack>
+        </Stack>
+    );
+}
+
 export default function GameDetailClient({
     initialGame,
     initialPrefs,
@@ -240,6 +308,10 @@ export default function GameDetailClient({
     const [editingGame, setEditingGame] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
+    // Sólo para rotar el chevron de la tarjeta de información en mobile: el
+    // `<details>` nativo ya guarda su propio estado abierto/cerrado, esto es
+    // puramente decorativo (mismo patrón que el chevron de GameFilterBar).
+    const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
     const [canNativeShare, setCanNativeShare] = useState(false);
     useEffect(() => {
         setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
@@ -488,49 +560,11 @@ export default function GameDetailClient({
                     </Box>
 
                     <Stack gap="md" mt="md">
-                        {/* Info card */}
-                        <Card withBorder radius="lg" p="lg">
-                            <Stack gap="md">
-                                {(game.ratings?.length ?? 0) > 0 && (
-                                    <Box
-                                        pb={(game.release_date || game.developer) ? 'sm' : 0}
-                                        style={(game.release_date || game.developer)
-                                            ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
-                                            : undefined}
-                                    >
-                                        <Text fz="lg" fw={700}>Calificaciones</Text>
-                                        <Box mt="sm">
-                                            <GameRatingsChart ratings={game.ratings ?? []} />
-                                        </Box>
-                                    </Box>
-                                )}
-                                <Stack gap="xs">
-                                    {game.release_date && (
-                                        <Group justify="space-between" pb={8} style={game.developer ? { borderBottom: '1px solid var(--mantine-color-default-border)' } : undefined}>
-                                            <Text fz="sm" c="dimmed">Lanzamiento</Text>
-                                            <Text fz="sm" fw={500}>
-                                                {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
-                                                    interpreta como medianoche UTC. Sin fijar el timeZone acá, el
-                                                    formateo cae al del entorno que ejecuta el código: el servidor
-                                                    (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
-                                                    el día anterior en horario local — mismatch de hidratación. */}
-                                                {new Date(game.release_date).toLocaleDateString('es-CL', {
-                                                    day: '2-digit',
-                                                    month: 'short',
-                                                    year: 'numeric',
-                                                    timeZone: 'UTC',
-                                                })}
-                                            </Text>
-                                        </Group>
-                                    )}
-                                    {game.developer && (
-                                        <Group justify="space-between">
-                                            <Text fz="sm" c="dimmed">Desarrollador</Text>
-                                            <Text fz="sm" fw={500}>{game.developer}</Text>
-                                        </Group>
-                                    )}
-                                </Stack>
-                            </Stack>
+                        {/* Info card: en mobile se movió bajo el nombre y el
+                            selector de consola, como tarjeta desplegable (ver
+                            más abajo, `hiddenFrom="lg"`). Acá solo desktop. */}
+                        <Card withBorder radius="lg" p="lg" visibleFrom="lg">
+                            <GameInfoCardBody game={game} />
                         </Card>
 
                         {/* Description */}
@@ -654,6 +688,41 @@ export default function GameDetailClient({
                                 </Group>
                             )}
                         </Box>
+
+                        {/* Info card en mobile: tarjeta desplegable justo bajo
+                            el nombre y el selector de consola (en desktop va
+                            fija en la columna lateral, ver más arriba). Nativo
+                            (`<details>`, vía `component`) por el mismo motivo
+                            que `CollapsibleText`: funciona sin JS. */}
+                        <Card
+                            component="details"
+                            withBorder
+                            radius="lg"
+                            p="lg"
+                            hiddenFrom="lg"
+                            onToggle={(e) => setMobileInfoOpen((e.target as HTMLDetailsElement).open)}
+                        >
+                            <Group
+                                component="summary"
+                                justify="space-between"
+                                align="center"
+                                style={{ cursor: 'pointer', listStyle: 'none' }}
+                            >
+                                <Text fz="sm" fw={600}>Información del juego</Text>
+                                <IconChevronDown
+                                    size={16}
+                                    color="var(--mantine-color-dimmed)"
+                                    style={{
+                                        transform: mobileInfoOpen ? 'rotate(180deg)' : 'rotate(0)',
+                                        transition: 'transform 0.2s',
+                                        flexShrink: 0,
+                                    }}
+                                />
+                            </Group>
+                            <Box mt="md">
+                                <GameInfoCardBody game={game} />
+                            </Box>
+                        </Card>
 
                         <Box mb={-16}>
                             {geoSummary ? (

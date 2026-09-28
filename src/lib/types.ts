@@ -142,13 +142,19 @@ export interface Saga {
      *  respuesta cacheada de antes del campo no lo trae. */
     logo_width?: number;
     game_count: number;
+    /** Promedio de `Game.rating` de los juegos de la saga (0-10); `null` si
+     *  ninguno tiene calificación todavía. */
+    avg_rating: number | null;
+    /** Hasta 4 URLs de portada de juegos de la saga, para las miniaturas de
+     *  la tarjeta de `/sagas`. Puede traer menos de 4 (o ninguna). */
+    game_covers: string[];
 }
 
-/** La saga + su banner y destacados, para `/saga/<slug>`. El listado completo
- *  de juegos NO viaja acá: sale de `getGames({ saga: slug })`, que filtra
- *  visibilidad y anota precio igual que la galería normal. */
+/** La saga + su descripción y destacados, para `/saga/<slug>`. El listado
+ *  completo de juegos NO viaja acá: sale de `getGames({ saga: slug })`, que
+ *  filtra visibilidad y anota precio igual que la galería normal. */
 export interface SagaDetail extends Saga {
-    banner: string;
+    description: string;
     featured_games: Game[];
 }
 
@@ -226,11 +232,17 @@ export interface Game {
     min_price_history_national?: MinPriceHistory;
     on_sale: boolean;
     products?: Product[];
-    is_featured?: boolean;
-    featured_order?: number | null;
+    /** Texto de la tarjeta si el juego sale en "Juegos Destacados". Qué
+     *  juegos salen lo decide el ranking del backend, no un flag editable. */
     featured_description?: string | null;
-    /** Sagas del juego y si está destacado en cada una. Solo en el detalle. */
-    sagas?: { id: number; slug: string; name: string; is_featured: boolean }[];
+    /** Sagas del juego y si está destacado en cada una. Solo en el detalle.
+     *  `logo`/`logo_width` alcanzan para pintar `SagaLogo` sin pedir la saga
+     *  aparte. */
+    sagas?: {
+        id: number; slug: string; name: string;
+        logo: string; logo_width?: number;
+        is_featured: boolean;
+    }[];
 }
 
 export interface Post {

@@ -32,6 +32,15 @@ export const SEEDED = {
      *  igual, sólo sin precio, en vez de desaparecer del todo. */
     outOfStockGameId: 999004,
     outOfStockGame: 'E2E Juego Sin Oferta Vigente',
+    /** Dos juegos calificados (8.0 y 6.0): promedio exacto y predecible, 7.0. */
+    sagaSlug: 'e2e-saga-de-prueba',
+    sagaName: 'E2E Saga De Prueba',
+    sagaDescription: 'Saga sembrada para los tests end-to-end de /sagas y /saga/<slug>.',
+    sagaAvgRating: 7.0,
+    /** Uno de los dos juegos de `sagaSlug` (rating 8.0): sirve para probar el
+     *  logo de la saga en la sección de información de la ficha del juego. */
+    sagaGameAId: 999102,
+    sagaGameA: 'E2E Juego De Saga Uno',
     nationalSeller: 'E2E Tienda Nacional',
     internationalSeller: 'E2E Importadora',
     /** Nacional, nueva, sin envío: su precio efectivo es el de lista. */

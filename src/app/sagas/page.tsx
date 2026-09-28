@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Anchor, Card, Container, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import SagaLogo from '@/components/SagaLogo';
+import { Container, Stack, Text, Title } from '@mantine/core';
+import SagaCard from '@/components/SagaCard';
 import { getSagas } from '@/lib/api';
 import type { Saga } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
@@ -59,28 +58,11 @@ export default async function SagasPage() {
                 </Text>
 
                 {sagas.length > 0 ? (
-                    <SimpleGrid cols={{ base: 2, xs: 3, sm: 4, md: 5 }} spacing="md">
+                    <Stack gap="md">
                         {sagas.map((saga) => (
-                            <Anchor key={saga.slug} component={Link} href={`/saga/${saga.slug}`} underline="never">
-                                <Card
-                                    withBorder
-                                    shadow="sm"
-                                    radius="lg"
-                                    py="xl"
-                                    style={{
-                                        textAlign: 'center',
-                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                        cursor: 'pointer',
-                                    }}
-                                >
-                                    {/* Solo el logo; el nombre aparece únicamente si no hay logo. */}
-                                    <Stack align="center" gap="xs">
-                                        <SagaLogo saga={saga} />
-                                    </Stack>
-                                </Card>
-                            </Anchor>
+                            <SagaCard key={saga.slug} saga={saga} />
                         ))}
-                    </SimpleGrid>
+                    </Stack>
                 ) : (
                     <Text c="dimmed">Todavía no hay sagas cargadas.</Text>
                 )}

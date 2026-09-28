@@ -10,6 +10,9 @@ interface RatingGaugeProps {
     label: string;
     icon: IconType;
     count?: number | null;
+    /** Texto tras el número de `count` (default "reseñas"; un uso que no
+     *  cuenta reseñas, como el promedio de una saga, pasa el suyo). */
+    countLabel?: string;
     testId: string;
     /** Ancho máximo del gauge en px; el trazo escala con él. Default 76 (el
      *  tamaño de los gauges por fuente); el del promedio pasa uno mayor. */
@@ -19,7 +22,7 @@ interface RatingGaugeProps {
 const DEFAULT_SIZE = 76;
 const ROTATION = 135;
 
-export default function RatingGauge({ value, label, icon: Icon, count, testId, size = DEFAULT_SIZE }: RatingGaugeProps) {
+export default function RatingGauge({ value, label, icon: Icon, count, countLabel = 'reseñas', testId, size = DEFAULT_SIZE }: RatingGaugeProps) {
     const stroke = size * (7 / DEFAULT_SIZE);
     const radius = (size - stroke) / 2;
     const center = size / 2;
@@ -117,7 +120,7 @@ export default function RatingGauge({ value, label, icon: Icon, count, testId, s
             </Box>
             {count != null && (
                 <Text fz="xs" c="dimmed">
-                    {new Intl.NumberFormat('es-CL').format(count)} reseñas
+                    {new Intl.NumberFormat('es-CL').format(count)} {countLabel}
                 </Text>
             )}
         </Stack>

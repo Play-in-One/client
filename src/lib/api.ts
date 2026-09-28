@@ -545,7 +545,7 @@ export async function logout() {
 /** Edita campos del juego (nombre, imagen, etc.). PATCH /api/games/{id}/ */
 export async function updateGame(
     id: number,
-    patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating' | 'is_featured' | 'featured_order' | 'featured_description'>> & {
+    patch: Partial<Pick<Game, 'name' | 'image' | 'description' | 'developer' | 'rating' | 'featured_description'>> & {
         /** Ids de las sagas en las que va destacado (lista completa). */
         featured_in_sagas?: number[];
     },

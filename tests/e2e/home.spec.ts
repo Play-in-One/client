@@ -144,3 +144,30 @@ test.describe('carrusel de Destacados en mobile', () => {
         await expect(page.locator('.mantine-Carousel-control')).toHaveCount(0);
     });
 });
+
+/* Destacados es automático y tiene prioridad sobre Populares: ningún juego
+   puede salir en las dos secciones, y Destacados trae como mucho 6. No depende
+   de qué juegos haya en la base: solo compara las dos listas que se pintan. */
+test('Destacados y Populares no repiten juegos', async ({ page }) => {
+    await page.goto('/');
+
+    const gameHrefs = async (heading: string) => {
+        const title = page.getByRole('heading', { name: heading });
+        if ((await title.count()) === 0) return new Set<string>();
+        const section = page.locator('.mantine-Container-root', { has: title });
+        const hrefs = await section.locator('a[href^="/juego/"]').evaluateAll(
+            (links) => links.map((a) => a.getAttribute('href') ?? ''),
+        );
+        // El carrusel clona tarjetas en los bordes para el loop: se deduplica.
+        return new Set(hrefs);
+    };
+
+    const destacados = await gameHrefs('Juegos Destacados');
+    const populares = await gameHrefs('Populares esta semana');
+
+    // Sin tarjetas el test pasaría en vacío. `seed_e2e` deja una tienda con
+    // cupón y comisión (E2E Importadora), así que siempre hay candidatos.
+    expect(destacados.size).toBeGreaterThan(0);
+    expect(destacados.size).toBeLessThanOrEqual(6);
+    expect([...destacados].filter((href) => populares.has(href))).toEqual([]);
+});

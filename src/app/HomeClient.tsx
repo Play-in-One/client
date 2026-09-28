@@ -330,7 +330,7 @@ export default function HomeClient({
                                 Juegos Destacados
                             </Title>
                             <Text c="dimmed" mt={6}>
-                                Selección del equipo PIO.
+                                Una selección destacada
                             </Text>
                         </Box>
 

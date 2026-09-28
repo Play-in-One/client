@@ -109,8 +109,6 @@ export function AdminGameControls({ game }: { game: Game }) {
     const router = useRouter();
     const [name, setName] = useState(game.name);
     const [image, setImage] = useState(game.image ?? '');
-    const [isFeatured, setIsFeatured] = useState(game.is_featured ?? false);
-    const [featuredOrder, setFeaturedOrder] = useState<number | ''>(game.featured_order ?? '');
     const [featuredDescription, setFeaturedDescription] = useState(game.featured_description ?? '');
     const sagas = game.sagas ?? [];
     const savedSagaFeatured = sagas.filter((s) => s.is_featured).map((s) => s.id);
@@ -181,44 +179,15 @@ export function AdminGameControls({ game }: { game: Game }) {
 
                 <Divider label="Destacado en home" labelPosition="left" />
 
-                <Group align="center" gap="sm">
-                    <Switch
-                        label="Mostrar en 'Juegos Destacados'"
-                        checked={isFeatured}
-                        onChange={(e) => setIsFeatured(e.currentTarget.checked)}
-                    />
-                    <Button
-                        disabled={busy || isFeatured === (game.is_featured ?? false)}
-                        onClick={() => run(() => updateGame(game.id, { is_featured: isFeatured }), 'Destacado actualizado.')}
-                    >
-                        Guardar
-                    </Button>
-                </Group>
-
-                <Group align="flex-end" gap="sm" wrap="nowrap">
-                    <NumberInput
-                        label="Orden en destacados (menor = primero)"
-                        value={featuredOrder}
-                        onChange={(v) => setFeaturedOrder(v === '' ? '' : Number(v))}
-                        min={0}
-                        style={{ flex: 1 }}
-                    />
-                    <Button
-                        disabled={busy || featuredOrder === (game.featured_order ?? '')}
-                        onClick={() =>
-                            run(
-                                () => updateGame(game.id, { featured_order: featuredOrder === '' ? null : featuredOrder }),
-                                'Orden actualizado.'
-                            )
-                        }
-                    >
-                        Guardar
-                    </Button>
-                </Group>
+                <Text fz="xs" c="dimmed">
+                    Los destacados de la home son automáticos: entran los juegos cuya oferta
+                    más barata es de una tienda afiliada, según la comisión y el tráfico
+                    (pesos en el admin de Django). Aquí solo se edita el texto de su tarjeta.
+                </Text>
 
                 <Stack gap={4}>
                     <Textarea
-                        label="Mini-descripción para la tarjeta de destacados"
+                        label="Texto de la tarjeta si sale en Destacados"
                         value={featuredDescription}
                         onChange={(e) => setFeaturedDescription(e.currentTarget.value)}
                         maxLength={240}

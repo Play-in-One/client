@@ -31,24 +31,28 @@ test('la página de detalle carga con el título del juego', async ({ page }) =>
 test('muestra las calificaciones como gauges por fuente', async ({ page }) => {
     await page.goto(gamePath);
 
-    await expect(page.getByText('Calificaciones', { exact: true })).toBeVisible();
-    await expect(page.getByTestId('ratings-gauges')).toBeVisible();
-    await expect(page.getByTestId('rating-gauge-average')).toBeVisible();
-    await expect(page.getByTestId('rating-gauge-metacritic')).toBeVisible();
-    await expect(page.getByTestId('rating-gauge-igdb')).toBeVisible();
-    await expect(page.getByTestId('rating-gauge-steam')).toBeVisible();
-    await expect(page.getByText('8.6/10', { exact: true })).toBeVisible();
+    // La tarjeta de información se duplica en el DOM (copia desktop fija +
+    // copia mobile desplegable, una de las dos oculta por CSS según el
+    // viewport): `.first()` toma la visible, mismo criterio que ya usaba el
+    // "8.5/10" de abajo por repetirse entre el promedio y una fuente.
+    await expect(page.getByText('Calificaciones', { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId('ratings-gauges').first()).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-average').first()).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-metacritic').first()).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-igdb').first()).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-steam').first()).toBeVisible();
+    await expect(page.getByText('8.6/10', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('8.5/10', { exact: true }).first()).toBeVisible();
 });
 
 test('omite el gauge de la fuente ausente', async ({ page }) => {
     await page.goto(noHistoryGamePath);
 
-    await expect(page.getByTestId('rating-gauge-metacritic')).toBeVisible();
-    await expect(page.getByTestId('rating-gauge-steam')).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-metacritic').first()).toBeVisible();
+    await expect(page.getByTestId('rating-gauge-steam').first()).toBeVisible();
     await expect(page.getByTestId('rating-gauge-igdb')).toHaveCount(0);
-    await expect(page.getByText('7.5/10', { exact: true })).toBeVisible();
-    await expect(page.getByText('8.5/10', { exact: true })).toBeVisible();
+    await expect(page.getByText('7.5/10', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('8.5/10', { exact: true }).first()).toBeVisible();
 });
 
 test('omite el bloque de calificaciones cuando no hay datos', async ({ page }) => {
