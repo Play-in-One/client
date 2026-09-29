@@ -45,6 +45,47 @@ test('muestra las calificaciones como gauges por fuente', async ({ page }) => {
     await expect(page.getByText('8.5/10', { exact: true }).first()).toBeVisible();
 });
 
+test('«Acerca del juego» va dentro de la tarjeta de información, sin tarjeta aparte', async ({ page }) => {
+    await page.goto(gamePath);
+
+    // Desktop: la copia visible de la tarjeta de información (la fija de la
+    // columna lateral) trae a la vez los datos del juego y la descripción.
+    const about = page.getByText('Acerca del juego', { exact: true }).locator('visible=true');
+    await expect(about).toHaveCount(1);
+    const infoCard = page.locator('.mantine-Card-root', { has: about });
+    await expect(infoCard.getByText('Calificaciones', { exact: true })).toBeVisible();
+    await expect(infoCard.getByText(SEEDED.gameDescription)).toBeVisible();
+});
+
+test.describe('vista mobile', () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test('«Acerca del juego» va dentro del desplegable, bajo el título', async ({ page }) => {
+        await page.goto(gamePath);
+        await expect(page.getByRole('heading', { name: SEEDED.game })).toBeVisible();
+
+        const details = page.locator('details').filter({ hasText: 'Información del juego' });
+        const description = details.getByText(SEEDED.gameDescription);
+        await expect(description).toBeHidden();
+        // Un clic antes de hidratar puede perderse: se reintenta hasta que abra.
+        await expect(async () => {
+            if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) {
+                await details.locator('summary').click();
+            }
+            await expect(description).toBeVisible({ timeout: 1000 });
+        }).toPass();
+        await expect(details.getByText('Acerca del juego', { exact: true })).toBeVisible();
+        await expect(description).toBeVisible();
+
+        // Ya no queda una tarjeta suelta entre la carátula y el título: la
+        // única descripción visible es la del desplegable.
+        await expect(page.getByText(SEEDED.gameDescription).locator('visible=true')).toHaveCount(1);
+        const titleBox = await page.getByRole('heading', { name: SEEDED.game }).boundingBox();
+        const descriptionBox = await description.boundingBox();
+        expect(descriptionBox!.y).toBeGreaterThan(titleBox!.y);
+    });
+});
+
 test('omite el gauge de la fuente ausente', async ({ page }) => {
     await page.goto(noHistoryGamePath);
 

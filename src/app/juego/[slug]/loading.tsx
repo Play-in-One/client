@@ -25,12 +25,8 @@ export default function GameDetailLoading() {
                         <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
                     </Box>
 
-                    <Stack gap="md" mt="md">
-                        {/* Ficha de datos */}
-                        <Skeleton height={132} radius="lg" />
-                        {/* Acerca del juego */}
-                        <Skeleton height={148} radius="lg" />
-                    </Stack>
+                    {/* Ficha de datos, con «Acerca del juego» dentro */}
+                    <Skeleton height={296} radius="lg" mt="md" />
                 </Box>
 
                 {/* ── Contenido: título, tabs de consola y ofertas ── */}

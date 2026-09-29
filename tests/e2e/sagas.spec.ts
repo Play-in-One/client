@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { SEEDED, seededGamePath } from './helpers';
 
 /**
@@ -68,6 +68,45 @@ test('la ficha del juego muestra el logo de su saga en la sección de informaci�
     await expect(sagaLink).toBeVisible();
     await expect(sagaLink.getByAltText(`Logo de ${SEEDED.sagaName}`)).toBeVisible();
 });
+
+/** Carátulas en la primera línea de la fila: las que no caben hacen wrap a
+ *  una segunda línea que el `overflow: hidden` recorta. */
+async function coversInFirstLine(page: Page): Promise<number> {
+    const card = page.locator('a', { has: page.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`) });
+    return card.getByTestId('saga-card-covers').evaluate((row) => {
+        const slots = Array.from(row.children) as HTMLElement[];
+        return slots.filter((slot) => slot.offsetTop === slots[0].offsetTop).length;
+    });
+}
+
+for (const { width, covers } of [
+    { width: 390, covers: 4 },
+    { width: 360, covers: 3 },
+]) {
+    test.describe(`/sagas en mobile (${width}px)`, () => {
+        test.use({ viewport: { width, height: 844 } });
+
+        test(`la tarjeta va en dos filas y muestra ${covers} carátulas`, async ({ page }) => {
+            await page.goto('/sagas');
+
+            const card = page.locator('a', { has: page.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`) });
+            await expect(card).toBeVisible();
+            await expect(card.getByText(`${SEEDED.sagaAvgRating.toFixed(1)}/10`)).toBeVisible();
+
+            // Sin scroll horizontal: antes el logo, las 4 carátulas y el gauge
+            // en una sola fila desbordaban la pantalla.
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            expect(overflow).toBeLessThanOrEqual(0);
+
+            // Carátulas debajo del gauge (segunda fila), no a su lado.
+            const gaugeBox = await card.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`).boundingBox();
+            const coversBox = await card.getByTestId('saga-card-covers').boundingBox();
+            expect(coversBox!.y).toBeGreaterThanOrEqual(gaugeBox!.y + gaugeBox!.height - 1);
+
+            await expect.poll(() => coversInFirstLine(page)).toBe(covers);
+        });
+    });
+}
 
 test.describe('vista mobile', () => {
     test.use({ viewport: { width: 390, height: 844 } });

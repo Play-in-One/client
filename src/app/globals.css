@@ -409,3 +409,53 @@ a.saga-banner-link:focus-visible {
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+
+/* Tarjeta de /sagas (SagaCard). En mobile, dos filas: logo y gauge arriba
+   (el logo se estira y empuja al gauge a la derecha) y las carátulas abajo a
+   todo el ancho, gracias al `order` y al `flex-basis: 100%`. Desde `sm`
+   (48em, mismo breakpoint que Mantine) vuelve la fila única de alto fijo.
+
+   "Tantas carátulas como quepan" sin medir nada en JS: la fila de carátulas
+   tiene alto fijo, hace wrap y recorta lo que desborda, así que las que no
+   entran caen a una segunda línea que nunca se ve. Nada depende de un
+   useMediaQuery, que en el primer render no sabe el ancho y haría saltar la
+   tarjeta al hidratar. */
+.saga-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+}
+.saga-card__logo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.saga-card__covers {
+  order: 1;
+  flex-basis: 100%;
+  height: 96px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+@media (min-width: 48em) {
+  .saga-card {
+    flex-wrap: nowrap;
+    height: 100%;
+    gap: var(--mantine-spacing-lg);
+  }
+  .saga-card__logo {
+    flex: 0 0 auto;
+  }
+  .saga-card__covers {
+    order: 0;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    gap: var(--mantine-spacing-sm);
+  }
+}

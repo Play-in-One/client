@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
@@ -174,67 +174,103 @@ function ProductImagePreview({ src, title }: { src: string; title: string }) {
 }
 
 /** Contenido de la tarjeta de información (calificaciones, logo de saga,
- *  lanzamiento, desarrollador): en desktop va en una `Card` fija en la
- *  columna lateral; en mobile, dentro de la tarjeta desplegable bajo el
- *  nombre y el selector de consola (mismo contenido, dos envoltorios). */
+ *  lanzamiento, desarrollador y «Acerca del juego»): en desktop va en una
+ *  `Card` fija en la columna lateral; en mobile, dentro de la tarjeta
+ *  desplegable bajo el nombre y el selector de consola (mismo contenido, dos
+ *  envoltorios). Plegada en mobile, la descripción sigue en el HTML: plegar
+ *  no es esconder (ver "SEO y GEO" en CLAUDE.md). */
 function GameInfoCardBody({ game }: { game: Game }) {
-    return (
-        <Stack gap="md">
-            {(game.ratings?.length ?? 0) > 0 && (
-                <Box
-                    pb={((game.sagas?.length ?? 0) > 0 || game.release_date || game.developer) ? 'sm' : 0}
-                    style={((game.sagas?.length ?? 0) > 0 || game.release_date || game.developer)
-                        ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
-                        : undefined}
-                >
+    // Solo las secciones con dato, en orden; cada una lleva el separador
+    // inferior salvo la última, sea cual sea.
+    const sections: { key: string; node: ReactNode }[] = [];
+    if ((game.ratings?.length ?? 0) > 0) {
+        sections.push({
+            key: 'ratings',
+            node: (
+                <>
                     <Text fz="lg" fw={700}>Calificaciones</Text>
                     <Box mt="sm">
                         <GameRatingsChart ratings={game.ratings ?? []} />
                     </Box>
-                </Box>
-            )}
-            {(game.sagas?.length ?? 0) > 0 && (
-                <Box
-                    pb={(game.release_date || game.developer) ? 'sm' : 0}
-                    style={(game.release_date || game.developer)
-                        ? { borderBottom: '1px solid var(--mantine-color-default-border)' }
-                        : undefined}
-                >
-                    <Group justify="center" gap="lg">
-                        {game.sagas!.map((saga) => (
-                            <Anchor key={saga.slug} component={Link} href={`/saga/${saga.slug}`}>
-                                <SagaLogo saga={saga} height={64} />
-                            </Anchor>
-                        ))}
-                    </Group>
-                </Box>
-            )}
-            <Stack gap="xs">
-                {game.release_date && (
-                    <Group justify="space-between" pb={8} style={game.developer ? { borderBottom: '1px solid var(--mantine-color-default-border)' } : undefined}>
-                        <Text fz="sm" c="dimmed">Lanzamiento</Text>
-                        <Text fz="sm" fw={500}>
-                            {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
-                                interpreta como medianoche UTC. Sin fijar el timeZone acá, el
-                                formateo cae al del entorno que ejecuta el código: el servidor
-                                (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
-                                el día anterior en horario local — mismatch de hidratación. */}
-                            {new Date(game.release_date).toLocaleDateString('es-CL', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric',
-                                timeZone: 'UTC',
-                            })}
-                        </Text>
-                    </Group>
-                )}
-                {game.developer && (
-                    <Group justify="space-between">
-                        <Text fz="sm" c="dimmed">Desarrollador</Text>
-                        <Text fz="sm" fw={500}>{game.developer}</Text>
-                    </Group>
-                )}
-            </Stack>
+                </>
+            ),
+        });
+    }
+    if ((game.sagas?.length ?? 0) > 0) {
+        sections.push({
+            key: 'sagas',
+            node: (
+                <Group justify="center" gap="lg">
+                    {game.sagas!.map((saga) => (
+                        <Anchor key={saga.slug} component={Link} href={`/saga/${saga.slug}`}>
+                            <SagaLogo saga={saga} height={64} />
+                        </Anchor>
+                    ))}
+                </Group>
+            ),
+        });
+    }
+    if (game.release_date || game.developer) {
+        sections.push({
+            key: 'facts',
+            node: (
+                <Stack gap="xs">
+                    {game.release_date && (
+                        <Group justify="space-between" pb={8} style={game.developer ? { borderBottom: '1px solid var(--mantine-color-default-border)' } : undefined}>
+                            <Text fz="sm" c="dimmed">Lanzamiento</Text>
+                            <Text fz="sm" fw={500}>
+                                {/* `release_date` llega como fecha pura ("YYYY-MM-DD"), que Date
+                                    interpreta como medianoche UTC. Sin fijar el timeZone acá, el
+                                    formateo cae al del entorno que ejecuta el código: el servidor
+                                    (UTC) y un navegador en Chile no coinciden, y esa medianoche cae
+                                    el día anterior en horario local — mismatch de hidratación. */}
+                                {new Date(game.release_date).toLocaleDateString('es-CL', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    timeZone: 'UTC',
+                                })}
+                            </Text>
+                        </Group>
+                    )}
+                    {game.developer && (
+                        <Group justify="space-between">
+                            <Text fz="sm" c="dimmed">Desarrollador</Text>
+                            <Text fz="sm" fw={500}>{game.developer}</Text>
+                        </Group>
+                    )}
+                </Stack>
+            ),
+        });
+    }
+    if (game.description) {
+        sections.push({
+            key: 'about',
+            node: (
+                <>
+                    <Text fz="lg" fw={700} mb="xs">Acerca del juego</Text>
+                    <Text fz="sm" c="dimmed" lh={1.6}>
+                        {game.description}
+                    </Text>
+                </>
+            ),
+        });
+    }
+
+    return (
+        <Stack gap="md">
+            {sections.map(({ key, node }, i) => {
+                const last = i === sections.length - 1;
+                return (
+                    <Box
+                        key={key}
+                        pb={last ? 0 : 'sm'}
+                        style={last ? undefined : { borderBottom: '1px solid var(--mantine-color-default-border)' }}
+                    >
+                        {node}
+                    </Box>
+                );
+            })}
         </Stack>
     );
 }
@@ -559,25 +595,13 @@ export default function GameDetailClient({
                         </Box>
                     </Box>
 
-                    <Stack gap="md" mt="md">
-                        {/* Info card: en mobile se movió bajo el nombre y el
-                            selector de consola, como tarjeta desplegable (ver
-                            más abajo, `hiddenFrom="lg"`). Acá solo desktop. */}
-                        <Card withBorder radius="lg" p="lg" visibleFrom="lg">
-                            <GameInfoCardBody game={game} />
-                        </Card>
-
-                        {/* Description */}
-                        {game.description && (
-                            <Card withBorder radius="lg" p="lg">
-                                <Text fw={700} mb="xs" ta={{ base: 'center', lg: 'left' }}>Acerca del juego</Text>
-                                <Text fz="sm" c="dimmed" lh={1.6} ta={{ base: 'center', lg: 'left' }}>
-                                    {game.description}
-                                </Text>
-                            </Card>
-                        )}
-
-                    </Stack>
+                    {/* Info card (con «Acerca del juego» dentro): en mobile
+                        se movió bajo el nombre y el selector de consola, como
+                        tarjeta desplegable (ver más abajo, `hiddenFrom="lg"`).
+                        Acá solo desktop. */}
+                    <Card withBorder radius="lg" p="lg" mt="md" visibleFrom="lg">
+                        <GameInfoCardBody game={game} />
+                    </Card>
                 </Grid.Col>
 
                 {/* ── Main content ── */}

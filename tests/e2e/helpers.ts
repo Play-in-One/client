@@ -20,6 +20,8 @@ import type { Page } from '@playwright/test';
 export const SEEDED = {
     gameId: 999001,
     game: 'E2E Juego De Prueba',
+    /** Va en «Acerca del juego», dentro de la tarjeta de información. */
+    gameDescription: 'Juego sembrado para los tests end-to-end.',
     emptyGameId: 999002,
     emptyGame: 'E2E Juego Sin Stock',
     /** Con oferta pero sin serie: el card del historial enseña su estado vacío,
