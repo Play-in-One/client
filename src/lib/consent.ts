@@ -4,7 +4,8 @@
  *
  *   - `analytics: false` — el servidor cuenta la visita con un hash derivado
  *     de IP y navegador que rota cada 24 h. No escribe nada en el dispositivo
- *     y no permite seguir a nadie de un día para otro.
+ *     (salvo, si respondes una encuesta, la lista de encuestas respondidas en
+ *     localStorage; ver /cookies) y no permite seguir a nadie de un día para otro.
  *   - `analytics: true`  — se emite la cookie `pio_vid`, un identificador
  *     aleatorio que permite saber si alguien vuelve.
  *

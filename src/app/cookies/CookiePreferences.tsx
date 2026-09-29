@@ -37,6 +37,20 @@ const COOKIES = [
         needed: 'Solo si aceptas la analítica',
     },
     {
+        name: 'pio_surveys_answered (almacenamiento local)',
+        origin: 'Propia',
+        purpose: 'La lista de encuestas que ya respondiste, para no volver a mostrarte el botón. Solo guarda números de encuesta.',
+        duration: 'Hasta que borres los datos del sitio',
+        needed: 'Solo si respondes una encuesta',
+    },
+    {
+        name: 'pio_survey_nudged (almacenamiento de sesión)',
+        origin: 'Propia',
+        purpose: 'Recuerda que ya te mostramos el aviso de la encuesta, para no repetirlo.',
+        duration: 'Hasta que cierres la pestaña',
+        needed: 'Solo si hay una encuesta pendiente',
+    },
+    {
         name: '_ga, _ga_*',
         origin: 'Google',
         purpose: 'Google Analytics: distinguen visitantes y sesiones para medir de dónde llegan las visitas y qué páginas se ven.',

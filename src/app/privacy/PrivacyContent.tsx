@@ -64,6 +64,13 @@ const DATA_ROWS: readonly DataRow[] = [
         keeps: 'Lo decide Google, no nosotros. Sus plazos están en su política de privacidad.',
     },
     {
+        what: 'Respuestas a encuestas',
+        detail: 'Lo que elijas o escribas en una encuesta, la página desde la que respondiste y, si aceptaste la analítica, tu identificador de visitante. Sin consentimiento solo se guarda el resumen cifrado de 24 h que usamos para contar visitas.',
+        why: 'Saber qué mejorar del sitio y evitar que una misma persona responda dos veces.',
+        basis: 'Consentimiento, al enviarla tú.',
+        keeps: 'Mientras la encuesta sea útil para analizar. Si borras tus datos, la respuesta queda anónima.',
+    },
+    {
         what: 'Mensajes de contacto',
         detail: 'El nombre, correo y mensaje que escribes en el formulario de contacto.',
         why: 'Responderte.',
