@@ -13,6 +13,7 @@ import PerfTracker from '@/components/PerfTracker';
 import PerfBeacon from '@/components/PerfBeacon';
 import ViewTransition from '@/components/ViewTransition';
 import { CookieBanner } from '@/components/CookieBanner';
+import { SurveyWidget } from '@/components/surveys/SurveyWidget';
 import { SITE_URL, siteConfig, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import { ADSENSE_CLIENT } from '@/lib/ads';
 import './globals.css';
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <Footer />
                         </div>
                         <CookieBanner />
+                        <SurveyWidget />
                         {/* Después de `{children}`: React renderiza los hijos
                             en orden, así que aquí el acumulador del servidor ya
                             contabilizó los fetch de la página. Antes mediría 0. */}
