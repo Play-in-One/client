@@ -69,41 +69,46 @@ test('la ficha del juego muestra el logo de su saga en la sección de informaci�
     await expect(sagaLink.getByAltText(`Logo de ${SEEDED.sagaName}`)).toBeVisible();
 });
 
-/** Carátulas en la primera línea de la fila: las que no caben hacen wrap a
- *  una segunda línea que el `overflow: hidden` recorta. */
-async function coversInFirstLine(page: Page): Promise<number> {
+/** Carátulas visibles: las de la primera línea de la fila, si la fila se
+ *  muestra. Las que no caben hacen wrap a una segunda línea que el
+ *  `overflow: hidden` recorta. */
+async function visibleCovers(page: Page): Promise<number> {
     const card = page.locator('a', { has: page.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`) });
     return card.getByTestId('saga-card-covers').evaluate((row) => {
+        if (getComputedStyle(row).display === 'none') return 0;
         const slots = Array.from(row.children) as HTMLElement[];
         return slots.filter((slot) => slot.offsetTop === slots[0].offsetTop).length;
     });
 }
 
-for (const { width, covers } of [
-    { width: 390, covers: 4 },
-    { width: 360, covers: 3 },
+// Con menos ancho la fila no cambia de forma: se caen primero las carátulas
+// y después el gauge. El logo queda siempre.
+for (const { width, covers, gauge } of [
+    { width: 1280, covers: 4, gauge: true },
+    { width: 768, covers: 3, gauge: true },
+    { width: 390, covers: 0, gauge: true },
+    { width: 360, covers: 0, gauge: false },
 ]) {
-    test.describe(`/sagas en mobile (${width}px)`, () => {
+    test.describe(`/sagas a ${width}px`, () => {
         test.use({ viewport: { width, height: 844 } });
 
-        test(`la tarjeta va en dos filas y muestra ${covers} carátulas`, async ({ page }) => {
+        test(`la tarjeta muestra ${covers} carátulas ${gauge ? 'y' : 'sin'} gauge, en una fila`, async ({ page }) => {
             await page.goto('/sagas');
 
-            const card = page.locator('a', { has: page.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`) });
+            const gaugeEl = page.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`);
+            const card = page.locator('a', { has: gaugeEl });
             await expect(card).toBeVisible();
-            await expect(card.getByText(`${SEEDED.sagaAvgRating.toFixed(1)}/10`)).toBeVisible();
 
-            // Sin scroll horizontal: antes el logo, las 4 carátulas y el gauge
-            // en una sola fila desbordaban la pantalla.
+            // Alto fijo a cualquier ancho y sin scroll horizontal.
+            const box = await card.boundingBox();
+            expect(box?.height).toBeGreaterThan(150);
+            expect(box?.height).toBeLessThan(190);
             const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
             expect(overflow).toBeLessThanOrEqual(0);
 
-            // Carátulas debajo del gauge (segunda fila), no a su lado.
-            const gaugeBox = await card.getByTestId(`rating-gauge-saga-${SEEDED.sagaSlug}`).boundingBox();
-            const coversBox = await card.getByTestId('saga-card-covers').boundingBox();
-            expect(coversBox!.y).toBeGreaterThanOrEqual(gaugeBox!.y + gaugeBox!.height - 1);
-
-            await expect.poll(() => coversInFirstLine(page)).toBe(covers);
+            await expect.poll(() => visibleCovers(page)).toBe(covers);
+            if (gauge) await expect(gaugeEl).toBeVisible();
+            else await expect(gaugeEl).toBeHidden();
         });
     });
 }

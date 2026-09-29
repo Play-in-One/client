@@ -410,52 +410,49 @@ a.saga-banner-link:focus-visible {
   text-underline-offset: 4px;
 }
 
-/* Tarjeta de /sagas (SagaCard). En mobile, dos filas: logo y gauge arriba
-   (el logo se estira y empuja al gauge a la derecha) y las carátulas abajo a
-   todo el ancho, gracias al `order` y al `flex-basis: 100%`. Desde `sm`
-   (48em, mismo breakpoint que Mantine) vuelve la fila única de alto fijo.
+/* Tarjeta de /sagas (SagaCard): una sola fila de alto fijo a cualquier ancho.
+   Cuando no cabe todo, se caen primero las carátulas —una a una— y después el
+   gauge; el logo no se va nunca.
 
-   "Tantas carátulas como quepan" sin medir nada en JS: la fila de carátulas
-   tiene alto fijo, hace wrap y recorta lo que desborda, así que las que no
-   entran caen a una segunda línea que nunca se ve. Nada depende de un
-   useMediaQuery, que en el primer render no sabe el ancho y haría saltar la
-   tarjeta al hidratar. */
+   - Carátulas: la fila tiene alto fijo, hace wrap y recorta lo que desborda,
+     así que las que no entran caen a una segunda línea que nunca se ve.
+   - La ÚLTIMA carátula no puede irse así: el primer elemento de una línea
+     siempre se coloca aunque no quepa, y se vería cortada. La oculta el
+     container query de 401px = logo 160 + 20 + una carátula 102 + 20 +
+     gauge 100 (gap `lg` de Mantine = 20px).
+   - Gauge: fuera por debajo de 280px = logo 160 + 20 + gauge 100.
+
+   Container query y no media query: lo que manda es el ancho de la tarjeta,
+   no el de la pantalla. Y nada de useMediaQuery, que en el primer render no
+   sabe el ancho y haría saltar la tarjeta al hidratar. */
 .saga-card {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--mantine-spacing-sm);
-}
-.saga-card__logo {
-  flex: 1;
-  min-width: 0;
+  container-type: inline-size;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-lg);
+  height: 100%;
 }
 .saga-card__covers {
-  order: 1;
-  flex-basis: 100%;
-  height: 96px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 8px;
+  gap: var(--mantine-spacing-sm);
   overflow: hidden;
 }
-@media (min-width: 48em) {
-  .saga-card {
-    flex-wrap: nowrap;
-    height: 100%;
-    gap: var(--mantine-spacing-lg);
-  }
-  .saga-card__logo {
-    flex: 0 0 auto;
-  }
+.saga-card__gauge {
+  flex-shrink: 0;
+}
+@container (max-width: 401px) {
   .saga-card__covers {
-    order: 0;
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    gap: var(--mantine-spacing-sm);
+    display: none;
+  }
+}
+@container (max-width: 279px) {
+  .saga-card__gauge {
+    display: none;
   }
 }
