@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Alert, Button, Checkbox, Radio, Slider, Stack, Text, TextInput, Textarea, Title } from '@mantine/core';
 import { IconCircleCheck } from '@tabler/icons-react';
 
@@ -225,6 +225,23 @@ function SliderField({ question: q, value, error, onChange }: {
     // para no sesgar los resultados hacia donde estaba el pulgar.
     const middle = q.slider_min + Math.round((q.slider_max - q.slider_min) / q.slider_step / 2) * q.slider_step;
     const touched = value !== undefined;
+    const hintId = useId();
+    // El thumb (role="slider") es el elemento enfocable, pero Mantine no expone
+    // `aria-describedby`/`aria-invalid` como prop (su `thumbProps` no reenvía
+    // atributos que Thumb no conoce explícitamente): se los seteamos a mano
+    // sobre el nodo real vía ref, así el lector de pantalla sí anuncia el hint
+    // y el estado inválido al enfocar el control.
+    const sliderRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const thumb = sliderRef.current?.querySelector('[role="slider"]');
+        if (!thumb) return;
+        thumb.setAttribute('aria-describedby', hintId);
+        if (error) {
+            thumb.setAttribute('aria-invalid', 'true');
+        } else {
+            thumb.removeAttribute('aria-invalid');
+        }
+    }, [hintId, error]);
     return (
         <Stack gap={6}>
             <Text fw={500} fz="sm">
@@ -233,6 +250,7 @@ function SliderField({ question: q, value, error, onChange }: {
             </Text>
             {q.help_text && <Text fz="xs" c="dimmed">{q.help_text}</Text>}
             <Slider
+                ref={sliderRef}
                 min={q.slider_min}
                 max={q.slider_max}
                 step={q.slider_step}
@@ -246,7 +264,7 @@ function SliderField({ question: q, value, error, onChange }: {
                 ]}
                 mb="lg"
             />
-            <Text fz="xs" c={error ? 'red' : 'dimmed'}>
+            <Text id={hintId} fz="xs" c={error ? 'red' : 'dimmed'}>
                 {touched ? `Tu respuesta: ${value}` : (error ?? 'Mueve el control para responder.')}
             </Text>
         </Stack>
