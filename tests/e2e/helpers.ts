@@ -59,6 +59,14 @@ export const SEEDED = {
         { title: 'E2E Las mejores ofertas del mes', category: 'deals' },
         { title: 'E2E Nuevo juego anunciado', category: 'news' },
     ],
+    /** Encuestas de `seed_e2e`: /encuestas se renderiza en el servidor. */
+    surveys: {
+        newest: { id: 999101, title: 'E2E Encuesta Nueva' },
+        previous: { id: 999102, title: 'E2E Encuesta Anterior' },
+        quiet: { id: 999103, title: 'E2E Encuesta Silenciosa' },
+        closed: { id: 999104, title: 'E2E Encuesta Cerrada' },
+        draft: { id: 999105, title: 'E2E Encuesta Borrador' },
+    },
 } as const;
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
