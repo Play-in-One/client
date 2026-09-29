@@ -5,7 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
     Alert, Anchor, Badge, Button, Card, Center, Container, Group, Loader, ScrollArea,
-    SimpleGrid, Stack, Table, Text, Title,
+    SimpleGrid, Stack, Table, Text, Title, UnstyledButton,
 } from '@mantine/core';
 import { IconDownload, IconExternalLink } from '@tabler/icons-react';
 
@@ -29,6 +29,7 @@ const DATETIME = new Intl.DateTimeFormat('es-CL', { dateStyle: 'short', timeStyl
 export function SurveysStaffClient() {
     const { isAdmin } = useAdmin();
     const [surveys, setSurveys] = useState<StaffSurvey[] | null>(null);
+    const [surveysFailed, setSurveysFailed] = useState(false);
     const [selected, setSelected] = useState<number | null>(null);
     const [results, setResults] = useState<SurveyResults | null>(null);
     const [loading, setLoading] = useState(false);
@@ -41,13 +42,20 @@ export function SurveysStaffClient() {
                 setSurveys(list);
                 setSelected((current) => current ?? list[0]?.id ?? null);
             })
-            .catch(() => setError('No se pudieron cargar las encuestas.'));
+            .catch(() => {
+                setSurveysFailed(true);
+                setError('No se pudieron cargar las encuestas.');
+            });
     }, [isAdmin]);
 
     useEffect(() => {
         if (!isAdmin || selected === null) return;
         let cancelled = false;
         setLoading(true);
+        // La encuesta seleccionada cambió: los resultados anteriores no
+        // corresponden a la nueva selección y no deben quedar visibles
+        // mientras carga o si la carga falla.
+        setResults(null);
         getSurveyResults(selected)
             .then((r) => { if (!cancelled) setResults(r); })
             .catch(() => { if (!cancelled) setError('No se pudieron cargar los resultados.'); })
@@ -101,7 +109,7 @@ export function SurveysStaffClient() {
             {error && <Alert color="red" mb="md" withCloseButton onClose={() => setError(null)}>{error}</Alert>}
 
             {surveys === null ? (
-                <Center py={80}><Loader /></Center>
+                surveysFailed ? null : <Center py={80}><Loader /></Center>
             ) : surveys.length === 0 ? (
                 <Text c="dimmed">Aún no hay encuestas. Créalas desde el admin.</Text>
             ) : (
@@ -121,8 +129,13 @@ export function SurveysStaffClient() {
                                 onClick={() => setSelected(s.id)}
                                 style={{ cursor: 'pointer' }}
                                 bg={s.id === selected ? 'var(--mantine-color-default-hover)' : undefined}
+                                aria-selected={s.id === selected}
                             >
-                                <Table.Td>{s.title}</Table.Td>
+                                <Table.Td>
+                                    <UnstyledButton onClick={() => setSelected(s.id)} fz="sm" fw={s.id === selected ? 600 : 400}>
+                                        {s.title}
+                                    </UnstyledButton>
+                                </Table.Td>
                                 <Table.Td><Badge color={STATUS[s.status].color} variant="light">{STATUS[s.status].label}</Badge></Table.Td>
                                 <Table.Td>{s.published_at ? DATE.format(new Date(s.published_at)) : '—'}</Table.Td>
                                 <Table.Td ta="right">{s.response_count}</Table.Td>
