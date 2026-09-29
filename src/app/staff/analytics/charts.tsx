@@ -45,14 +45,14 @@ function shortDate(value: string): string {
     return `${day}/${month}`;
 }
 
-function useAxisColor(): string {
+export function useAxisColor(): string {
     // El dashboard se usa en ambos temas y los ejes en gris fijo desaparecían
     // sobre el fondo oscuro.
     const scheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
     return scheme === 'dark' ? '#909296' : '#868e96';
 }
 
-const TOOLTIP_STYLE = {
+export const TOOLTIP_STYLE = {
     background: 'var(--mantine-color-body)',
     border: '1px solid var(--mantine-color-default-border)',
     borderRadius: 8,
@@ -60,7 +60,7 @@ const TOOLTIP_STYLE = {
     color: 'var(--mantine-color-text)',
 };
 
-const TOOLTIP_LABEL_STYLE = {
+export const TOOLTIP_LABEL_STYLE = {
     color: 'var(--mantine-color-text)',
 };
 

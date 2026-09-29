@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { IconChartHistogram } from '@tabler/icons-react';
+import { IconChartHistogram, IconMessageCircleQuestion } from '@tabler/icons-react';
 import {
     Alert,
     Badge,
@@ -70,6 +70,14 @@ export default function StaffLoginClient() {
                             leftSection={<IconChartHistogram size={18} />}
                         >
                             Ver analítica
+                        </Button>
+                        <Button
+                            component={Link}
+                            href="/staff/encuestas"
+                            variant="light"
+                            leftSection={<IconMessageCircleQuestion size={18} />}
+                        >
+                            Ver encuestas
                         </Button>
                         <Button variant="light" color="red" onClick={logout}>
                             Cerrar sesión
