@@ -81,7 +81,7 @@ test('responder oculta el botón y al volver aparece la siguiente', async ({ pag
     await surveyButton(page).click();
     const dialog = page.getByRole('dialog', { name: 'E2E Mock Nueva' });
     await dialog.getByLabel('PS5').check();
-    await dialog.getByRole('slider').focus();
+    await dialog.getByRole('slider', { name: '¿Qué tan útil te parece?' }).focus();
     await page.keyboard.press('ArrowRight');
     await dialog.getByLabel('¿Algo más?').fill('Muy bueno');
     await dialog.getByRole('button', { name: 'Enviar respuestas' }).click();

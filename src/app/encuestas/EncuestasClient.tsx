@@ -34,7 +34,7 @@ export function EncuestasClient({ surveys }: { surveys: Survey[] }) {
         <Container size="sm" py={60}>
             <Title order={1} ta="center" mb="xs">Encuestas</Title>
             <Text c="dimmed" ta="center" mb="xl">
-                Preguntas cortas para saber qué mejorar. Son anónimas y toman un minuto.
+                Preguntas cortas para saber qué mejorar. Toman un minuto y no te pedimos ningún dato personal.
             </Text>
 
             {surveys.length === 0 ? (

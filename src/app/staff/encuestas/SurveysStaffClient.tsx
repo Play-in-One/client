@@ -71,7 +71,9 @@ export function SurveysStaffClient() {
             link.href = url;
             link.download = `encuesta-${selected}.csv`;
             link.click();
-            URL.revokeObjectURL(url);
+            // Revocar de inmediato puede invalidar la descarga antes de que el
+            // navegador termine de iniciarla; un pequeño margen es suficiente.
+            setTimeout(() => URL.revokeObjectURL(url), 0);
         } catch {
             setError('No se pudo exportar el CSV.');
         }

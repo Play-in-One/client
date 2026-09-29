@@ -15,6 +15,8 @@ type Value = string | string[] | number | undefined;
 const DEFAULT_ERROR = 'No pudimos enviar tus respuestas. Intenta nuevamente más tarde.';
 const REQUIRED_ERROR = 'Esta pregunta es obligatoria.';
 const COMMENT_MAX = 1000;
+const DEFAULT_DONE_SUBTITLE = 'Tu opinión nos ayuda a mejorar Play in One.';
+const CLOSED_DONE_SUBTITLE = 'Gracias de todas formas.';
 
 function toPayload(question: SurveyQuestion, value: Value): SurveyAnswerPayload | null {
     switch (question.kind) {
@@ -55,6 +57,7 @@ export function SurveyForm({ survey, onDone }: SurveyFormProps) {
     const [missing, setMissing] = useState<number[]>([]);
     const [status, setStatus] = useState<Status>('idle');
     const [doneTitle, setDoneTitle] = useState('¡Gracias por responder!');
+    const [doneSubtitle, setDoneSubtitle] = useState(DEFAULT_DONE_SUBTITLE);
     const [error, setError] = useState<string | null>(null);
 
     const setValue = (id: number, value: Value) => {
@@ -62,9 +65,10 @@ export function SurveyForm({ survey, onDone }: SurveyFormProps) {
         setMissing((prev) => prev.filter((x) => x !== id));
     };
 
-    const finish = (title: string) => {
+    const finish = (title: string, subtitle: string = DEFAULT_DONE_SUBTITLE) => {
         markSurveyAnswered(survey.id);
         setDoneTitle(title);
+        setDoneSubtitle(subtitle);
         setStatus('done');
         onDone?.();
     };
@@ -97,7 +101,11 @@ export function SurveyForm({ survey, onDone }: SurveyFormProps) {
             // valga la pena reintentar: se marca y se cierra.
             if (err instanceof ApiError && err.status === 409) {
                 const detail = (err.data as { detail?: string } | undefined)?.detail;
-                finish(detail ?? 'Ya habías respondido esta encuesta');
+                if (detail?.includes('cerrada')) {
+                    finish(detail, CLOSED_DONE_SUBTITLE);
+                } else {
+                    finish(detail ?? 'Ya habías respondido esta encuesta');
+                }
                 return;
             }
             setError(errorMessage(err));
@@ -110,7 +118,7 @@ export function SurveyForm({ survey, onDone }: SurveyFormProps) {
             <Stack align="center" gap="xs" py="lg">
                 <IconCircleCheck size={48} color="var(--mantine-color-green-6)" />
                 <Title order={3} ta="center">{doneTitle}</Title>
-                <Text c="dimmed" fz="sm" ta="center">Tu opinión nos ayuda a mejorar Play in One.</Text>
+                <Text c="dimmed" fz="sm" ta="center">{doneSubtitle}</Text>
             </Stack>
         );
     }
@@ -257,7 +265,7 @@ function SliderField({ question: q, value, error, onChange }: {
                 value={value ?? middle}
                 onChange={onChange}
                 color={touched ? undefined : 'gray'}
-                aria-label={q.prompt}
+                thumbLabel={q.prompt}
                 marks={[
                     { value: q.slider_min, label: q.slider_min_label || String(q.slider_min) },
                     { value: q.slider_max, label: q.slider_max_label || String(q.slider_max) },
