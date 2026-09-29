@@ -69,8 +69,9 @@ test('no deja enviar sin las preguntas obligatorias', async ({ page }) => {
     await page.goto('/');
     await surveyButton(page).click();
     await page.getByRole('button', { name: 'Enviar respuestas' }).click();
-    await expect(page.getByText('Esta pregunta es obligatoria.')).toBeVisible();
-    await expect(page.getByText('Mueve el control para responder.')).toBeVisible();
+    // Las dos preguntas obligatorias (radio y slider) quedan marcadas con el
+    // mismo mensaje de error.
+    await expect(page.getByText('Esta pregunta es obligatoria.')).toHaveCount(2);
     expect(posted).toHaveLength(0);
 });
 
