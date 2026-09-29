@@ -130,6 +130,7 @@ export default function Footer() {
                         <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
                         <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>
                         <Anchor component={Link} href="/faq" fz="sm" c="dimmed" underline="never">Preguntas frecuentes</Anchor>
+                        <Anchor component={Link} href="/encuestas" fz="sm" c="dimmed" underline="never">Encuestas</Anchor>
                         <Anchor component={Link} href="/scrap" fz="sm" c="dimmed" underline="never">Estadísticas</Anchor>
                     </Stack>
 
