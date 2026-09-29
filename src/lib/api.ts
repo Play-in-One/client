@@ -4,6 +4,7 @@ import type {
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     SourcesReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
+    Survey, StaffSurvey, SurveyResults,
 } from './types';
 import { appendAttribution } from './attribution';
 import { tryServerPerf } from './serverPerf';
@@ -532,6 +533,34 @@ export async function submitContact(data: ContactPayload) {
     });
 }
 
+/* ── Encuestas ──
+   El POST viaja como JSON igual que el contacto (lleva preflight CORS, pero se
+   hace una vez por encuesta). Adjunta el token de visitante si existe: el
+   backend lo usa para no aceptar dos respuestas de la misma persona. */
+export interface SurveyAnswerPayload {
+    question: number;
+    choices?: number[];
+    value?: number;
+    text?: string;
+}
+
+export interface SurveyResponsePayload {
+    answers: SurveyAnswerPayload[];
+    comment?: string;
+    page_path?: string;
+}
+
+export async function getSurveys() {
+    return fetcher<Survey[]>('/surveys/');
+}
+
+export async function submitSurveyResponse(id: number, payload: SurveyResponsePayload) {
+    return fetcher<{ id?: number; detail?: string }>(`/surveys/${id}/responses/`, {
+        method: 'POST',
+        body: JSON.stringify(visitorToken ? { ...payload, visitor_id: visitorToken } : payload),
+    });
+}
+
 /* ── Admin auth + edición (requieren token de staff, ver AdminContext) ── */
 export interface LoginResponse {
     token: string;
@@ -659,3 +688,24 @@ export async function getAnalyticsSlowest(days = 7, metric = 'lcp', path = '') {
     if (path) query.set('path', path);
     return fetcher<SlowestReport>(`/analytics/performance/slowest/?${query}`, { admin: true });
 }
+
+/* ── Encuestas (solo staff) ── */
+export async function getStaffSurveys() {
+    return fetcher<StaffSurvey[]>('/surveys/staff/', { admin: true });
+}
+
+export async function getSurveyResults(id: number) {
+    return fetcher<SurveyResults>(`/surveys/${id}/results/`, { admin: true });
+}
+
+/** El CSV exige el token de staff, así que no sirve un <a href>: se baja como blob. */
+export async function downloadSurveyCsv(id: number): Promise<Blob> {
+    const res = await fetch(`${API_BASE}/surveys/${id}/export/`, {
+        headers: adminToken ? { Authorization: `Token ${adminToken}` } : {},
+    });
+    if (!res.ok) throw new ApiError(`API ${res.status}: ${res.statusText}`, res.status);
+    return res.blob();
+}
+
+/** Raíz del Django admin, para enlazar la creación/edición de encuestas. */
+export const DJANGO_ADMIN_URL = `${API_BASE.replace(/\/api\/?$/, '')}/admin/`;

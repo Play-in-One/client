@@ -650,3 +650,78 @@ export interface Stats {
     platform_matrix: PlatformMatrixRow[];
     last_run: LastScrapeRun | null;
 }
+
+/* ── Encuestas ── */
+export type SurveyQuestionKind = 'single' | 'multiple' | 'slider' | 'text';
+export type SurveyStatus = 'draft' | 'open' | 'quiet' | 'closed';
+
+export interface SurveyChoice {
+    id: number;
+    label: string;
+}
+
+export interface SurveyQuestion {
+    id: number;
+    kind: SurveyQuestionKind;
+    prompt: string;
+    help_text: string;
+    required: boolean;
+    slider_min: number;
+    slider_max: number;
+    slider_step: number;
+    slider_min_label: string;
+    slider_max_label: string;
+    text_max_length: number;
+    choices: SurveyChoice[];
+}
+
+export interface Survey {
+    id: number;
+    title: string;
+    description: string;
+    allow_comment: boolean;
+    comment_prompt: string;
+    published_at: string;
+    /** Abierta pero nunca pendiente: no enciende el botón, solo sale en /encuestas. */
+    is_quiet: boolean;
+    questions: SurveyQuestion[];
+}
+
+export interface StaffSurvey {
+    id: number;
+    title: string;
+    status: SurveyStatus;
+    published_at: string | null;
+    created_at: string;
+    allow_comment: boolean;
+    response_count: number;
+}
+
+export interface SurveyTextEntry {
+    text: string;
+    created_at: string;
+}
+
+export interface SurveyQuestionResult {
+    id: number;
+    prompt: string;
+    kind: SurveyQuestionKind;
+    answered: number;
+    choices?: { id: number; label: string; count: number }[];
+    slider?: {
+        min: number;
+        max: number;
+        step: number;
+        min_label: string;
+        max_label: string;
+        average: number | null;
+        histogram: { value: number; count: number }[];
+    };
+    texts?: SurveyTextEntry[];
+}
+
+export interface SurveyResults {
+    survey: StaffSurvey;
+    questions: SurveyQuestionResult[];
+    comments: SurveyTextEntry[];
+}

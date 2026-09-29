@@ -323,14 +323,15 @@ body {
 }
 
 /* Aviso de cookies (CookieBanner): tarjeta flotante en la esquina inferior
-   derecha; en móvil ocupa el ancho con margen.
+   izquierda —la derecha es del botón de encuestas—; en móvil ocupa el ancho
+   con margen.
    Doble clase para ganarle a la regla de Affix, que posiciona con
    `inset-inline-*` leyendo variables inline. */
 .mantine-Affix-root.cookie-banner {
   top: auto;
   bottom: 24px;
-  inset-inline-start: auto;
-  inset-inline-end: 24px;
+  inset-inline-start: 24px;
+  inset-inline-end: auto;
   width: min(480px, calc(100vw - 48px));
 }
 
