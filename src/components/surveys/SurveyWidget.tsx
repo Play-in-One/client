@@ -77,7 +77,7 @@ export function SurveyWidget() {
 
     return (
         <>
-            <Affix className="survey-affix" zIndex={200}>
+            <Affix className="survey-affix" zIndex={190}>
                 <Transition mounted={visible} transition="slide-up" duration={200}>
                     {(styles) => (
                         <div ref={ref} style={styles} className="survey-widget">
