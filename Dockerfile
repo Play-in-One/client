@@ -7,6 +7,9 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Identifica este build para que Next.js recargue pestañas de versiones anteriores.
+ARG NEXT_DEPLOYMENT_ID
+ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 ARG NEXT_PUBLIC_API_URL=http://localhost:8001/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 # URL pública del sitio, usada por el SEO/SSR (canonical, OG, sitemap). Horneada en build.
@@ -25,11 +28,14 @@ ENV NEXT_PUBLIC_ADSENSE_SLOT_HOME_FOOTER=$NEXT_PUBLIC_ADSENSE_SLOT_HOME_FOOTER
 # acepta la cookie de medición. Horneada en build, igual que AdSense.
 ARG NEXT_PUBLIC_GA_MEASUREMENT_ID=
 ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
+RUN test -n "$NEXT_DEPLOYMENT_ID" || (echo "NEXT_DEPLOYMENT_ID requerido para el build de producción" >&2; exit 1)
 RUN npm run build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ARG NEXT_DEPLOYMENT_ID
+ENV NEXT_DEPLOYMENT_ID=$NEXT_DEPLOYMENT_ID
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
