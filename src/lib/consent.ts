@@ -4,7 +4,7 @@
  *
  *   - `analytics: false` — el servidor cuenta la visita con un hash derivado
  *     de IP y navegador que rota cada 24 h. No escribe nada en el dispositivo
- *     (salvo, si respondes una encuesta, la lista de encuestas respondidas en
+ *     (salvo los borradores y la lista de encuestas respondidas en
  *     localStorage; ver /cookies) y no permite seguir a nadie de un día para otro.
  *   - `analytics: true`  — se emite la cookie `pio_vid`, un identificador
  *     aleatorio que permite saber si alguien vuelve.
@@ -35,8 +35,11 @@ export const VISITOR_COOKIE = 'pio_vid';
  *
  * 2.2 — se aclara qué guarda una respuesta a encuesta según el nivel de
  * consentimiento (identificador de visitante si aceptaste la analítica, o el
- * resumen cifrado diario si no). La 2.1 no distinguía los dos casos. */
-export const POLICY_VERSION = '2.2';
+ * resumen cifrado diario si no). La 2.1 no distinguía los dos casos.
+ *
+ * 2.3 — autoguardado de respuestas incompletas, borradores locales y métricas
+ * de apertura, tiempo activo y abandono de encuestas. */
+export const POLICY_VERSION = '2.3';
 
 /* 13 meses, el máximo habitual para una cookie analítica. Es un plazo fijo:
  * la cookie no se renueva al navegar, así que el consentimiento se vuelve a

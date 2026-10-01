@@ -144,7 +144,7 @@ test('una oferta sin stock se muestra grisada al final, sin ganar por precio', a
 test('el precio con envío y convenio ofrece un solo desglose combinado', async ({ page }) => {
     await page.goto(gamePath);
     // La importadora tiene envío y convenio, pero ambos usan el mismo ícono.
-    const info = page.getByRole('button', { name: 'Ver desglose de envío y cupón' });
+    const info = page.getByRole('table').getByRole('button', { name: 'Ver desglose de envío y cupón' });
     await expect(info).toHaveCount(1);
 
     await info.click();

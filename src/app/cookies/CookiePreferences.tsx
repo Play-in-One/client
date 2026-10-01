@@ -44,6 +44,13 @@ const COOKIES = [
         needed: 'Solo si respondes una encuesta',
     },
     {
+        name: 'pio_survey_draft_* (almacenamiento local)',
+        origin: 'Propia',
+        purpose: 'Conserva respuestas, comentario, paso, tiempo activo y un identificador aleatorio para retomar y sincronizar el borrador con el servidor.',
+        duration: 'Hasta enviar la encuesta o borrar los datos del sitio',
+        needed: 'Solo si abres una encuesta',
+    },
+    {
         name: 'pio_survey_nudged (almacenamiento de sesión)',
         origin: 'Propia',
         purpose: 'Recuerda que ya te mostramos el aviso de la encuesta, para no repetirlo.',

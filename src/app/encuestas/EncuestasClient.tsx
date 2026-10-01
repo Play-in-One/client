@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge, Box, Button, Container, Group, Stack, Text, Title } from '@mantine/core';
+import { Badge, Box, Button, Container, Stack, Text, Title } from '@mantine/core';
 import { IconCheck } from '@tabler/icons-react';
 
 import { SurveyModal } from '@/components/surveys/SurveyModal';
+import styles from '@/components/surveys/Survey.module.css';
 import { SURVEY_ANSWERED_EVENT, getAnsweredSurveyIds } from '@/lib/surveyStorage';
 import type { Survey } from '@/lib/types';
 
@@ -58,9 +59,9 @@ export function EncuestasClient({ surveys }: { surveys: Survey[] }) {
 function SurveyCard({ survey, onAnswer }: { survey: Survey; onAnswer?: () => void }) {
     const count = survey.questions.length;
     return (
-        <Box className="content-card" p="lg" component="article" aria-label={survey.title}>
-            <Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
-                <Stack gap={4}>
+        <Box className={`content-card ${styles.card}`} p="lg" component="article" aria-label={survey.title}>
+            <div className={styles.cardContent}>
+                <Stack className={styles.cardText} gap={4}>
                     <Title order={2} fz="lg">{survey.title}</Title>
                     {survey.description && <Text fz="sm" c="dimmed">{survey.description}</Text>}
                     <Text fz="xs" c="dimmed">
@@ -74,7 +75,7 @@ function SurveyCard({ survey, onAnswer }: { survey: Survey; onAnswer?: () => voi
                         Respondida
                     </Badge>
                 )}
-            </Group>
+            </div>
         </Box>
     );
 }

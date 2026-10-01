@@ -323,15 +323,15 @@ body {
 }
 
 /* Aviso de cookies (CookieBanner): tarjeta flotante en la esquina inferior
-   izquierda —la derecha es del botón de encuestas—; en móvil ocupa el ancho
+   derecha; en móvil ocupa el ancho
    con margen.
    Doble clase para ganarle a la regla de Affix, que posiciona con
    `inset-inline-*` leyendo variables inline. */
 .mantine-Affix-root.cookie-banner {
   top: auto;
   bottom: 24px;
-  inset-inline-start: 24px;
-  inset-inline-end: auto;
+  inset-inline-start: auto;
+  inset-inline-end: 24px;
   width: min(480px, calc(100vw - 48px));
 }
 
@@ -357,25 +357,33 @@ body {
   }
 }
 
-/* Botón de encuestas (SurveyWidget): abajo a la derecha, frente al aviso de
-   cookies. Mismo truco de doble clase que el banner para mover el Affix. */
+/* Invitación a encuestas: lateral izquierdo del inicio. El aviso de cookies
+   conserva la esquina inferior y no se solapa en escritorio. */
 .mantine-Affix-root.survey-affix {
-  top: auto;
-  bottom: 24px;
-  inset-inline-start: auto;
-  inset-inline-end: 24px;
+  top: calc(50dvh - 42px);
+  bottom: auto;
+  inset-inline-start: 24px;
+  inset-inline-end: auto;
+  max-width: calc(100vw - 48px);
 }
 
 .survey-widget {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .survey-widget__bubble {
-  position: relative;
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 0;
+  width: 240px;
   max-width: 240px;
+  max-height: min(260px, calc(50dvh - 64px));
+  overflow-y: auto;
+  overflow-wrap: anywhere;
 }
 
 /* La punta del globo, hacia el botón. */
@@ -383,7 +391,7 @@ body {
   content: '';
   position: absolute;
   bottom: -7px;
-  right: 20px;
+  left: 24px;
   width: 12px;
   height: 12px;
   background: inherit;
@@ -392,25 +400,71 @@ body {
   transform: rotate(45deg);
 }
 
-/* Dos latidos al aparecer y luego quieto: se nota sin molestar. */
 .survey-widget__button {
-  box-shadow: var(--mantine-shadow-md);
-  animation: survey-pulse 1.6s ease-out 0.4s 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 248px;
+  max-width: 100%;
+  min-height: 84px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--mantine-primary-color-filled) 35%, var(--mantine-color-default-border));
+  border-radius: 18px;
+  background: var(--mantine-color-body);
+  color: var(--mantine-color-text);
+  box-shadow: var(--mantine-shadow-lg);
+  animation: survey-invitation 1.4s ease-out 0.4s 3;
+  transition: border-color 160ms ease, background-color 160ms ease;
 }
 
-@keyframes survey-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--mantine-primary-color-filled) 45%, transparent); }
-  100% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--mantine-primary-color-filled) 0%, transparent); }
+.survey-widget__button:hover,
+.survey-widget__button:focus-visible {
+  border-color: var(--mantine-primary-color-filled);
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 7%, var(--mantine-color-body));
+}
+
+.survey-widget__logo {
+  display: flex;
+  flex: 0 0 52px;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--mantine-primary-color-filled) 9%, var(--mantine-color-body));
+}
+
+.survey-widget__logo img { object-fit: contain; }
+
+.survey-widget__copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.survey-widget__eyebrow { font-size: 11px; color: var(--mantine-color-dimmed); }
+.survey-widget__action { font-size: 14px; font-weight: 700; line-height: 1.3; }
+.survey-widget__arrow { flex-shrink: 0; color: var(--mantine-primary-color-filled); }
+
+/* Tres impulsos breves al aparecer; después la tarjeta queda quieta. */
+@keyframes survey-invitation {
+  0% { transform: translateX(0); box-shadow: var(--mantine-shadow-lg), 0 0 0 0 color-mix(in srgb, var(--mantine-primary-color-filled) 25%, transparent); }
+  25% { transform: translateX(5px); }
+  100% { transform: translateX(0); box-shadow: var(--mantine-shadow-lg), 0 0 0 12px transparent; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .survey-widget__button { animation: none; }
+  .survey-widget__button { animation: none; transition: none; }
 }
 
-@media (max-width: 36em) {
+@media (max-width: 64em) {
   .mantine-Affix-root.survey-affix {
-    bottom: 16px;
-    inset-inline-end: 16px;
+    top: auto;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    inset-inline-start: 16px;
+    max-width: calc(100vw - 32px);
   }
 }
 

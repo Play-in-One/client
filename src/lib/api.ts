@@ -548,6 +548,27 @@ export interface SurveyResponsePayload {
     answers: SurveyAnswerPayload[];
     comment?: string;
     page_path?: string;
+    draft_token?: string;
+    open_event_id?: string;
+    duration_ms?: number;
+}
+
+export interface SurveyDraftPayload extends SurveyResponsePayload {
+    draft_token: string;
+    open_event_id: string;
+    revision: number;
+    current_question: number | null;
+    duration_ms: number;
+    paused: boolean;
+    inactive_ms: number;
+}
+
+export async function saveSurveyDraft(id: number, payload: SurveyDraftPayload) {
+    const body = JSON.stringify(visitorToken ? { ...payload, visitor_id: visitorToken } : payload);
+    return fetcher<{ id?: number; revision?: number }>(`/surveys/${id}/draft/`, {
+        method: 'POST', credentials: 'omit', body,
+        keepalive: new TextEncoder().encode(body).length < 60_000,
+    });
 }
 
 export async function getSurveys() {

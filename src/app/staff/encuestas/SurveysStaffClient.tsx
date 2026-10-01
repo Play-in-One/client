@@ -10,7 +10,7 @@ import {
 import { IconDownload, IconExternalLink } from '@tabler/icons-react';
 
 import { DJANGO_ADMIN_URL, downloadSurveyCsv, getStaffSurveys, getSurveyResults } from '@/lib/api';
-import type { StaffSurvey, SurveyQuestionResult, SurveyResults, SurveyStatus, SurveyTextEntry } from '@/lib/types';
+import type { StaffSurvey, SurveyMetrics, SurveyQuestionResult, SurveyResults, SurveyStatus, SurveyTextEntry } from '@/lib/types';
 import { useAdmin } from '@/context/AdminContext';
 
 const ChoiceBarChart = dynamic(() => import('./charts').then((m) => m.ChoiceBarChart), { ssr: false });
@@ -34,19 +34,24 @@ export function SurveysStaffClient() {
     const [results, setResults] = useState<SurveyResults | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [refresh, setRefresh] = useState(0);
 
     useEffect(() => {
         if (!isAdmin) return;
+        let cancelled = false;
         getStaffSurveys()
             .then((list) => {
+                if (cancelled) return;
                 setSurveys(list);
                 setSelected((current) => current ?? list[0]?.id ?? null);
             })
             .catch(() => {
+                if (cancelled) return;
                 setSurveysFailed(true);
                 setError('No se pudieron cargar las encuestas.');
             });
-    }, [isAdmin]);
+        return () => { cancelled = true; };
+    }, [isAdmin, refresh]);
 
     useEffect(() => {
         if (!isAdmin || selected === null) return;
@@ -61,7 +66,7 @@ export function SurveysStaffClient() {
             .catch(() => { if (!cancelled) setError('No se pudieron cargar los resultados.'); })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, [isAdmin, selected]);
+    }, [isAdmin, selected, refresh]);
 
     const exportCsv = async () => {
         if (selected === null) return;
@@ -115,13 +120,15 @@ export function SurveysStaffClient() {
             ) : surveys.length === 0 ? (
                 <Text c="dimmed">Aún no hay encuestas. Créalas desde el admin.</Text>
             ) : (
-                <Table highlightOnHover mb="xl">
+                <Table.ScrollContainer minWidth={620} mb="xl">
+                <Table highlightOnHover>
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Encuesta</Table.Th>
                             <Table.Th>Estado</Table.Th>
                             <Table.Th>Publicada</Table.Th>
-                            <Table.Th ta="right">Respuestas</Table.Th>
+                            <Table.Th ta="right">Participaciones</Table.Th>
+                            <Table.Th ta="right">Clics</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -141,21 +148,28 @@ export function SurveysStaffClient() {
                                 <Table.Td><Badge color={STATUS[s.status].color} variant="light">{STATUS[s.status].label}</Badge></Table.Td>
                                 <Table.Td>{s.published_at ? DATE.format(new Date(s.published_at)) : '—'}</Table.Td>
                                 <Table.Td ta="right">{s.response_count}</Table.Td>
+                                <Table.Td ta="right">{s.click_count}</Table.Td>
                             </Table.Tr>
                         ))}
                     </Table.Tbody>
                 </Table>
+                </Table.ScrollContainer>
             )}
 
             {loading && <Center py="xl"><Loader /></Center>}
             {!loading && results && (
                 <Stack>
                     <Group justify="space-between">
-                        <Title order={2} fz="h3">{results.survey.title} · {results.survey.response_count} respuestas</Title>
-                        <Button leftSection={<IconDownload size={16} />} variant="light" onClick={exportCsv}>
-                            Exportar CSV
-                        </Button>
+                        <Title order={2} fz="h3">{results.survey.title} · {results.survey.response_count} participaciones</Title>
+                        <Group gap="xs">
+                            <Button variant="subtle" onClick={() => setRefresh((value) => value + 1)}>Actualizar</Button>
+                            <Button leftSection={<IconDownload size={16} />} variant="light" onClick={exportCsv}>
+                                Exportar CSV
+                            </Button>
+                        </Group>
                     </Group>
+                    <Text fz="sm" c="dimmed">Incluye respuestas guardadas automáticamente aunque la encuesta no se haya enviado.</Text>
+                    <ParticipationMetrics metrics={results.metrics} />
                     <SimpleGrid cols={{ base: 1, md: 2 }}>
                         {results.questions.map((q) => <QuestionResult key={q.id} result={q} />)}
                     </SimpleGrid>
@@ -168,6 +182,47 @@ export function SurveysStaffClient() {
                 </Stack>
             )}
         </Container>
+    );
+}
+
+function ParticipationMetrics({ metrics: m }: { metrics: SurveyMetrics }) {
+    const seconds = m.average_completion_seconds === null ? null : Math.round(m.average_completion_seconds);
+    const duration = seconds === null ? '—' : seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+    return (
+        <Stack gap="sm">
+            <SimpleGrid cols={{ base: 2, md: 4 }}>
+                {[
+                    ['Clics para abrir', m.click_count],
+                    ['Tiempo medio para responder', duration],
+                    ['Tasa de abandono', m.abandonment_rate === null ? '—' : `${m.abandonment_rate}%`],
+                    ['Encuestas enviadas', m.completed_count],
+                ].map(([label, value]) => (
+                    <Card key={label} withBorder radius="md">
+                        <Text fz="xs" c="dimmed">{label}</Text>
+                        <Text fz="xl" fw={700}>{value}</Text>
+                    </Card>
+                ))}
+            </SimpleGrid>
+            <Text fz="xs" c="dimmed">
+                {m.started_count} iniciadas · {m.active_count} en curso · {m.abandoned_count} abandonadas.
+                {' '}El tiempo mide los envíos completos mientras el formulario está visible. Se considera abandono cerrar sin enviar
+                o pasar 30 minutos sin actividad; la tasa excluye las encuestas en curso. Estas métricas se registran desde la activación del guardado automático.
+            </Text>
+            <Card withBorder radius="md">
+                <Text fw={600} mb="sm">¿En qué pregunta abandonan?</Text>
+                <Table>
+                    <Table.Thead><Table.Tr><Table.Th>Pregunta</Table.Th><Table.Th ta="right">Abandonos</Table.Th></Table.Tr></Table.Thead>
+                    <Table.Tbody>
+                        {m.abandonment_by_question.map((q) => (
+                            <Table.Tr key={q.question ?? 'comment'}>
+                                <Table.Td style={{ overflowWrap: 'anywhere' }}>{q.prompt}</Table.Td>
+                                <Table.Td ta="right">{q.count}</Table.Td>
+                            </Table.Tr>
+                        ))}
+                    </Table.Tbody>
+                </Table>
+            </Card>
+        </Stack>
     );
 }
 

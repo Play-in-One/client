@@ -181,6 +181,7 @@ test('el desactivar total corta los eventos por completo', async ({ page }) => {
     await page.getByRole('button', { name: 'Solo esenciales' }).click();
     await page.goto('/cookies');
     await page.getByText('Contarme en las estadísticas anónimas').click();
+    await expect(page.getByRole('switch', { name: /^Contarme en las estadísticas anónimas/ })).not.toBeChecked();
 
     const beacons: string[] = [];
     page.on('request', (request) => {
@@ -203,6 +204,7 @@ test('el desactivar total también corta los eventos de las páginas de detalle'
     await page.getByRole('button', { name: 'Solo esenciales' }).click();
     await page.goto('/cookies');
     await page.getByText('Contarme en las estadísticas anónimas').click();
+    await expect(page.getByRole('switch', { name: /^Contarme en las estadísticas anónimas/ })).not.toBeChecked();
 
     const beacons: string[] = [];
     page.on('request', (request) => {

@@ -11,7 +11,7 @@ import { DataTable, type DataRow } from './DataTable';
    Component y el render revienta. page.tsx sigue siendo servidor y conserva
    la metadata, que es lo que necesitan los buscadores. */
 
-const LAST_UPDATED = '28 de septiembre de 2026';
+const LAST_UPDATED = '1 de octubre de 2026';
 
 const DATA_ROWS: readonly DataRow[] = [
     {
@@ -65,9 +65,9 @@ const DATA_ROWS: readonly DataRow[] = [
     },
     {
         what: 'Respuestas a encuestas',
-        detail: 'Lo que elijas o escribas en una encuesta y la página desde la que respondiste. Si aceptaste la analítica, se asocia a tu identificador de visitante; si no, a un resumen cifrado de tu conexión que cambia cada día.',
-        why: 'Saber qué mejorar del sitio y evitar que una misma persona responda dos veces.',
-        basis: 'Consentimiento, al enviarla tú.',
+        detail: 'Al abrir una encuesta registramos la apertura y guardamos automáticamente lo que elijas o escribas, aunque no pulses Enviar. También registramos la página, el tiempo activo y la última pregunta visitada. Un borrador local permite retomarla. Si aceptaste la analítica, se asocia a tu identificador de visitante; si no, a un resumen cifrado de tu conexión que cambia cada día.',
+        why: 'Saber qué mejorar del sitio, retomar respuestas, evitar envíos repetidos y conocer cuántas personas terminan o abandonan la encuesta.',
+        basis: 'Participación voluntaria al abrir y responder la encuesta.',
         keeps: 'Mientras la encuesta sea útil para analizar. Si borras tus datos, la respuesta queda anónima.',
     },
     {

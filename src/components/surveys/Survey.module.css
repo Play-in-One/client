@@ -1,0 +1,271 @@
+.modalContent {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.modalHeader {
+    flex-shrink: 0;
+    gap: 12px;
+    padding: 20px 24px;
+}
+
+.modalTitle {
+    min-width: 0;
+    max-height: min(120px, 20dvh);
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+}
+
+.modalBody {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+}
+
+.form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.progress {
+    flex-shrink: 0;
+    padding: 0 24px 20px;
+}
+
+.step {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    padding: 24px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    border-block: 1px solid var(--mantine-color-default-border);
+}
+
+.step:focus-visible {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    outline-offset: -2px;
+}
+
+.fieldset {
+    min-width: 0;
+    min-height: 180px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.requirement {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.requirement :global(.mantine-Badge-root) {
+    flex-shrink: 0;
+}
+
+.validationToast {
+    position: absolute;
+    z-index: 2;
+    bottom: calc(100% + 8px);
+    inset-inline: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: calc(100% - 40px);
+    margin-inline: auto;
+    padding: 10px 12px;
+    color: var(--mantine-color-text);
+    background: var(--mantine-color-body);
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+    box-shadow: var(--mantine-shadow-md);
+    pointer-events: none;
+}
+
+.validationToast[hidden] {
+    display: none;
+}
+
+.validationToast svg {
+    flex-shrink: 0;
+    color: var(--mantine-color-red-light-color);
+}
+
+.fieldset[data-invalid='true'] .choice,
+.fieldset[data-invalid='true'] .sliderControl {
+    border-color: var(--mantine-color-red-light-color);
+}
+
+.fieldset[data-invalid='true'] .sliderControl {
+    border-radius: var(--mantine-radius-md);
+    box-shadow: inset 0 0 0 1px var(--mantine-color-red-light-color);
+}
+
+.choice {
+    --mantine-cursor-type: pointer;
+    min-width: 0;
+    cursor: pointer;
+    padding: 12px;
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+}
+
+.choice :global(.mantine-Radio-labelWrapper),
+.choice :global(.mantine-Checkbox-labelWrapper) {
+    min-width: 0;
+}
+
+.sliderControl {
+    min-width: 0;
+    padding: 12px;
+}
+
+.scale {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.scaleLabel {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.navigation {
+    position: relative;
+    display: grid;
+    flex-shrink: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: 12px;
+    padding: 20px 24px;
+}
+
+.navigation button {
+    min-width: 0;
+    height: auto;
+    min-height: 42px;
+    padding: 8px 12px;
+}
+
+.navigation button span {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.saveStatus {
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+    text-align: center;
+}
+
+.done {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    min-height: min(300px, calc(100dvh - 120px));
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.completionMessage,
+.countdown {
+    position: relative;
+    z-index: 1;
+}
+
+.countdown {
+    width: 100%;
+    max-width: 280px;
+}
+
+.confetti {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.confettiParticle {
+    position: absolute;
+    top: -14px;
+    width: 7px;
+    height: 11px;
+    opacity: 0;
+    animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+    0% { opacity: 0; transform: translate3d(0, -14px, 0) rotate(0); }
+    10%, 70% { opacity: 1; }
+    100% { opacity: 0; transform: translate3d(var(--confetti-drift), 400px, 0) rotate(var(--confetti-spin)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .confetti { display: none; }
+    .confettiParticle { animation: none; }
+}
+
+@media (max-height: 36em) {
+    .done {
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .completionMessage svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .completionMessage h3 {
+        font-size: 18px;
+    }
+}
+
+.card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.cardContent {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.cardText {
+    min-width: 0;
+    flex: 1;
+}
+
+@media (max-width: 36em) {
+    .modalHeader {
+        padding: 16px 20px;
+    }
+
+    .progress {
+        padding: 0 20px 16px;
+    }
+
+    .step {
+        padding: 20px;
+    }
+
+    .navigation {
+        padding: 16px 20px max(16px, env(safe-area-inset-bottom));
+    }
+
+    .cardContent {
+        flex-direction: column;
+    }
+}

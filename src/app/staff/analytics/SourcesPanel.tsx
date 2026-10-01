@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { Alert, Box, Group, Progress, SimpleGrid, Stack, Table, Text, Title } from '@mantine/core';
 
-import type { CampaignStat, SourcesReport, SourceStat } from '@/lib/types';
+import type { CampaignStat, SourceMetrics, SourcesReport, SourceStat } from '@/lib/types';
 import { CHANNEL_LABELS } from './channels';
 
 const SourcesChart = dynamic(() => import('./charts').then((m) => m.SourcesChart), { ssr: false });
@@ -12,8 +12,23 @@ function exits(row: { offer_clicks: number; store_clicks: number }): number {
     return row.offer_clicks + row.store_clicks;
 }
 
-function percent(value: number): string {
+function percent(value: number | null | undefined): string {
+    if (value == null) return '—';
     return `${value.toLocaleString('es-CL', { maximumFractionDigits: 1 })}%`;
+}
+
+function count(value: number | null | undefined): string {
+    return value == null ? '—' : value.toLocaleString('es-CL');
+}
+
+function FunnelCells({ row }: { row: SourceMetrics }) {
+    return <>
+        <Table.Td ta="right" fw={600}>{count(row.sessions)}</Table.Td>
+        <Table.Td ta="right">{count(row.sessions_with_game_view)}</Table.Td>
+        <Table.Td ta="right">{count(row.sessions_with_exit)}</Table.Td>
+        <Table.Td ta="right">{count(exits(row))}</Table.Td>
+        <Table.Td ta="right" c="dimmed">{percent(row.session_exit_rate)}</Table.Td>
+    </>;
 }
 
 /**
@@ -34,6 +49,20 @@ export function SourcesPanel({ report }: { report: SourcesReport }) {
 
     return (
         <Stack gap="lg">
+            <Text fz="xs" c="dimmed">
+                Las sesiones son estimadas por identificador y día. Una sesión puede hacer varios clics;
+                la conversión cuenta las sesiones que salen a una tienda.
+            </Text>
+            {report.totals.funnel_complete !== true && (
+                <Alert color="gray" variant="light">
+                    El embudo no está disponible para todo el periodo.
+                </Alert>
+            )}
+            <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                <Box><Text fz="sm" c="dimmed">Sesiones estimadas</Text><Text fw={700} fz="xl">{count(total)}</Text></Box>
+                <Box><Text fz="sm" c="dimmed">Llegan a una ficha</Text><Text fw={700} fz="xl">{count(report.totals.sessions_with_game_view)}</Text><Text fz="xs" c="dimmed">{percent(report.totals.session_game_view_rate)}</Text></Box>
+                <Box><Text fz="sm" c="dimmed">Salen a una tienda</Text><Text fw={700} fz="xl">{count(report.totals.sessions_with_exit)}</Text><Text fz="xs" c="dimmed">{percent(report.totals.session_exit_rate)}</Text></Box>
+            </SimpleGrid>
             {unknown > 0 && (
                 <Alert color="gray" variant="light">
                     {unknown.toLocaleString('es-CL')} sesiones son anteriores a que se midiera el
@@ -43,15 +72,17 @@ export function SourcesPanel({ report }: { report: SourcesReport }) {
 
             <SourcesChart series={report.series} />
 
-            <Table.ScrollContainer minWidth={520}>
-                <Table striped verticalSpacing="xs" fz="sm">
+            <Table.ScrollContainer minWidth={720}>
+                <Table striped verticalSpacing="xs" fz="sm" aria-label="Embudo por canal">
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>Canal</Table.Th>
-                            <Table.Th ta="right">Sesiones</Table.Th>
-                            <Table.Th w="22%">Del total</Table.Th>
+                            <Table.Th ta="right">Sesiones estimadas</Table.Th>
+                            <Table.Th ta="right">Con ficha</Table.Th>
+                            <Table.Th ta="right">Salen a tienda</Table.Th>
                             <Table.Th ta="right">Clics a tienda</Table.Th>
                             <Table.Th ta="right">Conversión</Table.Th>
+                            <Table.Th w="22%">Del total</Table.Th>
                         </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -60,15 +91,13 @@ export function SourcesPanel({ report }: { report: SourcesReport }) {
                             return (
                                 <Table.Tr key={row.channel || 'unknown'}>
                                     <Table.Td>{row.label}</Table.Td>
-                                    <Table.Td ta="right" fw={600}>{row.sessions.toLocaleString('es-CL')}</Table.Td>
+                                    <FunnelCells row={row} />
                                     <Table.Td>
                                         <Group gap="xs" wrap="nowrap">
                                             <Progress value={share} size="sm" radius="xl" style={{ flex: 1 }} aria-hidden />
                                             <Text fz="xs" c="dimmed" w={42} ta="right">{percent(share)}</Text>
                                         </Group>
                                     </Table.Td>
-                                    <Table.Td ta="right">{exits(row).toLocaleString('es-CL')}</Table.Td>
-                                    <Table.Td ta="right" c="dimmed">{percent(row.conversion_rate)}</Table.Td>
                                 </Table.Tr>
                             );
                         })}
@@ -124,13 +153,16 @@ function SourceTable({
     if (rows.length === 0) return <Text c="dimmed" fz="sm">{emptyLabel}</Text>;
 
     return (
-        <Table.ScrollContainer minWidth={300}>
-            <Table striped verticalSpacing="xs" fz="sm">
+        <Table.ScrollContainer minWidth={600}>
+            <Table striped verticalSpacing="xs" fz="sm" aria-label={showCampaign ? 'Embudo por campaña' : 'Embudo por origen'}>
                 <Table.Thead>
                     <Table.Tr>
                         <Table.Th>{showCampaign ? 'Campaña' : 'Origen'}</Table.Th>
-                        <Table.Th ta="right">Sesiones</Table.Th>
-                        <Table.Th ta="right">A tienda</Table.Th>
+                        <Table.Th ta="right">Sesiones estimadas</Table.Th>
+                        <Table.Th ta="right">Con ficha</Table.Th>
+                        <Table.Th ta="right">Salen a tienda</Table.Th>
+                        <Table.Th ta="right">Clics a tienda</Table.Th>
+                        <Table.Th ta="right">Conversión</Table.Th>
                     </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -147,8 +179,7 @@ function SourceTable({
                                             : CHANNEL_LABELS[row.channel]}
                                     </Text>
                                 </Table.Td>
-                                <Table.Td ta="right" fw={600}>{row.sessions.toLocaleString('es-CL')}</Table.Td>
-                                <Table.Td ta="right">{exits(row).toLocaleString('es-CL')}</Table.Td>
+                                <FunnelCells row={row} />
                             </Table.Tr>
                         );
                     })}
