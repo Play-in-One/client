@@ -76,12 +76,12 @@ const ACTIVITY = {
         const weekday = Math.floor(index / 24);
         const hour = index % 24;
         const events = hour < 7 ? 0 : (weekday === 1 && hour === 21 ? 90 : hour * 2);
-        return { weekday, hour, events, visitors: Math.round(events / 3), avg_events: events / 4 };
+        return { weekday, hour, events, sessions: Math.round(events / 3), avg_events: events / 4 };
     }),
     max_events: 90,
     by_hour: Array.from({ length: 24 }, (_, hour) => ({ hour, events: hour * 14 })),
     by_weekday: Array.from({ length: 7 }, (_, weekday) => ({ weekday, events: 300 })),
-    peak: { weekday: 1, hour: 21, events: 90, visitors: 30, avg_events: 22.5 },
+    peak: { weekday: 1, hour: 21, events: 90, sessions: 30, avg_events: 22.5 },
 };
 
 const RETENTION = {
@@ -120,7 +120,19 @@ const SLOWEST = {
 // signInAsStaff es de mentira— y la excepción tumbaba la página. Comprobado con
 // una sonda: de tres patrones, sólo interceptó el que contemplaba la "?".
 async function mockAnalytics(page: import('@playwright/test').Page) {
+    const measured = {
+        sessions: 10, page_views: 20, game_views: 8, offer_clicks: 24, store_clicks: 1,
+        conversion_rate: 250, sessions_with_game_view: 4, sessions_with_exit: 2,
+        session_game_view_rate: 40, session_exit_rate: 20, funnel_complete: true,
+    };
+    const sourceReport = {
+        start: '2026-07-29', end: TODAY, totals: measured,
+        channels: [{ channel: 'google_organic', label: 'Google orgánico', ...measured }],
+        top_sources: [], campaigns: [{ channel: 'google_organic', source: 'google', medium: 'organic', campaign: 'ofertas', ...measured }],
+        series: [{ date: TODAY, channel: 'google_organic', sessions: 10 }],
+    };
     const routes: [RegExp, unknown][] = [
+        [/\/api\/analytics\/sources\//, sourceReport],
         [/\/api\/analytics\/summary\//, SUMMARY],
         [/\/api\/analytics\/traffic\//, TRAFFIC],
         [/\/api\/analytics\/funnel\//, FUNNEL],
@@ -129,7 +141,8 @@ async function mockAnalytics(page: import('@playwright/test').Page) {
         [/\/api\/analytics\/activity\//, ACTIVITY],
         // El lookahead evita que `performance/` se coma a `performance/slowest/`,
         // así el orden de registro deja de importar.
-        [/\/api\/analytics\/performance\/(?!slowest)/, PERFORMANCE],
+        [/\/api\/analytics\/performance\/(?!slowest|catalog-filter)/, PERFORMANCE],
+        [/\/api\/analytics\/performance\/catalog-filter\//, { days: 7, rows: [] }],
         [/\/api\/analytics\/performance\/slowest\//, SLOWEST],
     ];
     for (const [pattern, body] of routes) {
@@ -138,6 +151,35 @@ async function mockAnalytics(page: import('@playwright/test').Page) {
         );
     }
 }
+
+test('el embudo por campaña distingue sesiones convertidas de clics repetidos', async ({ page }) => {
+    await signInAsStaff(page);
+    await mockAnalytics(page);
+    await page.goto('/staff/analytics');
+    const table = page.getByRole('table', { name: 'Embudo por canal' });
+    await expect(table).toBeVisible();
+    const row = table.getByRole('row').filter({ hasText: 'Google orgánico' });
+    await expect(row).toContainText('20%');
+    await expect(row).not.toContainText('250%');
+    await expect(row).toContainText('25');
+    await expect(page.getByRole('table', { name: 'Embudo por campaña' })).toContainText('20%');
+});
+
+test('la historia sin recalcular se muestra como no disponible', async ({ page }) => {
+    await signInAsStaff(page);
+    await mockAnalytics(page);
+    const missing = { sessions: 10, page_views: 20, game_views: 8, offer_clicks: 24, store_clicks: 1, conversion_rate: 250,
+        sessions_with_game_view: null, sessions_with_exit: null, session_game_view_rate: null, session_exit_rate: null, funnel_complete: false };
+    await page.route(/\/api\/analytics\/sources\//, route => route.fulfill({ json: {
+        start: TODAY, end: TODAY, totals: missing, channels: [{ channel: 'tiktok_ads', label: 'Anuncios TikTok', ...missing }],
+        top_sources: [], campaigns: [], series: [],
+    } }));
+    await page.goto('/staff/analytics');
+    await expect(page.getByText('El embudo no está disponible para todo el periodo.')).toBeVisible();
+    const row = page.getByRole('table', { name: 'Embudo por canal' }).getByRole('row').filter({ hasText: 'Anuncios TikTok' });
+    await expect(row).toContainText('—');
+    await expect(row.getByRole('cell').nth(5)).toHaveText('—');
+});
 
 /** Simula una sesión staff sembrando el token que lee AdminContext. */
 async function signInAsStaff(page: import('@playwright/test').Page) {

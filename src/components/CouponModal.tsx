@@ -92,7 +92,7 @@ export default function CouponModal({ offer, onClose, onConfirm }: Props) {
                         <Button variant="default" radius="lg" onClick={onClose}>
                             Cancelar
                         </Button>
-                        <Button color="primaryRed" radius="lg" onClick={onConfirm}>
+                        <Button component="a" href={offer.url} target="_blank" rel="noopener" color="primaryRed" radius="lg" onClick={onConfirm}>
                             Tienda
                         </Button>
                     </Group>

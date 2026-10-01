@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { handleImageError } from '@/lib/imageFallback';
+import { useOutboundHref } from '@/hooks/useOutboundHref';
 import { gamePath } from '@/lib/seo';
 import {
     Container,
@@ -357,14 +358,12 @@ export default function GameDetailClient({
        se guarda la oferta pendiente y se muestra el cupón en un modal. Sin
        cupón activo, el click no toca este estado y navega como siempre. */
     const [pendingOffer, setPendingOffer] = useState<PendingOffer | null>(null);
+    const outgoingHref = useOutboundHref();
     const beginOffer = (product: Product) => {
         const coupon = activeCoupon(product.seller);
-        if (!coupon) {
-            trackEvent({ event_type: 'offer_click', product: product.id, game: game.id, platform: product.platform?.id });
-            return true;
-        }
+        if (!coupon) return true;
         setPendingOffer({
-            url: product.affiliate_url || product.url,
+            url: outgoingHref('product', product.id),
             productId: product.id,
             platformId: product.platform?.id,
             seller: product.seller,
@@ -379,19 +378,12 @@ export default function GameDetailClient({
         if (!window.matchMedia('(max-width: 47.99em)').matches) return;
         if ((e.target as HTMLElement).closest('a, [role="button"]')) return;
         if (beginOffer(product)) {
-            window.open(product.affiliate_url || product.url, '_blank', 'noopener,noreferrer');
+            window.open(outgoingHref('product', product.id), '_blank', 'noopener');
         }
     };
     const handleConfirmOffer = () => {
-        if (!pendingOffer) return;
-        trackEvent({
-            event_type: 'offer_click',
-            product: pendingOffer.productId,
-            game: game.id,
-            platform: pendingOffer.platformId,
-        });
-        window.open(pendingOffer.url, '_blank', 'noopener,noreferrer');
-        setPendingOffer(null);
+        // Let the anchor's default navigation run before unmounting it.
+        window.setTimeout(() => setPendingOffer(null), 0);
     };
 
     /* ── Popularity tracking ──
@@ -849,9 +841,9 @@ export default function GameDetailClient({
                                         <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
                                             <Text>Vendido por <Anchor
                                                 component="a"
-                                                href={bestProduct.affiliate_url || bestProduct.url}
+                                                href={outgoingHref('product', bestProduct.id)}
                                                 target="_blank"
-                                                rel="noopener noreferrer"
+                                                rel="noopener"
                                                 onClick={(e) => handleOfferClick(e, bestProduct)}
                                                 fw={700}
                                                 c="#fff"
@@ -868,9 +860,9 @@ export default function GameDetailClient({
                                     <Stack align="stretch" justify="center" gap="sm">
                                         <Button
                                             component="a"
-                                            href={bestProduct.affiliate_url || bestProduct.url}
+                                            href={outgoingHref('product', bestProduct.id)}
                                             target="_blank"
-                                            rel="noopener noreferrer"
+                                            rel="noopener"
                                             onClick={(e) => handleOfferClick(e, bestProduct)}
                                             color="primaryRed"
                                             size="lg"
@@ -1056,9 +1048,9 @@ export default function GameDetailClient({
                                                             </Anchor>
                                                             <Anchor
                                                                 component="a"
-                                                                href={p.affiliate_url || p.url}
+                                                                href={outgoingHref('product', p.id)}
                                                                 target="_blank"
-                                                                rel="noopener noreferrer"
+                                                                rel="noopener"
                                                                 onClick={(e) => handleOfferClick(e, p)}
                                                                 underline="never"
                                                                 c="inherit"
@@ -1146,9 +1138,9 @@ export default function GameDetailClient({
                                                             <MantineTooltip label="Ver en Tienda" withArrow>
                                                                 <ActionIcon
                                                                     component="a"
-                                                                    href={p.affiliate_url || p.url}
+                                                                    href={outgoingHref('product', p.id)}
                                                                     target="_blank"
-                                                                    rel="noopener noreferrer"
+                                                                    rel="noopener"
                                                                     onClick={(e) => handleOfferClick(e, p)}
                                                                     size="lg"
                                                                     radius="md"

@@ -2,7 +2,36 @@
 
 Interfaz web del comparador de precios de videojuegos para Chile. Construida con Next.js 15 (App Router) y Mantine 7.
 
-## Tecnologías
+## Salidas a tiendas
+
+Las ofertas y enlaces generales de tienda pasan por `/go/product/{id}` y
+`/go/store/{id}`. El servidor resuelve el destino desde el catálogo, respeta
+`pio_consent` y registra `offer_click`/`store_click` antes de un 302 sin caché.
+Las cookies de visitante permanecen en el servidor; solo la atribución saneada
+viaja en el enlace. Las rutas también funcionan al abrir desde el menú contextual.
+
+El `Caddyfile` de producción confía en los rangos oficiales de Cloudflare y
+normaliza `X-Forwarded-For` desde `CF-Connecting-IP` para frontend y API. Esto
+conserva el mismo identificador diario anónimo en ambos recorridos. Revisar la
+lista de rangos cuando Cloudflare la actualice; no confiar en IPs privadas ni
+cabeceras de conexiones directas. Referencias: [Caddy](https://caddyserver.com/docs/caddyfile/options#trusted-proxies)
+y [rangos de Cloudflare](https://www.cloudflare.com/ips/).
+Desde la raíz de `Develop`, `python scripts/check_proxy_identity.py` valida
+la configuración y prueba cabeceras confiables y falsificadas con Caddy local.
+
+Se necesitan `API_URL` (backend accesible desde Next) y el mismo
+`VISITOR_ID_SECRET` en ambos servicios para conservar la identidad consentida.
+El destino dispone de 2 segundos para resolverse y el registro de 500 ms, sin
+reintentos. Si el registro falla, la salida continúa; si el catálogo falla,
+aparece una opción de reintentar. HEAD y precargas no generan clics.
+
+Pruebas de rutas: `npx playwright test -c playwright.unit.config.ts`.
+Pruebas de navegación: `npx playwright test tests/e2e/outbound.spec.ts`.
+Después del despliegue, comprobar en TikTok/Instagram reales y observar 48 horas
+los logs JSON `event=outbound`: `recorded`, `bot`, `opt_out`, `prefetch`,
+`event_rejected`, `event_unavailable` y `catalog_unavailable`.
+
+## Tecnologías del cliente
 
 - **Next.js 15** (App Router)
 - **React 19**

@@ -18,6 +18,7 @@ import Link from 'next/link';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import { formatCLP } from '@/lib/utils';
 import { trackEvent } from '@/lib/api';
+import { useOutboundHref } from '@/hooks/useOutboundHref';
 import { useConsent } from '@/context/ConsentContext';
 import type { Seller } from '@/lib/types';
 
@@ -33,6 +34,7 @@ export default function StoreClient({
     summary?: string | null;
 }) {
     const seller = initialSeller;
+    const outgoingHref = useOutboundHref();
     const addresses = seller.addresses ?? [];
     const shippingCost = parseFloat(seller.shipping_cost ?? '0');
 
@@ -97,12 +99,11 @@ export default function StoreClient({
                     </Group>
                     {seller.url && (
                         <Anchor
-                            href={seller.url}
+                            href={outgoingHref('store', seller.id)}
                             target="_blank"
-                            rel="noopener noreferrer"
+                            rel="noopener"
                             fz="sm"
                             c="dimmed"
-                            onClick={() => trackEvent({ event_type: 'store_click', seller: seller.id })}
                         >
                             <Group gap={4}>
                                 {seller.url} <IconExternalLink size={14} />

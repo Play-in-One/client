@@ -448,6 +448,12 @@ export interface SourceMetrics {
     store_clicks: number;
     /** (offer_clicks + store_clicks) / sessions, en %. */
     conversion_rate: number;
+    sessions_with_game_view: number | null;
+    sessions_with_exit: number | null;
+    session_game_view_rate: number | null;
+    session_exit_rate: number | null;
+    /** False when any historical row has not been backfilled. */
+    funnel_complete: boolean;
 }
 
 export interface ChannelStat extends SourceMetrics {
