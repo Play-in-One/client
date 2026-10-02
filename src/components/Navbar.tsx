@@ -22,6 +22,7 @@ import {
     Menu,
     UnstyledButton,
     Accordion,
+    ScrollArea,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -40,6 +41,8 @@ import {
 import { useApp } from '@/context/AppContext';
 import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
+import LocationFilter from '@/components/LocationFilter';
+import InfoHint from '@/components/InfoHint';
 
 /* El neutro va al centro en los dos: es el default y el que más se elige, así
  * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
@@ -285,7 +288,7 @@ export default function Navbar() {
                         <IconBookmark size={22} />
                     </ActionIcon>
 
-                    <Menu shadow="md" width={250} position="bottom-end" withArrow>
+                    <Menu shadow="md" width={300} position="bottom-end" withArrow>
                         <Menu.Target>
                             <ActionIcon
                                 variant="subtle"
@@ -298,105 +301,127 @@ export default function Navbar() {
                             </ActionIcon>
                         </Menu.Target>
                         <Menu.Dropdown>
-                            <Menu.Label>Preferencias</Menu.Label>
-                            {/* Mismo control que "Estado físico"/"Formato": un
-                                SegmentedControl con las dos opciones a la vista
-                                en vez de un Switch on/off, para que el ESTADO
-                                actual se lea de un vistazo y no haya que
-                                interpretar una posición on/off. Leer el
-                                esquema en JS es seguro aquí porque el dropdown
-                                no se monta hasta que se abre: no hay primer
-                                render que hidratar. */}
-                            <Menu.Item component="div" closeMenuOnClick={false}>
-                                <Text fz="sm" fw={500} mb={6}>Tema</Text>
-                                <SegmentedControl
-                                    data={THEME_OPTIONS}
-                                    value={isDark ? 'dark' : 'light'}
-                                    onChange={(v) => setColorScheme(v as 'light' | 'dark')}
-                                    radius="xl"
-                                    size="xs"
-                                    fullWidth
-                                    classNames={{ root: 'condition-switch theme-switch switch-icon-pop' }}
-                                    aria-label="Tema"
-                                />
-                            </Menu.Item>
-
-                            <Menu.Divider />
-
-                            {/* Sin onClick en el Menu.Item: el Switch ya es el
-                                control accesible y su label lo activa. Poner
-                                también un handler aquí hacía que el clic sobre
-                                el label lo alternara dos veces —una por el
-                                Switch, otra al burbujear— y el valor no cambiaba. */}
-                            <Menu.Item component="div" closeMenuOnClick={false}>
-                                <Switch
-                                    checked={includeInternational}
-                                    onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
-                                    label="Tiendas internacionales"
-                                    size="sm"
-                                    color="primaryRed"
-                                    styles={{ label: { cursor: 'pointer' } }}
-                                />
-                                <Text fz="xs" c="dimmed" mt={4}>
-                                    Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
-                                </Text>
-                            </Menu.Item>
-
-                            {/* El estado vive aquí y no en la barra porque solo
-                                acota lo FÍSICO: una descarga no es de segunda
-                                mano. Es también el filtro que menos se cambia,
-                                y la barra la ocupa ahora el formato.
-
-                                El stopPropagation del teclado no es decorativo:
-                                el Menu usa las flechas para moverse entre items
-                                y el SegmentedControl para moverse entre
-                                opciones, así que sin él una flecha hace las dos
-                                cosas y el foco se va del control. */}
-                            {/* Con formato digital el filtro no aplica —una
-                                descarga no es de segunda mano— así que se
-                                oculta en vez de mostrarse deshabilitado: el
-                                valor guardado (`condition`) no se toca, y
-                                vuelve a aparecer intacto al salir de Digital. */}
-                            {format !== 'digital' && (
+                            {/* Con el mapa de regiones desplegado el panel supera el alto de una
+                                pantalla corriente: el scroll va en un wrapper y no en el dropdown, o
+                                la flecha (`withArrow`) quedaría recortada. */}
+                            <ScrollArea.Autosize mah="calc(100dvh - 96px)" type="auto">
+                                <Menu.Label>Preferencias</Menu.Label>
+                                {/* Mismo control que "Estado físico"/"Formato": un
+                                    SegmentedControl con las dos opciones a la vista
+                                    en vez de un Switch on/off, para que el ESTADO
+                                    actual se lea de un vistazo y no haya que
+                                    interpretar una posición on/off. Leer el
+                                    esquema en JS es seguro aquí porque el dropdown
+                                    no se monta hasta que se abre: no hay primer
+                                    render que hidratar. */}
                                 <Menu.Item component="div" closeMenuOnClick={false}>
-                                    <Text fz="sm" fw={500} mb={6}>Estado físico</Text>
-                                    <Box onKeyDown={(e) => e.stopPropagation()}>
-                                        <SegmentedControl
-                                            data={CONDITION_OPTIONS}
-                                            value={condition}
-                                            onChange={(v) => setCondition(v as ConditionFilter)}
-                                            radius="xl"
-                                            size="xs"
-                                            fullWidth
-                                            classNames={{ root: 'condition-switch' }}
-                                            aria-label="Estado del juego"
-                                        />
-                                    </Box>
-                                    <Text fz="xs" c="dimmed" mt={4}>
-                                        Acota el catálogo a juegos nuevos o usados.
-                                    </Text>
+                                    <Text fz="sm" fw={500} mb={6}>Tema</Text>
+                                    <SegmentedControl
+                                        data={THEME_OPTIONS}
+                                        value={isDark ? 'dark' : 'light'}
+                                        onChange={(v) => setColorScheme(v as 'light' | 'dark')}
+                                        radius="xl"
+                                        size="xs"
+                                        fullWidth
+                                        classNames={{ root: 'condition-switch theme-switch switch-icon-pop' }}
+                                        aria-label="Tema"
+                                    />
                                 </Menu.Item>
-                            )}
-                            {format !== 'physical' && (
+
+                                <Menu.Divider />
+
+                                {/* Sin onClick en el Menu.Item: el Switch ya es el
+                                    control accesible y su label lo activa. Poner
+                                    también un handler aquí hacía que el clic sobre
+                                    el label lo alternara dos veces —una por el
+                                    Switch, otra al burbujear— y el valor no cambiaba. */}
                                 <Menu.Item component="div" closeMenuOnClick={false}>
-                                    <Text fz="sm" fw={500} mb={6}>Tipo digital</Text>
-                                    <Box onKeyDown={(e) => e.stopPropagation()}>
-                                        <SegmentedControl
-                                            data={DIGITAL_OPTIONS}
-                                            value={digital}
-                                            onChange={(v) => setDigital(v as 'all' | 'store' | 'key')}
-                                            radius="xl"
-                                            size="xs"
-                                            fullWidth
-                                            classNames={{ root: 'condition-switch' }}
-                                            aria-label="Tipo digital"
+                                    <Group gap={4} wrap="nowrap">
+                                        <Switch
+                                            checked={includeInternational}
+                                            onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
+                                            label="Tiendas internacionales"
+                                            size="sm"
+                                            color="primaryRed"
+                                            styles={{ label: { cursor: 'pointer' } }}
                                         />
-                                    </Box>
-                                    <Text fz="xs" c="dimmed" mt={4}>
-                                        Acota el catálogo a compras en Store o códigos de canje.
-                                    </Text>
+                                        <InfoHint label="¿Qué hacen las tiendas internacionales?">
+                                            Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
+                                        </InfoHint>
+                                    </Group>
                                 </Menu.Item>
-                            )}
+
+                                {/* El estado vive aquí y no en la barra porque solo
+                                    acota lo FÍSICO: una descarga no es de segunda
+                                    mano. Es también el filtro que menos se cambia,
+                                    y la barra la ocupa ahora el formato.
+
+                                    El stopPropagation del teclado no es decorativo:
+                                    el Menu usa las flechas para moverse entre items
+                                    y el SegmentedControl para moverse entre
+                                    opciones, así que sin él una flecha hace las dos
+                                    cosas y el foco se va del control. */}
+                                {/* Con formato digital el filtro no aplica —una
+                                    descarga no es de segunda mano— así que se
+                                    oculta en vez de mostrarse deshabilitado: el
+                                    valor guardado (`condition`) no se toca, y
+                                    vuelve a aparecer intacto al salir de Digital. */}
+                                {format !== 'digital' && (
+                                    <Menu.Item component="div" closeMenuOnClick={false}>
+                                        <Group gap={4} mb={6} wrap="nowrap">
+                                            <Text fz="sm" fw={500}>Estado físico</Text>
+                                            <InfoHint label="¿Qué hace el estado físico?">
+                                                Acota el catálogo a juegos nuevos o usados.
+                                            </InfoHint>
+                                        </Group>
+                                        <Box onKeyDown={(e) => e.stopPropagation()}>
+                                            <SegmentedControl
+                                                data={CONDITION_OPTIONS}
+                                                value={condition}
+                                                onChange={(v) => setCondition(v as ConditionFilter)}
+                                                radius="xl"
+                                                size="xs"
+                                                fullWidth
+                                                classNames={{ root: 'condition-switch' }}
+                                                aria-label="Estado del juego"
+                                            />
+                                        </Box>
+                                    </Menu.Item>
+                                )}
+                                {format !== 'physical' && (
+                                    <Menu.Item component="div" closeMenuOnClick={false}>
+                                        <Group gap={4} mb={6} wrap="nowrap">
+                                            <Text fz="sm" fw={500}>Tipo digital</Text>
+                                            <InfoHint label="¿Qué hace el tipo digital?">
+                                                Acota el catálogo a compras en Store o códigos de canje.
+                                            </InfoHint>
+                                        </Group>
+                                        <Box onKeyDown={(e) => e.stopPropagation()}>
+                                            <SegmentedControl
+                                                data={DIGITAL_OPTIONS}
+                                                value={digital}
+                                                onChange={(v) => setDigital(v as 'all' | 'store' | 'key')}
+                                                radius="xl"
+                                                size="xs"
+                                                fullWidth
+                                                classNames={{ root: 'condition-switch' }}
+                                                aria-label="Tipo digital"
+                                            />
+                                        </Box>
+                                    </Menu.Item>
+                                )}
+
+                                {/* Nacionales y mapa de regiones: completan, junto al
+                                    switch de tiendas internacionales, los tres controles
+                                    de ubicación. Van al final a propósito: con el mapa
+                                    desplegado el panel crece, y así no desplaza a los
+                                    controles de siempre (el aviso de cookies tapa lo que
+                                    queda abajo). Las teclas las gestiona el componente. */}
+                                <Menu.Divider />
+                                <Menu.Item component="div" closeMenuOnClick={false}>
+                                    <LocationFilter />
+                                </Menu.Item>
+                            </ScrollArea.Autosize>
                         </Menu.Dropdown>
                     </Menu>
 
@@ -462,7 +487,12 @@ export default function Navbar() {
 
                     {format !== 'digital' && (
                         <div>
-                            <Text fz="sm" fw={500} mb={6}>Estado físico</Text>
+                            <Group gap={4} mb={6} wrap="nowrap">
+                                <Text fz="sm" fw={500}>Estado físico</Text>
+                                <InfoHint label="¿Qué hace el estado físico?">
+                                    Acota el catálogo a juegos nuevos o usados.
+                                </InfoHint>
+                            </Group>
                             <SegmentedControl
                                 data={CONDITION_OPTIONS}
                                 value={condition}
@@ -473,15 +503,17 @@ export default function Navbar() {
                                 classNames={{ root: 'condition-switch' }}
                                 aria-label="Estado del juego"
                             />
-                            <Text fz="xs" c="dimmed" mt={4}>
-                                Acota el catálogo a juegos nuevos o usados.
-                            </Text>
                         </div>
                     )}
 
                     {format !== 'physical' && (
                         <div>
-                            <Text fz="sm" fw={500} mb={6}>Tipo digital</Text>
+                            <Group gap={4} mb={6} wrap="nowrap">
+                                <Text fz="sm" fw={500}>Tipo digital</Text>
+                                <InfoHint label="¿Qué hace el tipo digital?">
+                                    Acota el catálogo a compras en Store o códigos de canje.
+                                </InfoHint>
+                            </Group>
                             <SegmentedControl
                                 data={DIGITAL_OPTIONS}
                                 value={digital}
@@ -492,9 +524,6 @@ export default function Navbar() {
                                 classNames={{ root: 'condition-switch' }}
                                 aria-label="Tipo digital"
                             />
-                            <Text fz="xs" c="dimmed" mt={4}>
-                                Acota el catálogo a compras en Store o códigos de canje.
-                            </Text>
                         </div>
                     )}
 
@@ -515,18 +544,22 @@ export default function Navbar() {
                     </div>
 
                     <div>
-                        <Switch
-                            checked={includeInternational}
-                            onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
-                            label="Tiendas internacionales"
-                            size="sm"
-                            color="primaryRed"
-                            styles={{ label: { cursor: 'pointer' } }}
-                        />
-                        <Text fz="xs" c="dimmed" mt={4}>
-                            Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
-                        </Text>
+                        <Group gap={4} wrap="nowrap">
+                            <Switch
+                                checked={includeInternational}
+                                onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
+                                label="Tiendas internacionales"
+                                size="sm"
+                                color="primaryRed"
+                                styles={{ label: { cursor: 'pointer' } }}
+                            />
+                            <InfoHint label="¿Qué hacen las tiendas internacionales?">
+                                Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
+                            </InfoHint>
+                        </Group>
                     </div>
+
+                    <LocationFilter size="sm" />
 
                     <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 

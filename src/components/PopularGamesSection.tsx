@@ -61,7 +61,7 @@ export default function PopularGamesSection({
     initialPlatform: string | null;
     excludeId: number;
 }) {
-    const { conditionParam, sellerScopeParam, ready } = useApp();
+    const { conditionParam, sellerLocationsParam, ready } = useApp();
     const { selectedPlatform } = useGamePlatform();
     const [games, setGames] = useState<Game[]>(initialGames);
     const [filtering, setFiltering] = useState(false);
@@ -73,7 +73,7 @@ export default function PopularGamesSection({
         const platformChanged = selectedPlatform !== initialPlatform;
         // Sobre los params DERIVADOS, no sobre `condition`: con formato "físico"
         // y estado "todos" la condición sigue siendo 'all' pero el filtro acota.
-        if (!conditionParam && !sellerScopeParam && !platformChanged) {
+        if (!conditionParam && !sellerLocationsParam && !platformChanged) {
             setGames(initialGames);
             setFiltering(false);
             return;
@@ -84,7 +84,7 @@ export default function PopularGamesSection({
         setFiltering(true);
         getPopularGames({
             condition: conditionParam,
-            seller_scope: sellerScopeParam,
+            seller_locations: sellerLocationsParam,
             platform: selectedPlatform ?? undefined,
             signal: controller.signal,
         })
@@ -103,7 +103,7 @@ export default function PopularGamesSection({
             superseded = true;
             controller.abort();
         };
-    }, [ready, conditionParam, sellerScopeParam, selectedPlatform, initialPlatform, initialGames, excludeId]);
+    }, [ready, conditionParam, sellerLocationsParam, selectedPlatform, initialPlatform, initialGames, excludeId]);
 
     if (games.length === 0 && !filtering) return null;
 

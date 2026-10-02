@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { COOKIE_DOMAIN } from './helpers';
 
 /* El filtro de FORMATO (físico ↔ digital) vive en la barra del navbar; el de
  * ESTADO (nuevo/usado) se movió al menú de preferencias, porque solo acota lo
@@ -163,7 +164,7 @@ test('la galería no gasta una petición con el filtro equivocado', async ({ pag
         name: 'pio_prefs',
         value: '{"condition":"all","format":"digital","international":true}',
         path: '/',
-        domain: 'localhost',
+        domain: COOKIE_DOMAIN,
     }]);
     const calls = collectGalleryCalls(page);
 

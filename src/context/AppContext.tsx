@@ -7,7 +7,7 @@ import {
     PREFS_COOKIE,
     conditionParamFor,
     parsePrefs,
-    sellerScopeFor,
+    sellerLocationsFor,
     writePrefsCookie,
     type ConditionFilter,
     type DigitalFilter,
@@ -15,11 +15,14 @@ import {
     type Prefs,
 } from '@/lib/prefs';
 import { readCookie } from '@/lib/consent';
+import type { RegionCode } from '@/lib/chile-regions';
 
 export type { ConditionFilter, DigitalFilter, FormatFilter };
 
 const CONDITION_STORAGE_KEY = 'pio_condition';
 const INTERNATIONAL_STORAGE_KEY = 'pio_international';
+const NATIONAL_STORAGE_KEY = 'pio_national';
+const REGION_STORAGE_KEY = 'pio_region';
 const FORMAT_STORAGE_KEY = 'pio_format';
 const DIGITAL_STORAGE_KEY = 'pio_digital';
 const SAVED_GAMES_STORAGE_KEY = 'pio_saved_games';
@@ -42,17 +45,24 @@ interface AppState {
     digital: DigitalFilter;
     setDigital: (f: DigitalFilter) => void;
     /** El `?condition=` que le toca a la API, derivado del PAR (formato,
-     *  condición). Vive aquí por el mismo motivo que `sellerScopeParam`: la
+     *  condición). Vive aquí por el mismo motivo que `sellerLocationsParam`: la
      *  tabla de esa traducción tiene que estar en un solo sitio. */
     conditionParam: string | undefined;
     /** Filtro global de procedencia. Al apagarlo, las ofertas de tiendas
      *  internacionales dejan de contar en toda la plataforma. */
     includeInternational: boolean;
     setIncludeInternational: (v: boolean) => void;
-    /** El valor de `?seller_scope=` que le toca a la API, o undefined cuando no
-     *  hay que acotar nada. Vive aquí para que los cinco consumidores no
-     *  repitan la traducción. */
-    sellerScopeParam: string | undefined;
+    /** Filtro global de tiendas «nacionales» (las que operan en varias regiones). */
+    includeNational: boolean;
+    setIncludeNational: (v: boolean) => void;
+    /** Región elegida en el mapa del header; `null` = todas. Con una región,
+     *  solo se ven las tiendas físicas de esa región. */
+    region: RegionCode | null;
+    setRegion: (r: RegionCode | null) => void;
+    /** El valor de `?seller_locations=` que le toca a la API, o undefined cuando
+     *  no hay que acotar nada. Vive aquí para que los consumidores no repitan la
+     *  traducción de los tres controles de ubicación. */
+    sellerLocationsParam: string | undefined;
     /** `false` durante el primer render, hasta que se leen las preferencias
      *  guardadas. Quien pinte contenido que dependa de los filtros debe
      *  esperar: si no, muestra lo que el servidor mandó sin filtrar y lo
@@ -74,6 +84,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Por defecto se ven todas las tiendas: quien no quiera importaciones las
     // apaga. Arrancar apagado escondería catálogo al visitante nuevo.
     const [includeInternational, setIncludeInternationalState] = useState(true);
+    const [includeNational, setIncludeNationalState] = useState(true);
+    const [region, setRegionState] = useState<RegionCode | null>(null);
     const [savedGames, setSavedGamesState] = useState<SavedGame[]>([]);
     const [ready, setReady] = useState(false);
 
@@ -97,6 +109,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     : DEFAULT_PREFS.format,
             digital: storedDigital === 'store' || storedDigital === 'key' ? storedDigital : 'all',
             international: window.localStorage.getItem(INTERNATIONAL_STORAGE_KEY) !== 'false',
+            national: window.localStorage.getItem(NATIONAL_STORAGE_KEY) !== 'false',
+            // parsePrefs descarta lo que no sea una región válida.
+            region: parsePrefs(
+                JSON.stringify({ region: window.localStorage.getItem(REGION_STORAGE_KEY) }),
+            ).region,
         };
         const cookie = readCookie(PREFS_COOKIE);
         const prefs = cookie ? parsePrefs(cookie) : legacy;
@@ -105,6 +122,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setFormatState(prefs.format);
         setDigitalState(prefs.digital);
         setIncludeInternationalState(prefs.international);
+        setIncludeNationalState(prefs.national);
+        setRegionState(prefs.region);
         if (!cookie) writePrefsCookie(prefs);   // migración desde localStorage
         setReady(true);
     }, []);
@@ -117,12 +136,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const formatRef = useRef(format);
     const digitalRef = useRef(digital);
     const includeInternationalRef = useRef(includeInternational);
+    const includeNationalRef = useRef(includeNational);
+    const regionRef = useRef(region);
     useEffect(() => {
         conditionRef.current = condition;
         formatRef.current = format;
         digitalRef.current = digital;
         includeInternationalRef.current = includeInternational;
-    }, [condition, format, digital, includeInternational]);
+        includeNationalRef.current = includeNational;
+        regionRef.current = region;
+    }, [condition, format, digital, includeInternational, includeNational, region]);
+
+    // Escribe la cookie ENTERA con el valor vigente de cada filtro y el cambio
+    // de quien llama. Es el único sitio que enumera los seis campos del lado
+    // del contexto: un setter nuevo ya no puede olvidarse de uno.
+    const writeCookie = useCallback((patch: Partial<Prefs>) => {
+        writePrefsCookie({
+            condition: conditionRef.current,
+            format: formatRef.current,
+            digital: digitalRef.current,
+            international: includeInternationalRef.current,
+            national: includeNationalRef.current,
+            region: regionRef.current,
+            ...patch,
+        });
+    }, []);
 
     /* El atributo lo pone el script del <head> antes de la primera pintura y lo
        quita React cuando ya puede renderizar con la preferencia correcta. Entre
@@ -159,46 +197,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const setCondition = useCallback((c: ConditionFilter) => {
         setConditionState(c);
         window.localStorage.setItem(CONDITION_STORAGE_KEY, c);
-        writePrefsCookie({
-            condition: c,
-            format: formatRef.current,
-            digital: digitalRef.current,
-            international: includeInternationalRef.current,
-        });
-    }, []);
+        writeCookie({ condition: c });
+    }, [writeCookie]);
 
     const setFormat = useCallback((f: FormatFilter) => {
         setFormatState(f);
         window.localStorage.setItem(FORMAT_STORAGE_KEY, f);
-        writePrefsCookie({
-            condition: conditionRef.current,
-            format: f,
-            digital: digitalRef.current,
-            international: includeInternationalRef.current,
-        });
-    }, []);
+        writeCookie({ format: f });
+    }, [writeCookie]);
 
     const setDigital = useCallback((f: DigitalFilter) => {
         setDigitalState(f);
         window.localStorage.setItem(DIGITAL_STORAGE_KEY, f);
-        writePrefsCookie({
-            condition: conditionRef.current,
-            format: formatRef.current,
-            digital: f,
-            international: includeInternationalRef.current,
-        });
-    }, []);
+        writeCookie({ digital: f });
+    }, [writeCookie]);
 
     const setIncludeInternational = useCallback((v: boolean) => {
         setIncludeInternationalState(v);
         window.localStorage.setItem(INTERNATIONAL_STORAGE_KEY, String(v));
-        writePrefsCookie({
-            condition: conditionRef.current,
-            format: formatRef.current,
-            digital: digitalRef.current,
-            international: v,
-        });
-    }, []);
+        writeCookie({ international: v });
+    }, [writeCookie]);
+
+    const setIncludeNational = useCallback((v: boolean) => {
+        setIncludeNationalState(v);
+        window.localStorage.setItem(NATIONAL_STORAGE_KEY, String(v));
+        writeCookie({ national: v });
+    }, [writeCookie]);
+
+    const setRegion = useCallback((r: RegionCode | null) => {
+        setRegionState(r);
+        if (r) window.localStorage.setItem(REGION_STORAGE_KEY, r);
+        else window.localStorage.removeItem(REGION_STORAGE_KEY);
+        writeCookie({ region: r });
+    }, [writeCookie]);
 
     const persistSavedGames = useCallback((games: SavedGame[]) => {
         setSavedGamesState(games);
@@ -236,7 +267,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
             conditionParam: conditionParamFor(format, condition, digital),
             includeInternational,
             setIncludeInternational,
-            sellerScopeParam: sellerScopeFor(includeInternational),
+            includeNational,
+            setIncludeNational,
+            region,
+            setRegion,
+            sellerLocationsParam: sellerLocationsFor({
+                condition, format, digital, international: includeInternational, national: includeNational, region,
+            }),
             ready,
             savedGames,
             isSaved,
@@ -245,7 +282,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }),
         [
             searchQuery, condition, setCondition, format, setFormat, digital, setDigital,
-            includeInternational, setIncludeInternational, ready,
+            includeInternational, setIncludeInternational,
+            includeNational, setIncludeNational, region, setRegion, ready,
             savedGames, isSaved, toggleSaved, removeSaved,
         ],
     );

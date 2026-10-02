@@ -12,6 +12,9 @@ interface MinPriceChartCardProps {
     series: MinPricePoint[];
     platformLabel: string;
     conditionLabel?: string | null;
+    /** La serie no coincide exactamente con las tiendas visibles: solo existen
+     *  la agregada y la «sin importadoras», no una por región. */
+    approximate?: boolean;
 }
 
 const RANGE_OPTIONS = [
@@ -34,6 +37,7 @@ export default function MinPriceChartCard({
     series,
     platformLabel,
     conditionLabel,
+    approximate = false,
 }: MinPriceChartCardProps) {
     const [range, setRange] = useState(DEFAULT_RANGE);
     // `now` congelado por montaje: recalcularlo en cada render movería el borde
@@ -100,6 +104,15 @@ export default function MinPriceChartCard({
                             domain={built.domain}
                             lastRealTimestamp={built.lastRealTimestamp}
                         />
+                        {approximate && (
+                            // El backend solo publica la serie de todas las tiendas y la
+                            // de «sin importadoras»; con una región o sin las nacionales
+                            // el gráfico es una aproximación y hay que decirlo.
+                            <Text fz="xs" c="dimmed" ta="center" mt="xs">
+                                Historial referencial: incluye tiendas de otras ubicaciones que
+                                hoy tienes ocultas.
+                            </Text>
+                        )}
                         {built.realCount === 0 && (
                             // Línea plana de borde a borde: sin esta nota parece
                             // que el gráfico está roto.

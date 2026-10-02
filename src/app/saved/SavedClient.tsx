@@ -18,7 +18,7 @@ import {
 import { IconBookmark, IconX } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import { useApp } from '@/context/AppContext';
-import { allowedConditionsFor, type ConditionFilter, type DigitalFilter, type FormatFilter } from '@/lib/prefs';
+import { allowedConditionsFor, isSellerVisible, sellerLocationsFor, type Prefs } from '@/lib/prefs';
 import { getGame } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/utils';
@@ -38,13 +38,13 @@ import { surfaces } from '@/lib/colors';
 function resolveForFilters(
     game: Game,
     platformSlugs: string[],
-    prefs: { condition: ConditionFilter; format: FormatFilter; digital: DigitalFilter; international: boolean },
+    prefs: Prefs,
 ): Game {
     /* El conjunto permitido sale del mismo sitio que el `?condition=` de la
        API, así que la galería y esta vista no pueden interpretar el par de
        filtros de dos maneras distintas. `null` = no acota. */
     const allowed = allowedConditionsFor(prefs.format, prefs.condition, prefs.digital);
-    const noFilters = platformSlugs.length === 0 && !allowed && prefs.international;
+    const noFilters = platformSlugs.length === 0 && !allowed && !sellerLocationsFor(prefs);
     if (noFilters) return game;
 
     const matching = (game.products ?? []).filter((p) => {
@@ -54,7 +54,7 @@ function resolveForFilters(
         if (!p.in_stock) return false;
         if (platformSlugs.length > 0 && !platformSlugs.includes(p.platform.slug)) return false;
         if (allowed && !allowed.has(p.condition)) return false;
-        if (!prefs.international && p.seller.is_international) return false;
+        if (!isSellerVisible(p.seller, prefs)) return false;
         return true;
     });
     if (matching.length === 0) return game;
@@ -81,7 +81,7 @@ function resolveForFilters(
 }
 
 export default function SavedClient() {
-    const { savedGames, removeSaved, condition, format, digital, includeInternational } = useApp();
+    const { savedGames, removeSaved, condition, format, digital, includeInternational, includeNational, region } = useApp();
     const [games, setGames] = useState<Game[]>([]);
     const [loading, setLoading] = useState(true);
     const [platformFilter, setPlatformFilter] = useState<string[]>([]);
@@ -130,6 +130,8 @@ export default function SavedClient() {
             format,
             digital,
             international: includeInternational,
+            national: includeNational,
+            region,
         }))
         .sort((a, b) => (a.developer || '').localeCompare(b.developer || ''));
 

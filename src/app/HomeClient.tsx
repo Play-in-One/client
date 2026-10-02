@@ -68,7 +68,7 @@ export default function HomeClient({
     const router = useRouter();
     const [query, setQuery] = useState('');
     const posts = initialPosts;
-    const { conditionParam, sellerScopeParam, ready } = useApp();
+    const { conditionParam, sellerLocationsParam, ready } = useApp();
 
     /* El filtro Usados/Nuevos/Todos del header (AppContext) también debe
        acotar Destacados y Populares: se re-piden al cambiar `condition`,
@@ -88,7 +88,7 @@ export default function HomeClient({
        La clave es compuesta porque los filtros globales ya son dos. */
     const filterCache = useRef(new Map<string, { trending: Game[]; featured: Game[] }>());
     useEffect(() => {
-        /* Sin las preferencias leídas, `condition`/`sellerScopeParam` valen su
+        /* Sin las preferencias leídas, `condition`/`sellerLocationsParam` valen su
            default optimista: pedir con ellos gastaría un fetch que hay que
            repetir, y peor, dejaría pintados los datos sin filtrar. */
         if (!ready) return;
@@ -98,13 +98,13 @@ export default function HomeClient({
            "físico" y estado "todos" la condición sigue valiendo 'all' pero el
            filtro sí acota, y reusar el SSR dejaba la home sin filtrar sin que
            ninguna petición lo delatara. */
-        if (!conditionParam && !sellerScopeParam) {
+        if (!conditionParam && !sellerLocationsParam) {
             setTrending(initialTrending);
             setFeatured(initialFeatured);
             setFiltering(false);
             return;
         }
-        const cacheKey = `${conditionParam ?? 'all'}:${sellerScopeParam ?? 'all'}`;
+        const cacheKey = `${conditionParam ?? 'all'}:${sellerLocationsParam ?? 'all'}`;
         const cached = filterCache.current.get(cacheKey);
         if (cached) {
             setTrending(cached.trending);
@@ -124,7 +124,7 @@ export default function HomeClient({
         setFiltering(true);
         const query = {
             condition: conditionParam,
-            seller_scope: sellerScopeParam,
+            seller_locations: sellerLocationsParam,
         };
         Promise.all([
             getTrendingGames({ ...query, signal: controller.signal }),
@@ -154,7 +154,7 @@ export default function HomeClient({
             superseded = true;
             controller.abort();
         };
-    }, [ready, conditionParam, sellerScopeParam, initialTrending, initialFeatured]);
+    }, [ready, conditionParam, sellerLocationsParam, initialTrending, initialFeatured]);
 
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();

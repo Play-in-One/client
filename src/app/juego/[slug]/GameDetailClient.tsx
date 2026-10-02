@@ -52,7 +52,7 @@ import { useGamePlatform } from './GamePlatformContext';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
 import { platformLongName, activeCoupon, isAffiliateOffer } from '@/lib/types';
-import { allowedConditionsFor, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
+import { allowedConditionsFor, isSellerVisible, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
 import { surfaces, decorative } from '@/lib/colors';
@@ -283,7 +283,7 @@ export default function GameDetailClient({
     initialGame: Game;
     initialPrefs: Prefs;
 }) {
-    const { condition, format, digital, includeInternational, ready, isSaved, toggleSaved } = useApp();
+    const { condition, format, digital, includeInternational, includeNational, region, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     // La sesión de staff vive en localStorage, inexistente durante SSR. Aplazar
     // estos controles hasta después del montaje garantiza que el HTML inicial
@@ -320,7 +320,7 @@ export default function GameDetailClient({
        nada que corregir después. Sin esto, las ofertas importadas asomaban un
        instante en cada carga. */
     const effectivePrefs: Prefs = ready
-        ? { condition, format, digital, international: includeInternational }
+        ? { condition, format, digital, international: includeInternational, national: includeNational, region }
         : initialPrefs;
 
     /* El Select local es de valor único y no puede expresar "físico = nuevo o
@@ -423,7 +423,7 @@ export default function GameDetailClient({
         }
         if (conditionFilter && conditionFilter !== 'digital' && !conditionFilter.includes('_') && p.condition !== conditionFilter) return false;
         if (!conditionFilter && navbarAllowed && !navbarAllowed.has(p.condition)) return false;
-        if (!effectivePrefs.international && p.seller.is_international) return false;
+        if (!isSellerVisible(p.seller, effectivePrefs)) return false;
         return true;
     });
 
@@ -468,6 +468,10 @@ export default function GameDetailClient({
     // gráfico no contradiga al precio de arriba. El backend la omite cuando
     // sería idéntica a la agregada (juegos sin ofertas importadas), así que un
     // objeto vacío significa "usa la agregada", no "no hay datos".
+    //
+    // Solo existen esas dos series: con una región elegida o las nacionales
+    // apagadas ninguna coincide exacto con las ofertas visibles, y el gráfico
+    // lo avisa (`approximate`) en vez de inventar una serie por región.
     const historySource =
         !effectivePrefs.international && Object.keys(game.min_price_history_national ?? {}).length > 0
             ? game.min_price_history_national
@@ -892,6 +896,7 @@ export default function GameDetailClient({
                                     selectedPlatform
                                 }
                                 conditionLabel={conditionFilter ? conditionLabelFor(conditionFilter) : null}
+                                approximate={effectivePrefs.region !== null || !effectivePrefs.national}
                             />
                         )}
 

@@ -1,5 +1,8 @@
 /* ── TypeScript interfaces mirroring Django REST API ── */
 
+// Solo el tipo: el catálogo de paths SVG no debe entrar con él a los Server Components.
+import type { RegionCode } from './chile-regions';
+
 export interface Platform {
     /** Idéntico a `slug`: el backend los mantiene iguales por catálogo. La
      *  serie de `min_price_history` se indexa por este campo. */
@@ -35,6 +38,8 @@ export function platformLongName(platform: Platform): string {
     return platform.long_name || platform.display_name;
 }
 
+export type SellerLocation = 'international' | 'national' | RegionCode;
+
 export interface Seller {
     id: number;
     name: string;
@@ -44,8 +49,13 @@ export interface Seller {
     description?: string;  // only present on the store detail response
     addresses?: SellerAddress[]; // only present on the store detail response
     game_count?: number;
-    /** Tienda internacional (importación). Solo informativo y para filtrar:
-     *  no decide si se cobra envío, eso lo dice shipping_cost. */
+    /** Dónde está la tienda física: `international` (importación), `national`
+     *  (opera en muchas regiones) o el código de una región (`CL-BI`). Solo
+     *  informativo y para filtrar: no decide si se cobra envío, eso lo dice
+     *  shipping_cost. */
+    location: SellerLocation;
+    /** Derivado de `location === 'international'`; el backend lo sigue
+     *  publicando para clientes anteriores a la ubicación de tienda. */
     is_international: boolean;
     /** Envío promedio que se suma al precio de lista de sus productos.
      *  "0.00" = envío gratis o incluido. */

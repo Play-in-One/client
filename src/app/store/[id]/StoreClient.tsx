@@ -21,6 +21,16 @@ import { trackEvent } from '@/lib/api';
 import { useOutboundHref } from '@/hooks/useOutboundHref';
 import { useConsent } from '@/context/ConsentContext';
 import type { Seller } from '@/lib/types';
+import { regionName } from '@/lib/chile-regions';
+import { sellerLocationOf } from '@/lib/prefs';
+
+/** Dónde está la tienda, en palabras. `Seller.location` es un código. */
+function locationLabel(seller: Seller): string {
+    const location = sellerLocationOf(seller);
+    if (location === 'international') return 'Tienda internacional';
+    if (location === 'national') return 'Tienda nacional · opera en varias regiones';
+    return `Tienda en la región de ${regionName(location) ?? location}`;
+}
 
 export default function StoreClient({
     initialSeller,
@@ -97,6 +107,7 @@ export default function StoreClient({
                         </Title>
                         <SellerScopeBadge seller={seller} size={22} />
                     </Group>
+                    <Text fz="sm" c="dimmed">{locationLabel(seller)}</Text>
                     {seller.url && (
                         <Anchor
                             href={outgoingHref('store', seller.id)}

@@ -49,6 +49,12 @@ export const SEEDED = {
     sagaGameB: 'E2E Juego De Saga Dos',
     nationalSeller: 'E2E Tienda Nacional',
     internationalSeller: 'E2E Importadora',
+    /** Tienda física de la región del Biobío (`location = CL-BI`), con una oferta
+     *  vigente en el juego sembrado. Cubre el filtro por región, que ni la
+     *  nacional ni la importada pueden probar. */
+    regionalSeller: 'E2E Tienda Biobío',
+    regionalSellerRegion: 'CL-BI',
+    regionalSellerRegionName: 'Biobío',
     /** Nacional, nueva, sin envío: su precio efectivo es el de lista. */
     nationalPrice: 19990,
     /** Importada y usada: 14.990 con cupón de 10% + 9.990 de envío. */
@@ -102,3 +108,8 @@ export async function seededPostId(page: Page, title: string): Promise<number> {
     }
     return post.id;
 }
+
+/** Dominio de las cookies que los tests siembran a mano. Sale de la URL base:
+ *  el stack dev solo se sirve en `pio.localhost`, y una cookie con otro dominio
+ *  no viaja y el test pasa por el camino equivocado. */
+export const COOKIE_DOMAIN = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost').hostname;

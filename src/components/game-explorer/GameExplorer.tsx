@@ -133,12 +133,12 @@ export default function GameExplorer({
     showHeader = false,
     withContainer = false,
 }: Props) {
-    const { conditionParam, sellerScopeParam, ready } = useApp();
+    const { conditionParam, sellerLocationsParam, ready } = useApp();
     /* Un filtro global activo saca a la landing del modo estático aunque nadie
        haya tocado su sidebar: el `staticFallback` que sirvió el servidor no
        conoce localStorage, así que mostrarlo sin filtrar contradice al navbar.
        Sin esto, cambiar el formato desde una landing no hacía nada visible. */
-    const globalFiltersActive = !!conditionParam || !!sellerScopeParam;
+    const globalFiltersActive = !!conditionParam || !!sellerLocationsParam;
     const { isAdmin } = useAdmin();
     const { ready: consentReady } = useConsent();
 
@@ -353,7 +353,7 @@ export default function GameExplorer({
             price_max: priceMax,
             on_sale: onSale || undefined,
             rating_min: ratingMin,
-            seller_scope: sellerScopeParam,
+            seller_locations: sellerLocationsParam,
             ordering,
             page,
             signal: controller.signal,
@@ -381,7 +381,7 @@ export default function GameExplorer({
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerScopeParam, refreshKey]);
+    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
 
     /* Los contadores del sidebar sí corren en modo estático: solo decoran el
        sidebar, nunca reemplazan el grid/paginación visibles. */
@@ -399,7 +399,7 @@ export default function GameExplorer({
             price_max: priceMax,
             on_sale: onSale || undefined,
             rating_min: ratingMin,
-            seller_scope: sellerScopeParam,
+            seller_locations: sellerLocationsParam,
             include_sellers: 0,
             signal: controller.signal,
         })
@@ -414,7 +414,7 @@ export default function GameExplorer({
             });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerScopeParam, refreshKey]);
+    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
 
     const totalPages = Math.ceil(total / pageSize);
 

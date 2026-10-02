@@ -15,6 +15,7 @@
  */
 
 import { DIGITAL_CONDITIONS } from './conditions';
+import { isRegionCode, type RegionCode } from './chile-regions';
 
 export const PREFS_COOKIE = 'pio_prefs';
 
@@ -46,12 +47,25 @@ export interface Prefs {
     digital: DigitalFilter;
     /** `false` esconde las tiendas internacionales en toda la plataforma. */
     international: boolean;
+    /** `false` esconde las tiendas «nacionales» (las que operan en varias regiones). */
+    national: boolean;
+    /** Región elegida en el mapa: solo se ven las tiendas físicas de esa región.
+     *  `null` = tiendas de todas las regiones. Es independiente de `national` y
+     *  de `international`, que tienen su propio control. */
+    region: RegionCode | null;
 }
 
 /* Lo que ve quien nunca tocó nada, y el fallback de cualquier valor corrupto.
  * Coincide con lo que renderiza el servidor cuando no hay cookie, que es lo que
  * mantiene alineados los dos lados de la hidratación. */
-export const DEFAULT_PREFS: Prefs = { condition: 'all', format: 'all', digital: 'all', international: true };
+export const DEFAULT_PREFS: Prefs = {
+    condition: 'all',
+    format: 'all',
+    digital: 'all',
+    international: true,
+    national: true,
+    region: null,
+};
 
 export function parsePrefs(raw: string | null | undefined): Prefs {
     if (!raw) return DEFAULT_PREFS;
@@ -76,6 +90,12 @@ export function parsePrefs(raw: string | null | undefined): Prefs {
                 typeof parsed.international === 'boolean'
                     ? parsed.international
                     : DEFAULT_PREFS.international,
+            // Las cookies anteriores a la ubicación de tienda no traen estos dos
+            // campos: caen en el default, que es como se comportaban antes.
+            national:
+                typeof parsed.national === 'boolean' ? parsed.national : DEFAULT_PREFS.national,
+            // Una región inventada no se propaga: el backend respondería 400.
+            region: isRegionCode(parsed.region) ? parsed.region : DEFAULT_PREFS.region,
         };
     } catch {
         // Cookie manipulada o de una versión anterior: los defaults nunca fallan.
@@ -88,7 +108,9 @@ export function isDefaultPrefs(prefs: Prefs): boolean {
         prefs.condition === DEFAULT_PREFS.condition &&
         prefs.format === DEFAULT_PREFS.format &&
         prefs.digital === DEFAULT_PREFS.digital &&
-        prefs.international === DEFAULT_PREFS.international
+        prefs.international === DEFAULT_PREFS.international &&
+        prefs.national === DEFAULT_PREFS.national &&
+        prefs.region === DEFAULT_PREFS.region
     );
 }
 
@@ -133,9 +155,50 @@ export function allowedConditionsFor(
     return new Set([token]);
 }
 
-/** El valor de `?seller_scope=` que le toca a la API, o undefined si no acota. */
-export function sellerScopeFor(international: boolean): string | undefined {
-    return international ? undefined : 'national';
+/* Ubicación de la tienda: `Seller.location` vale `international`, `national`
+ * (opera en muchas regiones) o el código de una región (`CL-BI`). Son TRES
+ * controles independientes —switch internacional, botón nacional y mapa—, y
+ * una oferta se ve si su tienda pasa el control de SU categoría:
+ *
+ *   international → prefs.international
+ *   national      → prefs.national
+ *   CL-XX         → no hay región elegida, o es esa
+ *
+ * La regla vive aquí y en `games/locations.py` del backend; las dos tienen que
+ * moverse juntas (el test `isSellerVisible is exactly the client twin…` las
+ * ata a `sellerLocationsFor`, que es lo que viaja a la API). */
+
+/** Lo mínimo que hace falta de una tienda. `location` falta si el backend
+ *  todavía no la publica (despliegue a medias); entonces manda `is_international`. */
+export interface SellerLocationInfo {
+    location?: string;
+    is_international?: boolean;
+}
+
+export function sellerLocationOf(seller: SellerLocationInfo): string {
+    return seller.location ?? (seller.is_international ? 'international' : 'national');
+}
+
+/** Gemelo cliente del filtro del backend, para la ficha del juego y /saved, que
+ *  filtran en memoria en vez de pedirle a la API. */
+export function isSellerVisible(seller: SellerLocationInfo, prefs: Prefs): boolean {
+    const location = sellerLocationOf(seller);
+    if (location === 'international') return prefs.international;
+    if (location === 'national') return prefs.national;
+    return prefs.region === null || prefs.region === location;
+}
+
+/** El valor de `?seller_locations=` que le toca a la API (lista blanca: `international`,
+ *  `national` y `regions` —todas las regiones— o una sola `CL-XX`), o
+ *  undefined cuando no hay que acotar nada: así el estado por defecto sigue
+ *  usando las mismas URLs y claves de caché que antes. */
+export function sellerLocationsFor(prefs: Prefs): string | undefined {
+    if (prefs.international && prefs.national && prefs.region === null) return undefined;
+    const allowed: string[] = [];
+    if (prefs.international) allowed.push('international');
+    if (prefs.national) allowed.push('national');
+    allowed.push(prefs.region ?? 'regions');
+    return allowed.join(',');
 }
 
 /* La escribe el cliente con `document.cookie` y no un Route Handler —a

@@ -171,8 +171,9 @@ test('los badges de condición se muestran', async ({ page }) => {
        control al menú de preferencias quedó al descubierto. */
     await page.goto(gamePath);
     const tabla = page.getByRole('table');
-    await expect(tabla.getByText('Nuevo', { exact: true })).toBeVisible();
-    await expect(tabla.getByText('Usado', { exact: true })).toBeVisible();
+    // `.first()`: la nacional y la regional sembradas son ambas «Nuevo».
+    await expect(tabla.getByText('Nuevo', { exact: true }).first()).toBeVisible();
+    await expect(tabla.getByText('Usado', { exact: true }).first()).toBeVisible();
 });
 
 test('el botón de ir a la tienda apunta a la URL del producto', async ({ page }) => {

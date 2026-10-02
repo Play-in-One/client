@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { COOKIE_DOMAIN } from './helpers';
 
 /* Reproduce el bug con red lenta: sin throttling la ventana del flash es tan
    corta que un test podría no verla y dar un falso OK. */
-const OFF = { name: 'pio_prefs', value: '{"condition":"all","international":false}', path: '/', domain: 'localhost' };
+const OFF = { name: 'pio_prefs', value: '{"condition":"all","international":false}', path: '/', domain: COOKIE_DOMAIN };
 
 for (const path of ['/game/1', '/', '/saved']) {
     test(`sin flash en ${path}`, async ({ page, context }) => {
@@ -43,7 +44,7 @@ for (const path of ['/game/1', '/', '/saved']) {
  * el instante en que marca el documento: esa ventana dura lo que tarda la
  * hidratación, y un test que la persigue mide la velocidad de la máquina, no el
  * allowlist. Aquí el sujeto es la única línea que puede olvidarse. */
-test('el script del <head> reconoce el formato como desviación del default', async ({ page }) => {
+test('el script del <head> reconoce cada preferencia como desviación del default', async ({ page }) => {
     const html = await (await page.goto('/'))!.text();
 
     // El mismo script que va inline en el <head>, tal cual lo sirve el servidor.
@@ -73,6 +74,11 @@ test('el script del <head> reconoce el formato como desviación del default', as
     // estaría pasando por un motivo equivocado.
     expect(await marcaCon('{"condition":"used","format":"all","international":true}')).toBe(true);
     expect(await marcaCon('{"condition":"all","format":"all","international":false}')).toBe(true);
+    // Las dos dimensiones de ubicación de tienda: Nacional apagado y región elegida.
+    expect(await marcaCon('{"condition":"all","format":"all","international":true,"national":false}')).toBe(true);
+    expect(await marcaCon('{"condition":"all","format":"all","international":true,"national":true,"region":"CL-BI"}')).toBe(true);
+    // `region: null` es el default: no cuenta como desviación.
+    expect(await marcaCon('{"condition":"all","format":"all","international":true,"national":true,"region":null}')).toBe(false);
     // Y el default no marca nada: para la mayoría la página pinta como siempre.
     expect(await marcaCon('{"condition":"all","format":"all","international":true}')).toBe(false);
 });

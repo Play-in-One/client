@@ -568,3 +568,54 @@ a.saga-banner-link:focus-visible {
     display: none;
   }
 }
+
+/* Mapa de regiones del filtro de ubicación (ChileRegionMap). Los colores salen
+   de variables de Mantine para seguir el tema claro/oscuro sin lógica en JS. */
+.chile-map {
+  display: block;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.chile-map__region {
+  fill: var(--mantine-color-gray-5);
+  stroke: var(--mantine-color-body);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: fill 0.15s;
+  outline: none;
+}
+
+.chile-map__region:hover {
+  fill: var(--mantine-color-primaryRed-3);
+}
+
+.chile-map__region:focus-visible {
+  fill: var(--mantine-color-primaryRed-3);
+  stroke: var(--mantine-color-primaryRed-7);
+  stroke-width: 1.4;
+}
+
+.chile-map__region[data-selected] {
+  fill: var(--mantine-color-primaryRed-6);
+}
+
+[data-mantine-color-scheme='dark'] .chile-map__region {
+  fill: var(--mantine-color-dark-3);
+}
+
+[data-mantine-color-scheme='dark'] .chile-map__region:hover,
+[data-mantine-color-scheme='dark'] .chile-map__region:focus-visible {
+  fill: var(--mantine-color-primaryRed-8);
+}
+
+[data-mantine-color-scheme='dark'] .chile-map__region[data-selected] {
+  fill: var(--mantine-color-primaryRed-5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chile-map__region {
+    transition: none;
+  }
+}

@@ -347,8 +347,9 @@ export async function getGames(params?: {
     on_sale?: boolean;
     /** Solo juegos con rating estrictamente mayor a este valor. */
     rating_min?: number;
-    /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
-    seller_scope?: string;
+    /** Lista blanca de ubicaciones de tienda (`international,national,CL-RM`):
+     *  acota juegos y ofertas a esas tiendas. Ver `sellerLocationsFor`. */
+    seller_locations?: string;
     ordering?: string;
     page?: number;
     signal?: AbortSignal;
@@ -369,7 +370,7 @@ export async function getGames(params?: {
 /** Juegos con más tráfico en los últimos 7 días (con relleno por rating). */
 export async function getTrendingGames(params?: {
     condition?: string;
-    seller_scope?: string;
+    seller_locations?: string;
     signal?: AbortSignal;
 }) {
     const { signal, ...qsParams } = params ?? {};
@@ -379,7 +380,7 @@ export async function getTrendingGames(params?: {
 /** Juegos destacados curados a mano por el admin (orden manual). */
 export async function getFeaturedGames(params?: {
     condition?: string;
-    seller_scope?: string;
+    seller_locations?: string;
     signal?: AbortSignal;
 }) {
     const { signal, ...qsParams } = params ?? {};
@@ -402,7 +403,7 @@ export async function getPopularGames(params?: {
     /** Cuántos devolver. El backend lo acota a 40. */
     limit?: number;
     condition?: string;
-    seller_scope?: string;
+    seller_locations?: string;
     /** Slug de la consola vista en la ficha. */
     platform?: string;
     signal?: AbortSignal;
@@ -428,8 +429,9 @@ export async function getGameFacets(params?: {
     on_sale?: boolean;
     /** Solo juegos con rating estrictamente mayor a este valor. */
     rating_min?: number;
-    /** 'national' | 'international': acota a juegos con oferta en tiendas de ese tipo. */
-    seller_scope?: string;
+    /** Lista blanca de ubicaciones de tienda (`international,national,CL-RM`):
+     *  acota juegos y ofertas a esas tiendas. Ver `sellerLocationsFor`. */
+    seller_locations?: string;
     include_sellers?: 0 | 1;
     signal?: AbortSignal;
 }) {
