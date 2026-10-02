@@ -20,7 +20,7 @@ interface Props {
  * Cada región es un botón de teclado (Tab para entrar, Enter o Espacio para
  * elegir) con su nombre como `<title>`, y los colores salen de variables CSS
  * (`.chile-map__region` en globals.css) para que sigan el tema claro/oscuro. */
-export default function ChileRegionMap({ value, onChange, onHoverChange, height = 340 }: Props) {
+export default function ChileRegionMap({ value, onChange, onHoverChange, height = 480 }: Props) {
     const [, , vbWidth, vbHeight] = CHILE_MAP_VIEWBOX.split(' ').map(Number);
     const width = Math.round((height * vbWidth) / vbHeight);
 

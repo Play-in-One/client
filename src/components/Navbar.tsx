@@ -16,7 +16,6 @@ import {
     Stack,
     Button,
     SegmentedControl,
-    Switch,
     useComputedColorScheme,
     useMantineColorScheme,
     Menu,
@@ -90,7 +89,6 @@ export default function Navbar() {
     const pathname = usePathname();
     const {
         searchQuery, setSearchQuery, condition, setCondition, format, setFormat, digital, setDigital,
-        includeInternational, setIncludeInternational,
     } = useApp();
     const [localQuery, setLocalQuery] = useState(searchQuery);
     /* `keepTransitions` desactiva un anti-parpadeo de Mantine que aquí estorba:
@@ -288,7 +286,9 @@ export default function Navbar() {
                         <IconBookmark size={22} />
                     </ActionIcon>
 
-                    <Menu shadow="md" width={300} position="bottom-end" withArrow>
+                    {/* `fixed`: el header es sticky y el dropdown va en un portal; con la posición
+                        absoluta por defecto se quedaba en su sitio de la página y se iba con el scroll. */}
+                    <Menu shadow="md" width={300} position="bottom-end" withArrow floatingStrategy="fixed">
                         <Menu.Target>
                             <ActionIcon
                                 variant="subtle"
@@ -304,7 +304,11 @@ export default function Navbar() {
                             {/* Con el mapa de regiones desplegado el panel supera el alto de una
                                 pantalla corriente: el scroll va en un wrapper y no en el dropdown, o
                                 la flecha (`withArrow`) quedaría recortada. */}
-                            <ScrollArea.Autosize mah="calc(100dvh - 96px)" type="auto">
+                            <ScrollArea.Autosize
+                                mah="calc(100dvh - 96px)"
+                                type="auto"
+                                viewportProps={{ style: { overscrollBehavior: 'contain' } }}
+                            >
                                 <Menu.Label>Preferencias</Menu.Label>
                                 {/* Mismo control que "Estado físico"/"Formato": un
                                     SegmentedControl con las dos opciones a la vista
@@ -329,27 +333,6 @@ export default function Navbar() {
                                 </Menu.Item>
 
                                 <Menu.Divider />
-
-                                {/* Sin onClick en el Menu.Item: el Switch ya es el
-                                    control accesible y su label lo activa. Poner
-                                    también un handler aquí hacía que el clic sobre
-                                    el label lo alternara dos veces —una por el
-                                    Switch, otra al burbujear— y el valor no cambiaba. */}
-                                <Menu.Item component="div" closeMenuOnClick={false}>
-                                    <Group gap={4} wrap="nowrap">
-                                        <Switch
-                                            checked={includeInternational}
-                                            onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
-                                            label="Tiendas internacionales"
-                                            size="sm"
-                                            color="primaryRed"
-                                            styles={{ label: { cursor: 'pointer' } }}
-                                        />
-                                        <InfoHint label="¿Qué hacen las tiendas internacionales?">
-                                            Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
-                                        </InfoHint>
-                                    </Group>
-                                </Menu.Item>
 
                                 {/* El estado vive aquí y no en la barra porque solo
                                     acota lo FÍSICO: una descarga no es de segunda
@@ -541,22 +524,6 @@ export default function Navbar() {
                             classNames={{ root: 'condition-switch theme-switch switch-icon-pop' }}
                             aria-label="Tema"
                         />
-                    </div>
-
-                    <div>
-                        <Group gap={4} wrap="nowrap">
-                            <Switch
-                                checked={includeInternational}
-                                onChange={(e) => setIncludeInternational(e.currentTarget.checked)}
-                                label="Tiendas internacionales"
-                                size="sm"
-                                color="primaryRed"
-                                styles={{ label: { cursor: 'pointer' } }}
-                            />
-                            <InfoHint label="¿Qué hacen las tiendas internacionales?">
-                                Al apagarlas, sus ofertas dejan de contar en toda la plataforma.
-                            </InfoHint>
-                        </Group>
                     </div>
 
                     <LocationFilter size="sm" />

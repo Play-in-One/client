@@ -29,14 +29,18 @@ const keepKeysInside = (e: KeyboardEvent) => {
     if (e.key !== 'Escape') e.stopPropagation();
 };
 
-/** Filtros de UBICACIÓN de la tienda que acompañan al switch de «Tiendas
- *  internacionales»: el botón de las nacionales y el mapa de regiones.
+/** Filtros de UBICACIÓN de la tienda: los botones de internacionales y
+ *  nacionales y el mapa de regiones.
  *
  *  Son tres controles independientes (internacional, nacional, región) y una
  *  oferta se ve si su tienda pasa el de SU categoría; ver `isSellerVisible`.
  *  Con una región elegida solo se ven las tiendas físicas de esa región. */
 export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) {
-    const { includeNational, setIncludeNational, region, setRegion } = useApp();
+    const {
+        includeInternational, setIncludeInternational,
+        includeNational, setIncludeNational,
+        region, setRegion,
+    } = useApp();
     const [regionOpen, setRegionOpen] = useState(false);
     const [hovered, setHovered] = useState<RegionCode | null>(null);
     const regionPanelId = useId();
@@ -45,7 +49,27 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
 
     return (
         <Stack gap="sm">
-            <div>
+            {/* Internacionales arriba y nacionales debajo, con el mismo aspecto: son
+                el mismo tipo de control (incluir o no una categoría de tiendas). */}
+            <Stack gap={6}>
+                <Group gap={6} wrap="nowrap">
+                    <Button
+                        size={size}
+                        radius="xl"
+                        color="primaryRed"
+                        variant={includeInternational ? 'filled' : 'light'}
+                        aria-pressed={includeInternational}
+                        onClick={() => setIncludeInternational(!includeInternational)}
+                        leftSection={includeInternational ? <IconCheck size={14} stroke={3} /> : undefined}
+                        style={{ flex: 1 }}
+                    >
+                        Tiendas internacionales
+                    </Button>
+                    <InfoHint label="¿Qué hacen las tiendas internacionales?" position="bottom-end">
+                        Tiendas de importación, con sede fuera de Chile. Al apagarlas, sus ofertas
+                        dejan de contar en toda la plataforma.
+                    </InfoHint>
+                </Group>
                 <Group gap={6} wrap="nowrap">
                     <Button
                         size={size}
@@ -65,7 +89,7 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
                         plataforma.
                     </InfoHint>
                 </Group>
-            </div>
+            </Stack>
 
             <div>
                 <Group justify="space-between" wrap="nowrap" gap={4}>

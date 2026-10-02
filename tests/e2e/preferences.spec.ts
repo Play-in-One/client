@@ -16,14 +16,14 @@ const openMenu = async (page: import('@playwright/test').Page) => {
     await page.getByRole('button', { name: 'Preferencias' }).click();
 };
 
-// Mantine oculta visualmente el <input> del Switch, así que Playwright no puede
-// clickearlo: se activa por su label, igual que haría una persona.
-const toggleInternational = async (page: import('@playwright/test').Page) => {
-    await page.getByText('Tiendas internacionales').click();
-};
+// Un botón con `aria-pressed`, igual que el de las nacionales. `exact` porque el (i)
+// de al lado también menciona «tiendas internacionales» en su nombre accesible.
+const internationalButton = (page: import('@playwright/test').Page) =>
+    page.getByRole('button', { name: 'Tiendas internacionales', exact: true });
 
-const internationalSwitch = (page: import('@playwright/test').Page) =>
-    page.getByRole('switch', { name: 'Tiendas internacionales' });
+const toggleInternational = async (page: import('@playwright/test').Page) => {
+    await internationalButton(page).click();
+};
 
 /* El tema dejó de ser un Switch de "Modo oscuro" y es un SegmentedControl de
    dos posiciones rotulado "Tema", con un icono por opción. Mantine lo renderiza
@@ -47,7 +47,7 @@ const activeTheme = async (page: import('@playwright/test').Page) =>
 test('el menú de preferencias agrupa el tema y las tiendas internacionales', async ({ page }) => {
     await page.goto('/');
     await openMenu(page);
-    await expect(page.getByText('Tiendas internacionales')).toBeVisible();
+    await expect(internationalButton(page)).toBeVisible();
     await expect(page.getByText('Tema')).toBeVisible();
 });
 
@@ -74,18 +74,18 @@ test('el toggle de tema refleja el esquema activo y lo cambia', async ({ page })
 test('las tiendas internacionales vienen activadas por defecto', async ({ page }) => {
     await page.goto('/');
     await openMenu(page);
-    await expect(internationalSwitch(page)).toBeChecked();
+    await expect(internationalButton(page)).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('apagar las tiendas internacionales sobrevive a una recarga', async ({ page }) => {
     await page.goto('/');
     await openMenu(page);
     await toggleInternational(page);
-    await expect(internationalSwitch(page)).not.toBeChecked();
+    await expect(internationalButton(page)).toHaveAttribute('aria-pressed', 'false');
 
     await page.reload();
     await openMenu(page);
-    await expect(internationalSwitch(page)).not.toBeChecked();
+    await expect(internationalButton(page)).toHaveAttribute('aria-pressed', 'false');
 });
 
 /** Las ubicaciones que la galería pidió a la API, como lista. */
@@ -191,7 +191,7 @@ test('la galería no gasta una petición con el filtro equivocado', async ({ pag
 
 
 /* ── Ubicación de la tienda: Nacional + región ────────────────────────────
-   Tres controles independientes —el switch internacional, el botón Nacional y
+   Tres controles independientes —los botones Internacional y Nacional y
    el mapa de regiones—. Una oferta se ve si su tienda pasa el control de SU
    categoría; con una región elegida solo quedan las tiendas de esa región. */
 
@@ -227,7 +227,7 @@ test('la (i) de Nacional explica qué son y no cierra el menú', async ({ page }
     await expect(page.getByText(/operan en varias regiones del país/)).toBeVisible();
     // Un clic dentro del popover no es «fuera» del menú. Se mira el texto y no
     // el switch: Mantine oculta el <input> y Playwright lo da por invisible.
-    await expect(page.getByText('Tiendas internacionales')).toBeVisible();
+    await expect(internationalButton(page)).toBeVisible();
 });
 
 test('apagar Nacional deja la lista blanca sin «national» y sobrevive a una recarga', async ({ page }) => {
@@ -350,6 +350,26 @@ test('las descripciones de los filtros viven tras un (i) junto al título, sin c
         await page.getByRole('button', { name: label }).click();
         await expect(page.getByText(text)).toHaveCount(0);
     }
+});
+
+test('el menú de preferencias queda fijo al viewport y no se va con el scroll', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await page.goto('/');
+    await openMenu(page);
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+
+    // El header es sticky y el dropdown va en un portal: con `position: absolute`
+    // (el default de Mantine) se desplaza con la página y floating-ui lo corrige un
+    // frame tarde, así que se ve temblar. Fijo al viewport no hay nada que corregir.
+    await expect(menu).toHaveCSS('position', 'fixed');
+
+    const before = await menu.boundingBox();
+    await page.mouse.move(100, 400);
+    await page.mouse.wheel(0, 300);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    const after = await menu.boundingBox();
+    expect(Math.abs(after!.y - before!.y)).toBeLessThan(2);
 });
 
 test('una cookie con región inventada no rompe nada y se ignora', async ({ page, context }) => {
