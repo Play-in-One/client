@@ -1,6 +1,6 @@
 import type {
     Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets,
-    Product, PriceHistory,
+    Product, PriceHistory, MinPriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     SourcesReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
@@ -415,6 +415,20 @@ export async function getPopularGames(params?: {
         signal,
         ...(revalidate !== undefined ? { next: { revalidate } } : {}),
     });
+}
+
+/** Serie del precio mínimo de un juego usando solo las tiendas que pasan el filtro
+ *  global de ubicación (`seller_locations`). Es el único camino a series que el
+ *  detalle no trae embebidas. */
+export async function getMinPriceHistory(
+    gameId: number,
+    sellerLocations: string,
+    signal?: AbortSignal,
+) {
+    return fetcher<{ min_price_history: MinPriceHistory }>(
+        `/games/${gameId}/min-price-history/${qs({ seller_locations: sellerLocations })}`,
+        { signal },
+    );
 }
 
 export async function getGameFacets(params?: {

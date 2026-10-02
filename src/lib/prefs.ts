@@ -201,6 +201,20 @@ export function sellerLocationsFor(prefs: Prefs): string | undefined {
     return allowed.join(',');
 }
 
+/** De dónde sale la serie del historial de precio bajo el filtro de ubicación.
+ *
+ *  El backend guarda dos series: la de todas las tiendas y la «sin importadoras».
+ *  Esas dos se usan cuando coinciden exacto con lo que se ve; cualquier otra
+ *  combinación (región elegida, nacionales apagadas…) se pide ya calculada. */
+export function historySourceFor(
+    locations: string | undefined,
+    hasNationalSeries: boolean,
+): 'all' | 'national' | 'remote' {
+    if (locations === undefined) return 'all';
+    if (locations === 'national,regions') return hasNationalSeries ? 'national' : 'all';
+    return 'remote';
+}
+
 /* La escribe el cliente con `document.cookie` y no un Route Handler —a
  * diferencia de `pio_consent`— porque no hay nada que validar en el servidor:
  * es una preferencia de visualización, no un consentimiento. Un round-trip por

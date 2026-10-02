@@ -48,6 +48,7 @@ import {
 } from '@tabler/icons-react';
 
 import { trackEvent, getGameClickStats } from '@/lib/api';
+import { useMinPriceHistory } from '@/hooks/useMinPriceHistory';
 import { useGamePlatform } from './GamePlatformContext';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
@@ -464,18 +465,11 @@ export default function GameDetailClient({
     // embebida en el detalle, así que cambiar de tab no dispara un request.
     // La clave "" del backend es la serie agregada (todas las condiciones).
     //
-    // Con las internacionales apagadas manda la serie nacional, para que el
-    // gráfico no contradiga al precio de arriba. El backend la omite cuando
-    // sería idéntica a la agregada (juegos sin ofertas importadas), así que un
-    // objeto vacío significa "usa la agregada", no "no hay datos".
-    //
-    // Solo existen esas dos series: con una región elegida o las nacionales
-    // apagadas ninguna coincide exacto con las ofertas visibles, y el gráfico
-    // lo avisa (`approximate`) en vez de inventar una serie por región.
-    const historySource =
-        !effectivePrefs.international && Object.keys(game.min_price_history_national ?? {}).length > 0
-            ? game.min_price_history_national
-            : game.min_price_history;
+    // La serie sigue al filtro de ubicación activo: las dos que trae el detalle
+    // (todas las tiendas y «sin importadoras») cuando coinciden exacto, y la que
+    // calcula el backend para cualquier otra combinación (ver el hook). Un objeto
+    // vacío en la nacional significa «usa la agregada», no «no hay datos».
+    const { source: historySource, loading: historyLoading } = useMinPriceHistory(game, effectivePrefs);
     /* La serie del mínimo llega indexada por `Platform.name`, no por `slug`
        (contrato del backend, `GameDetailSerializer`). El backend mantiene los
        dos campos idénticos por catálogo, así que el slug entra tal cual; es la
@@ -896,7 +890,7 @@ export default function GameDetailClient({
                                     selectedPlatform
                                 }
                                 conditionLabel={conditionFilter ? conditionLabelFor(conditionFilter) : null}
-                                approximate={effectivePrefs.region !== null || !effectivePrefs.national}
+                                loading={historyLoading}
                             />
                         )}
 

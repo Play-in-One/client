@@ -427,12 +427,46 @@ test('con una región elegida la ficha solo deja esa región, las nacionales y l
     await expect(tabla.getByText(SEEDED.internationalSeller)).toHaveCount(0);
 });
 
-test('con una región o sin las nacionales el historial se marca como referencial', async ({ page, context }) => {
-    const gamePath = await seededGamePath(page);
-    await page.goto(gamePath);
-    await expect(page.getByText('Historial referencial')).toHaveCount(0);
+/* ── El historial sigue al mismo filtro ───────────────────────────────────── */
 
-    await context.addCookies([withPrefs({ region: 'CL-RM' })]);
+const historyResponse = (page: Page, locations: string) =>
+    page.waitForResponse((r) => {
+        const url = new URL(r.url());
+        return url.pathname.endsWith('/min-price-history/') && url.searchParams.get('seller_locations') === locations;
+    });
+
+test('sin filtros el historial sale embebido y no se pide nada aparte', async ({ page }) => {
+    const calls: string[] = [];
+    page.on('request', (r) => { if (r.url().includes('/min-price-history/')) calls.push(r.url()); });
+    await page.goto(await seededGamePath(page));
+    await expect(page.getByText('Historial de Precio Mínimo')).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    expect(calls).toEqual([]);
+});
+
+test('con una región elegida el historial se calcula solo con las tiendas visibles', async ({ page, context }) => {
+    // Solo la tienda regional del Biobío: su oferta (24.990) es la única que cuenta.
+    await context.addCookies([withPrefs({
+        region: SEEDED.regionalSellerRegion, national: false, international: false,
+    })]);
+    const gamePath = await seededGamePath(page);
+    const response = historyResponse(page, SEEDED.regionalSellerRegion);
     await page.goto(gamePath);
-    await expect(page.getByText(/Historial referencial/)).toBeVisible();
+
+    const body = await (await response).json();
+    const series = body.min_price_history.ps5[''];
+    expect(series[0].price).toBe('24990.00');
+    await expect(page.getByText('Historial de Precio Mínimo')).toBeVisible();
+    // Ya no es una aproximación: no hay nota de «referencial».
+    await expect(page.getByText(/Historial referencial/)).toHaveCount(0);
+});
+
+test('con las nacionales apagadas el historial excluye a las nacionales y cambia de serie', async ({ page, context }) => {
+    await context.addCookies([withPrefs({ national: false })]);
+    const response = historyResponse(page, 'international,regions');
+    await page.goto(await seededGamePath(page));
+    const body = await response;
+    expect(body.ok()).toBe(true);
+    // Quedan la importada (23.481 efectivos) y la regional (24.990): gana la importada.
+    expect((await body.json()).min_price_history.ps5[''][0].price).toBe('23481.00');
 });

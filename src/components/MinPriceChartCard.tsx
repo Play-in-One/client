@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Badge, Box, Card, Group, SegmentedControl, Text, Title } from '@mantine/core';
+import { Badge, Box, Card, Center, Group, Loader, SegmentedControl, Text, Title } from '@mantine/core';
 import { IconChartLine } from '@tabler/icons-react';
 import type { MinPricePoint } from '@/lib/types';
 import { buildPriceSeries } from '@/lib/priceSeries';
@@ -12,9 +12,8 @@ interface MinPriceChartCardProps {
     series: MinPricePoint[];
     platformLabel: string;
     conditionLabel?: string | null;
-    /** La serie no coincide exactamente con las tiendas visibles: solo existen
-     *  la agregada y la «sin importadoras», no una por región. */
-    approximate?: boolean;
+    /** La serie exacta para el filtro de ubicación todavía está en camino. */
+    loading?: boolean;
 }
 
 const RANGE_OPTIONS = [
@@ -37,7 +36,7 @@ export default function MinPriceChartCard({
     series,
     platformLabel,
     conditionLabel,
-    approximate = false,
+    loading = false,
 }: MinPriceChartCardProps) {
     const [range, setRange] = useState(DEFAULT_RANGE);
     // `now` congelado por montaje: recalcularlo en cada render movería el borde
@@ -85,7 +84,11 @@ export default function MinPriceChartCard({
             </Box>
 
             <Box p="lg">
-                {!hasAnyHistory ? (
+                {loading ? (
+                    <Center py="xl" mih={160}>
+                        <Loader size="sm" color="primaryRed" aria-label="Cargando historial" />
+                    </Center>
+                ) : !hasAnyHistory ? (
                     <Text fz="sm" c="dimmed" ta="center" py="xl">
                         Aún no hay suficiente historial para esta consola. Se registra un punto
                         cada vez que cambia el precio más barato.
@@ -104,15 +107,6 @@ export default function MinPriceChartCard({
                             domain={built.domain}
                             lastRealTimestamp={built.lastRealTimestamp}
                         />
-                        {approximate && (
-                            // El backend solo publica la serie de todas las tiendas y la
-                            // de «sin importadoras»; con una región o sin las nacionales
-                            // el gráfico es una aproximación y hay que decirlo.
-                            <Text fz="xs" c="dimmed" ta="center" mt="xs">
-                                Historial referencial: incluye tiendas de otras ubicaciones que
-                                hoy tienes ocultas.
-                            </Text>
-                        )}
                         {built.realCount === 0 && (
                             // Línea plana de borde a borde: sin esta nota parece
                             // que el gráfico está roto.

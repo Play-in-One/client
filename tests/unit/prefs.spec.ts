@@ -5,6 +5,7 @@ import {
     isSellerVisible,
     parsePrefs,
     sellerLocationsFor,
+    historySourceFor,
     type Prefs,
 } from '../../src/lib/prefs';
 import { CHILE_REGIONS, REGION_CODES, isRegionCode } from '../../src/lib/chile-regions';
@@ -98,5 +99,19 @@ test('isSellerVisible is exactly the client twin of sellerLocationsFor', () => {
                 }
             }
         }
+    }
+});
+
+test('historySourceFor: usa las series guardadas cuando coinciden y pide la exacta en el resto', () => {
+    // Sin filtro: la serie de todas las tiendas.
+    expect(historySourceFor(sellerLocationsFor(DEFAULT_PREFS), false)).toBe('all');
+    // Solo sin internacionales: la guardada «sin importadoras», o la agregada si el
+    // juego no tiene ofertas importadas (el backend no la emite porque sería igual).
+    const noInternational = sellerLocationsFor(prefs({ international: false }));
+    expect(historySourceFor(noInternational, true)).toBe('national');
+    expect(historySourceFor(noInternational, false)).toBe('all');
+    // Cualquier otra combinación no tiene serie guardada: se calcula en el servidor.
+    for (const over of [{ national: false }, { region: 'CL-BI' as const }, { international: false, national: false }]) {
+        expect(historySourceFor(sellerLocationsFor(prefs(over)), true)).toBe('remote');
     }
 });
