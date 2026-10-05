@@ -19,11 +19,17 @@ const AI_CRAWLERS = [
     'cohere-ai',
 ];
 
+const DISALLOWED_PATHS = ['/saved', '/api/', '/go/'];
+
 export default function robots(): MetadataRoute.Robots {
     return {
         rules: [
-            { userAgent: '*', allow: '/', disallow: ['/saved', '/api/'] },
-            ...AI_CRAWLERS.map((userAgent) => ({ userAgent, allow: '/' })),
+            { userAgent: '*', allow: '/', disallow: DISALLOWED_PATHS },
+            ...AI_CRAWLERS.map((userAgent) => ({
+                userAgent,
+                allow: '/',
+                disallow: DISALLOWED_PATHS,
+            })),
         ],
         sitemap: absoluteUrl('/sitemap.xml'),
         host: SITE_URL,
