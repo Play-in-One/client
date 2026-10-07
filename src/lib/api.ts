@@ -4,7 +4,7 @@ import type {
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     SourcesReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
-    Survey, StaffSurvey, SurveyResults,
+    Survey, StaffSurvey, SurveyResults, IssueReport, ReportTargetType, ReportReason, ReportDisplayContext,
 } from './types';
 import { appendAttribution } from './attribution';
 import { tryServerPerf } from './serverPerf';
@@ -546,6 +546,30 @@ export async function submitContact(data: ContactPayload) {
     return fetcher<Contact>('/contact/', {
         method: 'POST',
         body: JSON.stringify(data),
+    });
+}
+
+export async function submitIssueReport(payload: {
+    target_type: ReportTargetType; target_id: number; reason: ReportReason; context: ReportDisplayContext;
+}) {
+    return fetcher<{ id: number; date: string }>('/reports/', {
+        method: 'POST', credentials: 'omit', body: JSON.stringify(payload),
+    });
+}
+
+export async function getStaffReports(filters: {
+    page: number; target_type?: string; reason?: string; reviewed?: string; search?: string;
+}) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(filters)) {
+        if (value !== '') params.set(key, String(value));
+    }
+    return fetcher<PaginatedResponse<IssueReport>>(`/reports/staff/?${params}`, { admin: true });
+}
+
+export async function reviewIssueReport(id: number, reviewed: boolean) {
+    return fetcher<IssueReport>(`/reports/staff/${id}/`, {
+        method: 'PATCH', body: JSON.stringify({ reviewed }),
     });
 }
 

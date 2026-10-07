@@ -115,6 +115,40 @@ export interface MinPricePoint {
  *  más antiguo, igual que PriceHistory. */
 export type MinPriceHistory = Record<string, Record<string, MinPricePoint[]>>;
 
+export type ReportTargetType = 'game' | 'product';
+export type ReportReason =
+    | 'image_not_official' | 'image_wrong_game' | 'image_not_loading' | 'image_low_quality'
+    | 'price_incorrect' | 'game_incorrect' | 'out_of_stock' | 'console_incorrect';
+
+export interface ReportDisplayContext {
+    image_url?: string;
+    platform?: string;
+    displayed_price?: string | null;
+}
+
+export interface IssueReport {
+    id: number;
+    target_type: ReportTargetType;
+    target_id: number;
+    target_name: string;
+    reason: ReportReason;
+    game: number | null;
+    product: number | null;
+    snapshot: {
+        game_name?: string;
+        image_url?: string;
+        title?: string;
+        seller?: string;
+        platform?: string;
+        platform_label?: string;
+        url?: string;
+        price?: string | null;
+    };
+    context: ReportDisplayContext;
+    reviewed: boolean;
+    created_at: string;
+}
+
 export interface Product {
     id: number;
     title: string;

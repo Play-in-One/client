@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { Modal, Stack, Group, Text, Button, Paper, ActionIcon, Tooltip } from '@mantine/core';
 import { IconCopy, IconCheck, IconGift } from '@tabler/icons-react';
 import { formatCLP } from '@/lib/utils';
-import type { Seller } from '@/lib/types';
+import type { ReportDisplayContext, Seller } from '@/lib/types';
 import { activeCoupon } from '@/lib/types';
 import { computeCouponSavings } from './CouponInfo';
+import IssueReportButton from './IssueReportButton';
 
 export interface PendingOffer {
     url: string;
@@ -14,6 +15,7 @@ export interface PendingOffer {
     platformId?: number;
     seller: Seller;
     basePrice: string | number | null;
+    reportContext?: ReportDisplayContext;
 }
 
 interface Props {
@@ -95,6 +97,9 @@ export default function CouponModal({ offer, onClose, onConfirm }: Props) {
                         <Button component="a" href={offer.url} target="_blank" rel="noopener" color="primaryRed" radius="lg" onClick={onConfirm}>
                             Tienda
                         </Button>
+                        <IssueReportButton targetType="product" targetId={offer.productId}
+                            context={{ ...offer.reportContext,
+                                displayed_price: savings ? savings.discounted.toFixed(2) : offer.reportContext?.displayed_price }} />
                     </Group>
                 </Stack>
             )}

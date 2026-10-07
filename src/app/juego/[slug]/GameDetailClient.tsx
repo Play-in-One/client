@@ -61,6 +61,7 @@ import { bestPriceSentence } from '@/lib/seo';
 import CollapsibleText from '@/components/CollapsibleText';
 import PriceInfo from '@/components/PriceInfo';
 import CouponModal, { type PendingOffer } from '@/components/CouponModal';
+import IssueReportButton from '@/components/IssueReportButton';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import ConditionIcon from '@/components/ConditionIcon';
 import AffiliateMark from '@/components/AffiliateMark';
@@ -369,6 +370,7 @@ export default function GameDetailClient({
             platformId: product.platform?.id,
             seller: product.seller,
             basePrice: product.base_price,
+            reportContext: { displayed_price: product.current_price, platform: product.platform.name },
         });
         return false;
     };
@@ -582,6 +584,8 @@ export default function GameDetailClient({
                                 }}
                                 onError={handleImageError('/placeholder-game.png')}
                             />
+                            <IssueReportButton targetType="game" targetId={game.id} cover
+                                context={{ image_url: coverImage, platform: selectedPlatform ?? '' }} />
                         </Box>
                     </Box>
 
@@ -856,20 +860,24 @@ export default function GameDetailClient({
                                     </Box>
 
                                     <Stack align="stretch" justify="center" gap="sm">
-                                        <Button
-                                            component="a"
-                                            href={outgoingHref('product', bestProduct.id)}
-                                            target="_blank"
-                                            rel="noopener"
-                                            onClick={(e) => handleOfferClick(e, bestProduct)}
-                                            color="primaryRed"
-                                            size="lg"
-                                            radius="lg"
-                                            rightSection={<IconExternalLink size={18} />}
-                                            style={{ boxShadow: decorative.primaryButtonShadowStrong }}
-                                        >
-                                            Ir a la Tienda
-                                        </Button>
+                                        <Group gap="xs" wrap="nowrap">
+                                            <Button
+                                                component="a"
+                                                href={outgoingHref('product', bestProduct.id)}
+                                                target="_blank"
+                                                rel="noopener"
+                                                onClick={(e) => handleOfferClick(e, bestProduct)}
+                                                color="primaryRed"
+                                                size="lg"
+                                                radius="lg"
+                                                rightSection={<IconExternalLink size={18} />}
+                                                style={{ boxShadow: decorative.primaryButtonShadowStrong, flex: 1 }}
+                                            >
+                                                Ir a la Tienda
+                                            </Button>
+                                            <IssueReportButton targetType="product" targetId={bestProduct.id}
+                                                context={{ displayed_price: bestProduct.current_price, platform: bestProduct.platform.name }} />
+                                        </Group>
                                         <Text fz="xs" c="rgba(255,255,255,0.5)" ta="center">
                                             {priceUpdatedDate
                                                 ? `Actualizado el ${priceUpdatedDate}`
@@ -1092,18 +1100,22 @@ export default function GameDetailClient({
                                                         </Group>
                                                     </Table.Td>
                                                     <Table.Td hiddenFrom="sm" ta="right" style={{ whiteSpace: 'nowrap' }}>
-                                                        <Badge
-                                                            color={conditionBadgeColorFor(p.condition)}
-                                                            variant="light"
-                                                            size="lg"
-                                                            aria-label={conditionLabelFor(p.condition)}
-                                                            styles={{
-                                                                root: { width: 34, minWidth: 34, height: 34, paddingInline: 0 },
-                                                                label: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
-                                                            }}
-                                                        >
-                                                            <ConditionIcon condition={p.condition} size={18} />
-                                                        </Badge>
+                                                        <Stack gap={6} align="flex-end">
+                                                            <Badge
+                                                                color={conditionBadgeColorFor(p.condition)}
+                                                                variant="light"
+                                                                size="lg"
+                                                                aria-label={conditionLabelFor(p.condition)}
+                                                                styles={{
+                                                                    root: { width: 34, minWidth: 34, height: 34, paddingInline: 0 },
+                                                                    label: { display: 'flex', alignItems: 'center', justifyContent: 'center' },
+                                                                }}
+                                                            >
+                                                                <ConditionIcon condition={p.condition} size={18} />
+                                                            </Badge>
+                                                            <IssueReportButton targetType="product" targetId={p.id}
+                                                                context={{ displayed_price: p.current_price, platform: p.platform.name }} />
+                                                        </Stack>
                                                     </Table.Td>
                                                     <Table.Td visibleFrom="sm">
                                                         <Group gap={2} wrap="nowrap" align="center">
@@ -1150,6 +1162,8 @@ export default function GameDetailClient({
                                                                     <IconExternalLink size={16} />
                                                                 </ActionIcon>
                                                             </MantineTooltip>
+                                                            <IssueReportButton targetType="product" targetId={p.id}
+                                                                context={{ displayed_price: p.current_price, platform: p.platform.name }} />
                                                             {showAdminControls && (
                                                                 <ProductClickBadge counts={clickStats?.products?.[String(p.id)]} />
                                                             )}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { IconChartHistogram, IconMessageCircleQuestion } from '@tabler/icons-react';
+import { IconAlertTriangle, IconChartHistogram, IconMessageCircleQuestion } from '@tabler/icons-react';
 import {
     Alert,
     Badge,
@@ -78,6 +78,9 @@ export default function StaffLoginClient() {
                             leftSection={<IconMessageCircleQuestion size={18} />}
                         >
                             Ver encuestas
+                        </Button>
+                        <Button component={Link} href="/staff/reportes" variant="light" leftSection={<IconAlertTriangle size={18} />}>
+                            Ver reportes
                         </Button>
                         <Button variant="light" color="red" onClick={logout}>
                             Cerrar sesión
