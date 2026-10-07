@@ -327,3 +327,40 @@ test('el formulario público guarda un reporte real en el backend', async ({ pag
     await expect(page.getByRole('status')).toContainText('Reporte enviado');
     await expect(page.getByRole('button', { name: 'Reportar imagen', exact: true })).toBeDisabled();
 });
+
+test('revisar dos reportes a la vez recupera la página que queda vacía', async ({ page }) => {
+    await page.addInitScript(() => {
+        localStorage.setItem('pio_admin_token', 'e2e-mock-token');
+        localStorage.setItem('pio_admin_user', 'e2e');
+    });
+    let count = 26;
+    let submitted = 0;
+    let release!: () => void;
+    const both = new Promise<void>(resolve => { release = resolve; });
+    const row = (id: number) => ({ id, target_type: 'game', target_id: id, target_name: `Reporte ${id}`,
+        reason: 'image_not_loading', game: null, product: null, snapshot: {}, context: {}, reviewed: false,
+        created_at: '2026-10-07T15:00:00Z' });
+    await page.route('**/api/reports/staff/**', async route => {
+        if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS });
+        if (route.request().method() === 'PATCH') {
+            submitted++;
+            if (submitted === 2) release();
+            await both;
+            count = 24;
+            const id = Number(new URL(route.request().url()).pathname.split('/').filter(Boolean).at(-1));
+            return route.fulfill({ headers: CORS, json: { ...row(id), reviewed: true } });
+        }
+        const second = new URL(route.request().url()).searchParams.get('page') === '2';
+        if (count === 24 && second) return route.fulfill({ status: 404, headers: CORS, json: { detail: 'Invalid page' } });
+        return route.fulfill({ headers: CORS, json: { count, next: second ? null : 'next', previous: second ? 'previous' : null,
+            results: second ? [row(25), row(26)] : Array.from({ length: 24 }, (_, i) => row(i + 1)) } });
+    });
+    await page.goto('/staff/reportes');
+    await page.getByRole('textbox', { name: 'Estado', exact: true }).click();
+    await page.getByRole('option', { name: 'Pendientes', exact: true }).click();
+    await page.getByRole('button', { name: '2', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Revisado: Reporte 25' }).click();
+    await page.getByRole('checkbox', { name: 'Revisado: Reporte 26' }).click();
+    await expect(page.getByText('Reporte 1', { exact: true })).toBeVisible();
+    await expect(page.getByText('24 reportes', { exact: true })).toBeVisible();
+});

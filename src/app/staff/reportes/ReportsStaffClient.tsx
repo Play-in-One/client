@@ -9,7 +9,7 @@ import {
 } from '@mantine/core';
 import { IconExternalLink, IconRefresh } from '@tabler/icons-react';
 import { useAdmin } from '@/context/AdminContext';
-import { DJANGO_ADMIN_URL, getStaffReports, reviewIssueReport } from '@/lib/api';
+import { ApiError, DJANGO_ADMIN_URL, getStaffReports, reviewIssueReport } from '@/lib/api';
 import { REPORT_REASONS } from '@/lib/reportStorage';
 import type { IssueReport, PaginatedResponse } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
@@ -50,7 +50,16 @@ export default function ReportsStaffClient() {
         setError(null);
         getStaffReports({ page, target_type: targetType, reason, reviewed, search: debouncedSearch })
             .then(result => { if (!cancelled) setData(result); })
-            .catch(() => { if (!cancelled) setError('No se pudieron cargar los reportes.'); })
+            .catch(error => {
+                if (cancelled) return;
+                // Reviews in another tab (or concurrent reviews here) can empty
+                // the final page while this request is in flight.
+                if (error instanceof ApiError && error.status === 404 && page > 1) {
+                    setPage(1);
+                } else {
+                    setError('No se pudieron cargar los reportes.');
+                }
+            })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
     }, [isAdmin, page, targetType, reason, reviewed, debouncedSearch, refresh]);
