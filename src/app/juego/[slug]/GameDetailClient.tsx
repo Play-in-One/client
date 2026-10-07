@@ -1163,8 +1163,8 @@ export default function GameDetailClient({
                                                                     onClick={(e) => handleOfferClick(e, p)}
                                                                     size="lg"
                                                                     radius="md"
-                                                                    variant={isBest ? 'filled' : 'default'}
-                                                                    color={isBest ? 'dark' : undefined}
+                                                                    variant="filled"
+                                                                    color="primaryRed"
                                                                     aria-label="Ver en Tienda"
                                                                 >
                                                                     <IconExternalLink size={16} />
