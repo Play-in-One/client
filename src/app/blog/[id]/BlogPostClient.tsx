@@ -1,13 +1,23 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { Container, Title, Box, Text, Badge, Image } from '@mantine/core';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Alert, Button, Container, Group, Title, Box, Text, Badge, Image } from '@mantine/core';
+import { IconPencil } from '@tabler/icons-react';
 import type { Post } from '@/lib/types';
 import { trackEvent } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
+import { useAdmin } from '@/context/AdminContext';
+import PostEditorModal from '@/components/PostEditorModal';
 
 export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
-    const post = initialPost;
+    const { isAdmin } = useAdmin();
+    const router = useRouter();
+    const [editing, setEditing] = useState(false);
+    const [savedPost, setSavedPost] = useState<Post | null>(null);
+    // La respuesta de la escritura se muestra incluso si la revalidación ISR
+    // falla temporalmente. No se arrastra a otro artículo al navegar.
+    const post = savedPost?.id === initialPost.id ? savedPost : initialPost;
     // Mide la lectura, no el click: cuenta también las llegadas por buscador o
     // link directo. El ref evita el doble disparo de StrictMode en dev.
     const trackedPostId = useRef<number | null>(null);
@@ -24,7 +34,13 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
 
     return (
         <Container size="md" py={60}>
-            <Badge color="primaryRed" mb="md">{post.category}</Badge>
+            <Group justify="space-between" mb="md">
+                <Badge color="primaryRed">{post.category}</Badge>
+                {isAdmin && (
+                    <Button variant="light" leftSection={<IconPencil size={18} />} onClick={() => setEditing(true)}>Editar post</Button>
+                )}
+            </Group>
+            {savedPost?.id === initialPost.id && <Alert color="green" mb="lg" role="status">Cambios guardados.</Alert>}
             <Title order={1} mb="sm">{post.title}</Title>
             <Text c="dimmed" mb="xl" component="time" dateTime={post.published_date}>
                 {new Date(post.published_date).toLocaleDateString()}
@@ -43,6 +59,18 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
                     </Text>
                 ))}
             </Box>
+            {editing && (
+                <PostEditorModal
+                    key={post.id}
+                    post={post}
+                    onClose={() => setEditing(false)}
+                    onSaved={(updated) => {
+                        setSavedPost(updated);
+                        setEditing(false);
+                        router.refresh();
+                    }}
+                />
+            )}
         </Container>
     );
 }

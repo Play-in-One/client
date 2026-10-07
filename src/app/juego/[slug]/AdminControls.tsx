@@ -23,6 +23,7 @@ import {
 import { IconTrash } from '@tabler/icons-react';
 import type { Game, Platform, Product } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
+import DeleteCatalogButton from '@/components/DeleteCatalogButton';
 import {
     addProductPrice,
     getGames,
@@ -285,6 +286,13 @@ export function AdminGameControls({ game }: { game: Game }) {
                         </Button>
                     </Stack>
                 )}
+                <Divider label="Eliminar juego" labelPosition="left" />
+                <DeleteCatalogButton
+                    kind="game" id={game.id} name={game.name} disabled={busy}
+                    // Una navegación completa evita volver a mostrar el juego
+                    // borrado desde la caché del router del navegador.
+                    onDeleted={() => window.location.replace('/search')}
+                />
             </Stack>
         </Card>
     );
@@ -295,7 +303,7 @@ export function AdminGameControls({ game }: { game: Game }) {
  * nivel de módulo para no re-fetch cada vez que se abre un editor. */
 let platformCache: Platform[] | null = null;
 
-export function AdminProductEditor({ product }: { product: Product }) {
+export function AdminProductEditor({ product, onDeleted }: { product: Product; onDeleted: () => void }) {
     const [platforms, setPlatforms] = useState<Platform[]>(platformCache ?? []);
     useEffect(() => {
         if (platformCache) return;
@@ -307,10 +315,10 @@ export function AdminProductEditor({ product }: { product: Product }) {
             .catch(() => {});
     }, []);
 
-    return <ProductRow product={product} platforms={platforms} />;
+    return <ProductRow product={product} platforms={platforms} onDeleted={onDeleted} />;
 }
 
-function ProductRow({ product, platforms }: { product: Product; platforms: Platform[] }) {
+function ProductRow({ product, platforms, onDeleted }: { product: Product; platforms: Platform[]; onDeleted: () => void }) {
     const router = useRouter();
     const [url, setUrl] = useState(product.url);
     const [affiliateUrl, setAffiliateUrl] = useState(product.affiliate_url ?? '');
@@ -439,6 +447,11 @@ function ProductRow({ product, platforms }: { product: Product; platforms: Platf
                     onPick={(g) =>
                         run(() => updateProduct(product.id, { game: g.id }), `Movido a "${g.name}".`)
                     }
+                />
+                <Divider label="Eliminar producto" labelPosition="left" />
+                <DeleteCatalogButton
+                    kind="product" id={product.id} name={product.title} disabled={busy}
+                    onDeleted={onDeleted}
                 />
             </Stack>
         </Card>

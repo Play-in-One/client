@@ -1,17 +1,34 @@
 'use client';
 
-import { Container, Title, SimpleGrid, Card, Box, Text, Badge } from '@mantine/core';
-import { IconDeviceGamepad } from '@tabler/icons-react';
+import { useState } from 'react';
+import { Alert, Button, Container, Group, Title, SimpleGrid, Card, Box, Text, Badge } from '@mantine/core';
+import { IconDeviceGamepad, IconPlus } from '@tabler/icons-react';
 import type { Post } from '@/lib/types';
 import { trackEvent } from '@/lib/api';
 import Link from 'next/link';
+import { useAdmin } from '@/context/AdminContext';
+import PostEditorModal from '@/components/PostEditorModal';
 
 export default function BlogListClient({ initialPosts }: { initialPosts: Post[] }) {
-    const posts = initialPosts;
+    const { isAdmin } = useAdmin();
+    const [creating, setCreating] = useState(false);
+    const [createdPosts, setCreatedPosts] = useState<Post[]>([]);
+    const [lastCreated, setLastCreated] = useState<Post | null>(null);
+    const posts = [...createdPosts, ...initialPosts.filter((post) => !createdPosts.some((created) => created.id === post.id))];
 
     return (
         <Container size="lg" py={60}>
-            <Title order={1} mb="xl">Noticias y Comunidad</Title>
+            <Group justify="space-between" mb="xl">
+                <Title order={1}>Noticias y Comunidad</Title>
+                {isAdmin && (
+                    <Button leftSection={<IconPlus size={18} />} onClick={() => setCreating(true)}>Crear post</Button>
+                )}
+            </Group>
+            {lastCreated && (
+                <Alert color="green" mb="lg" role="status">
+                    Post publicado. <Link href={`/blog/${lastCreated.id}`}>Ver post</Link>
+                </Alert>
+            )}
             <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
                 {posts.map((post) => (
                     <Card
@@ -55,6 +72,16 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                     </Card>
                 ))}
             </SimpleGrid>
+            {creating && (
+                <PostEditorModal
+                    onClose={() => setCreating(false)}
+                    onSaved={(post) => {
+                        setCreatedPosts((current) => [post, ...current]);
+                        setLastCreated(post);
+                        setCreating(false);
+                    }}
+                />
+            )}
         </Container>
     );
 }

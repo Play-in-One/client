@@ -313,6 +313,8 @@ export interface Post {
     published_date: string;
 }
 
+export type PostPayload = Pick<Post, 'title' | 'category' | 'description' | 'image'>;
+
 export interface Contact {
     id: number;
     name: string;

@@ -1,5 +1,5 @@
 import type {
-    Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, Contact, GameFacets,
+    Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, PostPayload, Contact, GameFacets,
     Product, PriceHistory, MinPriceHistory,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     SourcesReport,
@@ -140,6 +140,7 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     }
     // Clear any cached failure for this path on success
     failedRequestsCache.delete(path);
+    if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
 }
 
@@ -535,6 +536,20 @@ export async function getPost(id: number | string) {
     return fetcher<Post>(`/posts/${id}/`);
 }
 
+export async function createPost(payload: PostPayload) {
+    return fetcher<Post>('/posts/', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function updatePost(id: number, patch: Partial<PostPayload>) {
+    return fetcher<Post>(`/posts/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+    });
+}
+
 /* ── Contact ── */
 export interface ContactPayload {
     name: string;
@@ -671,6 +686,14 @@ export async function updateProduct(id: number, patch: ProductPatch) {
         method: 'PATCH',
         body: JSON.stringify(patch),
     });
+}
+
+export async function deleteGame(id: number): Promise<void> {
+    return fetcher<void>(`/games/${id}/`, { method: 'DELETE' });
+}
+
+export async function deleteProduct(id: number): Promise<void> {
+    return fetcher<void>(`/products/${id}/`, { method: 'DELETE' });
 }
 
 /** Agrega un punto de precio (append-only). POST /api/products/{id}/prices/ */

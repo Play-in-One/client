@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { IconAlertTriangle, IconChartHistogram, IconMessageCircleQuestion } from '@tabler/icons-react';
+import { IconAlertTriangle, IconChartHistogram, IconMessageCircleQuestion, IconNews } from '@tabler/icons-react';
 import {
     Alert,
     Badge,
@@ -61,8 +61,16 @@ export default function StaffLoginClient() {
                         </Group>
                         <Text size="sm" c="dimmed">
                             Conectado como <b>{username}</b>. Ya puedes editar juegos y
-                            productos directamente en sus páginas.
+                            productos y crear o editar posts directamente en sus páginas.
                         </Text>
+                        <Button
+                            component={Link}
+                            href="/blog"
+                            variant="light"
+                            leftSection={<IconNews size={18} />}
+                        >
+                            Ir al blog
+                        </Button>
                         <Button
                             component={Link}
                             href="/staff/analytics"

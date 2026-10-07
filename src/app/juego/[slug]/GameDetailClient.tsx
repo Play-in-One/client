@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { handleImageError } from '@/lib/imageFallback';
 import { useOutboundHref } from '@/hooks/useOutboundHref';
 import { gamePath } from '@/lib/seo';
@@ -287,6 +288,8 @@ export default function GameDetailClient({
 }) {
     const { condition, format, digital, includeInternational, includeNational, region, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
+    const router = useRouter();
+    const [deletedProductIds, setDeletedProductIds] = useState<number[]>([]);
     // La sesión de staff vive en localStorage, inexistente durante SSR. Aplazar
     // estos controles hasta después del montaje garantiza que el HTML inicial
     // sea idéntico en servidor y cliente.
@@ -294,7 +297,12 @@ export default function GameDetailClient({
     useEffect(() => { setIsClientMounted(true); }, []);
     const showAdminControls = isClientMounted && isAdmin;
     // Server-rendered: the game is always present on first paint (page.tsx guards 404).
-    const game = initialGame;
+    const remainingProducts = (initialGame.products ?? []).filter((product) => !deletedProductIds.includes(product.id));
+    const game = deletedProductIds.length ? {
+        ...initialGame,
+        products: remainingProducts,
+        platforms: initialGame.platforms.filter((platform) => remainingProducts.some((product) => product.platform.id === platform.id)),
+    } : initialGame;
     const priceUpdatedDate = formatPriceUpdateDate(game.price_updated_at);
 
     /* Un solo fetch para el badge del juego Y el de cada oferta: el backend ya
@@ -1192,7 +1200,19 @@ export default function GameDetailClient({
                                                 {showAdminControls && editingProductId === p.id && (
                                                     <Table.Tr>
                                                         <Table.Td colSpan={4} p="md">
-                                                            <AdminProductEditor product={p} />
+                                                            <AdminProductEditor
+                                                                product={p}
+                                                                onDeleted={() => {
+                                                                    setDeletedProductIds((ids) => [...ids, p.id]);
+                                                                    setEditingProductId(null);
+                                                                    setPendingOffer((offer) => offer?.productId === p.id ? null : offer);
+                                                                    const remaining = remainingProducts.filter((product) => product.id !== p.id);
+                                                                    if (!remaining.some((product) => product.platform.slug === selectedPlatform)) {
+                                                                        setSelectedPlatform(remaining[0]?.platform.slug ?? '');
+                                                                    }
+                                                                    router.refresh();
+                                                                }}
+                                                            />
                                                         </Table.Td>
                                                     </Table.Tr>
                                                 )}
