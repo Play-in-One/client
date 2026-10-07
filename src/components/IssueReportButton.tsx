@@ -9,6 +9,7 @@ import {
 import { submitIssueReport } from '@/lib/api';
 import { finishReport, getReportState, REPORT_REASONS, runReport, subscribeReports } from '@/lib/reportStorage';
 import type { ReportDisplayContext, ReportReason, ReportTargetType } from '@/lib/types';
+import classes from './IssueReportButton.module.css';
 
 const ICONS = {
     image_not_official: IconPhotoCheck, image_wrong_game: IconPhotoX,
@@ -88,8 +89,16 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                             aria-label={label}
                             data-report-target-type={targetType}
                             data-report-target-id={targetId}
-                            variant={cover ? 'filled' : 'light'}
-                            color="yellow"
+                            variant={cover ? 'subtle' : 'light'}
+                            color={cover ? 'gray' : 'yellow'}
+                            className={cover ? classes.coverButton : undefined}
+                            vars={cover ? () => ({ root: {
+                                '--ai-bg': 'rgba(0, 0, 0, 0.28)',
+                                '--ai-hover': 'rgba(0, 0, 0, 0.52)',
+                                '--ai-color': 'rgba(255, 255, 255, 0.78)',
+                                '--ai-hover-color': '#fff',
+                                '--ai-bd': '1px solid rgba(255, 255, 255, 0.12)',
+                            } }) : undefined}
                             size="lg"
                             radius="md"
                             disabled={state !== 'ready'}
@@ -100,7 +109,7 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                                 setOpened(value => !value);
                             }}
                         >
-                            <IconAlertTriangle size={19} />
+                            <IconAlertTriangle size={cover ? 16 : 19} stroke={cover ? 1.5 : 2} />
                         </ActionIcon>
                     </Tooltip>
                 </Popover.Target>

@@ -1,0 +1,8 @@
+.coverButton {
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.coverButton:focus-visible {
+    background-color: var(--ai-hover);
+    color: var(--ai-hover-color);
+}
