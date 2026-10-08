@@ -7,9 +7,8 @@ import { formatCLP } from '@/lib/utils';
  * Resumen de precios de la ficha, renderizado en el SERVIDOR.
  *
  * Vive dentro de la tarjeta de información, tras un `<details>` nativo que
- * pone `GameInfoCardBody`: su `<summary>` es la fila «Calificaciones» con una
- * (i), o la fila «Resumen de precios» si el juego no tiene calificaciones
- * (entonces `heading` va en falso). Plegado sigue en el HTML inicial, que es
+ * pone `GameInfoCardBody` (el `<summary>` es el título «Resumen de precios»,
+ * por eso aquí no va un encabezado). Plegado sigue en el HTML inicial, que es
  * lo único que leen los crawlers de IA; las frases salen de
  * `priceSummarySentences` —las mismas que abren la meta description y la
  * FAQ—, así que las tres dicen lo mismo.
@@ -23,16 +22,12 @@ export default function PriceSummarySection({
     sentences,
     monthly,
     platforms,
-    heading = true,
 }: {
     sentences: string[];
     monthly: ReturnType<typeof monthlyMinimums>;
     /** Consolas del juego, para nombrar con su nombre largo el slug que trae
      *  cada fila mensual. */
     platforms: Platform[];
-    /** Falso cuando el `<summary>` que lo despliega ya dice «Resumen de
-     *  precios» (la fila propia sin calificaciones). */
-    heading?: boolean;
 }) {
     if (sentences.length === 0 && monthly.length === 0) return null;
 
@@ -42,8 +37,7 @@ export default function PriceSummarySection({
     };
 
     return (
-        <Box mt="sm" mb={heading ? 'md' : undefined}>
-            {heading && <Title order={3} fz="md" mb={4}>Resumen de precios</Title>}
+        <Box mt="sm">
             {/* El alcance, como rótulo: estas cifras son del catálogo entero y
                 la tarjeta «Mejor Precio» sigue los filtros activos, así que
                 pueden no coincidir. */}
