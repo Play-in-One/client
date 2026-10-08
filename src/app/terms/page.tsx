@@ -37,7 +37,7 @@ export default function TermsPage() {
 
                 <Text fw={700} mb="xs">5. Publicidad</Text>
                 <Text fz="md" c="dimmed" mb="lg">
-                    La plataforma se financia mostrando anuncios de Google AdSense en un bloque al final de la ficha de cada juego. Esos anuncios los selecciona Google, no nosotros: no revisamos uno a uno lo que aparece ahí, no respaldamos a los anunciantes ni sus productos, y no intervenimos en lo que ocurra si haces clic en uno. La publicidad tampoco influye en el orden de las ofertas ni en qué tiendas aparecen: el comparador se ordena por precio y popularidad, y ninguna tienda paga por posicionarse. Cómo funciona a efectos de datos personales está en la{' '}
+                    La plataforma se financia mostrando anuncios de Google AdSense en bloques al final de la ficha de cada juego y de la portada. Esos anuncios los selecciona Google, no nosotros: no revisamos uno a uno lo que aparece ahí, no respaldamos a los anunciantes ni sus productos, y no intervenimos en lo que ocurra si haces clic en uno. La publicidad tampoco influye en el orden de las ofertas ni en qué tiendas aparecen. La tabla de ofertas de cada juego se ordena por precio efectivo. La sección «Juegos destacados» de la portada se calcula automáticamente combinando popularidad y las comisiones de afiliación que tenemos con algunas tiendas; ninguna tienda puede comprar una posición a mano. Cómo funciona a efectos de datos personales está en la{' '}
                     <Anchor component={Link} href="/privacy">Política de Privacidad</Anchor>.
                 </Text>
 

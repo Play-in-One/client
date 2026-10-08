@@ -64,7 +64,9 @@ const FAQ: FaqEntry[] = [
         question: '¿PIO vende juegos o cobra comisión?',
         answer:
             'No vende. PIO compara y enlaza a la tienda; la compra, el pago, el despacho y la ' +
-            'garantía son responsabilidad de la tienda.',
+            'garantía son responsabilidad de la tienda. Con algunas tiendas tenemos convenios de afiliación: ' +
+            'si compras a través de nuestro enlace, la tienda nos paga una comisión que no cambia el ' +
+            'precio que pagas ni el orden de las ofertas, que es siempre por precio.',
     },
 ];
 

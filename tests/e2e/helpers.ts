@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 
 /**
  * Datos sembrados por `manage.py seed_e2e` en el backend de desarrollo.
@@ -113,3 +113,23 @@ export async function seededPostId(page: Page, title: string): Promise<number> {
  *  el stack dev solo se sirve en `pio.localhost`, y una cookie con otro dominio
  *  no viaja y el test pasa por el camino equivocado. */
 export const COOKIE_DOMAIN = new URL(process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost').hostname;
+
+/**
+ * HTML que recibe un crawler sin JavaScript (GPTBot), con los `<script>`
+ * fuera: el JSON-LD y el flight data de Next repiten texto que no es el de la
+ * página y confundirían cualquier aserción sobre lo que se ve.
+ */
+export async function serverHtml(
+    request: APIRequestContext,
+    path: string,
+): Promise<string> {
+    const res = await request.get(path, { headers: { 'User-Agent': 'GPTBot' } });
+    const body = await res.text();
+    return body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+}
+
+/** Contenido de `<meta name="robots" content="…">`, o null si no hay. */
+export function robotsOf(html: string): string | null {
+    const tag = html.match(/<meta\b[^>]*\bname="robots"[^>]*>/i)?.[0];
+    return tag?.match(/\bcontent="([^"]*)"/i)?.[1] ?? null;
+}

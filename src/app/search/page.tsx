@@ -3,7 +3,6 @@ import { getGames, getPlatforms } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
-import { priceClause } from '@/lib/utils';
 import SearchClient from './SearchClient';
 
 // Debe coincidir con el DEFAULT_ORDERING de SearchClient: si el servidor
@@ -77,13 +76,7 @@ export default async function SearchPage({
     ]);
     const { games, total } = firstPage;
 
-    const cheapest = games.find((g) => g.min_price != null);
-    const description = cheapest
-        ? `Comparamos ${total.toLocaleString('es-CL')} videojuegos entre tiendas chilenas. ` +
-          `El más barato del catálogo ` +
-          `ahora es ${cheapest.name} ${priceClause(cheapest.min_price!)}` +
-          `${cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : ''}.`
-        : 'Busca y compara precios de videojuegos entre tiendas chilenas.';
+    const description = `Comparamos ${total > 0 ? `${total.toLocaleString('es-CL')} ` : ''}videojuegos entre tiendas chilenas; precios con envío incluido, actualizados a diario.`;
 
     const jsonLd = games.length
         ? [

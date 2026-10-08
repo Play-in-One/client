@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { PLATFORMS, PLATFORMS_BY_SLUG, FAMILIES } from '../../src/lib/platforms';
+import { serverHtml, robotsOf } from './helpers';
 
 /**
  * El catálogo del cliente (`src/lib/platforms.ts`) y el del backend
@@ -76,5 +77,53 @@ test.describe('catálogo de consolas', () => {
         const res = await request.get('/juegos/pc', { maxRedirects: 0 });
         expect(res.status()).toBe(308);
         expect(res.headers()['location']).toBe('/juegos/win');
+    });
+});
+
+test.describe('landings por consola: contenido veraz e indexación', () => {
+    /** Una consola con más de una página de juegos (PAGE_SIZE = 24), si hay. */
+    async function pagedPlatform(request: import('@playwright/test').APIRequestContext) {
+        const res = await request.get(`${API_URL}/platforms/?page_size=100`);
+        const { results } = await res.json();
+        return results.find((p: { slug: string; game_count?: number }) => (p.game_count ?? 0) > 24) as
+            | { slug: string }
+            | undefined;
+    }
+
+    test('el resumen es un párrafo visible, no un <details>', async ({ request }) => {
+        const platform = await pagedPlatform(request);
+        test.skip(!platform, 'ninguna consola con más de 24 juegos en esta base');
+        const html = await serverHtml(request, `/juegos/${platform!.slug}`);
+        expect(html).toMatch(/<p\b[^>]*>\s*En Play in One comparamos/);
+        expect(html).not.toMatch(/<details\b[^>]*>(?:(?!<\/details>)[\s\S])*En Play in One comparamos/);
+        expect(html).not.toContain('más barato');
+    });
+
+    test('el HTML del servidor no afirma cuál es el más barato', async ({ request }) => {
+        const platform = await pagedPlatform(request);
+        test.skip(!platform, 'ninguna consola con más de 24 juegos en esta base');
+        for (const path of [`/juegos/${platform!.slug}`, `/juegos/${platform!.slug}/pagina/2`, '/search']) {
+            const html = await serverHtml(request, path);
+            expect(html, path).not.toContain('del más barato al más caro');
+            expect(html, path).not.toContain('más barato ahora es');
+        }
+    });
+
+    test('las páginas interiores son noindex y la landing no', async ({ request }) => {
+        const platform = await pagedPlatform(request);
+        test.skip(!platform, 'ninguna consola con más de 24 juegos en esta base');
+        const interior = robotsOf(await serverHtml(request, `/juegos/${platform!.slug}/pagina/2`));
+        expect(interior).toContain('noindex');
+        expect(interior).toContain('follow');
+        const landing = robotsOf(await serverHtml(request, `/juegos/${platform!.slug}`));
+        expect(landing ?? '').not.toContain('noindex');
+    });
+
+    test('el sitemap no lista páginas de paginación', async ({ request }) => {
+        const res = await request.get('/sitemap.xml');
+        expect(res.ok()).toBeTruthy();
+        const xml = await res.text();
+        expect(xml).toContain('/juegos/');
+        expect(xml).not.toContain('/pagina/');
     });
 });

@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next';
-import { getGameFacets, getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
+import { getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
 import { absoluteUrl, gamePath } from '@/lib/seo';
-import { PAGE_SIZE as GAMES_PER_PAGE } from './juegos/[slug]/landing';
 
 /**
  * Se genera POR PETICIÓN, nunca en el build.
@@ -43,30 +42,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // responden "juegos de PS5 baratos", la búsqueda con más volumen del
     // sitio, y son pocas y estables.
     //
-    // Detrás van sus páginas interiores (`/juegos/ps5/pagina/2`…), con
-    // prioridad baja: no valen por sí mismas, valen porque son el camino por el
-    // que un crawler llega a las fichas. Cuántas hay sale de `facets`, que ya
-    // publica cuántos juegos tiene cada consola y está cacheado en el backend.
+    // Las páginas interiores (`/juegos/ps5/pagina/2`…) NO van: son `noindex,
+    // follow` (existen como camino de rastreo hacia las fichas, no como páginas
+    // indexables) y un sitemap solo debe listar URLs indexables.
     const platforms: MetadataRoute.Sitemap = [];
     try {
         const res = await getPlatforms();
-        const counts = await getGameFacets()
-            .then((f) => f.platforms)
-            .catch(() => ({} as Record<number, number>));
         for (const p of res.results) {
             platforms.push({
                 url: absoluteUrl(`/juegos/${p.slug}`),
                 changeFrequency: 'daily',
                 priority: 0.9,
             });
-            const pages = Math.ceil((counts[p.id] ?? 0) / GAMES_PER_PAGE);
-            for (let page = 2; page <= pages; page++) {
-                platforms.push({
-                    url: absoluteUrl(`/juegos/${p.slug}/pagina/${page}`),
-                    changeFrequency: 'daily',
-                    priority: 0.3,
-                });
-            }
         }
     } catch {
         /* ignore */

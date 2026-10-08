@@ -7,7 +7,6 @@ import { platformLongName } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import CrawlablePagination from '@/components/CrawlablePagination';
 import FaqSection from '@/components/FaqSection';
-import CollapsibleText from '@/components/CollapsibleText';
 import { JsonLd } from '@/components/JsonLd';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
 import {
@@ -18,7 +17,6 @@ import {
     itemListJsonLd,
     type FaqEntry,
 } from '@/lib/seo';
-import { priceClause } from '@/lib/utils';
 
 /**
  * El cuerpo compartido de la landing por consola, para que `/juegos/ps5` y
@@ -63,21 +61,18 @@ async function fetchGames(
     }
 }
 
-/** La frase citable de la consola. Mismo texto en el HTML y en la metadata. */
+/**
+ * La frase citable de la consola. Mismo texto en el HTML y en la metadata.
+ * No afirma cuál es el juego más barato: los juegos llegan ordenados por
+ * popularidad, así que tomarlo de esta página sería falso.
+ */
 function platformSummary(platform: Platform, games: Game[], total: number): string {
-    const cheapest = games.find((g) => g.min_price != null);
     const sellers = new Set(
         games.map((g) => g.min_price_seller?.id).filter((id): id is number => id != null),
     );
     const head = `En Play in One comparamos ${total.toLocaleString('es-CL')} juegos de ${platformLongName(platform)} entre tiendas chilenas`;
     const where = sellers.size > 1 ? `, con ofertas en ${sellers.size} tiendas distintas` : '';
-    if (!cheapest) return `${head}${where}.`;
-    const seller = cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : '';
-    return (
-        `${head}${where}. El juego de ${platformLongName(platform)} más barato ahora es ` +
-        `${cheapest.name} ${priceClause(cheapest.min_price!)}${seller}. ` +
-        'Todos los precios están en pesos chilenos.'
-    );
+    return `${head}${where}. Todos los precios incluyen el envío promedio de la tienda y están en pesos chilenos.`;
 }
 
 /**
@@ -90,23 +85,15 @@ function pageSummary(platform: Platform, page: number, totalPages: number, total
     const to = Math.min(page * PAGE_SIZE, total);
     return (
         `Juegos de ${platformLongName(platform)} del ${from} al ${to} de ` +
-        `${total.toLocaleString('es-CL')}, ordenados del más barato al más caro. ` +
+        `${total.toLocaleString('es-CL')}, ordenados por popularidad. ` +
         `Página ${page} de ${totalPages}. Los precios están en pesos chilenos.`
     );
 }
 
-function buildFaq(platform: Platform, games: Game[], total: number): FaqEntry[] {
+function buildFaq(platform: Platform, total: number): FaqEntry[] {
     const entries: FaqEntry[] = [];
-    const cheapest = games.find((g) => g.min_price != null);
     const name = platformLongName(platform);
 
-    if (cheapest) {
-        const seller = cheapest.min_price_seller ? ` en ${cheapest.min_price_seller.name}` : '';
-        entries.push({
-            question: `¿Cuál es el juego de ${name} más barato en Chile?`,
-            answer: `${cheapest.name}, ${priceClause(cheapest.min_price!)}${seller}, envío promedio incluido.`,
-        });
-    }
     if (total > 0) {
         entries.push({
             question: `¿Cuántos juegos de ${name} se pueden comparar en Play in One?`,
@@ -140,11 +127,13 @@ export async function buildLandingMetadata(slug: string, page: number): Promise<
             page > 1
                 ? pageSummary(platform, page, totalPages, total)
                 : platformSummary(platform, games, total),
-        // Canonical autorreferente, NO apuntando a la página 1: una página
-        // interior canonizada a la landing deja de indexarse y, con el tiempo,
-        // Google también deja de seguir sus enlaces — que es lo único que
-        // queríamos de ella.
+        // Las páginas interiores son `noindex, follow`: existen como camino de
+        // rastreo hacia las fichas, no como páginas indexables (son listados
+        // casi idénticos entre sí). Tampoco se indexa una landing sin juegos.
+        // El canonical sigue siendo autorreferente, NO apuntando a la página 1:
+        // canonizar a la landing haría que Google dejara de seguir sus enlaces.
         path: landingPath(platform.slug, page),
+        noIndex: page > 1 || (page === 1 && games.length === 0),
     });
 }
 
@@ -164,7 +153,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
     const summary = isFirst
         ? platformSummary(platform, games, total)
         : pageSummary(platform, page, totalPages, total);
-    const faq = buildFaq(platform, games, total);
+    const faq = buildFaq(platform, total);
 
     const jsonLd = [
         collectionPageJsonLd({
@@ -208,9 +197,9 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         </Text>
                     )}
                 </Title>
-                <CollapsibleText label={`Sobre este catálogo de ${platformLongName(platform)}`}>
+                <Text component="p" c="dimmed" maw={760}>
                     {summary}
-                </CollapsibleText>
+                </Text>
 
                 {games.length > 0 ? (
                     <GameExplorer
