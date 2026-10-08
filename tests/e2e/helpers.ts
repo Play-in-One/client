@@ -34,6 +34,11 @@ export const SEEDED = {
      *  igual, sólo sin precio, en vez de desaparecer del todo. */
     outOfStockGameId: 999004,
     outOfStockGame: 'E2E Juego Sin Oferta Vigente',
+    /** Una sola oferta, sin descripción, sin nota ni valoraciones externas: el
+     *  backend lo marca `seo_index=false` y la ficha sale `noindex` (sigue
+     *  respondiendo 200: es una ficha válida, solo no merece índice). */
+    thinGameId: 999005,
+    thinGame: 'E2E Juego Delgado',
     /** Dos juegos calificados (8.0 y 6.0): promedio exacto y predecible, 7.0. */
     sagaSlug: 'e2e-saga-de-prueba',
     sagaName: 'E2E Saga De Prueba',

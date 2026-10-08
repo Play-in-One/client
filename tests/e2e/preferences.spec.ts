@@ -397,7 +397,7 @@ test('con Nacional apagado la ficha esconde la tienda nacional y conserva la imp
     const gamePath = await seededGamePath(page);
     await context.addCookies([withPrefs({ national: false })]);
     await page.goto(gamePath);
-    const tabla = page.getByRole('table');
+    const tabla = page.getByRole('table', { name: 'Comparativa de precios' });
     await expect(tabla.getByText(SEEDED.internationalSeller).first()).toBeVisible();
     await expect(tabla.getByText(SEEDED.nationalSeller)).toHaveCount(0);
 });
@@ -408,7 +408,7 @@ test('con una región elegida la ficha solo deja esa región, las nacionales y l
     // Biobío: ve a su tienda regional, a la nacional y a la importada.
     await context.addCookies([withPrefs({ region: SEEDED.regionalSellerRegion })]);
     await page.goto(gamePath);
-    const tabla = page.getByRole('table');
+    const tabla = page.getByRole('table', { name: 'Comparativa de precios' });
     await expect(tabla.getByText(SEEDED.regionalSeller).first()).toBeVisible();
     await expect(tabla.getByText(SEEDED.nationalSeller).first()).toBeVisible();
     await expect(tabla.getByText(SEEDED.internationalSeller).first()).toBeVisible();

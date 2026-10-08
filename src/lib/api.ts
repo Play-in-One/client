@@ -396,9 +396,9 @@ export async function getFeaturedGames(params?: {
  * el comportamiento histórico de siempre. La misma URL sirve a todas las
  * fichas de una misma consola, y ahí está la gracia: la respuesta se cachea
  * en Redis (backend), en el Data Cache de Next (`revalidate`) y en el
- * navegador (`Cache-Control` del endpoint). Quien la consume baraja por su
- * cuenta con `sampleBy()`; pedirle al backend la muestra ya hecha —o pasarle
- * el id a excluir— rompería los tres niveles.
+ * navegador (`Cache-Control` del endpoint). Quien la consume descarta por su
+ * cuenta el juego propio; pasarle al backend el id a excluir rompería los
+ * tres niveles.
  */
 export async function getPopularGames(params?: {
     /** Cuántos devolver. El backend lo acota a 40. */

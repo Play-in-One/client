@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { SEEDED, seededGamePath } from './helpers';
+import { SEEDED, seededGamePath, serverHtml, robotsOf } from './helpers';
 
 /**
  * La ficha se resuelve en el SERVIDOR (`app/juego/[slug]/page.tsx`) y
@@ -16,12 +16,19 @@ import { SEEDED, seededGamePath } from './helpers';
 let gamePath: string;
 let emptyGamePath: string;
 let noHistoryGamePath: string;
+let thinGamePath: string;
 
 test.beforeEach(async ({ page }) => {
     gamePath = await seededGamePath(page);
     emptyGamePath = await seededGamePath(page, SEEDED.emptyGameId);
     noHistoryGamePath = await seededGamePath(page, SEEDED.noHistoryGameId);
+    thinGamePath = await seededGamePath(page, SEEDED.thinGameId);
 });
+
+/** La tabla de ofertas por su nombre: la ficha tiene además la de mínimos
+ *  mensuales, y un `getByRole('table')` a secas ya no es único. */
+const offersTable = (page: import('@playwright/test').Page) =>
+    page.getByRole('table', { name: 'Comparativa de precios' });
 
 test('la página de detalle carga con el título del juego', async ({ page }) => {
     await page.goto(gamePath);
@@ -105,7 +112,7 @@ test('la tabla de productos muestra los vendedores y precios', async ({ page }) 
     await page.goto(gamePath);
     // Acotado a la tabla: el nombre de la tienda se repite en la fila, en el
     // enlace y en el bloque de mejor precio.
-    const tabla = page.getByRole('table');
+    const tabla = offersTable(page);
     await expect(tabla.getByText(SEEDED.nationalSeller).first()).toBeVisible();
     await expect(tabla.getByText(SEEDED.internationalSeller).first()).toBeVisible();
     // Los precios también salen en el bloque de mejor precio y en las tarjetas
@@ -118,7 +125,7 @@ test('una oferta sin stock se muestra grisada al final, sin ganar por precio', a
     // `seed_e2e` agrega una tercera oferta (delisted) mas barata que las dos
     // vigentes, justo para probar que no le gana el "mejor precio" ni el orden.
     await page.goto(gamePath);
-    const tabla = page.getByRole('table');
+    const tabla = offersTable(page);
     const filas = tabla.getByRole('row');
 
     await expect(tabla.getByText('No actualizado · Sin stock')).toBeVisible();
@@ -144,7 +151,7 @@ test('una oferta sin stock se muestra grisada al final, sin ganar por precio', a
 test('el precio con envío y convenio ofrece un solo desglose combinado', async ({ page }) => {
     await page.goto(gamePath);
     // La importadora tiene envío y convenio, pero ambos usan el mismo ícono.
-    const info = page.getByRole('table').getByRole('button', { name: 'Ver desglose de envío y cupón' });
+    const info = offersTable(page).getByRole('button', { name: 'Ver desglose de envío y cupón' });
     await expect(info).toHaveCount(1);
 
     await info.click();
@@ -170,7 +177,7 @@ test('los badges de condición se muestran', async ({ page }) => {
        ficha no hubiera cargado: nunca llegó a mirar un badge. Al mover ese
        control al menú de preferencias quedó al descubierto. */
     await page.goto(gamePath);
-    const tabla = page.getByRole('table');
+    const tabla = offersTable(page);
     // `.first()`: la nacional y la regional sembradas son ambas «Nuevo».
     await expect(tabla.getByText('Nuevo', { exact: true }).first()).toBeVisible();
     await expect(tabla.getByText('Usado', { exact: true }).first()).toBeVisible();
@@ -268,4 +275,55 @@ test('se muestra estado vacío cuando no hay productos', async ({ page }) => {
     await expect(
         page.getByText('No hay productos disponibles con estos filtros'),
     ).toBeVisible();
+});
+
+/* ── Lo que lee un crawler sin JavaScript ──────────────────────────────────
+   GPTBot, ClaudeBot y PerplexityBot solo ven el HTML inicial. Estas pruebas
+   leen ESE HTML (sin los <script>: el JSON-LD y el flight data de Next repiten
+   el texto y darían un falso positivo) en vez de la página hidratada. */
+
+test('el resumen de precios está en el HTML del servidor', async ({ request }) => {
+    const html = await serverHtml(request, gamePath);
+    expect(html).toContain('Resumen de precios');
+    expect(html).toContain('precio más barato');
+});
+
+test('la tabla de mínimos mensuales aparece cuando hay historial de ≥2 meses', async ({ request }) => {
+    const html = await serverHtml(request, gamePath);
+    expect(html).toContain('Precio mínimo por mes');
+    expect(html).toContain('Mínimo entre todas las consolas, envío incluido');
+});
+
+test('la valoración aparece como texto en el servidor', async ({ request }) => {
+    const html = await serverHtml(request, gamePath);
+    expect(html).toMatch(/Valoración [^<]+\/10/);
+});
+
+test('la tarjeta Mejor precio dice Último cambio de precio', async ({ request }) => {
+    const html = await serverHtml(request, gamePath);
+    expect(html).toContain('Último cambio de precio:');
+    expect(html).not.toContain('Actualizado el');
+});
+
+test('los géneros enlazan', async ({ request }) => {
+    const html = await serverHtml(request, gamePath);
+    expect(html).toMatch(/<a\b[^>]*href="[^"]*genre=\d+/);
+});
+
+test('juegos relacionados enlazan a /juego/', async ({ request }) => {
+    const html = await serverHtml(request, gamePath);
+    const section = html.match(/<section\b[^>]*aria-labelledby="juegos-relacionados"[\s\S]*?<\/section>/)?.[0];
+    expect(section, 'falta la sección de juegos relacionados').toBeTruthy();
+    expect(section).toMatch(/href="\/juego\//);
+    // El juego de la ficha no se recomienda a sí mismo.
+    expect(section).not.toContain(`href="${gamePath}`);
+});
+
+test('un juego delgado responde 200 con noindex', async ({ request }) => {
+    const res = await request.get(thinGamePath, { headers: { 'User-Agent': 'GPTBot' } });
+    expect(res.status()).toBe(200);
+    expect(robotsOf(await res.text())).toContain('noindex');
+
+    // El juego principal, con datos de sobra, sigue indexable.
+    expect(robotsOf(await serverHtml(request, gamePath)) ?? '').not.toContain('noindex');
 });

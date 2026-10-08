@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { handleImageError } from '@/lib/imageFallback';
 import { useOutboundHref } from '@/hooks/useOutboundHref';
-import { gamePath } from '@/lib/seo';
+import { gamePath, formatDate } from '@/lib/seo';
 import {
     Container,
     Title,
@@ -58,8 +58,8 @@ import { allowedConditionsFor, isSellerVisible, type ConditionFilter, type Digit
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
 import { surfaces, decorative } from '@/lib/colors';
-import { bestPriceSentence } from '@/lib/seo';
-import CollapsibleText from '@/components/CollapsibleText';
+import { ratingLines } from '@/lib/priceSummary';
+import { genreHref } from '@/lib/routes';
 import PriceInfo from '@/components/PriceInfo';
 import CouponModal, { type PendingOffer } from '@/components/CouponModal';
 import IssueReportButton from '@/components/IssueReportButton';
@@ -77,13 +77,12 @@ import {
 // recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
 // (fuera del bundle inicial del detalle) y solo en el cliente.
 const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), { ssr: false });
+// Sin indicador de carga: las mismas cifras ya están en texto encima del
+// gráfico (`ratingLines`, en el HTML del servidor), y un loader ahí las
+// duplicaría visualmente mientras llega recharts.
 const GameRatingsChart = dynamic(() => import('@/components/GameRatingsChart'), {
     ssr: false,
-    loading: () => (
-        <Center h="100%" mih={96}>
-            <Loader size="sm" color="primaryRed" />
-        </Center>
-    ),
+    loading: () => null,
 });
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
@@ -115,19 +114,6 @@ function selectValueFor(format: FormatFilter, condition: ConditionFilter, digita
     if (format === 'digital') return null;
     if (condition !== 'all') return condition;
     return null;
-}
-
-/** Formato fijo para que servidor y cliente muestren la misma fecha. */
-function formatPriceUpdateDate(iso: string | null | undefined): string | null {
-    if (!iso) return null;
-    const date = new Date(iso);
-    if (Number.isNaN(date.getTime())) return null;
-    return new Intl.DateTimeFormat('es-CL', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'America/Santiago',
-    }).format(date);
 }
 
 function ProductImagePreview({ src, title }: { src: string; title: string }) {
@@ -193,6 +179,15 @@ function GameInfoCardBody({ game }: { game: Game }) {
             node: (
                 <>
                     <Text fz="lg" fw={700}>Calificaciones</Text>
+                    {/* En texto, además del gráfico: el gráfico es solo de
+                        cliente (recharts) y un crawler sin JS no lo ve. Sale
+                        de `lib/ratings`, igual que el gráfico, así que las
+                        cifras no pueden discrepar. */}
+                    <Box component="ul" mt="xs" mb={0} pl="md">
+                        {ratingLines(game.ratings).map((line) => (
+                            <Text key={line} component="li" fz="sm">{line}</Text>
+                        ))}
+                    </Box>
                     <Box mt="sm">
                         <GameRatingsChart ratings={game.ratings ?? []} />
                     </Box>
@@ -282,9 +277,12 @@ function GameInfoCardBody({ game }: { game: Game }) {
 export default function GameDetailClient({
     initialGame,
     initialPrefs,
+    summarySlot,
 }: {
     initialGame: Game;
     initialPrefs: Prefs;
+    /** Resumen de precios, ya renderizado en el servidor (`PriceSummarySection`). */
+    summarySlot?: ReactNode;
 }) {
     const { condition, format, digital, includeInternational, includeNational, region, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
@@ -303,7 +301,7 @@ export default function GameDetailClient({
         products: remainingProducts,
         platforms: initialGame.platforms.filter((platform) => remainingProducts.some((product) => product.platform.id === platform.id)),
     } : initialGame;
-    const priceUpdatedDate = formatPriceUpdateDate(game.price_updated_at);
+    const priceUpdatedDate = formatDate(game.price_updated_at);
 
     /* Un solo fetch para el badge del juego Y el de cada oferta: el backend ya
        devuelve el desglose por producto en la misma respuesta, así que pedirlo
@@ -320,10 +318,9 @@ export default function GameDetailClient({
     // El backend garantiza que una consola solo está en el juego mientras tenga
     // al menos un producto visible de ella, así que no hay tabs vacíos que filtrar.
     const platformOptions = game.platforms;
-    /* Compartido con `PopularGamesSection` vía contexto (ver
-       GamePlatformContext): el Provider ya lo inicializa con la misma regla
-       (`?platform=` si el juego la tiene, si no la primera), calculada en el
-       servidor en page.tsx. */
+    /* Vía contexto (ver GamePlatformContext): el Provider ya lo inicializa con
+       la misma regla (`?platform=` si el juego la tiene, si no la primera),
+       calculada en el servidor en page.tsx. */
     const { selectedPlatform, setSelectedPlatform } = useGamePlatform();
     /* Hasta que el contexto lee lo persistido manda lo que el SERVIDOR ya
        resolvió desde la cookie: el primer render coincide con el HTML y no hay
@@ -455,21 +452,6 @@ export default function GameDetailClient({
         ? parseFloat(bestProduct.current_price)
         : null;
     const bestShipping = bestProduct ? parseFloat(bestProduct.shipping_cost ?? '0') : 0;
-
-    // Resumen citable para motores generativos. Se arma con lo que la pantalla
-    // está mostrando de verdad —consola, condición y el toggle de tiendas
-    // internacionales—, no con el mínimo global del juego: si dijera otra cifra
-    // que la tarjeta "Mejor Precio" de abajo, el texto estaría mintiendo.
-    const geoSummary = bestProduct
-        ? bestPriceSentence(game, {
-            platform: platformOptions.find((p) => p.slug === selectedPlatform) ?? null,
-            price: bestProduct.current_price,
-            sellerName: bestProduct.seller.name,
-            shipping: bestProduct.shipping_cost,
-            offerCount: inStockOffers.length,
-            sellerCount: new Set(inStockOffers.map((p) => p.seller.id)).size,
-        })
-        : null;
 
     // Serie histórica del mínimo de la consola/condición activas. Viene toda
     // embebida en el detalle, así que cambiar de tab no dispara un request.
@@ -651,7 +633,14 @@ export default function GameDetailClient({
                                 </Group>
                                 {game.genres && game.genres.length > 0 && (
                                     game.genres.map((genre) => (
-                                        <Badge key={genre.id} variant="light" color="gray" size="sm">
+                                        <Badge
+                                            key={genre.id}
+                                            component={Link}
+                                            href={genreHref(genre)}
+                                            variant="light"
+                                            color="gray"
+                                            size="sm"
+                                        >
                                             {genre.name}
                                         </Badge>
                                     ))
@@ -751,11 +740,7 @@ export default function GameDetailClient({
                         </Card>
 
                         <Box mb={-16}>
-                            {geoSummary ? (
-                                <CollapsibleText label="Ver resumen de precios">
-                                    {geoSummary}
-                                </CollapsibleText>
-                            ) : (
+                            {summarySlot ?? (
                                 <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
                                     Compara precios entre distintas tiendas y encuentra la mejor oferta.
                                 </Text>
@@ -887,9 +872,12 @@ export default function GameDetailClient({
                                                 context={{ displayed_price: bestProduct.current_price, platform: bestProduct.platform.name }} />
                                         </Group>
                                         <Text fz="xs" c="rgba(255,255,255,0.5)" ta="center">
+                                            {/* La fecha del último CAMBIO, no de la última
+                                                revisión (diaria): `PriceHistory` solo
+                                                escribe cuando el precio se mueve. */}
                                             {priceUpdatedDate
-                                                ? `Actualizado el ${priceUpdatedDate}`
-                                                : 'Fecha de actualización no disponible'}
+                                                ? `Último cambio de precio: ${priceUpdatedDate}`
+                                                : 'Sin cambios de precio registrados'}
                                         </Text>
                                     </Stack>
                                 </SimpleGrid>
@@ -954,7 +942,9 @@ export default function GameDetailClient({
                             </Box>
 
                             <Table.ScrollContainer minWidth={0}>
-                                <Table verticalSpacing="md" horizontalSpacing="lg">
+                                {/* Con nombre: la ficha tiene además la tabla de mínimos
+                                    mensuales del resumen. */}
+                                <Table verticalSpacing="md" horizontalSpacing="lg" aria-label="Comparativa de precios">
                                     <Table.Thead visibleFrom="sm">
                                         <Table.Tr>
                                             <Table.Th>Tienda & Producto</Table.Th>

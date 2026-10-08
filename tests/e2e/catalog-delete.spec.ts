@@ -34,7 +34,7 @@ async function openGame(page: Page, staff = true) {
 }
 
 async function openProductEditor(page: Page) {
-    const row = page.getByRole('table').getByRole('row').filter({ hasText: SEEDED.nationalSeller }).first();
+    const row = page.getByRole('table', { name: 'Comparativa de precios' }).getByRole('row').filter({ hasText: SEEDED.nationalSeller }).first();
     await row.getByRole('button', { name: 'Editar producto', exact: true }).click();
     await page.getByRole('button', { name: 'Eliminar producto', exact: true }).click();
     return page.getByRole('dialog', { name: 'Eliminar producto', exact: true });
@@ -97,8 +97,8 @@ test('staff elimina un producto y la fila desaparece inmediatamente', async ({ p
     await expect(dialog.getByText(product.title, { exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: 'Eliminar definitivamente', exact: true }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByRole('table').getByRole('row').filter({ hasText: product.title })).toHaveCount(0);
-    await expect(page.getByRole('table').getByRole('row').filter({ hasText: SEEDED.internationalSeller })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Comparativa de precios' }).getByRole('row').filter({ hasText: product.title })).toHaveCount(0);
+    await expect(page.getByRole('table', { name: 'Comparativa de precios' }).getByRole('row').filter({ hasText: SEEDED.internationalSeller })).toBeVisible();
     expect(writes).toBe(1);
 });
 
@@ -114,7 +114,7 @@ test('un error de borrado conserva el producto y permite reintentar', async ({ p
     await expect(dialog.getByRole('alert')).toContainText('No se pudo eliminar');
     await expect(dialog.getByRole('button', { name: 'Eliminar definitivamente', exact: true })).toBeEnabled();
     await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
-    await expect(page.getByRole('table').getByRole('row').filter({ hasText: product.title }).first()).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Comparativa de precios' }).getByRole('row').filter({ hasText: product.title }).first()).toBeVisible();
 });
 
 test('si el producto ya fue borrado, se retira la fila ante un 404', async ({ page }) => {
@@ -127,7 +127,7 @@ test('si el producto ya fue borrado, se retira la fila ante un 404', async ({ pa
     const dialog = await openProductEditor(page);
     await dialog.getByRole('button', { name: 'Eliminar definitivamente', exact: true }).click();
     await expect(dialog).toBeHidden();
-    await expect(page.getByRole('table').getByRole('row').filter({ hasText: product.title })).toHaveCount(0);
+    await expect(page.getByRole('table', { name: 'Comparativa de precios' }).getByRole('row').filter({ hasText: product.title })).toHaveCount(0);
 });
 
 test('la confirmación cabe en móvil y bloquea envíos repetidos', async ({ page }) => {

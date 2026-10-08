@@ -5,48 +5,107 @@ import { cookies, headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { JsonLd } from '@/components/JsonLd';
 import {
-    buildMetadata, gameJsonLd, gamePath, breadcrumbJsonLd, faqJsonLd, bestPriceSentence,
+    buildMetadata, gameJsonLd, gamePath, breadcrumbJsonLd, faqJsonLd,
 } from '@/lib/seo';
 import { buildGameFaq } from '@/lib/gameFaq';
-import { formatCLP, sampleBy, POPULAR_SAMPLE_SIZE } from '@/lib/utils';
-import { getPopularGames } from '@/lib/api';
+import { priceSummarySentences, monthlyMinimums } from '@/lib/priceSummary';
+import { genreHref } from '@/lib/routes';
+import { formatCLP } from '@/lib/utils';
+import { getGames, getPopularGames } from '@/lib/api';
+import type { Game, Platform } from '@/lib/types';
 import { AD_SLOT_GAME_FOOTER, adsAllowedForCountry } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
 import FaqSection from '@/components/FaqSection';
-import PopularGamesSection from '@/components/PopularGamesSection';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
 import GameDetailClient from './GameDetailClient';
 import { GamePlatformProvider } from './GamePlatformContext';
+import PriceSummarySection from './PriceSummarySection';
+import RelatedGamesSection from './RelatedGamesSection';
 import { fetchGame, parseGameSegment } from './resolve';
 
-/* Pool del que sale la muestra de "Otros juegos populares", de la consola
-   vista en la ficha. Se pide SIN el id a excluir, para que la URL sea idéntica
-   en todas las fichas de esa consola y su respuesta se comparta en el Data
-   Cache de Next.
+const RELATED_LIMIT = 8;
+/* Por debajo de esto un criterio no merece sección propia: se prueba el
+   siguiente. Con un solo juego "Más juegos de la saga" se lee como un error. */
+const RELATED_MIN = 2;
+/* Las tres listas se piden con la misma URL para todas las fichas de esa saga,
+   género+consola o consola (el id propio se descarta aquí, no en la query), así
+   que se comparten en el Data Cache de Next. Una hora sobra: es una sección de
+   descubrimiento, no un precio. */
+const RELATED_REVALIDATE = 60 * 60;
 
-   El TTL es largo a propósito: el pool es el pull NOCTURNO de
-   `refresh_popular_pools` (afiliados de esa consola, sin los que salen en el
-   Home), así que revalidar cada 5 min estaría pagando muchas más veces de lo
-   que el dato justifica. */
-const POPULAR_POOL_SIZE = 40;
-const POPULAR_POOL_REVALIDATE = 60 * 60 * 6;
+interface Related {
+    games: Game[];
+    title: string;
+    moreHref: string;
+    moreLabel: string;
+}
 
-/** Los 4 de la muestra, o `[]` si el API falla: la ficha no se cae por una
- *  sección de descubrimiento. */
-async function fetchPopularSample(excludeId: number, platform?: string) {
-    try {
-        const res = await getPopularGames({
-            limit: POPULAR_POOL_SIZE,
-            revalidate: POPULAR_POOL_REVALIDATE,
-            platform,
-        });
-        // El barajado corre en el SERVIDOR: el HTML ya lleva los 4 elegidos y
-        // el cliente hidrata sobre ellos, sin mismatch.
-        return sampleBy(res.results, POPULAR_SAMPLE_SIZE, excludeId);
-    } catch (err) {
-        console.error('Failed to fetch popular games:', err);
-        return [];
+/**
+ * Juegos relacionados, del criterio más cercano al más amplio: misma saga,
+ * mismo género en la consola vista, o los populares de esa consola. Un criterio
+ * con menos de `RELATED_MIN` juegos cae al siguiente.
+ *
+ * Determinista a propósito (orden del backend, sin sorteo): un crawler tiene
+ * que ver los mismos enlaces en cada visita, y el HTML no puede discrepar del
+ * que hidrata el cliente. Cada petición falla a `[]`: la ficha no se cae por
+ * una sección de descubrimiento.
+ */
+async function fetchRelated(game: Game, platform: Platform | undefined): Promise<Related | null> {
+    const pick = async (load: () => Promise<{ results: Game[] }>) => {
+        try {
+            const { results } = await load();
+            return results.filter((g) => g.id !== game.id).slice(0, RELATED_LIMIT);
+        } catch (err) {
+            console.error('Failed to fetch related games:', err);
+            return [];
+        }
+    };
+    const platformName = platform ? platformLongName(platform) : null;
+
+    const saga = game.sagas?.[0];
+    if (saga) {
+        const games = await pick(() => getGames({
+            saga: saga.slug, ordering: '-traffic_score,name', revalidate: RELATED_REVALIDATE,
+        }));
+        if (games.length >= RELATED_MIN) {
+            return {
+                games,
+                title: `Más juegos de la saga ${saga.name}`,
+                moreHref: `/saga/${saga.slug}`,
+                moreLabel: 'Ver toda la saga',
+            };
+        }
     }
+
+    const genre = game.genres?.[0];
+    if (genre) {
+        const games = await pick(() => getGames({
+            genres: genre.id,
+            ...(platform ? { platforms: [platform.id] } : {}),
+            ordering: '-traffic_score,name',
+            revalidate: RELATED_REVALIDATE,
+        }));
+        if (games.length >= RELATED_MIN) {
+            return {
+                games,
+                title: `Más juegos de ${genre.name}${platformName ? ` para ${platformName}` : ''}`,
+                moreHref: genreHref(genre, platform?.slug),
+                moreLabel: `Ver más de ${genre.name}`,
+            };
+        }
+    }
+
+    const games = await pick(() => getPopularGames({
+        // Uno de más: el propio juego puede estar en la lista y se descarta.
+        limit: RELATED_LIMIT + 1, platform: platform?.slug, revalidate: RELATED_REVALIDATE,
+    }));
+    if (games.length === 0) return null;
+    return {
+        games,
+        title: platformName ? `Otros juegos populares de ${platformName}` : 'Otros juegos populares',
+        moreHref: platform ? `/juegos/${platform.slug}` : '/search',
+        moreLabel: 'Ver todos',
+    };
 }
 
 /**
@@ -75,11 +134,12 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     if (!game) notFound();
 
     const platforms = game.platforms.map(platformLongName).join(', ');
-    // La frase del precio va PRIMERO y la descripción editorial después: es el
-    // dato que resuelve la búsqueda ("¿cuánto cuesta X?") y el que un motor
-    // generativo cita. Sin oferta se cae a la descripción de siempre.
+    // Las dos primeras frases del resumen visible (la del precio más barato,
+    // que siempre abre, y la del mínimo histórico): la meta description dice
+    // lo mismo que la página, que es lo que un buscador cita. Sin oferta el
+    // resumen sale vacío y se cae a la descripción de siempre.
     const description =
-        bestPriceSentence(game) ||
+        priceSummarySentences(game).slice(0, 2).join(' ') ||
         game.description?.trim() ||
         `Compara precios de ${game.name}${platforms ? ` para ${platforms}` : ''} entre tiendas chilenas en Play in One.`;
 
@@ -96,6 +156,10 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
         description,
         path: gamePath(game),
         image: game.image,
+        // Lo decide el backend (`seo_index`): una ficha delgada responde 200 —es
+        // válida y se enlaza— pero no merece índice. `undefined` (backend
+        // anterior al campo) se indexa como siempre.
+        noIndex: game.seo_index === false,
     });
 }
 
@@ -117,8 +181,8 @@ export default async function GameDetailPage({
 
     // La consola de `?platform=` si el juego la tiene, si no la primera. La
     // usan la miga estructurada, `GameDetailClient` (vía GamePlatformProvider,
-    // más abajo) Y el pool de "Otros juegos populares": es exactamente "la
-    // consola que se está viendo" en la ficha.
+    // más abajo) Y los juegos relacionados: es exactamente "la consola que se
+    // está viendo" en la ficha.
     const crumbPlatform =
         (platform ? game.platforms.find((p) => p.slug === platform) : undefined) ?? game.platforms[0];
 
@@ -129,7 +193,7 @@ export default async function GameDetailPage({
        nada porque `getGame` ya se resuelve en cada petición, pero conviene
        saberlo antes de intentar cachearla. */
     const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
-    const popular = await fetchPopularSample(game.id, crumbPlatform?.slug);
+    const related = await fetchRelated(game, crumbPlatform);
 
     /* El geo-bloqueo de la publicidad se resuelve AQUÍ y no en el layout raíz:
        `headers()` allí sacaría del render estático a toda la app y se llevaría
@@ -139,6 +203,8 @@ export default async function GameDetailPage({
     const adsAllowed = adsAllowedForCountry((await headers()).get('cf-ipcountry'));
 
     const faq = buildGameFaq(game);
+    const summary = priceSummarySentences(game);
+    const monthly = monthlyMinimums(game.min_price_history ?? {});
     const jsonLd = [
         gameJsonLd(game),
         breadcrumbJsonLd([
@@ -156,7 +222,17 @@ export default async function GameDetailPage({
             <JsonLd data={jsonLd} />
             <GamePlatformProvider initialPlatform={crumbPlatform?.slug ?? null}>
                 <Suspense fallback={null}>
-                    <GameDetailClient initialGame={game} initialPrefs={prefs} />
+                    <GameDetailClient
+                        initialGame={game}
+                        initialPrefs={prefs}
+                        /* Server Components como slots: su texto sale en el HTML
+                           del servidor y no viaja en el bundle de la ficha. */
+                        summarySlot={
+                            summary.length || monthly.length
+                                ? <PriceSummarySection sentences={summary} monthly={monthly} platforms={game.platforms} />
+                                : undefined
+                        }
+                    />
                 </Suspense>
                 <FaqSection
                     entries={faq}
@@ -166,14 +242,16 @@ export default async function GameDetailPage({
                        defecto la sección se salía por la izquierda del resto. */
                     size="lg"
                 />
-                {/* Al fondo del todo. Sin JSON-LD: son enlaces internos hacia otras
-                    fichas, no una lista que ESTA página sea — un `ItemList` aquí
-                    declararía un catálogo que la ficha no es. */}
-                <PopularGamesSection
-                    initialGames={popular}
-                    initialPlatform={crumbPlatform?.slug ?? null}
-                    excludeId={game.id}
-                />
+                {/* Al fondo del todo, en el servidor (ver RelatedGamesSection). */}
+                {related && (
+                    <RelatedGamesSection
+                        games={related.games}
+                        title={related.title}
+                        moreHref={related.moreHref}
+                        moreLabel={related.moreLabel}
+                        platformSlug={crumbPlatform?.slug}
+                    />
+                )}
             </GamePlatformProvider>
             {/* Debajo de todo el contenido, nunca junto a la tabla de precios:
                 un anuncio que compita con las ofertas convierte el producto en

@@ -619,3 +619,38 @@ a.saga-banner-link:focus-visible {
     transition: none;
   }
 }
+
+/* ── Tabla de datos nativa (Server Components) ──
+   Para tablas que se renderizan en el servidor, donde `Table.Tr` de Mantine
+   no llega (los compuestos son `undefined` en un Server Component). Compacta,
+   a todo el ancho y con los bordes del tema para seguir el modo oscuro. */
+.pio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--mantine-font-size-sm);
+}
+
+.pio-table caption {
+  caption-side: bottom;
+  text-align: left;
+  padding-top: var(--mantine-spacing-xs);
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+}
+
+.pio-table th,
+.pio-table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+.pio-table th {
+  font-weight: 600;
+}
+
+.pio-table .pio-table-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

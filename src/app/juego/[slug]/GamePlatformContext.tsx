@@ -10,9 +10,8 @@ interface GamePlatformState {
 const GamePlatformContext = createContext<GamePlatformState | null>(null);
 
 /**
- * Consola seleccionada en los tabs de la ficha, compartida entre
- * `GameDetailClient` (que la lee/escribe) y `PopularGamesSection` (que solo la
- * lee, para refetchear "Otros juegos populares" de esa consola).
+ * Consola seleccionada en los tabs de la ficha. La lee y la escribe
+ * `GameDetailClient`; el Provider la recibe ya resuelta por el servidor.
  *
  * Vive fuera de la URL a propósito: cambiar de tab hoy es instantáneo —filtra
  * en memoria las ofertas ya cargadas, sin ir al servidor— y sincronizarlo con
