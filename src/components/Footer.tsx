@@ -35,6 +35,7 @@ import {
 import { social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
 import { trackEvent, type SocialNetwork } from '@/lib/api';
+import { PLATFORMS } from '@/lib/platforms';
 
 const YEAR = new Date().getFullYear();
 
@@ -86,7 +87,7 @@ export default function Footer() {
             style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
         >
             <Container size="lg">
-                <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="xl">
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing="xl">
                     {/* Brand */}
                     <Stack gap="sm">
                         <Group gap={8}>
@@ -121,6 +122,24 @@ export default function Footer() {
                             La forma más inteligente de comprar videojuegos en Chile. Rastreamos precios para que
                             tú solo te preocupes de jugar.
                         </Text>
+                    </Stack>
+
+                    {/* Consolas */}
+                    <Stack gap="xs">
+                        <Text fw={700} mb={4}>Consolas</Text>
+                        {/* A la landing por consola, no a /search?platform=: esa
+                            variante va noindex y se renderiza en el cliente. Van
+                            TODAS, en el orden del catálogo: el dropdown del Navbar
+                            no existe en el HTML del servidor, así que este bloque
+                            es el enlace que cada landing recibe desde todas las
+                            páginas. */}
+                        <SimpleGrid cols={2} spacing={4} verticalSpacing={4}>
+                            {PLATFORMS.map((p) => (
+                                <Anchor key={p.slug} component={Link} href={`/juegos/${p.slug}`} fz="sm" c="dimmed" underline="never">
+                                    {p.long}
+                                </Anchor>
+                            ))}
+                        </SimpleGrid>
                     </Stack>
 
                     {/* Información */}
