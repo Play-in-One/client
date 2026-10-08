@@ -79,8 +79,16 @@ test('tabla GFM con la clase de la casa, imagen perezosa y cita', () => {
 
 test('`/\\host` es protocolo implícito para el navegador: se trata como externo', () => {
     const out = html('[a](//evil.com/x) [b](/\\evil.com/x) [c](/juego/ok)');
-    for (const m of out.match(/<a [^>]*href="(\/\/|\/\\)[^>]*>/g) ?? []) {
-        expect(m).toContain('target="_blank"');
-    }
+    // Aserción explícita (no un bucle sobre un match posiblemente vacío): si la
+    // regex deja de excluir `//`, el enlace pasa a ser un <Link> interno sin
+    // target y el test tiene que fallar.
+    const protocolRelative = out.match(/<a [^>]*href="\/\/evil\.com\/x"[^>]*>/);
+    expect(protocolRelative).not.toBeNull();
+    expect(protocolRelative![0]).toContain('target="_blank"');
+    expect(protocolRelative![0]).toContain('rel="noopener"');
+    // `/\evil.com`: markdown ya codifica la `\` como `%5C` (ruta inocua del
+    // propio sitio). Lo que no puede salir nunca es un href con `\` cruda.
+    expect(out).not.toMatch(/href="\/\\/);
+    expect(out).toMatch(/href="\/%5Cevil\.com\/x"/);
     expect(out.match(/<a [^>]*href="\/juego\/ok"[^>]*>/)![0]).not.toContain('target=');
 });

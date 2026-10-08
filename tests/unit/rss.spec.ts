@@ -6,6 +6,9 @@ test.describe('escapeXml', () => {
     test('escapa los cinco caracteres reservados', () => {
         expect(escapeXml(`a & b < c > d " e ' f`)).toBe('a &amp; b &lt; c &gt; d &quot; e &apos; f');
     });
+    test('quita los caracteres de control ilegales en XML 1.0 y conserva \\t \\n \\r', () => {
+        expect(escapeXml('a\x00b\x08c\x0Bd\x0Ce\x1Ff\tg\nh\ri')).toBe('abcdef\tg\nh\ri');
+    });
     test('& va primero: no escapa dos veces', () => {
         expect(escapeXml('<&>')).toBe('&lt;&amp;&gt;');
     });
@@ -26,7 +29,8 @@ test.describe('buildRss', () => {
     });
     test('el item usa la URL canónica con slug, guid permalink y texto escapado', () => {
         expect(xml).toMatch(/<link>https?:\/\/[^<]+\/blog\/oferta-fea-7<\/link>/);
-        expect(xml).toContain('<guid isPermaLink="true">');
+        // El guid no depende del slug: cambiar el título no re-publica el item.
+        expect(xml).toContain('<guid isPermaLink="false">playinone-post-7</guid>');
         expect(xml).toContain('<title>Ofertas &lt;b&gt; &amp; &quot;más&quot;</title>');
         expect(xml).toContain('<description>Resumen claro del post.</description>');
         expect(xml).toContain('<category>Ofertas</category>');

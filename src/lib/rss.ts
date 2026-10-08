@@ -13,7 +13,10 @@ export const FEED_DESCRIPTION =
 
 /** Escapa un nodo de texto XML. `&` va primero para no escapar dos veces. */
 export function escapeXml(text: string): string {
+    // XML 1.0 prohíbe estos caracteres de control (un título pegado desde un
+    // editor puede traerlos) y un solo \x0B invalida todo el feed.
     return text
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -61,7 +64,7 @@ export function buildRss(posts: Post[]): string {
             return `<item>
 <title>${escapeXml(p.title)}</title>
 <link>${url}</link>
-<guid isPermaLink="true">${url}</guid>
+<guid isPermaLink="false">playinone-post-${p.id}</guid>
 ${pub ? `<pubDate>${pub}</pubDate>\n` : ''}<description>${escapeXml(postExcerpt(p.description))}</description>
 <category>${escapeXml(CATEGORY_LABEL[p.category] ?? p.category)}</category>
 </item>

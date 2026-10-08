@@ -187,7 +187,7 @@ test('/blog/rss.xml es RSS 2.0 válido con la URL canónica de un post', async (
     expect(xml).toContain('<language>es-CL</language>');
     expect(xml).toMatch(/<rss [^>]*version="2\.0"/);
     expect(xml).toMatch(new RegExp(`<link>[^<]*/blog/${post.slug}-${post.id}</link>`));
-    expect(xml).toMatch(new RegExp(`<guid isPermaLink="true">[^<]*/blog/${post.slug}-${post.id}</guid>`));
+    expect(xml).toMatch(new RegExp(`<guid isPermaLink="false">playinone-post-${post.id}</guid>`));
 });
 
 test('/blog/rss.xml parsea como XML', async ({ page }) => {

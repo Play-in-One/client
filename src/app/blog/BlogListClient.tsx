@@ -21,10 +21,12 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
     return (
         <Container size="lg" py={60}>
             <Group justify="space-between" mb="xl">
-                <Title order={1}>Noticias y Comunidad</Title>
-                <Anchor href="/blog/rss.xml" fz="sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <IconRss size={16} aria-hidden /> RSS
-                </Anchor>
+                <Group gap="xs" align="baseline">
+                    <Title order={1}>Noticias y Comunidad</Title>
+                    <Anchor href="/blog/rss.xml" fz="sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <IconRss size={16} aria-hidden /> RSS
+                    </Anchor>
+                </Group>
                 {isAdmin && (
                     <Button leftSection={<IconPlus size={18} />} onClick={() => setCreating(true)}>Crear post</Button>
                 )}

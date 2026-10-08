@@ -12,7 +12,9 @@ import { FAMILIES, platformsOf } from '@/lib/platforms';
 // enlaza: un llms.txt que promete datos que el HTML no trae es peor que uno
 // escueto, porque enseña al motor a desconfiar del sitio entero.
 export const dynamic = 'force-static';
-export const revalidate = 86400;
+// 1 h: un post nuevo o editado aparece en el mapa para los motores en menos de
+// una hora y no hasta un día después (el backend no revalida esta ruta).
+export const revalidate = 3600;
 
 /* Respaldo sacado del catálogo (una consola por marca), no de una lista fija:
    la anterior seguía nombrando "PC", que ya no es ninguna plataforma. */
@@ -23,6 +25,10 @@ const FALLBACK_PLATFORMS = (() => {
     });
     return `${names.slice(0, -1).join(', ')} y ${names[names.length - 1]}`;
 })();
+
+/* Un `]` dentro del título cerraría la etiqueta del enlace Markdown antes de
+   tiempo y rompería el resto de la línea. */
+const escapeMdLabel = (text: string) => text.replace(/[[\]]/g, '\\$&');
 
 export async function GET() {
     // Las consolas salen del catálogo real. Si el API no responde durante la
@@ -45,11 +51,11 @@ export async function GET() {
     // Artículos recientes: si el API falla se omite la sección entera.
     let blogSection = '';
     try {
-        const { results } = await getPosts({ ordering: '-published_date', revalidate: 86400 });
+        const { results } = await getPosts({ ordering: '-published_date', revalidate: 3600 });
         if (results.length > 0) {
             const lines = results.slice(0, 10).map((p) => {
                 const excerpt = postExcerpt(p.description);
-                return `- [${p.title}](${absoluteUrl(postPath(p))})${excerpt ? `: ${excerpt}` : ''}`;
+                return `- [${escapeMdLabel(p.title)}](${absoluteUrl(postPath(p))})${excerpt ? `: ${excerpt}` : ''}`;
             });
             blogSection = `\n## Artículos recientes del blog\n\n${lines.join('\n')}\n`;
         }

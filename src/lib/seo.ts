@@ -559,7 +559,7 @@ export function articleJsonLd(post: Post): JsonLdObject {
         wordCount: postWordCount(post.description),
         inLanguage: siteConfig.lang,
         mainEntityOfPage: absoluteUrl(postPath(post)),
-        author: { '@type': 'Organization', name: siteConfig.name },
+        author: { '@type': 'Organization', name: siteConfig.name, url: SITE_URL },
         publisher: {
             '@type': 'Organization',
             name: siteConfig.name,
