@@ -23,12 +23,14 @@ import {
     IconArrowRight,
     IconDeviceGamepad,
 } from '@tabler/icons-react';
-import type { Post, Game, Saga } from '@/lib/types';
+import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
+import DealCard from '@/components/DealCard';
+import { DEALS_SCOPE_NOTE } from '@/lib/deals';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
 import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
@@ -42,11 +44,15 @@ export default function HomeClient({
     initialTrending,
     initialFeatured,
     initialSagas,
+    deals,
 }: {
     initialPosts: Post[];
     initialTrending: Game[];
     initialFeatured: Game[];
     initialSagas: Saga[];
+    /** Las primeras 8 ofertas del día. Sin estado ni refetch: son un hecho
+     *  del catálogo entero, no dependen de los filtros del visitante. */
+    deals: Deal[];
 }) {
     const router = useRouter();
     const [query, setQuery] = useState('');
@@ -320,6 +326,46 @@ export default function HomeClient({
                         <Box data-prefs-dependent>
                             <FeaturedGamesCarousel games={featured} loading={filtering} />
                         </Box>
+                    </Container>
+                </Box>
+            )}
+
+            {/* ══════ OFERTAS DE HOY ══════ */}
+            {/* Solo con ofertas: una sección vacía no dice nada. Sin
+                `data-prefs-dependent` y sin refetch, a diferencia de Populares:
+                una oferta se calcula sobre todas las tiendas y condiciones, y
+                filtrarla con las preferencias necesitaría otra API. La nota
+                lo dice en vez de esconderlo. Sin `pb`: Populares abre con 60 y
+                sumarlos dejaría un hueco doble entre dos secciones sin fondo. */}
+            {deals.length > 0 && (
+                <Box pt={60}>
+                    <Container size="lg">
+                        <Group justify="space-between" align="flex-end" mb="xl">
+                            <Box>
+                                <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
+                                    Ofertas de hoy
+                                </Title>
+                                <Text c="dimmed" mt={6}>
+                                    Al menos 15% bajo su precio típico. {DEALS_SCOPE_NOTE}
+                                </Text>
+                            </Box>
+                            <Anchor
+                                component={Link}
+                                href="/ofertas"
+                                c="var(--mantine-color-primaryRed-5)"
+                                fw={600}
+                                fz="sm"
+                                underline="never"
+                            >
+                                Ver todas las ofertas <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
+                            </Anchor>
+                        </Group>
+
+                        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
+                            {deals.slice(0, 8).map((deal) => (
+                                <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} />
+                            ))}
+                        </SimpleGrid>
                     </Container>
                 </Box>
             )}

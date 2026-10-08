@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SEEDED } from './helpers';
+import { dealBadgeLine } from '../../src/lib/deals';
 
 const MOCK_PLATFORMS = [
     { id: 1, name: 'ps5', slug: 'ps5', display_name: 'PS5',
@@ -170,4 +171,21 @@ test('Destacados y Populares no repiten juegos', async ({ page }) => {
     expect(destacados.size).toBeGreaterThan(0);
     expect(destacados.size).toBeLessThanOrEqual(6);
     expect([...destacados].filter((href) => populares.has(href))).toEqual([]);
+});
+
+/* «Ofertas de hoy» llega resuelta del servidor (`getDeals` en `app/page.tsx`)
+   y no se vuelve a pedir con los filtros. La base de dev trae el catálogo real,
+   así que no se supone qué juego encabeza: se compara con la API. */
+test('«Ofertas de hoy» muestra las primeras ofertas y enlaza a /ofertas', async ({ page, request }) => {
+    const api = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
+    const { results } = await (await request.get(`${api}/deals/`)).json();
+    expect(results.length).toBeGreaterThan(0);
+
+    await page.goto('/');
+    const title = page.getByRole('heading', { name: 'Ofertas de hoy' });
+    await expect(title).toBeVisible();
+    const section = page.locator('.mantine-Container-root', { has: title });
+    await expect(section.locator('[data-deal-card]')).toHaveCount(Math.min(8, results.length));
+    await expect(section.getByText(dealBadgeLine(results[0])).first()).toBeVisible();
+    await expect(section.getByRole('link', { name: /Ver todas las ofertas/ })).toHaveAttribute('href', '/ofertas');
 });

@@ -30,9 +30,12 @@ interface Props {
     onToggleSelect?: (id: number) => void;
     /** Eager-load the image (LCP): set on the first few above-the-fold cards. */
     priority?: boolean;
+    /** Tienda del «Vendido por» cuando no hay `bestProduct`: la de una oferta
+     *  del día, que trae su propia tienda y no la del mínimo del catálogo. */
+    seller?: Pick<Product['seller'], 'id' | 'name'> & Partial<Pick<Product['seller'], 'favicon' | 'logo'>> | null;
 }
 
-function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority }: Props) {
+function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride }: Props) {
     const router = useRouter();
     // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
     // producto más barato, cambia cuando el usuario cambia de filtro. Con
@@ -52,7 +55,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     const [basePrice, shippingCost] = game.min_price !== null
         ? [game.min_price_base, game.min_price_shipping]
         : [bestProduct?.base_price ?? null, bestProduct?.shipping_cost ?? null];
-    const seller = bestProduct?.seller ?? null;
+    const seller = bestProduct?.seller ?? sellerOverride ?? null;
     const hasPrice = price !== null;
 
     // La ficha abre en la consola del precio que muestra la tarjeta; sin

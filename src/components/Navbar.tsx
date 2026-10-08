@@ -36,6 +36,7 @@ import {
     IconKey,
     IconRecycle,
     IconSparkles,
+    IconRosetteDiscount,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
@@ -180,8 +181,29 @@ export default function Navbar() {
                     </Group>
                 </Anchor>
 
-                {/* Desktop nav links */}
-                <Group gap="lg" visibleFrom="lg" wrap="nowrap">
+                {/* Desktop nav links. `md` y no `lg`, y el buscador de 200 px y no
+                    280 (abajo): el enlace a Ofertas no cabía y la barra se salía
+                    53 px por la derecha en cualquier página con buscador (todas
+                    menos la home), tapando el engranaje de preferencias. */}
+                <Group gap="md" visibleFrom="lg" wrap="nowrap">
+                    {/* Ofertas va primero y fuera de los menús de consola: es la
+                        página con más intención de compra del sitio y no
+                        pertenece a ninguna marca. Enlace real (`<a href>`) para
+                        que también reparta autoridad a `/ofertas`. */}
+                    <UnstyledButton
+                        component={Link}
+                        href="/ofertas"
+                        fw={600}
+                        fz="sm"
+                        c={pathname?.startsWith('/ofertas') ? 'var(--mantine-color-primaryRed-5)' : 'dimmed'}
+                        style={{ transition: 'color 0.15s' }}
+                    >
+                        <Group gap={6} wrap="nowrap">
+                            <IconRosetteDiscount size={18} />
+                            <Box component="span">Ofertas</Box>
+                        </Group>
+                    </UnstyledButton>
+
                     {PLATFORM_GROUPS.map((group) => {
                         const Icon = group.icon;
                         // El botón del grupo junta varias consolas y no tiene landing:
@@ -263,7 +285,7 @@ export default function Navbar() {
                                 onChange={(e) => setLocalQuery(e.currentTarget.value)}
                                 radius="xl"
                                 size="sm"
-                                w={{ base: 140, sm: 220, lg: 280 }}
+                                w={{ base: 140, sm: 220, lg: 200 }}
                                 classNames={{ input: 'search-input' }}
                                 styles={{
                                     input: {
@@ -415,6 +437,22 @@ export default function Navbar() {
             {/* Mobile drawer */}
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
+                    <Anchor
+                        component={Link}
+                        href="/ofertas"
+                        onClick={close}
+                        fw={600}
+                        fz="lg"
+                        c="inherit"
+                        underline="never"
+                        px="md"
+                    >
+                        <Group gap={12} wrap="nowrap">
+                            <IconRosetteDiscount size={24} color="var(--mantine-color-primaryRed-5)" />
+                            Ofertas
+                        </Group>
+                    </Anchor>
+
                     <Accordion variant="filled">
                         {PLATFORM_GROUPS.map((group) => {
                             const Icon = group.icon;

@@ -151,6 +151,7 @@ export default function Footer() {
                     {/* Información */}
                     <Stack gap="xs">
                         <Text fw={700} mb={4}>Información</Text>
+                        <Anchor component={Link} href="/ofertas" fz="sm" c="dimmed" underline="never">Ofertas</Anchor>
                         <Anchor component={Link} href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
                         <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
                         <Anchor component={Link} href="/blog" fz="sm" c="dimmed" underline="never">Blog</Anchor>

@@ -70,6 +70,24 @@ export const SEEDED = {
         { title: 'E2E Las mejores ofertas del mes', category: 'deals' },
         { title: 'E2E Nuevo juego anunciado', category: 'news' },
     ],
+    /** Ofertas del día: `seed_e2e` corre `build_daily_deals` al final. Cada
+     *  juego tiene una sola oferta nueva en PS5, en E2E Tienda Nacional.
+     *  OJO: la base de dev trae también el catálogo real, con cientos de
+     *  ofertas más grandes; el sembrado puede quedar fuera del tope de 60 y
+     *  los specs no deben suponer su posición. */
+    deal: {
+        gameId: 999006,
+        game: 'E2E Juego En Oferta',
+        platform: 'ps5',
+        /** $19.990 hoy frente a $29.990 típico: −33,3 %, mostrado entero. */
+        line: 'Nuevo · −33% · típico $29.990',
+        /** Solo −10 %: bajo el umbral del 15 %, no es oferta. */
+        shallowGameId: 999007,
+        shallowGame: 'E2E Juego Rebaja Menor',
+        /** Solo 10 días de historial: sin cobertura para un precio típico. */
+        shortHistoryGameId: 999008,
+        shortHistoryGame: 'E2E Juego Recién Listado',
+    },
     /** Encuestas de `seed_e2e`: /encuestas se renderiza en el servidor. */
     surveys: {
         newest: { id: 999101, title: 'E2E Encuesta Nueva' },

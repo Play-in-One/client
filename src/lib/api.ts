@@ -4,6 +4,7 @@ import type {
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     SourcesReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
+    DealsResponse,
     Survey, StaffSurvey, SurveyResults, IssueReport, ReportTargetType, ReportReason, ReportDisplayContext,
 } from './types';
 import { appendAttribution } from './attribution';
@@ -516,6 +517,20 @@ export async function getSellers(params?: { page?: number }) {
 /** Estadísticas públicas (contador, matriz plataforma×formato, último scrapeo) para `/scrap`. */
 export async function getStats() {
     return fetcher<Stats>('/stats/');
+}
+
+/** Ofertas del día (`/ofertas`, la home, el sitemap y `llms.txt`). Sin
+ *  `platform`, una fila por juego; con él, solo esa consola (un slug
+ *  desconocido es un 400: el llamador valida antes contra `getPlatforms`). */
+export async function getDeals(params?: {
+    platform?: string;
+    /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
+    revalidate?: number;
+}) {
+    const { revalidate, ...qsParams } = params ?? {};
+    return fetcher<DealsResponse>(`/deals/${qs(qsParams)}`, {
+        ...(revalidate !== undefined ? { next: { revalidate } } : {}),
+    });
 }
 
 export async function getSeller(id: number | string) {

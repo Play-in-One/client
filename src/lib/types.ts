@@ -737,6 +737,52 @@ export interface Stats {
     products: number;
     platform_matrix: PlatformMatrixRow[];
     last_run: LastScrapeRun | null;
+    /** Juegos distintos en oferta en la fecha más reciente de `DailyDeal`.
+     *  Opcional: un backend anterior a las ofertas no lo publica. */
+    deals_today?: number;
+}
+
+/* ── Ofertas del día (`GET /api/deals/`) ── */
+
+/**
+ * Una oferta del día: el mínimo de hoy de un juego en una consola está al
+ * menos 15% bajo su precio típico (mediana de 90 días). La calcula cada noche
+ * `build_daily_deals` sobre el catálogo ENTERO —todas las tiendas y
+ * condiciones—, así que es un hecho del catálogo y no depende de los filtros
+ * globales del visitante.
+ */
+export interface Deal {
+    /** Misma forma que la galería, con `min_price` del catálogo completo: puede
+     *  ser de otra consola u otra condición que la de la oferta. */
+    game: Game;
+    /** Slug de la consola de la oferta. */
+    platform: string;
+    /** Precio EFECTIVO (lista + envío) de hoy, como en la galería. */
+    current_price: string;
+    /** Mediana ponderada por tiempo de los últimos 90 días. */
+    typical_price: string;
+    /** Con un decimal (33.3); se muestra redondeado a entero. */
+    discount_pct: number;
+    savings: string;
+    is_all_time_low: boolean;
+    /** 1 el día en que entra; cuenta días seguidos en oferta. */
+    days_on_deal: number;
+    is_new: boolean;
+    seller: { id: number; name: string } | null;
+    /** Bucket de condición (nunca `store`/`key` crudos): cada oferta se mide
+     *  contra el precio típico de SU condición. */
+    condition: 'new' | 'used' | 'digital';
+}
+
+export interface DealsResponse {
+    /** Fecha local (ISO) de la tanda más reciente, o null si la tabla está vacía. */
+    date: string | null;
+    /** Fin del último scrapeo finalizado: la frescura real de los precios. */
+    last_scrape_at: string | null;
+    /** Juegos distintos en oferta (con `platform`: filas de esa consola),
+     *  contados ANTES del tope de 60 resultados. */
+    count: number;
+    results: Deal[];
 }
 
 /* ── Encuestas ── */

@@ -1,5 +1,6 @@
 import { platformLongName } from '@/lib/types';
-import { getPlatforms, getPosts } from '@/lib/api';
+import { getDeals, getPlatforms, getPosts } from '@/lib/api';
+import { DEALS_METHOD_LINE, dealLlmsLine } from '@/lib/deals';
 import { postExcerpt } from '@/lib/postText';
 import { SITE_URL, absoluteUrl, postPath, siteConfig } from '@/lib/seo';
 import { FAMILIES, platformsOf } from '@/lib/platforms';
@@ -63,6 +64,22 @@ export async function GET() {
         /* sin sección */
     }
 
+    // Ofertas del día: la regla y las 10 mayores rebajas. Si el API falla se
+    // omite la sección entera, igual que el blog: mejor no listar nada que
+    // publicar ofertas de ayer como si fueran de hoy.
+    let dealsSection = '';
+    try {
+        const { results } = await getDeals({ revalidate: 3600 });
+        if (results.length > 0) {
+            dealsSection =
+                `\n## Ofertas de hoy\n\n${DEALS_METHOD_LINE} Los precios incluyen el envío. ` +
+                `Lista completa: ${SITE_URL}/ofertas\n\n` +
+                `${results.slice(0, 10).map(dealLlmsLine).join('\n')}\n`;
+        }
+    } catch {
+        /* sin sección */
+    }
+
     const body = `# ${siteConfig.name}
 
 > ${siteConfig.description}
@@ -90,6 +107,7 @@ Consolas cubiertas: ${platformNames}.
 ## Secciones principales
 
 - [Inicio](${SITE_URL}/): buscador y juegos destacados.
+- [Ofertas](${SITE_URL}/ofertas): juegos al menos 15% bajo su precio típico de los últimos 90 días, recalculadas cada día.
 - [Buscar](${SITE_URL}/search): catálogo con filtros por plataforma, género y condición.
 - [Preguntas frecuentes](${SITE_URL}/faq): cómo funciona PIO y de dónde salen los precios.
 - [Blog](${SITE_URL}/blog): noticias, ofertas y novedades del mundo gaming.
@@ -110,7 +128,7 @@ ${platformLines || `- Catálogo completo en ${SITE_URL}/search`}
 - Cada artículo vive en ${SITE_URL}/blog/{slug}-{id} (schema.org BlogPosting o NewsArticle).
   Feed: ${SITE_URL}/blog/rss.xml
 - Mapa completo del sitio: ${SITE_URL}/sitemap.xml
-${blogSection}
+${dealsSection}${blogSection}
 ## Uso
 
 PIO no vende juegos: enlaza a la tienda, que es quien cobra y despacha. Al citar

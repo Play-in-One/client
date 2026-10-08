@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
-import { getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
+import { getDeals, getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
+import { dealConsoles } from '@/lib/deals';
 import { absoluteUrl, gamePath, postPath } from '@/lib/seo';
 
 /**
@@ -28,6 +29,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const staticRoutes: MetadataRoute.Sitemap = [
         { url: absoluteUrl('/'), changeFrequency: 'daily', priority: 1 },
         { url: absoluteUrl('/search'), changeFrequency: 'daily', priority: 0.9 },
+        // Cambia cada noche con `build_daily_deals`. Va siempre, aunque hoy
+        // esté vacía: es una URL estable que mañana vuelve a tener ofertas.
+        { url: absoluteUrl('/ofertas'), changeFrequency: 'daily', priority: 0.8 },
         { url: absoluteUrl('/faq'), changeFrequency: 'monthly', priority: 0.6 },
         { url: absoluteUrl('/encuestas'), changeFrequency: 'weekly', priority: 0.3 },
         { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.6 },
@@ -53,6 +57,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
                 url: absoluteUrl(`/juegos/${p.slug}`),
                 changeFrequency: 'daily',
                 priority: 0.9,
+            });
+        }
+    } catch {
+        /* ignore */
+    }
+
+    // Ofertas por consola: solo las consolas que HOY tienen ofertas. Una sin
+    // ofertas sale `noindex`, y un sitemap solo debe listar URLs indexables.
+    const deals: MetadataRoute.Sitemap = [];
+    try {
+        const res = await getDeals();
+        for (const p of dealConsoles(res.results)) {
+            deals.push({
+                url: absoluteUrl(`/ofertas/${p.slug}`),
+                changeFrequency: 'daily',
+                priority: 0.7,
             });
         }
     } catch {
@@ -114,5 +134,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         /* ignore */
     }
 
-    return [...staticRoutes, ...platforms, ...games, ...posts, ...stores];
+    return [...staticRoutes, ...platforms, ...deals, ...games, ...posts, ...stores];
 }

@@ -17,9 +17,10 @@ import { timingSafeEqual } from 'crypto';
    depende de los precios —la ficha de un juego, la de una tienda, el buscador y
    las landings por consola—, que antes quedaban fuera: un cambio de precio
    podía tardar hasta 5 minutos en verse y su dato estructurado seguía
-   publicando la cifra vieja mientras tanto. */
+   publicando la cifra vieja mientras tanto. `/ofertas` y `/ofertas/<consola>`
+   las revalida `build_daily_deals` al escribir la tanda del día. */
 const ALLOWED_PATH =
-    /^\/$|^\/blog$|^\/blog\/[a-z0-9-]+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$|^\/sagas$|^\/saga\/[a-z0-9-]+$|^\/encuestas$/;
+    /^\/$|^\/blog$|^\/blog\/[a-z0-9-]+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$|^\/sagas$|^\/saga\/[a-z0-9-]+$|^\/encuestas$|^\/ofertas(\/[a-z0-9-]+)?$/;
 
 function tokenMatches(provided: string, expected: string): boolean {
     const a = Buffer.from(provided);
