@@ -342,7 +342,7 @@ export function gameJsonLd(game: Game): JsonLdObject {
  */
 
 /** Convierte un ISO a "31 de agosto de 2026". */
-function formatDate(iso: string | null | undefined): string | null {
+export function formatDate(iso: string | null | undefined): string | null {
     if (!iso) return null;
     const date = new Date(iso);
     if (Number.isNaN(date.getTime())) return null;

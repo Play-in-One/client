@@ -232,6 +232,34 @@ export interface GameRating {
     fetched_at: string;
 }
 
+export interface PriceStatPoint {
+    price: string;
+    date: string;
+    platform: string;
+    seller: { id: number; name: string } | null;
+}
+
+export interface ConditionRange {
+    min: string;
+    max: string;
+    offers: number;
+}
+
+/** Cifras deterministas del precio, calculadas por el backend (`price_stats`
+ *  del detalle). Las fechas son ISO `YYYY-MM-DD` y `platform` es un slug. */
+export interface PriceStats {
+    all_time_min: PriceStatPoint | null;
+    avg_180d: string | null;
+    price_30d_ago: string | null;
+    change_30d: { abs: string; pct: number } | null;
+    is_all_time_low: boolean;
+    days_since_last_change: number | null;
+    in_stock_offers: number;
+    in_stock_sellers: number;
+    platforms_in_stock: string[];
+    by_condition: Partial<Record<'new' | 'used' | 'digital', ConditionRange>>;
+}
+
 export interface Game {
     id: number;
     name: string;
@@ -285,6 +313,10 @@ export interface Game {
     /** Historial del precio mínimo por consola y condición. Solo lo envía el
      *  detalle, acotado a los últimos meses. */
     min_price_history?: MinPriceHistory;
+    /** Resumen numérico del precio. `null` si el juego no tiene ofertas ni historial. */
+    price_stats?: PriceStats | null;
+    /** El backend decide si la ficha se indexa; el cliente solo lo respeta. */
+    seo_index?: boolean;
     /** La misma serie excluyendo las tiendas internacionales. Viene vacía
      *  cuando el juego no tiene ninguna oferta importada: ahí sería idéntica a
      *  la agregada y el backend no la guarda. */

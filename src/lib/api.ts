@@ -338,7 +338,7 @@ export function sendCatalogFilterLoad(payload: {
 export async function getGames(params?: {
     search?: string;
     platforms?: number[];
-    genres?: number;
+    genres?: number | string;
     /** Slug de una saga (`Saga.slug`): acota a sus juegos. */
     saga?: string;
     seller?: number;

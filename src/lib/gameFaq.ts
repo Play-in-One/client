@@ -13,18 +13,17 @@ import type { FaqEntry } from './seo';
 import { bestPriceSentence } from './seo';
 import { formatCLP } from './utils';
 import type { Game, MinPricePoint, Product } from './types';
-import { conditionBucket } from './conditions';
+import { CONDITION_LABEL, conditionBucket } from './conditions';
+import { averageSentence, change30Sentence, formatStatDate } from './priceSummary';
 
-/* En minúscula porque van DENTRO de una frase ("se consigue nuevo desde …"),
- * no como rótulo suelto: por eso no se reutilizan las de `lib/conditions.ts`.
- * Indexadas por BUCKET, así que una oferta `store` cuenta como digital. */
 type ConditionBucket = ReturnType<typeof conditionBucket>;
 
-const CONDITION_LABELS: Record<ConditionBucket, string> = {
-    new: 'nuevo',
-    used: 'usado',
-    digital: 'digital',
-};
+/* En minúscula porque van DENTRO de una frase ("se consigue nuevo desde …"),
+ * no como rótulo suelto. Indexadas por BUCKET, así que una oferta `store`
+ * cuenta como digital. */
+const conditionWord = (bucket: ConditionBucket): string => CONDITION_LABEL[bucket].toLowerCase();
+
+const MAX_ENTRIES = 6;
 
 const price = (value: string | null | undefined): number | null => {
     if (value == null) return null;
@@ -52,8 +51,22 @@ function cheapestByCondition(products: Product[]): Map<ConditionBucket, Product>
     return best;
 }
 
-/** Mínimo histórico de la serie agregada, entre todas las consolas. */
-function historicLow(game: Game): number | null {
+interface HistoricLow {
+    price: number;
+    /** Solo lo trae `price_stats`; la serie no guarda ni fecha ni tienda. */
+    date: string | null;
+    seller: string | null;
+}
+
+/** Mínimo histórico: el de `price_stats` (con fecha y tienda) y, si el backend
+ *  no lo manda, el escaneo de la serie agregada entre todas las consolas. */
+function historicLow(game: Game): HistoricLow | null {
+    const fromStats = game.price_stats?.all_time_min;
+    const statsPrice = price(fromStats?.price);
+    if (fromStats && statsPrice != null) {
+        return { price: statsPrice, date: formatStatDate(fromStats.date), seller: fromStats.seller?.name ?? null };
+    }
+
     const series = game.min_price_history;
     if (!series) return null;
     let low: number | null = null;
@@ -66,7 +79,7 @@ function historicLow(game: Game): number | null {
             if (value != null && (low == null || value < low)) low = value;
         }
     }
-    return low;
+    return low == null ? null : { price: low, date: null, seller: null };
 }
 
 export function buildGameFaq(game: Game): FaqEntry[] {
@@ -105,7 +118,7 @@ export function buildGameFaq(game: Game): FaqEntry[] {
             .filter((condition) => byCondition.has(condition))
             .map((condition) => {
                 const product = byCondition.get(condition)!;
-                return `${CONDITION_LABELS[condition]} desde ${formatCLP(product.current_price!)} en ${product.seller.name}`;
+                return `${conditionWord(condition)} desde ${formatCLP(product.current_price!)} en ${product.seller.name}`;
             });
         entries.push({
             question: `¿Cuánto cuesta ${game.name} nuevo o usado?`,
@@ -118,15 +131,39 @@ export function buildGameFaq(game: Game): FaqEntry[] {
     if (low != null && current != null) {
         // El histórico solo registra CAMBIOS de precio, así que "igual al
         // mínimo histórico" es una afirmación fuerte y verificable.
-        const answer =
-            current <= low
-                ? `Sí. ${formatCLP(current)} es el precio más bajo que ha tenido ${game.name} ` +
-                  'desde que PIO lo sigue.'
-                : `El precio más bajo registrado para ${game.name} es ${formatCLP(low)}. ` +
-                  `Hoy está en ${formatCLP(current)}, ${formatCLP(current - low)} por sobre ese mínimo.`;
+        let answer: string;
+        if (current <= low.price) {
+            answer =
+                `Sí. ${formatCLP(current)} es el precio más bajo que ha tenido ${game.name} ` +
+                'desde que PIO lo sigue.';
+        } else {
+            const when = low.date ? `, el ${low.date}` : '';
+            const where = low.seller ? ` en ${low.seller}` : '';
+            const pct = low.price > 0 ? ` (${Math.round(((current - low.price) / low.price) * 100)}%)` : '';
+            answer =
+                `El precio más bajo registrado para ${game.name} es ${formatCLP(low.price)}${when}${where}. ` +
+                `Hoy está en ${formatCLP(current)}, ${formatCLP(current - low.price)}${pct} por sobre ese mínimo.`;
+        }
         entries.push({
             question: `¿${game.name} está en su precio más bajo?`,
             answer,
+        });
+    }
+
+    // Mismas frases que el resumen visible (`priceSummary`): FAQ y página no
+    // pueden redactar distinto el mismo dato.
+    const change = change30Sentence(game.price_stats?.change_30d);
+    if (change) {
+        entries.push({
+            question: `¿Cómo ha cambiado el precio de ${game.name} en el último mes?`,
+            answer: change,
+        });
+    }
+    const average = averageSentence(game.price_stats?.avg_180d, game.min_price);
+    if (average) {
+        entries.push({
+            question: `¿Cuánto cuesta ${game.name} en promedio?`,
+            answer: average,
         });
     }
 
@@ -149,5 +186,7 @@ export function buildGameFaq(game: Game): FaqEntry[] {
         });
     }
 
-    return entries;
+    // Tope de 6: las preguntas nuevas van antes de la de consolas, que es la
+    // que cede cuando hay de todo.
+    return entries.slice(0, MAX_ENTRIES);
 }
