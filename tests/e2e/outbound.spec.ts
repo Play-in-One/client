@@ -73,6 +73,29 @@ test('cancelar el cupón no registra una salida; confirmarlo abre una sola redir
     expect(go).toHaveLength(1);
 });
 
+// page.request no pasa por el context.route del beforeEach, que exige un 302.
+test('una oferta que ya no existe explica el motivo y vuelve a la ficha', async ({ page, baseURL }) => {
+    const gamePath = await seededGamePath(page);
+    const response = await page.request.get('/go/product/999999999', {
+        maxRedirects: 0, headers: { referer: `${baseURL}${gamePath}?platform=ps5` },
+    });
+    expect(response.status()).toBe(404);
+    const html = await response.text();
+    expect(html).toContain('Esta oferta ya no está disponible');
+    expect(html).toContain(`<a href="${gamePath}?platform=ps5">Volver al juego</a>`);
+    expect(html).not.toContain('Reintentar');
+});
+
+test('sin referer propio, el 404 enlaza a la portada y no refleja el origen ajeno', async ({ page }) => {
+    const response = await page.request.get('/go/product/999999999', {
+        maxRedirects: 0, headers: { referer: 'https://evil.example/juego/x-1' },
+    });
+    expect(response.status()).toBe(404);
+    const html = await response.text();
+    expect(html).toContain('<a href="/">Ir a Play In One</a>');
+    expect(html).not.toContain('evil.example');
+});
+
 test('el enlace general de una tienda usa la ruta de vendedores', async ({ page, context }) => {
     await page.goto(await seededGamePath(page));
     const href = await page.locator('a[href^="/store/"]').first().getAttribute('href');
