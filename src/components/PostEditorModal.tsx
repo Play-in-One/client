@@ -1,8 +1,9 @@
 'use client';
 
 import { useRef, useState, type FormEvent } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Alert, Button, Group, Modal, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
+import { Alert, Box, Button, Group, Modal, SegmentedControl, Select, Stack, Text, Textarea, TextInput } from '@mantine/core';
 import { useAdmin } from '@/context/AdminContext';
 import { ApiError, createPost, updatePost } from '@/lib/api';
 import type { Post, PostPayload } from '@/lib/types';
@@ -16,6 +17,13 @@ const CATEGORIES: { value: Post['category']; label: string }[] = [
 ];
 
 type FieldErrors = Partial<Record<keyof PostPayload, string>>;
+type BodyMode = 'edit' | 'preview';
+
+/* La vista previa usa el MISMO `PostBody` que publica la página, así que lo
+   que ve staff es lo que verá el lector. Se carga aparte: este modal se
+   importa en las páginas públicas del blog y un import estático metería el
+   lector de Markdown en el JS de todos los visitantes. */
+const PostBody = dynamic(() => import('@/components/PostBody'));
 
 // Se monta al abrir y se desmonta al cerrar: cancelar descarta la edición.
 // La pérdida de sesión no desmonta el modal, para conservar el texto escrito.
@@ -34,6 +42,7 @@ export default function PostEditorModal({ post, onClose, onSaved }: {
     const [errors, setErrors] = useState<FieldErrors>({});
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [bodyMode, setBodyMode] = useState<BodyMode>('edit');
     const submitting = useRef(false);
 
     const setField = <K extends keyof PostPayload>(field: K, value: PostPayload[K]) => {
@@ -61,6 +70,9 @@ export default function PostEditorModal({ post, onClose, onSaved }: {
         }
         setErrors(invalid);
         setError(null);
+        // El error del contenido se pinta bajo el Textarea: con la vista previa
+        // abierta no se vería y el botón parecería no hacer nada.
+        if (invalid.description) setBodyMode('edit');
         if (Object.keys(invalid).length) return;
 
         submitting.current = true;
@@ -127,11 +139,37 @@ export default function PostEditorModal({ post, onClose, onSaved }: {
                             if (category) setField('category', category.value);
                         }}
                     />
-                    <Textarea
-                        label="Contenido" required rows={8} value={draft.description}
-                        onChange={(event) => setField('description', event.currentTarget.value)}
-                        error={errors.description} disabled={saving}
-                    />
+                    <Stack gap={6}>
+                        <SegmentedControl
+                            size="xs" value={bodyMode} disabled={saving}
+                            aria-label="Editar o previsualizar"
+                            onChange={(value) => setBodyMode(value as BodyMode)}
+                            data={[
+                                { value: 'edit', label: 'Editar' },
+                                { value: 'preview', label: 'Vista previa' },
+                            ]}
+                            style={{ alignSelf: 'flex-start' }}
+                        />
+                        {/* Se desmonta en la vista previa, pero el texto vive en
+                            `draft`: volver a «Editar» lo recupera intacto. */}
+                        {bodyMode === 'edit' ? (
+                            <Textarea
+                                label="Contenido" required rows={8} value={draft.description}
+                                description="Admite Markdown: ## subtítulos, **negrita**, - listas y [enlaces](/juego/...)"
+                                onChange={(event) => setField('description', event.currentTarget.value)}
+                                error={errors.description} disabled={saving}
+                            />
+                        ) : (
+                            <Box
+                                className="content-card" p="md" role="region" aria-label="Vista previa del contenido"
+                                style={{ maxHeight: '50vh', overflowY: 'auto' }}
+                            >
+                                {draft.description.trim()
+                                    ? <PostBody markdown={draft.description} />
+                                    : <Text c="dimmed" size="sm">Todavía no hay contenido que previsualizar.</Text>}
+                            </Box>
+                        )}
+                    </Stack>
                     <TextInput
                         label="URL de imagen" description="Opcional. Usa una URL http o https."
                         value={draft.image} maxLength={1000}

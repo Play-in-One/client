@@ -40,12 +40,14 @@ function stripInline(line: string): string {
         .replace(/(^|[^\w])_(.+?)_(?=[^\w]|$)/g, '$1$2');
 }
 
+const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s+/;
+
 /** Quita los marcadores de bloque: cita, encabezado, viñeta o número. */
 function stripBlockMarkers(line: string): string {
     return line
         .replace(/^\s*(>\s?)+/, '')
         .replace(HEADING, '')
-        .replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '');
+        .replace(LIST_ITEM, '');
 }
 
 /**
@@ -55,18 +57,22 @@ function stripBlockMarkers(line: string): string {
  */
 function blocks(md: string): Block[] {
     const out: Block[] = [];
-    let current: string[] = [];
+    let current = '';
+    // ¿La línea anterior del bloque abrió un ítem de lista (o lo continuó)?
+    let inItem = false;
     const flush = () => {
-        const text = current.join(' ').replace(/\s+/g, ' ').trim();
+        const text = current.replace(/\s+/g, ' ').trim();
         if (text) out.push({ text, heading: false });
-        current = [];
+        current = '';
+        inItem = false;
     };
     for (const raw of md.replace(/\r\n?/g, '\n').split('\n')) {
         if (!raw.trim() || /^\s*([-*_])(\s*\1){2,}\s*$/.test(raw)) {
             flush();
             continue;
         }
-        const isHeading = HEADING.test(raw.replace(/^\s*(>\s?)+/, ''));
+        const unquoted = raw.replace(/^\s*(>\s?)+/, '');
+        const isHeading = HEADING.test(unquoted);
         const text = stripInline(stripBlockMarkers(raw)).trim();
         if (isHeading) {
             flush();
@@ -74,7 +80,15 @@ function blocks(md: string): Block[] {
             if (clean) out.push({ text: clean, heading: true });
             continue;
         }
-        current.push(text);
+        const isItem = LIST_ITEM.test(unquoted);
+        // Dos ítems seguidos van con coma: unidos con un espacio, "- Precios"
+        // y "- Ofertas" se leían como la frase "Precios Ofertas" en la meta
+        // description. Si el ítem ya cierra con puntuación, basta el espacio.
+        // La continuación de un ítem (línea sin viñeta) y la frase que
+        // introduce la lista ("Incluye:") se unen con espacio, como siempre.
+        const sep = !current ? '' : isItem && inItem && !/[.,;:!?…]$/.test(current) ? ', ' : ' ';
+        current += sep + text;
+        inItem = isItem || inItem;
     }
     flush();
     return out;

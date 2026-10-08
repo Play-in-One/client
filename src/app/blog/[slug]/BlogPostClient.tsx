@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Alert, Button, Container, Group, Title, Box, Text, Badge, Image } from '@mantine/core';
 import { IconPencil } from '@tabler/icons-react';
@@ -14,6 +15,12 @@ import { formatDate } from '@/lib/seo';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/* El cuerpo público llega ya renderizado por el servidor (`bodySlot`), así que
+   el lector de Markdown no viaja en el bundle de la página. Solo hace falta en
+   el navegador tras una edición de staff, y entonces se carga aparte: un
+   import estático lo metería en el JS de cada visitante del blog. */
+const PostBody = dynamic(() => import('@/components/PostBody'));
+
 /** Solo una edición posterior al día de publicación merece el aviso: el
  *  `updated_at` de un post recién creado difiere de `published_date` en
  *  milisegundos, y una errata corregida esa misma tarde no es una novedad. */
@@ -25,7 +32,12 @@ function updatedAfterPublishing(post: Post): string | null {
     return updated - published > DAY_MS ? post.updated_at : null;
 }
 
-export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
+export default function BlogPostClient({ initialPost, bodySlot }: {
+    initialPost: Post;
+    /** `<PostBody>` renderizado en el servidor: el cuerpo tiene que estar en el
+     *  HTML inicial, que es lo único que leen los crawlers de IA. */
+    bodySlot?: ReactNode;
+}) {
     const { isAdmin } = useAdmin();
     const router = useRouter();
     const [editing, setEditing] = useState(false);
@@ -33,6 +45,7 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
     // La respuesta de la escritura se muestra incluso si la revalidación ISR
     // falla temporalmente. No se arrastra a otro artículo al navegar.
     const post = savedPost?.id === initialPost.id ? savedPost : initialPost;
+    const edited = post !== initialPost;
     // Mide la lectura, no el click: cuenta también las llegadas por buscador o
     // link directo. El ref evita el doble disparo de StrictMode en dev.
     const trackedPostId = useRef<number | null>(null);
@@ -57,7 +70,7 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
                     <Button variant="light" leftSection={<IconPencil size={18} />} onClick={() => setEditing(true)}>Editar post</Button>
                 )}
             </Group>
-            {savedPost?.id === initialPost.id && <Alert color="green" mb="lg" role="status">Cambios guardados.</Alert>}
+            {edited && <Alert color="green" mb="lg" role="status">Cambios guardados.</Alert>}
             <Title order={1} mb="sm">{post.title}</Title>
             {/* La fecha se formatea con zona fija (America/Santiago): con
                 `toLocaleDateString()` el HTML del servidor y el del navegador
@@ -79,7 +92,13 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
             )}
 
             <Box className="content-card" p="xl">
-                {post.description.split('\n').map((paragraph, idx) => (
+                {/* Tras guardar, el slot del servidor trae el texto VIEJO hasta
+                    que llega el refresh: se pinta la respuesta de la escritura.
+                    El bucle por líneas es solo el respaldo de quien monte el
+                    componente sin slot. */}
+                {edited ? (
+                    <PostBody markdown={post.description} />
+                ) : bodySlot ?? post.description.split('\n').map((paragraph, idx) => (
                     <Text key={idx} mb="md" style={{ whiteSpace: 'pre-wrap' }}>
                         {paragraph}
                     </Text>

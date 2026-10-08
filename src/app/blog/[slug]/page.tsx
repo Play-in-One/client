@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { JsonLd } from '@/components/JsonLd';
+import PostBody from '@/components/PostBody';
 import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
 import { buildMetadata, articleJsonLd, breadcrumbJsonLd, postPath } from '@/lib/seo';
 import BlogPostClient from './BlogPostClient';
+import RelatedPostsSection from './RelatedPostsSection';
 import { fetchPost, parsePostSegment } from './resolve';
 
 /*
@@ -72,7 +74,11 @@ export default async function BlogPostPage({ params }: Params) {
     return (
         <>
             <JsonLd data={jsonLd} />
-            <BlogPostClient initialPost={post} />
+            {/* El cuerpo se renderiza AQUÍ, en el servidor, y entra como slot:
+                así sale en el HTML inicial (lo único que leen los crawlers de
+                IA) y el lector de Markdown no viaja en el bundle del cliente. */}
+            <BlogPostClient initialPost={post} bodySlot={<PostBody markdown={post.description} />} />
+            <RelatedPostsSection post={post} />
         </>
     );
 }

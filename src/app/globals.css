@@ -655,6 +655,99 @@ a.saga-banner-link:focus-visible {
   white-space: nowrap;
 }
 
+/* ── Cuerpo Markdown de un post (`PostBody`) ──
+   Encabezados, párrafos y enlaces son primitivas de Mantine con su propio
+   espaciado; aquí va lo que se renderiza como elemento nativo porque los
+   compuestos (`List.Item`…) no existen en un Server Component. Los márgenes
+   de encabezados y párrafos también viven aquí y no como props: así el
+   primer bloque pierde el superior (un post que abre con `##` no deja un
+   hueco arriba de la tarjeta) y el último el inferior. */
+.pio-prose h2 {
+  margin: var(--mantine-spacing-xl) 0 var(--mantine-spacing-sm);
+}
+
+.pio-prose h3 {
+  margin: var(--mantine-spacing-lg) 0 var(--mantine-spacing-xs);
+}
+
+.pio-prose p {
+  margin: 0 0 var(--mantine-spacing-md);
+}
+
+.pio-prose > :first-child {
+  margin-top: 0;
+}
+
+.pio-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.pio-prose ul,
+.pio-prose ol {
+  margin: 0 0 var(--mantine-spacing-md);
+  padding-left: var(--mantine-spacing-xl);
+}
+
+.pio-prose li + li {
+  margin-top: var(--mantine-spacing-xs);
+}
+
+.pio-prose li > ul,
+.pio-prose li > ol {
+  margin: var(--mantine-spacing-xs) 0 0;
+}
+
+.pio-prose blockquote {
+  margin: 0 0 var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+  border-left: 3px solid var(--mantine-color-primaryRed-5);
+  color: var(--mantine-color-dimmed);
+}
+
+.pio-prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.pio-prose code {
+  font-family: var(--mantine-font-family-monospace);
+  font-size: 0.9em;
+  padding: 1px 4px;
+  border-radius: var(--mantine-radius-sm);
+  background-color: var(--mantine-color-default-hover);
+}
+
+.pio-prose pre {
+  margin: 0 0 var(--mantine-spacing-md);
+  padding: var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-default-hover);
+  overflow-x: auto;
+}
+
+.pio-prose pre code {
+  padding: 0;
+  background: none;
+}
+
+.pio-prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 0 var(--mantine-spacing-md);
+  border-radius: var(--mantine-radius-md);
+}
+
+.pio-prose-table {
+  margin: 0 0 var(--mantine-spacing-md);
+  overflow-x: auto;
+}
+
+.pio-prose hr {
+  margin: var(--mantine-spacing-lg) 0;
+  border: 0;
+  border-top: 1px solid var(--mantine-color-default-border);
+}
+
 /* ── Sección plegable nativa dentro de una tarjeta ──
    `<details>` sin JS ni estado: el contenido queda en el HTML inicial y el
    chevron gira con el atributo `open`. */

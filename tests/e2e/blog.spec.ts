@@ -127,6 +127,43 @@ test('el description del JSON-LD es un resumen en texto plano, no el cuerpo', as
     expect(article!.wordCount).toBeGreaterThan(0);
 });
 
+/* ── Cuerpo Markdown y posts relacionados, en el HTML del servidor ───── */
+
+test('el cuerpo Markdown sale renderizado en el HTML del servidor', async ({ request }) => {
+    const post = await seededPost(request, GUIDE_TITLE);
+    const html = await serverHtml(request, `/blog/${post.slug}-${post.id}`);
+    expect(html).toMatch(/<h2[^>]*>Qué incluye<\/h2>/);
+    expect(html).toMatch(/<ul[^>]*>\s*<li>Comparación de precios<\/li>\s*<li>Historial de ofertas<\/li>\s*<\/ul>/);
+    expect(html).toMatch(/<a [^>]*href="\/juego\/e2e-juego-de-prueba-999001"[^>]*>ficha del juego<\/a>/);
+    expect(html).toMatch(/<strong>formato<\/strong>/);
+    // Ni la sintaxis cruda ni un segundo <h1>: el único es el título del post.
+    expect(html).not.toContain('## Qué incluye');
+    expect(html).not.toContain('**formato**');
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+});
+
+test('un post en texto plano se sigue leyendo igual', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const html = await serverHtml(request, `/blog/${post.slug}-${post.id}`);
+    expect(html).toMatch(/<p[^>]*>Aprovecha estas ofertas de videojuegos este mes en Chile\.<\/p>/);
+    expect(html).not.toContain('\\n');
+});
+
+test('el post enlaza «Más del blog» hacia otros posts, en el HTML del servidor', async ({ request }) => {
+    const post = await seededPost(request, GUIDE_TITLE);
+    const path = `/blog/${post.slug}-${post.id}`;
+    const html = await serverHtml(request, path);
+    const section = html.match(/<section[^>]*aria-labelledby="posts-relacionados"[\s\S]*?<\/section>/)?.[0];
+    expect(section).toBeTruthy();
+    expect(section).toContain('Más del blog');
+    expect(section).toContain('href="/blog"');
+    const links = [...section!.matchAll(/href="(\/blog\/[^"]+)"/g)].map((m) => m[1]);
+    expect(links.length).toBeGreaterThanOrEqual(1);
+    expect(links.length).toBeLessThanOrEqual(3);
+    expect(links).not.toContain(path);
+    expect(new Set(links).size).toBe(links.length);
+});
+
 test('/blog enlaza los posts por su URL con slug y declara el Blog', async ({ request }) => {
     const post = await seededPost(request, DEALS_POST.title);
     const html = await serverHtml(request, '/blog');
@@ -200,7 +237,7 @@ test('staff edita el artículo con los campos precargados', async ({ page }) => 
         expect(route.request().headers().authorization).toBe('Token blog-test-token');
         expect(route.request().postDataJSON()).toEqual({
             title: 'Título actualizado por staff', category: original.category,
-            description: 'Texto actualizado.\nOtro párrafo.', image: '',
+            description: 'Texto actualizado.\nOtra línea.\n\n## Subtítulo editado', image: '',
         });
         await route.fulfill({ json: {
             ...original, ...route.request().postDataJSON(),
@@ -214,15 +251,41 @@ test('staff edita el artículo con los campos precargados', async ({ page }) => 
     await expect(dialog.getByLabel('Contenido')).toHaveValue(original.description);
     await expect(dialog.getByLabel('Categoría')).toHaveValue('Ofertas');
     await dialog.getByRole('textbox', { name: 'Título', exact: true }).fill('Título actualizado por staff');
-    await dialog.getByLabel('Contenido').fill('Texto actualizado.\nOtro párrafo.');
+    await dialog.getByLabel('Contenido').fill('Texto actualizado.\nOtra línea.\n\n## Subtítulo editado');
     await dialog.getByLabel('URL de imagen').fill('');
     await dialog.getByRole('button', { name: 'Guardar cambios' }).click();
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Título actualizado por staff' })).toBeVisible();
-    await expect(page.getByText('Texto actualizado.', { exact: true })).toBeVisible();
+    // El cuerpo editado se pinta con el mismo PostBody que el servidor: el
+    // salto simple es un <br> dentro del párrafo y el `##` un subtítulo.
+    const edited = page.getByRole('paragraph').filter({ hasText: 'Texto actualizado.' });
+    await expect(edited).toContainText('Otra línea.');
+    await expect(edited.locator('br')).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 2, name: 'Subtítulo editado' })).toBeVisible();
+    await expect(page.getByText('Aprovecha estas ofertas de videojuegos este mes en Chile.')).toHaveCount(0);
     await expect(page.locator('time').first()).toHaveAttribute('datetime', date!);
     await page.getByRole('button', { name: 'Editar post' }).click();
     await expect(dialog.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue('Título actualizado por staff');
+});
+
+test('staff previsualiza el Markdown sin perder lo escrito', async ({ page }) => {
+    await signInAsStaff(page);
+    await page.goto('/blog');
+    await page.getByRole('button', { name: 'Crear post' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Crear post' });
+    const body = '## Subtítulo de prueba\n\n- Un punto\n\nTexto <em>crudo</em> y [ficha](/juego/e2e-juego-de-prueba-999001).';
+    await expect(dialog.getByLabel('Contenido')).toHaveAccessibleDescription(/Admite Markdown/);
+    await dialog.getByLabel('Contenido').fill(body);
+    await dialog.getByText('Vista previa', { exact: true }).click();
+    const preview = dialog.getByRole('region', { name: 'Vista previa del contenido' });
+    await expect(preview.getByRole('heading', { level: 2, name: 'Subtítulo de prueba' })).toBeVisible();
+    await expect(preview.getByRole('listitem')).toHaveText('Un punto');
+    await expect(preview.getByRole('link', { name: 'ficha' })).toHaveAttribute('href', '/juego/e2e-juego-de-prueba-999001');
+    // El HTML crudo no se interpreta ni se muestra.
+    await expect(preview.locator('em')).toHaveCount(0);
+    await expect(preview).not.toContainText('<em>');
+    await dialog.getByText('Editar', { exact: true }).click();
+    await expect(dialog.getByLabel('Contenido')).toHaveValue(body);
 });
 
 test('cancelar descarta los campos sin publicar', async ({ page }) => {

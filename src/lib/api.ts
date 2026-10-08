@@ -528,8 +528,13 @@ export async function getPosts(params?: {
     search?: string;
     ordering?: string;
     page?: number;
+    /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
+    revalidate?: number;
 }) {
-    return fetcher<PaginatedResponse<Post>>(`/posts/${qs(params ?? {})}`);
+    const { revalidate, ...qsParams } = params ?? {};
+    return fetcher<PaginatedResponse<Post>>(`/posts/${qs(qsParams)}`, {
+        ...(revalidate !== undefined ? { next: { revalidate } } : {}),
+    });
 }
 
 export async function getPost(id: number | string) {

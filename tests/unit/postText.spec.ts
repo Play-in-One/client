@@ -32,6 +32,19 @@ test.describe('postPlainText', () => {
         expect(plain).toContain('Una cita final');
     });
 
+    test('los ítems de una lista se separan con coma, no se funden en una frase', () => {
+        expect(postPlainText('- Primer punto\n- Segundo punto\n- Tercero')).toBe(
+            'Primer punto, Segundo punto, Tercero',
+        );
+        expect(postPlainText('1. Uno\n2) Dos')).toBe('Uno, Dos');
+        // Un ítem que ya cierra con puntuación no recibe además la coma.
+        expect(postPlainText('- Compara precios.\n- Guarda juegos')).toBe('Compara precios. Guarda juegos');
+        // La línea que introduce la lista no es un ítem: va con espacio.
+        expect(postPlainText('Incluye:\n- precios\n- ofertas')).toBe('Incluye: precios, ofertas');
+        // La continuación de un ítem sigue siendo el mismo ítem.
+        expect(postPlainText('- Un ítem largo\n  que sigue aquí\n- Otro')).toBe('Un ítem largo que sigue aquí, Otro');
+    });
+
     test('conserva los saltos de párrafo y colapsa los espacios dentro de cada uno', () => {
         const plain = postPlainText('Uno   dos\ntres\n\n\n\nCuatro');
         expect(plain).toBe('Uno dos tres\n\nCuatro');
@@ -52,6 +65,12 @@ test.describe('postExcerpt', () => {
             'Esta guía explica cómo comparar precios en la ficha del juego sin trucos.',
         );
         expect(postExcerpt('## Solo título\nTexto pegado al título.')).toBe('Texto pegado al título.');
+    });
+
+    test('un post que abre con una lista resume sus ítems separados por coma', () => {
+        expect(postExcerpt('## Qué incluye\n\n- Comparación de precios\n- Historial de ofertas')).toBe(
+            'Comparación de precios, Historial de ofertas',
+        );
     });
 
     test('un post que solo tiene encabezados usa el primero', () => {
