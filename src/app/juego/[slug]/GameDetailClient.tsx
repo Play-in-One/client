@@ -707,8 +707,7 @@ export default function GameDetailClient({
                         {/* Info card en mobile: tarjeta desplegable justo bajo
                             el nombre y el selector de consola (en desktop va
                             fija en la columna lateral, ver más arriba). Nativo
-                            (`<details>`, vía `component`) por el mismo motivo
-                            que `CollapsibleText`: funciona sin JS. */}
+                            (`<details>`, vía `component`): funciona sin JS. */}
                         <Card
                             component="details"
                             withBorder
