@@ -296,7 +296,12 @@ test('la tabla de mínimos mensuales aparece cuando hay historial de ≥2 meses'
 
 test('la valoración aparece como texto en el servidor', async ({ request }) => {
     const html = await serverHtml(request, gamePath);
-    expect(html).toMatch(/Valoración [^<]+\/10/);
+    // Una línea por fuente, en su escala (el juego sembrado las trae en /100)...
+    expect(html).toMatch(/Valoración [^<]+\/\d+/);
+    // ...y el promedio normalizado a /10. `(?!\d)`: antes bastaba un «86/100»
+    // de una fuente para satisfacer «/10» y el promedio podía faltar sin que
+    // el test lo notara.
+    expect(html).toMatch(/Promedio normalizado: [^<]+\/10(?!\d)/);
 });
 
 test('la tarjeta Mejor precio dice Último cambio de precio', async ({ request }) => {
@@ -330,15 +335,30 @@ test('con un filtro global activo, los relacionados se vuelven a pedir con él',
         value: encodeURIComponent(JSON.stringify({ condition: 'all', national: false })),
         path: '/', domain: COOKIE_DOMAIN,
     }]);
-    const refetch = page.waitForRequest((req) => {
-        const url = new URL(req.url());
-        return url.pathname.endsWith('/api/games/')
-            && url.searchParams.has('genres')
-            && url.searchParams.has('seller_locations');
+    // La respuesta filtrada se retiene hasta haber comprobado que, mientras
+    // tanto, la grilla NO enseña las tarjetas sin filtrar del servidor.
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    let markRequested!: () => void;
+    const requested = new Promise<void>((resolve) => { markRequested = resolve; });
+    await page.route(/\/api\/games\/\?/, async (route) => {
+        const url = new URL(route.request().url());
+        if (url.searchParams.has('genres') && url.searchParams.has('seller_locations')) {
+            markRequested();
+            await held;
+        }
+        await route.continue();
     });
     await page.goto(gamePath);
-    await refetch;
-    await expect(page.locator('section[aria-labelledby="juegos-relacionados"]')).toBeVisible();
+    await requested;
+
+    const section = page.locator('section[aria-labelledby="juegos-relacionados"]');
+    await expect(section).toBeVisible();
+    await expect(section.getByTestId('related-games-skeleton')).toBeVisible();
+    await expect(section.locator('a[href^="/juego/"]')).toHaveCount(0);
+
+    release();
+    await expect(section.getByTestId('related-games-skeleton')).toHaveCount(0);
 });
 
 test('un juego delgado responde 200 con noindex', async ({ request }) => {

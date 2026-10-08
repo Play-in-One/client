@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Box, SimpleGrid } from '@mantine/core';
 import GameCard from '@/components/GameCard';
+import GameGridSkeleton from '@/components/GameGridSkeleton';
 import { useApp } from '@/context/AppContext';
 import { getGames, getPopularGames } from '@/lib/api';
 import type { Game } from '@/lib/types';
@@ -25,6 +26,11 @@ const ORDERING = '-traffic_score,name';
  *
  * `data-prefs-dependent` tapa la grilla sin filtrar hasta que AppContext lee
  * las preferencias (ver globals.css), así que no asoma un precio que no toca.
+ * Pero ese atributo se retira en cuanto las preferencias están listas, ANTES
+ * de que llegue la respuesta filtrada: en esa ventana se pinta un skeleton
+ * (`filtering`, como «Populares» en la home) en vez de las tarjetas del
+ * servidor. Con filtros por defecto —y para un crawler— nada cambia: el HTML
+ * del servidor sigue llevando las tarjetas.
  */
 export default function RelatedGamesGrid({
     initialGames,
@@ -41,6 +47,14 @@ export default function RelatedGamesGrid({
 }) {
     const { conditionParam, sellerLocationsParam, ready } = useApp();
     const [games, setGames] = useState<Game[]>(initialGames);
+    const [filtering, setFiltering] = useState(false);
+    // Hay que filtrar en cuanto las preferencias están leídas y alguna se
+    // desvía del default. Se deriva en el render y no solo del estado: el
+    // `setFiltering(true)` del efecto llega un render después de que
+    // AppContext retire `data-prefs`, y en ese cuadro asomarían las tarjetas
+    // sin filtrar. `games === initialGames` = aún no llegó nada filtrado.
+    const needsFilter = ready && (!!conditionParam || !!sellerLocationsParam);
+    const showSkeleton = filtering || (needsFilter && games === initialGames);
 
     useEffect(() => {
         // Sin las preferencias leídas los params valen su default optimista.
@@ -49,10 +63,12 @@ export default function RelatedGamesGrid({
         // `condition` en 'all' pero sí acota.
         if (!conditionParam && !sellerLocationsParam) {
             setGames(initialGames);
+            setFiltering(false);
             return;
         }
         const controller = new AbortController();
         let superseded = false;
+        setFiltering(true);
         const filters = {
             condition: conditionParam,
             seller_locations: sellerLocationsParam,
@@ -73,10 +89,14 @@ export default function RelatedGamesGrid({
             .then((res) => {
                 if (superseded) return;
                 setGames(res.results.filter((g) => g.id !== excludeId).slice(0, limit));
+                setFiltering(false);
             })
             .catch(() => {
-                // Mejor sin tarjetas que con precios que el filtro excluye.
-                if (!superseded) setGames([]);
+                // Mejor sin tarjetas que con precios que el filtro excluye. Si
+                // la corrida fue reemplazada, la nueva ya maneja `filtering`.
+                if (superseded) return;
+                setGames([]);
+                setFiltering(false);
             });
         return () => {
             superseded = true;
@@ -86,11 +106,15 @@ export default function RelatedGamesGrid({
 
     return (
         <Box data-prefs-dependent>
-            <SimpleGrid cols={{ base: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                {games.map((g) => (
-                    <GameCard key={g.id} game={g} platformSlug={platformSlug} />
-                ))}
-            </SimpleGrid>
+            {showSkeleton ? (
+                <GameGridSkeleton count={limit} testId="related-games-skeleton" />
+            ) : (
+                <SimpleGrid cols={{ base: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                    {games.map((g) => (
+                        <GameCard key={g.id} game={g} platformSlug={platformSlug} />
+                    ))}
+                </SimpleGrid>
+            )}
         </Box>
     );
 }

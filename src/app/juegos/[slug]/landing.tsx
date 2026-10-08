@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
 import { Container, SimpleGrid, Text, Title } from '@mantine/core';
-import { getGames, getPlatforms } from '@/lib/api';
+import { ApiError, getGames, getPlatforms } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
 import GameCard from '@/components/GameCard';
@@ -38,26 +39,45 @@ export function landingPath(slug: string, page: number): string {
     return page <= 1 ? `/juegos/${slug}` : `/juegos/${slug}/pagina/${page}`;
 }
 
+/**
+ * Un fallo del backend (5xx, timeout, red) NO puede convertirse en una landing
+ * vacía: con ISR esa versión se cachea 300 s, dice «comparamos 0 juegos» y sale
+ * `noindex` (o un 404 si la consola "no existe"). Lanzar hace que Next siga
+ * sirviendo la última versión buena y reintente en la próxima visita — misma
+ * regla que la portada (`app/page.tsx`). En el build se degrada: ahí no hay
+ * versión anterior que conservar y lanzar rompería el deploy.
+ */
+function rethrowOutsideBuild(error: unknown): void {
+    if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) throw error;
+}
+
 async function fetchPlatform(slug: string): Promise<Platform | null> {
     try {
         const res = await getPlatforms();
         return res.results.find((p) => p.slug === slug) ?? null;
-    } catch {
+    } catch (error) {
+        rethrowOutsideBuild(error);
         return null;
     }
 }
 
+/** `failed` solo es `true` en el build con el backend caído: el llamador no
+ *  debe tratar esa página como "genuinamente vacía". */
 async function fetchGames(
     platform: Platform,
     page: number,
-): Promise<{ games: Game[]; total: number }> {
+): Promise<{ games: Game[]; total: number; failed: boolean }> {
     try {
         const res = await getGames({ platforms: [platform.id], ordering: ORDERING, page });
-        return { games: res.results, total: res.count };
-    } catch {
-        // Incluye el 404 que devuelve DRF cuando se pide una página fuera de
-        // rango. El llamador distingue ese caso por `games.length === 0`.
-        return { games: [], total: 0 };
+        return { games: res.results, total: res.count, failed: false };
+    } catch (error) {
+        // El 404 de DRF es una página fuera de rango: vacía de verdad. El
+        // llamador lo distingue por `games.length === 0`.
+        if (error instanceof ApiError && error.status === 404) {
+            return { games: [], total: 0, failed: false };
+        }
+        rethrowOutsideBuild(error);
+        return { games: [], total: 0, failed: true };
     }
 }
 
@@ -114,7 +134,7 @@ export async function buildLandingMetadata(slug: string, page: number): Promise<
     const platform = await fetchPlatform(slug);
     if (!platform) return buildMetadata({ title: 'Consola no encontrada', noIndex: true });
 
-    const { games, total } = await fetchGames(platform, page);
+    const { games, total, failed } = await fetchGames(platform, page);
     if (page > 1 && games.length === 0) {
         return buildMetadata({ title: 'Página no encontrada', noIndex: true });
     }
@@ -129,11 +149,13 @@ export async function buildLandingMetadata(slug: string, page: number): Promise<
                 : platformSummary(platform, games, total),
         // Las páginas interiores son `noindex, follow`: existen como camino de
         // rastreo hacia las fichas, no como páginas indexables (son listados
-        // casi idénticos entre sí). Tampoco se indexa una landing sin juegos.
+        // casi idénticos entre sí). Tampoco se indexa una landing sin juegos,
+        // pero solo si está vacía DE VERDAD: un fallo del backend en el build
+        // no debe dejarla `noindex` (se corrige en la siguiente regeneración).
         // El canonical sigue siendo autorreferente, NO apuntando a la página 1:
         // canonizar a la landing haría que Google dejara de seguir sus enlaces.
         path: landingPath(platform.slug, page),
-        noIndex: page > 1 || (page === 1 && games.length === 0),
+        noIndex: page > 1 || (page === 1 && games.length === 0 && !failed),
     });
 }
 

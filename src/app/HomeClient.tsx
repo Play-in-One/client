@@ -16,7 +16,6 @@ import {
     Anchor,
     Badge,
     Stack,
-    Skeleton,
 } from '@mantine/core';
 import {
     IconSearch,
@@ -30,29 +29,11 @@ import { surfaces, decorative } from '@/lib/colors';
 import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
+import GameGridSkeleton from '@/components/GameGridSkeleton';
 import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
 import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
 import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
-
-/* Skeleton de la grilla de Populares — mismas proporciones que GameCard,
-   mismo patrón visual que search/loading.tsx. */
-function TrendingGridSkeleton() {
-    return (
-        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-            {Array.from({ length: 8 }).map((_, i) => (
-                <Box key={i}>
-                    <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
-                    <Stack gap={6} mt="sm">
-                        <Skeleton height={10} width="40%" radius="sm" />
-                        <Skeleton height={14} width="80%" radius="sm" />
-                        <Skeleton height={22} width="55%" radius="sm" mt={4} />
-                    </Stack>
-                </Box>
-            ))}
-        </SimpleGrid>
-    );
-}
 
 export default function HomeClient({
     initialPosts,
@@ -376,7 +357,7 @@ export default function HomeClient({
                             PrefsScript y globals.css. */}
                         <Box data-prefs-dependent>
                             {filtering ? (
-                                <TrendingGridSkeleton />
+                                <GameGridSkeleton />
                             ) : (
                                 <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
                                     {trending.slice(0, 8).map((g, i) => (

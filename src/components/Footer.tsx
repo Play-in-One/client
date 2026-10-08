@@ -132,8 +132,14 @@ export default function Footer() {
                             TODAS, en el orden del catálogo: el dropdown del Navbar
                             no existe en el HTML del servidor, así que este bloque
                             es el enlace que cada landing recibe desde todas las
-                            páginas. */}
-                        <SimpleGrid cols={2} spacing={4} verticalSpacing={4}>
+                            páginas.
+                            Dos columnas solo mientras caben: el Container `lg` mide
+                            1140 px en TODO ancho de escritorio, así que con las 5
+                            columnas del pie cada una queda en ~200 px y la subgrilla
+                            partía «Nintendo Switch 2» y «PlayStation Vita» en dos
+                            líneas. Pasar a 4 columnas no lo arreglaba (seguía
+                            partiendo y dejaba «Síguenos» sola en otra fila). */}
+                        <SimpleGrid cols={{ base: 2, lg: 1 }} spacing={4} verticalSpacing={4}>
                             {PLATFORMS.map((p) => (
                                 <Anchor key={p.slug} component={Link} href={`/juegos/${p.slug}`} fz="sm" c="dimmed" underline="never">
                                     {p.long}

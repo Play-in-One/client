@@ -64,11 +64,23 @@ function aboveMinSentence(stats: PriceStats, current: number | null): string | n
     return `Hoy está un ${pct}% sobre ese mínimo (${formatCLP(current - min)} más).`;
 }
 
-export function change30Sentence(change: PriceStats['change_30d'] | undefined): string | null {
+/** Variación del mínimo respecto a hace 30 días.
+ *
+ *  Recibe `PriceStats` entero, no solo `change_30d`: `abs` es mínimo actual
+ *  menos mínimo de hace 30 días, así que un 0 solo dice que el piso VOLVIÓ a
+ *  donde estaba (p. ej. una oferta que ya terminó). Afirmar que "no ha
+ *  cambiado" exige además que el último cambio registrado tenga 30 días o más. */
+export function change30Sentence(stats: PriceStats | null | undefined): string | null {
+    const change = stats?.change_30d;
     if (!change) return null;
     const abs = num(change.abs);
     if (abs == null) return null;
-    if (abs === 0) return 'El precio más bajo no ha cambiado en los últimos 30 días.';
+    if (abs === 0) {
+        const days = stats!.days_since_last_change;
+        return days != null && days >= 30
+            ? 'El precio más bajo no ha cambiado en los últimos 30 días.'
+            : 'Está al mismo precio que hace 30 días.';
+    }
     const pct = decimal.format(Math.abs(change.pct));
     return abs < 0
         ? `Bajó ${formatCLP(Math.abs(abs))} (${pct}%) respecto a hace 30 días.`
@@ -118,7 +130,7 @@ export function priceSummarySentences(game: Game): string[] {
     const rest = [
         historicMinSentence(stats.all_time_min, game.platforms),
         aboveMinSentence(stats, current),
-        change30Sentence(stats.change_30d),
+        change30Sentence(stats),
         averageSentence(stats.avg_180d, game.min_price),
         conditionRangeSentence(stats.by_condition),
     ];

@@ -85,12 +85,35 @@ test('new entries reuse the summary sentences and omit without data', () => {
     const change = { abs: '-5000.00', pct: -10 };
     const g = game({ price_stats: stats({ change_30d: change, avg_180d: '52310.00' }) });
     const faq = buildGameFaq(g);
-    expect(q(faq, 'en el último mes')!.answer).toBe(change30Sentence(change));
+    expect(q(faq, 'en el último mes')!.answer).toBe(change30Sentence(g.price_stats));
     expect(q(faq, 'en promedio')!.answer).toBe(averageSentence('52310.00', '50000'));
 
     const plain = buildGameFaq(game({ price_stats: stats() }));
     expect(q(plain, 'en el último mes')).toBeUndefined();
     expect(q(plain, 'en promedio')).toBeUndefined();
+});
+
+test('change in 30 days at zero depends on days_since_last_change', () => {
+    const zero = { abs: '0.00', pct: 0 };
+    const recent = buildGameFaq(game({ price_stats: stats({ change_30d: zero, days_since_last_change: 4 }) }));
+    expect(q(recent, 'en el último mes')!.answer).toBe('Está al mismo precio que hace 30 días.');
+    const stale = buildGameFaq(game({ price_stats: stats({ change_30d: zero, days_since_last_change: 45 }) }));
+    expect(q(stale, 'en el último mes')!.answer).toBe(
+        'El precio más bajo no ha cambiado en los últimos 30 días.',
+    );
+});
+
+test('distance to the low omits the percentage when it rounds to 0%', () => {
+    const g = game({
+        min_price: '50000',
+        price_stats: stats({
+            all_time_min: { price: '49900.00', date: '2026-07-14', platform: 'ps5', seller: null },
+        }),
+    });
+    expect(q(buildGameFaq(g), 'precio más bajo')!.answer).toBe(
+        'El precio más bajo registrado para Juego X es $49.900, el 14 de julio de 2026. ' +
+        'Hoy está en $50.000, $100 por sobre ese mínimo.',
+    );
 });
 
 test('FAQ caps at 6 and the platforms question is what yields', () => {

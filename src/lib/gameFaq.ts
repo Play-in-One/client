@@ -139,7 +139,10 @@ export function buildGameFaq(game: Game): FaqEntry[] {
         } else {
             const when = low.date ? `, el ${low.date}` : '';
             const where = low.seller ? ` en ${low.seller}` : '';
-            const pct = low.price > 0 ? ` (${Math.round(((current - low.price) / low.price) * 100)}%)` : '';
+            // Como `aboveMinSentence`: un "(0%)" junto a una diferencia en pesos
+            // se lee como contradicción, así que se omite si redondea a 0.
+            const pctValue = low.price > 0 ? Math.round(((current - low.price) / low.price) * 100) : 0;
+            const pct = pctValue !== 0 ? ` (${pctValue}%)` : '';
             answer =
                 `El precio más bajo registrado para ${game.name} es ${formatCLP(low.price)}${when}${where}. ` +
                 `Hoy está en ${formatCLP(current)}, ${formatCLP(current - low.price)}${pct} por sobre ese mínimo.`;
@@ -152,7 +155,7 @@ export function buildGameFaq(game: Game): FaqEntry[] {
 
     // Mismas frases que el resumen visible (`priceSummary`): FAQ y página no
     // pueden redactar distinto el mismo dato.
-    const change = change30Sentence(game.price_stats?.change_30d);
+    const change = change30Sentence(game.price_stats);
     if (change) {
         entries.push({
             question: `¿Cómo ha cambiado el precio de ${game.name} en el último mes?`,

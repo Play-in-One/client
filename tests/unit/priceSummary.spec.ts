@@ -87,16 +87,33 @@ test('all-time low vs percentage above the minimum', () => {
 });
 
 test('change in 30 days: negative, positive, zero', () => {
-    expect(change30Sentence({ abs: '-5000.00', pct: -10 })).toBe(
+    expect(change30Sentence(stats({ change_30d: { abs: '-5000.00', pct: -10 } }))).toBe(
         'Bajó $5.000 (10%) respecto a hace 30 días.',
     );
-    expect(change30Sentence({ abs: '2500.00', pct: 5.26 })).toBe(
+    expect(change30Sentence(stats({ change_30d: { abs: '2500.00', pct: 5.26 } }))).toBe(
         'Subió $2.500 (5,3%) respecto a hace 30 días.',
     );
-    expect(change30Sentence({ abs: '0.00', pct: 0 })).toBe(
+    expect(change30Sentence(stats({ change_30d: null }))).toBeNull();
+    expect(change30Sentence(null)).toBeNull();
+});
+
+test('change in 30 days at zero only claims "no change" when the floor did not move', () => {
+    const zero = { abs: '0.00', pct: 0 };
+    // Sin cambios registrados en 30 días o más: el mínimo realmente no se movió.
+    expect(change30Sentence(stats({ change_30d: zero, days_since_last_change: 30 }))).toBe(
         'El precio más bajo no ha cambiado en los últimos 30 días.',
     );
-    expect(change30Sentence(null)).toBeNull();
+    expect(change30Sentence(stats({ change_30d: zero, days_since_last_change: 95 }))).toBe(
+        'El precio más bajo no ha cambiado en los últimos 30 días.',
+    );
+    // Hubo un cambio dentro de la ventana (una oferta que ya terminó) o no se
+    // sabe: solo se puede afirmar que el precio coincide con el de hace 30 días.
+    expect(change30Sentence(stats({ change_30d: zero, days_since_last_change: 4 }))).toBe(
+        'Está al mismo precio que hace 30 días.',
+    );
+    expect(change30Sentence(stats({ change_30d: zero, days_since_last_change: null }))).toBe(
+        'Está al mismo precio que hace 30 días.',
+    );
 });
 
 test('average compares rounded values', () => {
