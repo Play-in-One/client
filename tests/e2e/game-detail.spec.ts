@@ -71,13 +71,15 @@ test.describe('vista mobile', () => {
         await page.goto(gamePath);
         await expect(page.getByRole('heading', { name: SEEDED.game })).toBeVisible();
 
-        const details = page.locator('details').filter({ hasText: 'Información del juego' });
+        // La tarjeta anida otro <details> (el resumen de precios), así que el
+        // summary y la descripción se buscan en el nivel propio de la tarjeta.
+        const details = page.locator('details').filter({ has: page.locator('> summary', { hasText: 'Información del juego' }) });
         const description = details.getByText(SEEDED.gameDescription);
         await expect(description).toBeHidden();
         // Un clic antes de hidratar puede perderse: se reintenta hasta que abra.
         await expect(async () => {
             if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) {
-                await details.locator('summary').click();
+                await details.locator('> summary').click();
             }
             await expect(description).toBeVisible({ timeout: 1000 });
         }).toPass();
@@ -286,6 +288,9 @@ test('el resumen de precios está en el HTML del servidor', async ({ request }) 
     const html = await serverHtml(request, gamePath);
     expect(html).toContain('Resumen de precios');
     expect(html).toContain('precio más barato');
+    // Plegado dentro de la tarjeta de información (`<details>` nativo): el
+    // texto sigue en el HTML inicial aunque el bloque arranque cerrado.
+    expect(html).toMatch(/<details class="pio-details">\s*<summary[^>]*>[\s\S]*?Resumen de precios/);
 });
 
 test('la tabla de mínimos mensuales aparece cuando hay historial de ≥2 meses', async ({ request }) => {

@@ -169,7 +169,7 @@ function ProductImagePreview({ src, title }: { src: string; title: string }) {
  *  desplegable bajo el nombre y el selector de consola (mismo contenido, dos
  *  envoltorios). Plegada en mobile, la descripción sigue en el HTML: plegar
  *  no es esconder (ver "SEO y GEO" en CLAUDE.md). */
-function GameInfoCardBody({ game }: { game: Game }) {
+function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: ReactNode }) {
     // Solo las secciones con dato, en orden; cada una lleva el separador
     // inferior salvo la última, sea cual sea.
     const sections: { key: string; node: ReactNode }[] = [];
@@ -252,6 +252,25 @@ function GameInfoCardBody({ game }: { game: Game }) {
                         {game.description}
                     </Text>
                 </>
+            ),
+        });
+    }
+    if (summarySlot) {
+        sections.push({
+            key: 'prices',
+            node: (
+                /* Plegable y nativo (`<details>`): el resumen y su tabla
+                   siguen en el HTML inicial —lo único que lee un crawler sin
+                   JS— sin alargar la tarjeta para quien solo quiere el precio.
+                   El chevron gira por CSS (`.pio-details[open]`), sin estado:
+                   esta tarjeta se renderiza dos veces (desktop y mobile). */
+                <details className="pio-details">
+                    <summary>
+                        <Text component="span" fz="lg" fw={700}>Resumen de precios</Text>
+                        <IconChevronDown size={16} color="var(--mantine-color-dimmed)" className="pio-details-chevron" />
+                    </summary>
+                    {summarySlot}
+                </details>
             ),
         });
     }
@@ -584,7 +603,7 @@ export default function GameDetailClient({
                         tarjeta desplegable (ver más abajo, `hiddenFrom="lg"`).
                         Acá solo desktop. */}
                     <Card withBorder radius="lg" p="lg" mt="md" visibleFrom="lg">
-                        <GameInfoCardBody game={game} />
+                        <GameInfoCardBody game={game} summarySlot={summarySlot} />
                     </Card>
                 </Grid.Col>
 
@@ -734,20 +753,20 @@ export default function GameDetailClient({
                                 />
                             </Group>
                             <Box mt="md">
-                                <GameInfoCardBody game={game} />
+                                <GameInfoCardBody game={game} summarySlot={summarySlot} />
                             </Box>
                         </Card>
 
-                        {/* El margen negativo solo ajusta la línea suelta de
-                            respaldo; el resumen (con su tabla y la leyenda al
-                            pie) necesita el `gap` entero del Stack. */}
-                        <Box mb={summarySlot ? undefined : -16}>
-                            {summarySlot ?? (
+                        {/* El resumen de precios va dentro de la tarjeta de
+                            información; esta línea solo queda cuando no hay
+                            datos para armarlo. */}
+                        {!summarySlot && (
+                            <Box mb={-16}>
                                 <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
                                     Compara precios entre distintas tiendas y encuentra la mejor oferta.
                                 </Text>
-                            )}
-                        </Box>
+                            </Box>
+                        )}
 
                         {/* ══════ Panel admin: nombre, imagen, fusión (tras "Editar juego") ══════ */}
                         {showAdminControls && editingGame && <AdminGameControls game={game} />}

@@ -6,10 +6,12 @@ import { formatCLP } from '@/lib/utils';
 /**
  * Resumen de precios de la ficha, renderizado en el SERVIDOR.
  *
- * Va desplegado, no tras un `<details>`: es la respuesta que busca quien llega
- * preguntando "¿cuánto cuesta X?", y los crawlers de IA solo leen el HTML
- * inicial. Las frases salen de `priceSummarySentences` —las mismas que abren
- * la meta description y la FAQ—, así que las tres dicen lo mismo.
+ * Vive dentro de la tarjeta de información, tras un `<details>` nativo que
+ * pone `GameInfoCardBody` (el `<summary>` es el título «Resumen de precios»,
+ * por eso aquí no va un encabezado). Plegado sigue en el HTML inicial, que es
+ * lo único que leen los crawlers de IA; las frases salen de
+ * `priceSummarySentences` —las mismas que abren la meta description y la
+ * FAQ—, así que las tres dicen lo mismo.
  *
  * Server Component a propósito: se inyecta en `GameDetailClient` como slot
  * (`summarySlot`) y así no viaja en su bundle. Por lo mismo usa la tabla
@@ -35,11 +37,10 @@ export default function PriceSummarySection({
     };
 
     return (
-        <Box component="section" aria-labelledby="resumen-precios">
-            <Title order={2} id="resumen-precios" fz="lg">Resumen de precios</Title>
+        <Box mt="sm">
             {/* El alcance, como rótulo: estas cifras son del catálogo entero y
-                la tarjeta «Mejor Precio» de abajo sigue los filtros activos, así
-                que pueden no coincidir. */}
+                la tarjeta «Mejor Precio» sigue los filtros activos, así que
+                pueden no coincidir. */}
             <Text c="dimmed" fz="sm" mb="xs">Todas las tiendas y consolas, con envío incluido.</Text>
             {sentences.map((sentence) => (
                 <Text key={sentence} component="p" fz="sm" lh={1.6} mt={0} mb="xs">
@@ -48,7 +49,7 @@ export default function PriceSummarySection({
             ))}
             {monthly.length > 0 && (
                 <>
-                    <Title order={3} fz="md" mt="md" mb="xs">Precio mínimo por mes</Title>
+                    <Title order={4} fz="sm" mt="md" mb="xs">Precio mínimo por mes</Title>
                     <table className="pio-table">
                         <caption>Mínimo entre todas las consolas, envío incluido</caption>
                         <thead>

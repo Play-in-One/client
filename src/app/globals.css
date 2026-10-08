@@ -654,3 +654,28 @@ a.saga-banner-link:focus-visible {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* ── Sección plegable nativa dentro de una tarjeta ──
+   `<details>` sin JS ni estado: el contenido queda en el HTML inicial y el
+   chevron gira con el atributo `open`. */
+.pio-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mantine-spacing-xs);
+  cursor: pointer;
+  list-style: none;
+}
+
+.pio-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.pio-details-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.pio-details[open] > summary .pio-details-chevron {
+  transform: rotate(180deg);
+}
