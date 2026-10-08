@@ -36,7 +36,11 @@ export default function PriceSummarySection({
 
     return (
         <Box component="section" aria-labelledby="resumen-precios">
-            <Title order={2} id="resumen-precios" fz="lg" mb="xs">Resumen de precios</Title>
+            <Title order={2} id="resumen-precios" fz="lg">Resumen de precios</Title>
+            {/* El alcance, como rótulo: estas cifras son del catálogo entero y
+                la tarjeta «Mejor Precio» de abajo sigue los filtros activos, así
+                que pueden no coincidir. */}
+            <Text c="dimmed" fz="sm" mb="xs">Todas las tiendas y consolas, con envío incluido.</Text>
             {sentences.map((sentence) => (
                 <Text key={sentence} component="p" fz="sm" lh={1.6} mt={0} mb="xs">
                     {sentence}

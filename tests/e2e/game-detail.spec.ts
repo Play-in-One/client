@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { SEEDED, seededGamePath, serverHtml, robotsOf } from './helpers';
+import { SEEDED, COOKIE_DOMAIN, seededGamePath, serverHtml, robotsOf } from './helpers';
 
 /**
  * La ficha se resuelve en el SERVIDOR (`app/juego/[slug]/page.tsx`) y
@@ -307,7 +307,9 @@ test('la tarjeta Mejor precio dice Último cambio de precio', async ({ request }
 
 test('los géneros enlazan', async ({ request }) => {
     const html = await serverHtml(request, gamePath);
-    expect(html).toMatch(/<a\b[^>]*href="[^"]*genre=\d+/);
+    // El badge enlaza al género a secas; el «Ver más de …» de relacionados
+    // lleva además `&platform=` y no debe bastar para pasar.
+    expect(html).toMatch(/<a\b[^>]*href="\/search\?genre=\d+"/);
 });
 
 test('juegos relacionados enlazan a /juego/', async ({ request }) => {
@@ -317,6 +319,26 @@ test('juegos relacionados enlazan a /juego/', async ({ request }) => {
     expect(section).toMatch(/href="\/juego\//);
     // El juego de la ficha no se recomienda a sí mismo.
     expect(section).not.toContain(`href="${gamePath}`);
+});
+
+test('con un filtro global activo, los relacionados se vuelven a pedir con él', async ({ page, context }) => {
+    // El HTML del servidor sale sin filtrar (lo que lee un crawler); quien
+    // apagó las tiendas nacionales no debe ver en las tarjetas un precio de
+    // ellas, así que la grilla repite la consulta del servidor con el filtro.
+    await context.addCookies([{
+        name: 'pio_prefs',
+        value: encodeURIComponent(JSON.stringify({ condition: 'all', national: false })),
+        path: '/', domain: COOKIE_DOMAIN,
+    }]);
+    const refetch = page.waitForRequest((req) => {
+        const url = new URL(req.url());
+        return url.pathname.endsWith('/api/games/')
+            && url.searchParams.has('genres')
+            && url.searchParams.has('seller_locations');
+    });
+    await page.goto(gamePath);
+    await refetch;
+    await expect(page.locator('section[aria-labelledby="juegos-relacionados"]')).toBeVisible();
 });
 
 test('un juego delgado responde 200 con noindex', async ({ request }) => {

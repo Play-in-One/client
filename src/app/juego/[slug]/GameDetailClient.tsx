@@ -739,7 +739,10 @@ export default function GameDetailClient({
                             </Box>
                         </Card>
 
-                        <Box mb={-16}>
+                        {/* El margen negativo solo ajusta la línea suelta de
+                            respaldo; el resumen (con su tabla y la leyenda al
+                            pie) necesita el `gap` entero del Stack. */}
+                        <Box mb={summarySlot ? undefined : -16}>
                             {summarySlot ?? (
                                 <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
                                     Compara precios entre distintas tiendas y encuentra la mejor oferta.

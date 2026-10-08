@@ -21,6 +21,7 @@ import GameDetailClient from './GameDetailClient';
 import { GamePlatformProvider } from './GamePlatformContext';
 import PriceSummarySection from './PriceSummarySection';
 import RelatedGamesSection from './RelatedGamesSection';
+import type { RelatedQuery } from './RelatedGamesGrid';
 import { fetchGame, parseGameSegment } from './resolve';
 
 const RELATED_LIMIT = 8;
@@ -35,6 +36,7 @@ const RELATED_REVALIDATE = 60 * 60;
 
 interface Related {
     games: Game[];
+    query: RelatedQuery;
     title: string;
     moreHref: string;
     moreLabel: string;
@@ -70,6 +72,7 @@ async function fetchRelated(game: Game, platform: Platform | undefined): Promise
         if (games.length >= RELATED_MIN) {
             return {
                 games,
+                query: { kind: 'saga', saga: saga.slug },
                 title: `Más juegos de la saga ${saga.name}`,
                 moreHref: `/saga/${saga.slug}`,
                 moreLabel: 'Ver toda la saga',
@@ -88,6 +91,7 @@ async function fetchRelated(game: Game, platform: Platform | undefined): Promise
         if (games.length >= RELATED_MIN) {
             return {
                 games,
+                query: { kind: 'genre', genre: genre.id, platform: platform?.id },
                 title: `Más juegos de ${genre.name}${platformName ? ` para ${platformName}` : ''}`,
                 moreHref: genreHref(genre, platform?.slug),
                 moreLabel: `Ver más de ${genre.name}`,
@@ -95,13 +99,13 @@ async function fetchRelated(game: Game, platform: Platform | undefined): Promise
         }
     }
 
-    const games = await pick(() => getPopularGames({
-        // Uno de más: el propio juego puede estar en la lista y se descarta.
-        limit: RELATED_LIMIT + 1, platform: platform?.slug, revalidate: RELATED_REVALIDATE,
-    }));
+    // Uno de más: el propio juego puede estar en la lista y se descarta.
+    const popular = { limit: RELATED_LIMIT + 1, platform: platform?.slug };
+    const games = await pick(() => getPopularGames({ ...popular, revalidate: RELATED_REVALIDATE }));
     if (games.length === 0) return null;
     return {
         games,
+        query: { kind: 'popular', ...popular },
         title: platformName ? `Otros juegos populares de ${platformName}` : 'Otros juegos populares',
         moreHref: platform ? `/juegos/${platform.slug}` : '/search',
         moreLabel: 'Ver todos',
@@ -246,6 +250,9 @@ export default async function GameDetailPage({
                 {related && (
                     <RelatedGamesSection
                         games={related.games}
+                        query={related.query}
+                        excludeId={game.id}
+                        limit={RELATED_LIMIT}
                         title={related.title}
                         moreHref={related.moreHref}
                         moreLabel={related.moreLabel}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Anchor, Box, Container, Group, SimpleGrid, Title } from '@mantine/core';
-import GameCard from '@/components/GameCard';
+import { Anchor, Box, Container, Group, Title } from '@mantine/core';
 import type { Game } from '@/lib/types';
+import RelatedGamesGrid, { type RelatedQuery } from './RelatedGamesGrid';
 
 /**
  * Juegos relacionados al pie de la ficha, renderizados en el SERVIDOR.
@@ -11,19 +11,29 @@ import type { Game } from '@/lib/types';
  * visita enlazaba fichas distintas, y el enlace de "ver más" iba a `/search`
  * a secas. Ahora la lista es determinista (misma saga, mismo género y
  * consola, o los populares de la consola, en ese orden; ver `page.tsx`) y el
- * "ver más" apunta a la página que agrupa ese criterio.
+ * "ver más" apunta a la página que agrupa ese criterio. La grilla la vuelve
+ * a pedir el cliente solo si hay filtros globales activos (`RelatedGamesGrid`);
+ * los enlaces del HTML del servidor no dependen de eso.
  *
  * Sin JSON-LD: son enlaces internos hacia otras fichas, no una lista que ESTA
  * página sea — un `ItemList` aquí declararía un catálogo que la ficha no es.
  */
 export default function RelatedGamesSection({
     games,
+    query,
+    excludeId,
+    limit,
     title,
     moreHref,
     moreLabel,
     platformSlug,
 }: {
     games: Game[];
+    /** El criterio con el que se eligieron, para repetirlo con filtros. */
+    query: RelatedQuery;
+    /** La ficha propia, que nunca se recomienda a sí misma. */
+    excludeId: number;
+    limit: number;
     title: string;
     moreHref: string;
     moreLabel: string;
@@ -52,11 +62,13 @@ export default function RelatedGamesSection({
                         {moreLabel}
                     </Anchor>
                 </Group>
-                <SimpleGrid cols={{ base: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                    {games.map((g) => (
-                        <GameCard key={g.id} game={g} platformSlug={platformSlug} />
-                    ))}
-                </SimpleGrid>
+                <RelatedGamesGrid
+                    initialGames={games}
+                    query={query}
+                    excludeId={excludeId}
+                    limit={limit}
+                    platformSlug={platformSlug}
+                />
             </Container>
         </Box>
     );
