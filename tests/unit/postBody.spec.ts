@@ -76,3 +76,11 @@ test('tabla GFM con la clase de la casa, imagen perezosa y cita', () => {
     expect(out).toMatch(/<img [^>]*alt="captura"/);
     expect(out).toMatch(/<blockquote[^>]*>[\s\S]*Cita[\s\S]*<\/blockquote>/);
 });
+
+test('`/\\host` es protocolo implícito para el navegador: se trata como externo', () => {
+    const out = html('[a](//evil.com/x) [b](/\\evil.com/x) [c](/juego/ok)');
+    for (const m of out.match(/<a [^>]*href="(\/\/|\/\\)[^>]*>/g) ?? []) {
+        expect(m).toContain('target="_blank"');
+    }
+    expect(out.match(/<a [^>]*href="\/juego\/ok"[^>]*>/)![0]).not.toContain('target=');
+});

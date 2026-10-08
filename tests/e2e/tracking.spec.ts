@@ -70,7 +70,8 @@ test('emite post_click al pulsar una tarjeta y post_view al abrir el post', asyn
     const events = collectEvents(page);
 
     await page.goto('/blog');
-    const card = page.locator('a[href^="/blog/"]').first();
+    // Sin el enlace «RSS» del encabezado, que también cuelga de /blog/.
+    const card = page.locator('a[href^="/blog/"]:not([href$="rss.xml"])').first();
     await expect(card).toBeVisible();
 
     // El href es `/blog/<slug>-<id>`: el evento lleva el id, la visita la ruta.

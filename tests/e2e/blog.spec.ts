@@ -176,6 +176,52 @@ test('/blog enlaza los posts por su URL con slug y declara el Blog', async ({ re
     expect(urls.some((u) => u.endsWith(`/blog/${post.slug}-${post.id}`))).toBe(true);
 });
 
+/* ── Feed RSS, llms.txt y sitemap ──────────────────────────────────────── */
+
+test('/blog/rss.xml es RSS 2.0 válido con la URL canónica de un post', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const res = await request.get('/blog/rss.xml');
+    expect(res.status()).toBe(200);
+    expect(res.headers()['content-type']).toContain('rss+xml');
+    const xml = await res.text();
+    expect(xml).toContain('<language>es-CL</language>');
+    expect(xml).toMatch(/<rss [^>]*version="2\.0"/);
+    expect(xml).toMatch(new RegExp(`<link>[^<]*/blog/${post.slug}-${post.id}</link>`));
+    expect(xml).toMatch(new RegExp(`<guid isPermaLink="true">[^<]*/blog/${post.slug}-${post.id}</guid>`));
+});
+
+test('/blog/rss.xml parsea como XML', async ({ page }) => {
+    await page.goto('/blog');
+    const ok = await page.evaluate(async () => {
+        const xml = await (await fetch('/blog/rss.xml')).text();
+        const doc = new DOMParser().parseFromString(xml, 'application/xml');
+        return !doc.querySelector('parsererror') && doc.querySelectorAll('item').length > 0;
+    });
+    expect(ok).toBe(true);
+});
+
+test('/blog y el post anuncian el feed con <link rel="alternate">', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    for (const path of ['/blog', `/blog/${post.slug}-${post.id}`]) {
+        const html = await (await request.get(path)).text();
+        expect(html, path).toMatch(/<link rel="alternate" type="application\/rss\+xml"[^>]*rss\.xml/);
+    }
+});
+
+test('llms.txt lista artículos recientes con su URL canónica', async ({ request }) => {
+    const txt = await (await request.get('/llms.txt')).text();
+    expect(txt).toContain('Artículos recientes del blog');
+    expect(txt).toMatch(/\/blog\/[a-z0-9-]+-\d+\)/);
+    expect(txt).toContain('/blog/rss.xml');
+});
+
+test('el sitemap lleva posts con slug y ninguno con la URL vieja /blog/<id>', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const xml = await (await request.get('/sitemap.xml')).text();
+    expect(xml).toContain(`/blog/${post.slug}-${post.id}</loc>`);
+    expect(xml).not.toMatch(/\/blog\/\d+<\/loc>/);
+});
+
 async function signInAsStaff(page: Page) {
     await page.context().addCookies([{
         name: 'pio_consent',

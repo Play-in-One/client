@@ -1,6 +1,7 @@
 import { platformLongName } from '@/lib/types';
-import { getPlatforms } from '@/lib/api';
-import { SITE_URL, siteConfig } from '@/lib/seo';
+import { getPlatforms, getPosts } from '@/lib/api';
+import { postExcerpt } from '@/lib/postText';
+import { SITE_URL, absoluteUrl, postPath, siteConfig } from '@/lib/seo';
 import { FAMILIES, platformsOf } from '@/lib/platforms';
 
 // llms.txt — emerging convention that gives generative engines a concise,
@@ -39,6 +40,21 @@ export async function GET() {
         }
     } catch {
         /* se usa el fallback */
+    }
+
+    // Artículos recientes: si el API falla se omite la sección entera.
+    let blogSection = '';
+    try {
+        const { results } = await getPosts({ ordering: '-published_date', revalidate: 86400 });
+        if (results.length > 0) {
+            const lines = results.slice(0, 10).map((p) => {
+                const excerpt = postExcerpt(p.description);
+                return `- [${p.title}](${absoluteUrl(postPath(p))})${excerpt ? `: ${excerpt}` : ''}`;
+            });
+            blogSection = `\n## Artículos recientes del blog\n\n${lines.join('\n')}\n`;
+        }
+    } catch {
+        /* sin sección */
     }
 
     const body = `# ${siteConfig.name}
@@ -85,9 +101,10 @@ ${platformLines || `- Catálogo completo en ${SITE_URL}/search`}
 - Cada tienda vive en ${SITE_URL}/store/{id} (schema.org Store) con su catálogo
   más barato y su envío promedio.
 - Cada consola vive en ${SITE_URL}/juegos/{slug} (CollectionPage + ItemList).
-- Cada artículo vive en ${SITE_URL}/blog/{id} (schema.org Article).
+- Cada artículo vive en ${SITE_URL}/blog/{slug}-{id} (schema.org BlogPosting o NewsArticle).
+  Feed: ${SITE_URL}/blog/rss.xml
 - Mapa completo del sitio: ${SITE_URL}/sitemap.xml
-
+${blogSection}
 ## Uso
 
 PIO no vende juegos: enlaza a la tienda, que es quien cobra y despacha. Al citar

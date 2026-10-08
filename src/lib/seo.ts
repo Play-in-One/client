@@ -103,6 +103,8 @@ interface BuildMetadataArgs {
      *  `%s | Play in One` del layout raíz. Sin esto, un título que ya nombra
      *  al sitio saldría con el sufijo dos veces. */
     absoluteTitle?: boolean;
+    /** Feed RSS que anuncia la página (`<link rel="alternate">`). */
+    feed?: { url: string; title: string };
 }
 
 /**
@@ -120,6 +122,7 @@ export function buildMetadata({
     modifiedTime,
     section,
     absoluteTitle,
+    feed,
 }: BuildMetadataArgs = {}): Metadata {
     const url = absoluteUrl(path);
     const desc = description ?? siteConfig.description;
@@ -130,7 +133,10 @@ export function buildMetadata({
     return {
         title: absoluteTitle && title ? { absolute: title } : title,
         description: desc,
-        alternates: { canonical: url },
+        alternates: {
+            canonical: url,
+            ...(feed ? { types: { 'application/rss+xml': [{ url: feed.url, title: feed.title }] } } : {}),
+        },
         ...(noIndex ? { robots: { index: false, follow: true } } : {}),
         openGraph: {
             type,

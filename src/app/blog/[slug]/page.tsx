@@ -4,6 +4,7 @@ import { JsonLd } from '@/components/JsonLd';
 import PostBody from '@/components/PostBody';
 import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
 import { buildMetadata, articleJsonLd, breadcrumbJsonLd, postPath } from '@/lib/seo';
+import { FEED_PATH, FEED_TITLE } from '@/lib/rss';
 import BlogPostClient from './BlogPostClient';
 import RelatedPostsSection from './RelatedPostsSection';
 import { fetchPost, parsePostSegment } from './resolve';
@@ -38,6 +39,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     if (!post) return buildMetadata({ title: 'Post no encontrado', noIndex: true });
 
     return buildMetadata({
+        feed: { url: FEED_PATH, title: FEED_TITLE },
         // El sufijo nombra el blog, no solo el sitio: `absoluteTitle` evita
         // que la plantilla del layout añada además "| Play in One".
         title: `${post.title} | Blog de Play in One`,

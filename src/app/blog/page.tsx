@@ -3,15 +3,16 @@ import { getPosts } from '@/lib/api';
 import type { Post } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { blogJsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
+import { FEED_DESCRIPTION, FEED_PATH, FEED_TITLE } from '@/lib/rss';
 import BlogListClient from './BlogListClient';
 
 export const revalidate = 300;
 
 export const metadata: Metadata = buildMetadata({
     title: 'Blog — Noticias y Comunidad',
-    description:
-        'Noticias, ofertas y novedades del mundo gaming en Chile. Mantente al día con lo último de Play in One.',
+    description: FEED_DESCRIPTION,
     path: '/blog',
+    feed: { url: FEED_PATH, title: FEED_TITLE },
 });
 
 export default async function BlogPage() {

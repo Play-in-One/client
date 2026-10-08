@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Alert, Button, Container, Group, Title, SimpleGrid, Card, Box, Text, Badge } from '@mantine/core';
-import { IconDeviceGamepad, IconPlus } from '@tabler/icons-react';
+import { Alert, Anchor, Button, Container, Group, Title, SimpleGrid, Card, Box, Text, Badge } from '@mantine/core';
+import { IconDeviceGamepad, IconPlus, IconRss } from '@tabler/icons-react';
 import type { Post } from '@/lib/types';
 import { trackEvent } from '@/lib/api';
 import Link from 'next/link';
@@ -22,6 +22,9 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
         <Container size="lg" py={60}>
             <Group justify="space-between" mb="xl">
                 <Title order={1}>Noticias y Comunidad</Title>
+                <Anchor href="/blog/rss.xml" fz="sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <IconRss size={16} aria-hidden /> RSS
+                </Anchor>
                 {isAdmin && (
                     <Button leftSection={<IconPlus size={18} />} onClick={() => setCreating(true)}>Crear post</Button>
                 )}

@@ -190,4 +190,24 @@ test.describe('buildMetadata', () => {
         expect(meta.title).toEqual({ absolute: 'Post | Blog de Play in One' });
         expect(meta.openGraph?.title).toBe('Post | Blog de Play in One');
     });
+
+    test('feed: alternates.types anuncia el RSS y conserva el canonical', () => {
+        const meta = buildMetadata({
+            title: 'Blog', path: '/blog',
+            feed: { url: '/blog/rss.xml', title: 'Blog de Play in One' },
+        });
+        expect(meta.alternates?.canonical).toBe(absoluteUrl('/blog'));
+        expect(meta.alternates?.types).toEqual({
+            'application/rss+xml': [{ url: '/blog/rss.xml', title: 'Blog de Play in One' }],
+        });
+        expect(buildMetadata({ title: 'X' }).alternates).not.toHaveProperty('types');
+    });
+});
+
+test.describe('excerpt: ítems vacíos', () => {
+    test('un ítem que solo trae una imagen no deja ", ," en el resumen', () => {
+        const out = postExcerpt('Incluye:\n\n- Primero\n- ![x](https://e.com/a.png)\n- Tercero');
+        expect(out).not.toMatch(/,\s*,/);
+        expect(postPlainText('- Primero\n- ![x](u)\n- Tercero')).toBe('Primero, Tercero');
+    });
 });

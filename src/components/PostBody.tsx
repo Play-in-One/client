@@ -53,9 +53,10 @@ const components: Components = {
 };
 
 function PostLink({ href, children }: { href?: string; children: ReactNode }) {
-    // Interno (`/juego/...`): navegación del router sin recargar. `//host` es
-    // un enlace externo con protocolo implícito, no una ruta del sitio.
-    if (href?.startsWith('/') && !href.startsWith('//')) {
+    // Interno (`/juego/...`): navegación del router sin recargar. `//host` y
+    // `/\host` son enlaces externos con protocolo implícito (el navegador
+    // normaliza `\` a `/`), no rutas del sitio.
+    if (href && /^\/(?![\/\\])/.test(href)) {
         return <Anchor component={Link} href={href}>{children}</Anchor>;
     }
     return <Anchor href={href} target="_blank" rel="noopener">{children}</Anchor>;

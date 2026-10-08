@@ -74,6 +74,9 @@ function blocks(md: string): Block[] {
         const unquoted = raw.replace(/^\s*(>\s?)+/, '');
         const isHeading = HEADING.test(unquoted);
         const text = stripInline(stripBlockMarkers(raw)).trim();
+        // Ítem que queda vacío (p. ej. solo una imagen): se salta, o el resumen
+        // saldría con ", ," entre sus vecinos.
+        if (!text && LIST_ITEM.test(unquoted)) continue;
         if (isHeading) {
             flush();
             const clean = text.replace(/\s+/g, ' ').replace(/\s*#+$/, '');
