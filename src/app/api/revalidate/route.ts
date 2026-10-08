@@ -9,7 +9,7 @@ import { timingSafeEqual } from 'crypto';
 
    POST /api/revalidate
    Header: x-revalidate-token: <REVALIDATE_TOKEN>
-   Body opcional: { "paths": ["/", "/blog", "/blog/12"] }  (default: ["/", "/blog"])
+   Body opcional: { "paths": ["/", "/blog", "/blog/mi-post-12"] }  (default: ["/", "/blog"])
 */
 
 /* Solo rutas conocidas: evita que un token filtrado sirva para purgar rutas
@@ -19,7 +19,7 @@ import { timingSafeEqual } from 'crypto';
    podía tardar hasta 5 minutos en verse y su dato estructurado seguía
    publicando la cifra vieja mientras tanto. */
 const ALLOWED_PATH =
-    /^\/$|^\/blog$|^\/blog\/\d+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$|^\/sagas$|^\/saga\/[a-z0-9-]+$|^\/encuestas$/;
+    /^\/$|^\/blog$|^\/blog\/[a-z0-9-]+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$|^\/sagas$|^\/saga\/[a-z0-9-]+$|^\/encuestas$/;
 
 function tokenMatches(provided: string, expected: string): boolean {
     const a = Buffer.from(provided);

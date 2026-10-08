@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
-import { absoluteUrl, gamePath } from '@/lib/seo';
+import { absoluteUrl, gamePath, postPath } from '@/lib/seo';
 
 /**
  * Se genera POR PETICIÓN, nunca en el build.
@@ -84,8 +84,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             const res = await getPosts({ page, ordering: '-published_date' });
             for (const p of res.results) {
                 posts.push({
-                    url: absoluteUrl(`/blog/${p.id}`),
-                    lastModified: p.published_date,
+                    url: absoluteUrl(postPath(p)),
+                    // Una corrección del post también es contenido nuevo.
+                    lastModified: p.updated_at ?? p.published_date,
                     changeFrequency: 'monthly',
                     priority: 0.5,
                 });

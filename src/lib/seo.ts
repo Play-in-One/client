@@ -6,6 +6,7 @@ import { platformLongName } from '@/lib/types';
 import type { Metadata } from 'next';
 import type { Game, Platform, Post, Product, Seller, Stats } from './types';
 import { formatCLP } from './utils';
+import { CATEGORY_LABEL, postExcerpt, postWordCount } from './postText';
 
 /** Public site origin. Configure NEXT_PUBLIC_SITE_URL at deploy time. */
 export const SITE_URL = (
@@ -66,6 +67,17 @@ export function gamePath(
     return `/juego/${segment}${platformSlug ? `?platform=${platformSlug}` : ''}`;
 }
 
+/**
+ * Ruta de un post: `/blog/<slug>-<id>`. Mismo esquema que `gamePath`: resuelve
+ * el id, el slug (derivado del título en el backend) solo describe, y uno que
+ * no cuadra responde 308 a la canónica. Sin slug (backend anterior al campo)
+ * se emite `/blog/<id>`, que también redirige. Único constructor de esta URL
+ * en el cliente.
+ */
+export function postPath(post: { id: number; slug?: string | null }): string {
+    return `/blog/${post.slug ? `${post.slug}-${post.id}` : post.id}`;
+}
+
 export function absoluteUrl(path = '/'): string {
     if (/^https?:\/\//i.test(path)) return path;
     return `${SITE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
@@ -83,6 +95,14 @@ interface BuildMetadataArgs {
     noIndex?: boolean;
     /** ISO date for article types. */
     publishedTime?: string;
+    /** Última edición de un artículo (og `article:modified_time`). */
+    modifiedTime?: string;
+    /** Sección de un artículo (og `article:section`). */
+    section?: string;
+    /** El `title` ya es el definitivo: no se le aplica la plantilla
+     *  `%s | Play in One` del layout raíz. Sin esto, un título que ya nombra
+     *  al sitio saldría con el sufijo dos veces. */
+    absoluteTitle?: boolean;
 }
 
 /**
@@ -97,13 +117,18 @@ export function buildMetadata({
     type = 'website',
     noIndex,
     publishedTime,
+    modifiedTime,
+    section,
+    absoluteTitle,
 }: BuildMetadataArgs = {}): Metadata {
     const url = absoluteUrl(path);
     const desc = description ?? siteConfig.description;
     const images = image ? [{ url: image }] : undefined;
 
+    const isArticle = type === 'article';
+
     return {
-        title,
+        title: absoluteTitle && title ? { absolute: title } : title,
         description: desc,
         alternates: { canonical: url },
         ...(noIndex ? { robots: { index: false, follow: true } } : {}),
@@ -115,7 +140,9 @@ export function buildMetadata({
             title: title ?? siteConfig.title,
             description: desc,
             ...(images ? { images } : {}),
-            ...(type === 'article' && publishedTime ? { publishedTime } : {}),
+            ...(isArticle && publishedTime ? { publishedTime } : {}),
+            ...(isArticle && modifiedTime ? { modifiedTime } : {}),
+            ...(isArticle && section ? { section } : {}),
         },
         twitter: {
             card: 'summary_large_image',
@@ -499,24 +526,58 @@ export function faqJsonLd(entries: FaqEntry[], path?: string): JsonLdObject {
     };
 }
 
-/** Article / NewsArticle for a blog post. */
+/** `NewsArticle` para las noticias; el resto del blog es `BlogPosting`, el
+ *  subtipo de `Article` que schema.org define para un blog. */
+function postSchemaType(post: Pick<Post, 'category'>): 'NewsArticle' | 'BlogPosting' {
+    return post.category === 'news' ? 'NewsArticle' : 'BlogPosting';
+}
+
+/**
+ * Artículo de un post del blog.
+ *
+ * `description` es el resumen, NO el cuerpo: el cuerpo entero (y en Markdown)
+ * duplicaba la página dentro del dato estructurado. `dateModified` sale de
+ * `updated_at` para que una corrección se note como contenido fresco; sin el
+ * campo (backend anterior) cae a la publicación.
+ */
 export function articleJsonLd(post: Post): JsonLdObject {
     return {
         '@context': 'https://schema.org',
-        '@type': post.category === 'news' ? 'NewsArticle' : 'Article',
+        '@type': postSchemaType(post),
         headline: post.title,
-        description: post.description,
-        ...(post.image ? { image: post.image } : {}),
+        description: postExcerpt(post.description),
+        ...(post.image ? { image: absoluteUrl(post.image) } : {}),
         datePublished: post.published_date,
-        dateModified: post.published_date,
+        dateModified: post.updated_at ?? post.published_date,
+        articleSection: CATEGORY_LABEL[post.category],
+        wordCount: postWordCount(post.description),
         inLanguage: siteConfig.lang,
-        mainEntityOfPage: absoluteUrl(`/blog/${post.id}`),
+        mainEntityOfPage: absoluteUrl(postPath(post)),
         author: { '@type': 'Organization', name: siteConfig.name },
         publisher: {
             '@type': 'Organization',
             name: siteConfig.name,
-            logo: { '@type': 'ImageObject', url: absoluteUrl('/PIO-punto-negro.svg') },
+            // PNG y no SVG: Google no acepta SVG como logo del publisher.
+            logo: { '@type': 'ImageObject', url: absoluteUrl('/PIO.png') },
         },
+    };
+}
+
+/** `Blog` de `/blog`: el índice que enlaza cada post por su URL canónica. */
+export function blogJsonLd(posts: Post[]): JsonLdObject {
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        name: 'Blog de Play in One',
+        url: absoluteUrl('/blog'),
+        inLanguage: siteConfig.lang,
+        blogPost: posts.map((p) => ({
+            '@type': postSchemaType(p),
+            headline: p.title,
+            url: absoluteUrl(postPath(p)),
+            datePublished: p.published_date,
+            dateModified: p.updated_at ?? p.published_date,
+        })),
     };
 }
 

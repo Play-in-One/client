@@ -73,13 +73,15 @@ test('emite post_click al pulsar una tarjeta y post_view al abrir el post', asyn
     const card = page.locator('a[href^="/blog/"]').first();
     await expect(card).toBeVisible();
 
-    const postId = (await card.getAttribute('href'))!.split('/').pop()!;
+    // El href es `/blog/<slug>-<id>`: el evento lleva el id, la visita la ruta.
+    const segment = (await card.getAttribute('href'))!.split('/').pop()!;
+    const postId = segment.split('-').pop()!;
     await card.click();
 
     await expect.poll(() => hasEvent(events, 'post_click', postId)).toBe(true);
     await expect.poll(() => hasEvent(events, 'post_view', postId)).toBe(true);
     // La ruta del detalle también cuenta como visita: el pageview es global.
-    await expect.poll(() => hasEvent(events, 'page_view', `/blog/${postId}`)).toBe(true);
+    await expect.poll(() => hasEvent(events, 'page_view', `/blog/${segment}`)).toBe(true);
 });
 
 test('cada red del footer emite social_click con su propia red', async ({ page }) => {

@@ -8,6 +8,8 @@ import { trackEvent } from '@/lib/api';
 import Link from 'next/link';
 import { useAdmin } from '@/context/AdminContext';
 import PostEditorModal from '@/components/PostEditorModal';
+import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
+import { formatDate, postPath } from '@/lib/seo';
 
 export default function BlogListClient({ initialPosts }: { initialPosts: Post[] }) {
     const { isAdmin } = useAdmin();
@@ -26,7 +28,7 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
             </Group>
             {lastCreated && (
                 <Alert color="green" mb="lg" role="status">
-                    Post publicado. <Link href={`/blog/${lastCreated.id}`}>Ver post</Link>
+                    Post publicado. <Link href={postPath(lastCreated)}>Ver post</Link>
                 </Alert>
             )}
             <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
@@ -34,7 +36,7 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                     <Card
                         key={post.id}
                         component={Link}
-                        href={`/blog/${post.id}`}
+                        href={postPath(post)}
                         withBorder
                         shadow="sm"
                         radius="lg"
@@ -62,11 +64,13 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                             )}
                         </Box>
                         <Box p="lg">
-                            <Badge color="primaryRed" mb="sm">{post.category}</Badge>
+                            <Badge color="primaryRed" mb="sm">{CATEGORY_LABEL[post.category] ?? post.category}</Badge>
                             <Text fw={700} fz="lg" mb="xs" lineClamp={2}>{post.title}</Text>
-                            <Text fz="sm" c="dimmed" lineClamp={3}>{post.description}</Text>
+                            {/* El cuerpo es Markdown: la tarjeta muestra el resumen en texto
+                                plano, el mismo de la meta description. */}
+                            <Text fz="sm" c="dimmed" lineClamp={3}>{postExcerpt(post.description)}</Text>
                             <Text fz="xs" c="dimmed" mt="md" component="time" dateTime={post.published_date}>
-                                {new Date(post.published_date).toLocaleDateString()}
+                                {formatDate(post.published_date)}
                             </Text>
                         </Box>
                     </Card>

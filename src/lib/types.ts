@@ -343,6 +343,10 @@ export interface Post {
     description: string;
     image: string;
     published_date: string;
+    /** Opcionales para tolerar un backend anterior al campo: sin `slug` la URL
+     *  cae a `/blog/<id>` y sin `updated_at` se usa `published_date`. */
+    slug?: string;
+    updated_at?: string;
 }
 
 export type PostPayload = Pick<Post, 'title' | 'category' | 'description' | 'image'>;

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { getPosts } from '@/lib/api';
 import type { Post } from '@/lib/types';
-import { buildMetadata } from '@/lib/seo';
+import { JsonLd } from '@/components/JsonLd';
+import { blogJsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 import BlogListClient from './BlogListClient';
 
 export const revalidate = 300;
@@ -20,5 +21,19 @@ export default async function BlogPage() {
     } catch {
         /* render empty list on API failure */
     }
-    return <BlogListClient initialPosts={posts} />;
+    // El índice declara cada post por su URL canónica (con slug) en el HTML
+    // del servidor: es lo único que lee un crawler sin JavaScript.
+    const jsonLd = [
+        blogJsonLd(posts),
+        breadcrumbJsonLd([
+            { name: 'Inicio', path: '/' },
+            { name: 'Blog', path: '/blog' },
+        ]),
+    ];
+    return (
+        <>
+            <JsonLd data={jsonLd} />
+            <BlogListClient initialPosts={posts} />
+        </>
+    );
 }

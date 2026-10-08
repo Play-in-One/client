@@ -33,6 +33,8 @@ import GameGridSkeleton from '@/components/GameGridSkeleton';
 import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
 import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
+import { postPath } from '@/lib/seo';
+import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
 import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
 
 export default function HomeClient({
@@ -399,7 +401,7 @@ export default function HomeClient({
                             <Card
                                 key={n.id}
                                 component="a"
-                                href={`/blog/${n.id}`}
+                                href={postPath(n)}
                                 withBorder
                                 shadow="sm"
                                 radius="lg"
@@ -429,10 +431,10 @@ export default function HomeClient({
                                 </Box>
                                 <Box p={{ base: 'md', md: 'lg' }}>
                                     <Text fz={{ base: 10, md: 'xs' }} fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={{ base: 4, md: 6 }} style={{ letterSpacing: 1 }}>
-                                        {n.category}
+                                        {CATEGORY_LABEL[n.category] ?? n.category}
                                     </Text>
                                     <Text fw={700} fz={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 6 }} lineClamp={2}>{n.title}</Text>
-                                    <Text fz={{ base: 'xs', md: 'sm' }} c="dimmed" lineClamp={3}>{n.description}</Text>
+                                    <Text fz={{ base: 'xs', md: 'sm' }} c="dimmed" lineClamp={3}>{postExcerpt(n.description)}</Text>
                                 </Box>
                             </Card>
                         ))}

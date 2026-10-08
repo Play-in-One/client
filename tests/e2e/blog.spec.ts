@@ -1,10 +1,12 @@
-import { test, expect, type Page } from '@playwright/test';
-import { SEEDED, seededPostId } from './helpers';
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { SEEDED, seededPostId, serverHtml } from './helpers';
 import { POLICY_VERSION } from '../../src/lib/consent';
+import { CATEGORY_LABEL } from '../../src/lib/postText';
+import type { Post } from '../../src/lib/types';
 
 /**
  * El blog se resuelve ENTERO en el servidor (`app/blog/page.tsx` y
- * `app/blog/[id]/page.tsx`), y `BlogListClient`/`BlogPostClient` se limitan a
+ * `app/blog/[slug]/page.tsx`), y `BlogListClient`/`BlogPostClient` se limitan a
  * pintar el prop que reciben. Ese fetch sale del contenedor de Next hacia
  * `backend:8001`, así que `page.route` no puede verlo: los mocks que había aquí
  * no interceptaban nada y los tests dependían, sin decirlo, de que la base
@@ -15,6 +17,29 @@ import { POLICY_VERSION } from '../../src/lib/consent';
  */
 
 const [DEALS_POST, NEWS_POST] = SEEDED.posts;
+/** Post Markdown de `seed_e2e` (contrato del backend B1). */
+const GUIDE_TITLE = 'E2E Guía con formato';
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
+
+/** El post sembrado tal como lo publica la API, con su `slug`. */
+async function seededPost(request: APIRequestContext, title: string): Promise<Post> {
+    const res = await request.get(`${API}/posts/?search=${encodeURIComponent(title)}`);
+    const { results } = await res.json();
+    const post = (results as Post[]).find((p) => p.title === title);
+    if (!post?.slug) {
+        throw new Error(
+            `No está el post "${title}" con slug. Corre: docker exec develop-backend-1 python manage.py seed_e2e`,
+        );
+    }
+    return post;
+}
+
+/** Bloques JSON-LD del HTML CRUDO (`serverHtml` quita los <script>). */
+async function jsonLdBlocks(request: APIRequestContext, path: string): Promise<Record<string, unknown>[]> {
+    const html = await (await request.get(path, { headers: { 'User-Agent': 'GPTBot' } })).text();
+    return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+        .map((m) => JSON.parse(m[1]));
+}
 
 test('la página de blog carga los posts', async ({ page }) => {
     await page.goto('/blog');
@@ -26,15 +51,15 @@ test('los badges de categoría se muestran en cada post', async ({ page }) => {
     await page.goto('/blog');
     // El badge repite la categoría en cada tarjeta de esa categoría, así que se
     // comprueba que aparezca al menos una vez y no que sea único.
-    await expect(page.getByText(DEALS_POST.category).first()).toBeVisible();
-    await expect(page.getByText(NEWS_POST.category).first()).toBeVisible();
+    await expect(page.getByText(CATEGORY_LABEL[DEALS_POST.category]).first()).toBeVisible();
+    await expect(page.getByText(CATEGORY_LABEL[NEWS_POST.category]).first()).toBeVisible();
 });
 
 test('hacer click en un post navega al detalle', async ({ page }) => {
     const id = await seededPostId(page, DEALS_POST.title);
     await page.goto('/blog');
     await page.getByText(DEALS_POST.title).click();
-    await expect(page).toHaveURL(new RegExp(`/blog/${id}`));
+    await expect(page).toHaveURL(new RegExp(`/blog/[a-z0-9-]+-${id}$`));
 });
 
 test('la página de detalle de post muestra el contenido', async ({ page }) => {
@@ -49,7 +74,69 @@ test('la página de detalle de post muestra el contenido', async ({ page }) => {
 test('la página de detalle muestra el badge de categoría', async ({ page }) => {
     const id = await seededPostId(page, DEALS_POST.title);
     await page.goto(`/blog/${id}`);
-    await expect(page.getByText(DEALS_POST.category).first()).toBeVisible();
+    await expect(page.getByText(CATEGORY_LABEL[DEALS_POST.category]).first()).toBeVisible();
+});
+
+/* ── URL canónica con slug: status reales, no un 200 con meta refresh ──── */
+
+test('/blog/<id> responde 308 a /blog/<slug>-<id>', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const res = await request.get(`/blog/${post.id}`, { maxRedirects: 0 });
+    expect(res.status()).toBe(308);
+    expect(res.headers().location).toMatch(new RegExp(`/blog/${post.slug}-${post.id}$`));
+});
+
+test('un slug equivocado responde 308 a la canónica', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const res = await request.get(`/blog/otro-titulo-${post.id}`, { maxRedirects: 0 });
+    expect(res.status()).toBe(308);
+    expect(res.headers().location).toMatch(new RegExp(`/blog/${post.slug}-${post.id}$`));
+});
+
+test('un post inexistente o un segmento sin id es un 404 de verdad', async ({ request }) => {
+    expect((await request.get('/blog/nada-99999999', { maxRedirects: 0 })).status()).toBe(404);
+    expect((await request.get('/blog/sin-id', { maxRedirects: 0 })).status()).toBe(404);
+});
+
+test('el HTML del servidor trae cuerpo, canonical, título, categoría y JSON-LD', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const path = `/blog/${post.slug}-${post.id}`;
+    const html = await serverHtml(request, path);
+    expect(html).toContain('Aprovecha estas ofertas de videojuegos este mes en Chile.');
+    expect(html).toMatch(new RegExp(`<link rel="canonical" href="[^"]*${path}"`));
+    expect(html).toContain(`<title>${DEALS_POST.title} | Blog de Play in One</title>`);
+    expect(html).toMatch(new RegExp(`>${CATEGORY_LABEL[DEALS_POST.category]}<`));
+
+    const article = (await jsonLdBlocks(request, path))
+        .find((b) => b['@type'] === 'BlogPosting' || b['@type'] === 'NewsArticle');
+    expect(article).toBeTruthy();
+    expect(article!.dateModified).toBeTruthy();
+    expect(article!.articleSection).toBe(CATEGORY_LABEL[DEALS_POST.category]);
+    expect(article!.mainEntityOfPage).toMatch(new RegExp(`${path}$`));
+});
+
+test('el description del JSON-LD es un resumen en texto plano, no el cuerpo', async ({ request }) => {
+    const post = await seededPost(request, GUIDE_TITLE);
+    const article = (await jsonLdBlocks(request, `/blog/${post.slug}-${post.id}`))
+        .find((b) => b['@type'] === 'BlogPosting' || b['@type'] === 'NewsArticle');
+    expect(article).toBeTruthy();
+    const description = String(article!.description);
+    expect(description.length).toBeGreaterThan(0);
+    expect(description.length).toBeLessThan(post.description.length);
+    expect(description).not.toMatch(/[#*[\]]/);
+    expect(article!.wordCount).toBeGreaterThan(0);
+});
+
+test('/blog enlaza los posts por su URL con slug y declara el Blog', async ({ request }) => {
+    const post = await seededPost(request, DEALS_POST.title);
+    const html = await serverHtml(request, '/blog');
+    expect(html).toContain(`href="/blog/${post.slug}-${post.id}"`);
+    expect(html).not.toMatch(/href="\/blog\/\d+"/);
+
+    const blog = (await jsonLdBlocks(request, '/blog')).find((b) => b['@type'] === 'Blog');
+    expect(blog).toBeTruthy();
+    const urls = (blog!.blogPost as { url: string }[]).map((p) => p.url);
+    expect(urls.some((u) => u.endsWith(`/blog/${post.slug}-${post.id}`))).toBe(true);
 });
 
 async function signInAsStaff(page: Page) {
@@ -120,7 +207,7 @@ test('staff edita el artículo con los campos precargados', async ({ page }) => 
         } });
     });
     await page.goto(`/blog/${id}`);
-    const date = await page.locator('time').getAttribute('datetime');
+    const date = await page.locator('time').first().getAttribute('datetime');
     await page.getByRole('button', { name: 'Editar post' }).click();
     const dialog = page.getByRole('dialog', { name: 'Editar post' });
     await expect(dialog.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue(DEALS_POST.title);
@@ -133,7 +220,7 @@ test('staff edita el artículo con los campos precargados', async ({ page }) => 
     await expect(dialog).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Título actualizado por staff' })).toBeVisible();
     await expect(page.getByText('Texto actualizado.', { exact: true })).toBeVisible();
-    await expect(page.locator('time')).toHaveAttribute('datetime', date!);
+    await expect(page.locator('time').first()).toHaveAttribute('datetime', date!);
     await page.getByRole('button', { name: 'Editar post' }).click();
     await expect(dialog.getByRole('textbox', { name: 'Título', exact: true })).toHaveValue('Título actualizado por staff');
 });

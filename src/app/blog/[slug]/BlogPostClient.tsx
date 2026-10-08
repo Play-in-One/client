@@ -9,6 +9,21 @@ import { trackEvent } from '@/lib/api';
 import { useConsent } from '@/context/ConsentContext';
 import { useAdmin } from '@/context/AdminContext';
 import PostEditorModal from '@/components/PostEditorModal';
+import { CATEGORY_LABEL } from '@/lib/postText';
+import { formatDate } from '@/lib/seo';
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Solo una edición posterior al día de publicación merece el aviso: el
+ *  `updated_at` de un post recién creado difiere de `published_date` en
+ *  milisegundos, y una errata corregida esa misma tarde no es una novedad. */
+function updatedAfterPublishing(post: Post): string | null {
+    if (!post.updated_at) return null;
+    const published = Date.parse(post.published_date);
+    const updated = Date.parse(post.updated_at);
+    if (Number.isNaN(published) || Number.isNaN(updated)) return null;
+    return updated - published > DAY_MS ? post.updated_at : null;
+}
 
 export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
     const { isAdmin } = useAdmin();
@@ -32,18 +47,29 @@ export default function BlogPostClient({ initialPost }: { initialPost: Post }) {
         trackEvent({ event_type: 'post_view', post: post.id });
     }, [post.id, ready]);
 
+    const updatedAt = updatedAfterPublishing(post);
+
     return (
         <Container size="md" py={60}>
             <Group justify="space-between" mb="md">
-                <Badge color="primaryRed">{post.category}</Badge>
+                <Badge color="primaryRed">{CATEGORY_LABEL[post.category] ?? post.category}</Badge>
                 {isAdmin && (
                     <Button variant="light" leftSection={<IconPencil size={18} />} onClick={() => setEditing(true)}>Editar post</Button>
                 )}
             </Group>
             {savedPost?.id === initialPost.id && <Alert color="green" mb="lg" role="status">Cambios guardados.</Alert>}
             <Title order={1} mb="sm">{post.title}</Title>
-            <Text c="dimmed" mb="xl" component="time" dateTime={post.published_date}>
-                {new Date(post.published_date).toLocaleDateString()}
+            {/* La fecha se formatea con zona fija (America/Santiago): con
+                `toLocaleDateString()` el HTML del servidor y el del navegador
+                podían diferir en el día y romper la hidratación. */}
+            <Text c="dimmed" mb="xl">
+                <time dateTime={post.published_date}>{formatDate(post.published_date)}</time>
+                {updatedAt && (
+                    <>
+                        {' · Actualizado el '}
+                        <time dateTime={updatedAt}>{formatDate(updatedAt)}</time>
+                    </>
+                )}
             </Text>
 
             {post.image && (
