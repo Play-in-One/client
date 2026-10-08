@@ -679,3 +679,16 @@ a.saga-banner-link:focus-visible {
 .pio-details[open] > summary .pio-details-chevron {
   transform: rotate(180deg);
 }
+
+/* Variante (i): el summary es el encabezado de otra sección y el icono de
+   información es lo único que delata el desplegable. */
+.pio-details-info {
+  flex-shrink: 0;
+  color: var(--mantine-color-dimmed);
+  transition: color 0.15s;
+}
+
+.pio-details-inline > summary:hover .pio-details-info,
+.pio-details-inline[open] > summary .pio-details-info {
+  color: var(--mantine-color-primaryRed-filled);
+}

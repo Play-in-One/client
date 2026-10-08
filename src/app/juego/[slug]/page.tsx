@@ -233,7 +233,15 @@ export default async function GameDetailPage({
                            del servidor y no viaja en el bundle de la ficha. */
                         summarySlot={
                             summary.length || monthly.length
-                                ? <PriceSummarySection sentences={summary} monthly={monthly} platforms={game.platforms} />
+                                ? <PriceSummarySection
+                                    sentences={summary}
+                                    monthly={monthly}
+                                    platforms={game.platforms}
+                                    /* Con calificaciones lo despliega la (i) del
+                                       encabezado «Calificaciones» y el título va
+                                       dentro; sin ellas, el propio summary ya lo dice. */
+                                    heading={(game.ratings?.length ?? 0) > 0}
+                                />
                                 : undefined
                         }
                     />

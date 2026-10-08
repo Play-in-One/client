@@ -38,6 +38,7 @@ import {
     IconTag,
     IconTableColumn,
     IconChevronDown,
+    IconInfoCircle,
     IconChevronRight,
     IconHome,
     IconCheck,
@@ -173,12 +174,29 @@ function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: Rea
     // Solo las secciones con dato, en orden; cada una lleva el separador
     // inferior salvo la última, sea cual sea.
     const sections: { key: string; node: ReactNode }[] = [];
-    if ((game.ratings?.length ?? 0) > 0) {
+    const hasRatings = (game.ratings?.length ?? 0) > 0;
+    if (hasRatings) {
         sections.push({
             key: 'ratings',
             node: (
                 <>
-                    <Text fz="lg" fw={700}>Calificaciones</Text>
+                    {/* Con resumen de precios, el encabezado es el `<summary>`
+                        de un `<details>` nativo: la (i) lo despliega justo
+                        debajo. El resumen sigue entero en el HTML inicial
+                        —lo único que lee un crawler sin JS—; un tooltip o
+                        popover lo montaría solo al abrirlo y no existiría
+                        para Google ni para los motores generativos. */}
+                    {summarySlot ? (
+                        <details className="pio-details pio-details-inline">
+                            <summary aria-label="Resumen de precios" title="Resumen de precios">
+                                <Text component="span" fz="lg" fw={700}>Calificaciones</Text>
+                                <IconInfoCircle size={18} className="pio-details-info" />
+                            </summary>
+                            {summarySlot}
+                        </details>
+                    ) : (
+                        <Text fz="lg" fw={700}>Calificaciones</Text>
+                    )}
                     {/* En texto, además del gráfico: el gráfico es solo de
                         cliente (recharts) y un crawler sin JS no lo ve. Sale
                         de `lib/ratings`, igual que el gráfico, así que las
@@ -255,14 +273,13 @@ function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: Rea
             ),
         });
     }
-    if (summarySlot) {
+    if (summarySlot && !hasRatings) {
         sections.push({
             key: 'prices',
             node: (
-                /* Plegable y nativo (`<details>`): el resumen y su tabla
-                   siguen en el HTML inicial —lo único que lee un crawler sin
-                   JS— sin alargar la tarjeta para quien solo quiere el precio.
-                   El chevron gira por CSS (`.pio-details[open]`), sin estado:
+                /* Sin calificaciones no hay encabezado al que pegarle la (i):
+                   el resumen va como fila propia, plegable y nativa. El
+                   chevron gira por CSS (`.pio-details[open]`), sin estado:
                    esta tarjeta se renderiza dos veces (desktop y mobile). */
                 <details className="pio-details">
                     <summary>

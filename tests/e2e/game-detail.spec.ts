@@ -288,9 +288,10 @@ test('el resumen de precios está en el HTML del servidor', async ({ request }) 
     const html = await serverHtml(request, gamePath);
     expect(html).toContain('Resumen de precios');
     expect(html).toContain('precio más barato');
-    // Plegado dentro de la tarjeta de información (`<details>` nativo): el
-    // texto sigue en el HTML inicial aunque el bloque arranque cerrado.
-    expect(html).toMatch(/<details class="pio-details">\s*<summary[^>]*>[\s\S]*?Resumen de precios/);
+    // Plegado dentro de la tarjeta de información (`<details>` nativo, cuyo
+    // summary es la fila «Calificaciones» con la (i)): el texto sigue en el
+    // HTML inicial aunque el bloque arranque cerrado.
+    expect(html).toMatch(/<details class="pio-details[^"]*">\s*<summary[^>]*>[\s\S]*?Resumen de precios/);
 });
 
 test('la tabla de mínimos mensuales aparece cuando hay historial de ≥2 meses', async ({ request }) => {
