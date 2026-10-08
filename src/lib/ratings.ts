@@ -7,7 +7,7 @@
  */
 import type { GameRating, GameRatingSource } from './types';
 
-export const RATING_SOURCE_ORDER: Record<GameRatingSource, { label: string; order: number }> = {
+export const RATING_SOURCES: Record<GameRatingSource, { label: string; order: number }> = {
     metacritic: { label: 'Metacritic', order: 0 },
     igdb: { label: 'IGDB', order: 1 },
     steam: { label: 'Steam', order: 2 },
@@ -21,7 +21,7 @@ export interface NormalizedRating extends GameRating {
 export function normalizeRatings(ratings: GameRating[]): NormalizedRating[] {
     return ratings
         .flatMap((rating) => {
-            if (!(rating.source in RATING_SOURCE_ORDER)) return [];
+            if (!(rating.source in RATING_SOURCES)) return [];
             const score = Number(rating.score);
             const scale = Number(rating.scale);
             if (!Number.isFinite(score) || !Number.isFinite(scale) || scale <= 0 || score < 0 || score > scale) {
@@ -29,11 +29,11 @@ export function normalizeRatings(ratings: GameRating[]): NormalizedRating[] {
             }
             return [{
                 ...rating,
-                sourceLabel: RATING_SOURCE_ORDER[rating.source].label,
+                sourceLabel: RATING_SOURCES[rating.source].label,
                 normalized: score / scale * 10,
             }];
         })
-        .sort((a, b) => RATING_SOURCE_ORDER[a.source].order - RATING_SOURCE_ORDER[b.source].order);
+        .sort((a, b) => RATING_SOURCES[a.source].order - RATING_SOURCES[b.source].order);
 }
 
 /** Promedio simple de lo ya normalizado (todas las fuentes pesan igual, como

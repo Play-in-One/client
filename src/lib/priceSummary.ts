@@ -9,9 +9,9 @@
  */
 import { CONDITION_LABEL } from './conditions';
 import { normalizeRatings, averageNormalized } from './ratings';
-import { PLATFORMS_BY_SLUG } from './platforms';
 import { bestPriceSentence, formatDate } from './seo';
-import type { Game, GameRating, PriceStatPoint, PriceStats } from './types';
+import { platformLongName } from './types';
+import type { Game, GameRating, Platform, PriceStatPoint, PriceStats } from './types';
 import { formatCLP } from './utils';
 
 const decimal = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 });
@@ -22,9 +22,14 @@ const num = (value: string | number | null | undefined): number | null => {
     return Number.isFinite(n) ? n : null;
 };
 
-/** Nombre largo de una consola por slug; el slug mismo si el catálogo no la
- *  conoce (mejor un dato crudo que ocultar la frase). */
-const platformName = (slug: string): string => PLATFORMS_BY_SLUG[slug]?.long ?? slug;
+/** Nombre largo de una consola por slug, resuelto con las consolas del propio
+ *  juego y `platformLongName`. No se usa el catálogo `platforms.ts`: arrastra
+ *  los iconos de todas las consolas a los Server Components. Si el juego no la
+ *  lista, el slug mismo (mejor un dato crudo que ocultar la frase). */
+const platformName = (slug: string, platforms: Platform[] = []): string => {
+    const platform = platforms.find((p) => p.slug === slug);
+    return platform ? platformLongName(platform) : slug;
+};
 
 /** Fecha larga es-CL de un `YYYY-MM-DD` del backend.
  *
@@ -38,12 +43,15 @@ export function formatStatDate(iso: string | null | undefined): string | null {
 
 /* ── Cláusulas (se reutilizan tal cual en la FAQ) ─────────────────────── */
 
-export function historicMinSentence(min: PriceStatPoint | null | undefined): string | null {
+export function historicMinSentence(
+    min: PriceStatPoint | null | undefined,
+    platforms: Platform[] = [],
+): string | null {
     if (!min) return null;
     const date = formatStatDate(min.date);
     const when = date ? `, registrado el ${date}` : '';
     const where = min.seller ? ` en ${min.seller.name}` : '';
-    return `Su mínimo histórico es ${formatCLP(min.price)}${when}${where} (${platformName(min.platform)}).`;
+    return `Su mínimo histórico es ${formatCLP(min.price)}${when}${where} (${platformName(min.platform, platforms)}).`;
 }
 
 /** Distancia al mínimo. `null` si ya está en él o la diferencia no llega al 1%. */
@@ -74,7 +82,9 @@ export function averageSentence(
     const average = num(avg);
     const now = num(current);
     if (average == null || now == null) return null;
-    const rel = now < average ? 'por debajo del' : now > average ? 'por encima del' : 'en el';
+    // Se compara lo que se imprime: 50.000,4 vs 50.000 no puede decir "por encima".
+    const [a, n] = [Math.round(average), Math.round(now)];
+    const rel = n < a ? 'por debajo del' : n > a ? 'por encima del' : 'en el';
     return `El promedio de los últimos 180 días es ${formatCLP(average)}; hoy está ${rel} promedio.`;
 }
 
@@ -106,7 +116,7 @@ export function priceSummarySentences(game: Game): string[] {
 
     const current = num(game.min_price);
     const rest = [
-        historicMinSentence(stats.all_time_min),
+        historicMinSentence(stats.all_time_min, game.platforms),
         aboveMinSentence(stats, current),
         change30Sentence(stats.change_30d),
         averageSentence(stats.avg_180d, game.min_price),
@@ -148,12 +158,14 @@ function monthLabel(index: number): string {
  *  un mes sin precio: arrastra el último valor conocido, `null` ("sin stock")
  *  incluido. Mismo criterio de arrastre que `buildPriceSeries`, replicado aquí
  *  porque aquel trabaja sobre una ventana y un eje de tiempo, no sobre meses.
- *  El rango va del primer mes con datos al último mes con datos: no se
- *  extiende hasta hoy para que el resultado no dependa del reloj.
+ *  El rango va del primer mes con datos al mes de `now` (inyectable en
+ *  tests): como `buildPriceSeries`, que añade un punto en "ahora", un precio
+ *  estable desde un único cambio sigue figurando mes a mes.
  */
 export function monthlyMinimums(
     history: Game['min_price_history'],
     months = 6,
+    now: number | Date = Date.now(),
 ): { month: string; price: number; platform: string }[] {
     if (!history) return [];
 
@@ -170,8 +182,8 @@ export function monthlyMinimums(
 
     const all = series.flatMap((s) => s.points.map((p) => p.month));
     const first = Math.min(...all);
-    const last = Math.max(...all);
-    if (first === last) return [];
+    // Cada consola arrastra su último precio hasta el mes de `now`.
+    const last = Math.max(...all, monthIndex(+now));
 
     const result: { month: string; price: number; platform: string }[] = [];
     for (let m = first; m <= last; m++) {
@@ -203,7 +215,7 @@ export function ratingLines(ratings: GameRating[] | undefined): string[] {
     const normalized = normalizeRatings(ratings);
     const lines = normalized.map((r) => {
         const votes = r.count != null && r.count > 0 ? ` según ${r.count.toLocaleString('es-CL')} votos` : '';
-        return `Valoración ${r.label}: ${decimal.format(Number(r.score))}/${decimal.format(Number(r.scale))}${votes}`;
+        return `Valoración ${r.sourceLabel}: ${decimal.format(Number(r.score))}/${decimal.format(Number(r.scale))}${votes}`;
     });
     const average = averageNormalized(normalized);
     if (average != null) lines.push(`Promedio normalizado: ${decimal.format(average)}/10`);

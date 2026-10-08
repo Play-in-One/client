@@ -8,7 +8,6 @@ import {
     monthlyMinimums,
     ratingLines,
 } from '../../src/lib/priceSummary';
-import { normalizeRatings, averageNormalized } from '../../src/lib/ratings';
 import { bestPriceSentence } from '../../src/lib/seo';
 import type { Game, GameRating, PriceStats } from '../../src/lib/types';
 
@@ -34,9 +33,14 @@ const game = (price_stats: PriceStats | null, over: Partial<Game> = {}): Game =>
         min_price_shipping: '0',
         min_price_seller: { id: 9, name: 'Zmart' },
         products: [],
+        platforms: PLATFORMS,
         price_stats,
         ...over,
     }) as unknown as Game;
+
+const PLATFORMS = [
+    { slug: 'ps5', long_name: 'PlayStation 5', display_name: 'PS5' },
+] as unknown as Game['platforms'];
 
 const MIN = {
     price: '44990.00',
@@ -56,12 +60,14 @@ test('no price_stats -> only the best price sentence', () => {
 });
 
 test('historic min sentence with and without seller; date is not shifted by timezone', () => {
-    expect(historicMinSentence(MIN)).toBe(
+    expect(historicMinSentence(MIN, PLATFORMS)).toBe(
         'Su mínimo histórico es $44.990, registrado el 14 de julio de 2026 en Zmart (PlayStation 5).',
     );
-    expect(historicMinSentence({ ...MIN, seller: null })).toBe(
+    expect(historicMinSentence({ ...MIN, seller: null }, PLATFORMS)).toBe(
         'Su mínimo histórico es $44.990, registrado el 14 de julio de 2026 (PlayStation 5).',
     );
+    // sin la consola en el juego, cae al slug
+    expect(historicMinSentence(MIN)).toContain('(ps5)');
     expect(historicMinSentence(null)).toBeNull();
 });
 
@@ -91,6 +97,10 @@ test('change in 30 days: negative, positive, zero', () => {
         'El precio más bajo no ha cambiado en los últimos 30 días.',
     );
     expect(change30Sentence(null)).toBeNull();
+});
+
+test('average compares rounded values', () => {
+    expect(averageSentence('50000.40', '50000')).toContain('hoy está en el promedio');
 });
 
 test('average below / above / equal', () => {
@@ -142,6 +152,7 @@ test('priceSummarySentences keeps the documented order', () => {
     expect(s[5]).toBe('Precios en stock por condición: nuevo $44.990.');
 });
 
+const NOW = Date.parse('2026-09-20T15:00:00Z');
 const pt = (price: string | null, timestamp: string) => ({ price, timestamp });
 
 test('monthlyMinimums carries the last price across months and takes the min across platforms', () => {
@@ -156,12 +167,20 @@ test('monthlyMinimums carries the last price across months and takes the min acr
             '': [pt('45000', '2026-08-20T15:00:00Z')],
         },
     };
-    const out = monthlyMinimums(history, 6);
+    const out = monthlyMinimums(history, 6, NOW);
     expect(out).toEqual([
         { month: 'septiembre de 2026', price: 40000, platform: 'ps5' },
         { month: 'agosto de 2026', price: 45000, platform: 'switch' },
         { month: 'julio de 2026', price: 50000, platform: 'ps5' },
     ]);
+});
+
+test('monthlyMinimums: last change months ago -> every month up to now', () => {
+    const out = monthlyMinimums({ ps5: { '': [pt('50000', '2026-06-10T15:00:00Z')] } }, 6, NOW);
+    expect(out.map((m) => m.month)).toEqual([
+        'septiembre de 2026', 'agosto de 2026', 'julio de 2026', 'junio de 2026',
+    ]);
+    expect(out.every((m) => m.price === 50000 && m.platform === 'ps5')).toBe(true);
 });
 
 test('monthlyMinimums honours months cap, ignores nulls and returns [] with < 2 months', () => {
@@ -174,44 +193,47 @@ test('monthlyMinimums honours months cap, ignores nulls and returns [] with < 2 
             ],
         },
     };
-    const out = monthlyMinimums(history, 2);
+    const out = monthlyMinimums(history, 2, NOW);
     expect(out.map((m) => m.month)).toEqual(['septiembre de 2026', 'agosto de 2026']);
     // out of stock midway: July has 50000 until the 10th of August
     expect(out[1].price).toBe(50000);
 
-    expect(monthlyMinimums({ ps5: { '': [pt('40000', '2026-09-10T15:00:00Z')] } })).toEqual([]);
+    expect(monthlyMinimums({ ps5: { '': [pt('40000', '2026-09-10T15:00:00Z')] } }, 6, NOW)).toEqual([]);
     expect(monthlyMinimums(undefined)).toEqual([]);
-    expect(monthlyMinimums({ ps5: { new: [pt('1', '2026-09-10T15:00:00Z'), pt('1', '2026-08-10T15:00:00Z')] } })).toEqual([]);
+    expect(monthlyMinimums({ ps5: { new: [pt('1', '2026-09-10T15:00:00Z'), pt('1', '2026-08-10T15:00:00Z')] } }, 6, NOW)).toEqual([]);
 });
 
 const rating = (over: Partial<GameRating>): GameRating => ({
     source: 'metacritic',
-    score: '83',
+    score: '90',
     scale: 100,
     count: null,
-    label: 'Metacritic',
+    // `label` del backend es el veredicto cualitativo, no la fuente.
+    label: 'Muy positivas',
     url: '',
     fetched_at: '',
     ...over,
 });
 
-test('ratingLines formats lines and normalized average using the chart math', () => {
+test('ratingLines labels by source and averages with the chart math', () => {
     const ratings = [
-        rating({ source: 'igdb', score: '8.3', scale: 10, count: 1234, label: 'IGDB' }),
+        rating({ source: 'steam', score: '85', label: '' }),
+        rating({ source: 'igdb', score: '7.0', scale: 10, count: 1234 }),
         rating({}),
     ];
-    const lines = ratingLines(ratings);
-    expect(lines).toEqual([
-        'Valoración Metacritic: 83/100',
-        'Valoración IGDB: 8,3/10 según 1.234 votos',
-        'Promedio normalizado: 8,3/10',
+    // (9 + 7 + 8,5) / 3 = 8,1666 -> "8,2", calculado a mano
+    expect(ratingLines(ratings)).toEqual([
+        'Valoración Metacritic: 90/100',
+        'Valoración IGDB: 7/10 según 1.234 votos',
+        'Valoración Steam: 85/100',
+        'Promedio normalizado: 8,2/10',
     ]);
-    const avg = averageNormalized(normalizeRatings(ratings))!;
-    expect(avg).toBeCloseTo(8.3, 5);
+    expect(ratingLines([rating({ source: 'igdb', score: '8.3', scale: 10 })])).toEqual([
+        'Valoración IGDB: 8,3/10',
+    ]);
 });
 
-test('ratingLines: single source has no average; empty/undefined -> []', () => {
-    expect(ratingLines([rating({})])).toEqual(['Valoración Metacritic: 83/100']);
+test('ratingLines: empty/undefined/invalid -> []', () => {
     expect(ratingLines([])).toEqual([]);
     expect(ratingLines(undefined)).toEqual([]);
     expect(ratingLines([rating({ score: '120' })])).toEqual([]);
