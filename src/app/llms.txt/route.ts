@@ -1,6 +1,6 @@
 import { platformLongName } from '@/lib/types';
 import { getDeals, getPlatforms, getPosts } from '@/lib/api';
-import { DEALS_METHOD_LINE, dealLlmsLine } from '@/lib/deals';
+import { DEALS_METHOD_LINE, dealLlmsLine, dealsSectionTitle } from '@/lib/deals';
 import { postExcerpt } from '@/lib/postText';
 import { SITE_URL, absoluteUrl, postPath, siteConfig } from '@/lib/seo';
 import { FAMILIES, platformsOf } from '@/lib/platforms';
@@ -65,14 +65,16 @@ export async function GET() {
     }
 
     // Ofertas del día: la regla y las 10 mayores rebajas. Si el API falla se
-    // omite la sección entera, igual que el blog: mejor no listar nada que
-    // publicar ofertas de ayer como si fueran de hoy.
+    // omite la sección entera, igual que el blog. Si la tanda no es la de hoy
+    // (el cálculo de la noche no corrió), el título lleva su fecha en vez de
+    // «hoy»: publicar ofertas de ayer como si fueran de hoy es lo que no se hace.
     let dealsSection = '';
     try {
-        const { results } = await getDeals({ revalidate: 3600 });
+        const res = await getDeals({ revalidate: 3600 });
+        const { results } = res;
         if (results.length > 0) {
             dealsSection =
-                `\n## Ofertas de hoy\n\n${DEALS_METHOD_LINE} Los precios incluyen el envío. ` +
+                `\n## ${dealsSectionTitle(res)}\n\n${DEALS_METHOD_LINE} Los precios incluyen el envío. ` +
                 `Lista completa: ${SITE_URL}/ofertas\n\n` +
                 `${results.slice(0, 10).map(dealLlmsLine).join('\n')}\n`;
         }

@@ -14,8 +14,7 @@ import {
     dealCardGame,
     dealConsoleChipLabel,
     dealConsoleChips,
-    dealsHeading,
-    dealsSummarySentence,
+    dealsPageView,
 } from '@/lib/deals';
 import {
     breadcrumbJsonLd,
@@ -74,7 +73,8 @@ async function fetchPlatform(slug?: string): Promise<Platform | null | undefined
 }
 
 /** `failed` solo es `true` en el build con el backend caído: esa página no es
- *  "genuinamente vacía" y no debe salir `noindex`. */
+ *  "genuinamente vacía" y no debe decir «Hoy no hay juegos…»; muestra un texto
+ *  neutro (`DEALS_UNAVAILABLE`) y sale `noindex` hasta la próxima regeneración. */
 async function fetchDeals(platform?: Platform): Promise<{ res: DealsResponse; failed: boolean }> {
     try {
         return { res: await getDeals(platform ? { platform: platform.slug } : undefined), failed: false };
@@ -93,16 +93,16 @@ export async function buildDealsMetadata(slug?: string): Promise<Metadata> {
     if (platform === null) return buildMetadata({ title: 'Consola no encontrada', noIndex: true });
 
     const { res, failed } = await fetchDeals(platform);
+    // Las reglas de «hoy», el texto y el `noindex` viven en `dealsPageView`:
+    // la página y su metadata tienen que decir lo mismo.
+    const view = dealsPageView(res, { platform, failed });
     return buildMetadata({
-        title: dealsHeading(platform),
+        title: view.heading,
         // La misma frase que se lee bajo el H1: lo que cita un buscador tiene
         // que estar en la página.
-        description: dealsSummarySentence(res, platform),
+        description: view.summary,
         path: dealsPath(platform),
-        // Sin ofertas no hay nada que indexar (sería contenido pobre que además
-        // cambia a diario). Solo si está vacía DE VERDAD: un backend caído en
-        // el build se corrige en la siguiente regeneración.
-        noIndex: res.count === 0 && !failed,
+        noIndex: view.noIndex,
     });
 }
 
@@ -111,11 +111,12 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
     // Página propia (sin `loading.tsx`): el 404 es un status real.
     if (platform === null) notFound();
 
-    const { res } = await fetchDeals(platform);
+    const { res, failed } = await fetchDeals(platform);
     const deals = res.results;
     const path = dealsPath(platform);
-    const heading = dealsHeading(platform);
-    const summary = dealsSummarySentence(res, platform);
+    // En el servidor, con el reloj de esta regeneración: «hoy» o «del <fecha>»
+    // llega ya resuelto al HTML y a las tarjetas (`isToday`).
+    const { heading, summary, isToday } = dealsPageView(res, { platform, failed });
     // Todas las consolas con ofertas hoy y cuántos juegos tiene cada una
     // (`res.platforms`, la misma lista con o sin filtro), con la actual marcada.
     const consoles = dealConsoleChips(res, catalog);
@@ -127,10 +128,11 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
             { name: 'Ofertas', path: '/ofertas' },
             ...(platform ? [{ name: platformLongName(platform), path }] : []),
         ]),
-        // El ItemList enumera exactamente las tarjetas visibles, con el precio
-        // de la oferta (el mismo `dealCardGame` que pinta la tarjeta).
+        // El ItemList enumera exactamente las tarjetas visibles, sin precios:
+        // la tarjeta no siempre conoce el desglose de la oferta (ver
+        // `withOffers` en `itemListJsonLd`).
         ...(deals.length
-            ? [itemListJsonLd(deals.map(dealCardGame), { path, name: heading })]
+            ? [itemListJsonLd(deals.map(dealCardGame), { path, name: heading, withOffers: false })]
             : []),
     ];
 
@@ -183,13 +185,19 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                 {deals.length > 0 ? (
                     <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing={{ base: 'xs', sm: 'lg' }} verticalSpacing="xl">
                         {deals.map((deal, i) => (
-                            <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} priority={i < 4} />
+                            <DealCard
+                                key={`${deal.game.id}-${deal.platform}`}
+                                deal={deal}
+                                priority={i < 4}
+                                isToday={isToday}
+                            />
                         ))}
                     </SimpleGrid>
                 ) : (
-                    // El «Hoy no hay juegos…» ya lo dice el resumen de arriba
-                    // (la misma frase de la meta description): aquí solo la
-                    // salida hacia el catálogo.
+                    // El «Hoy no hay juegos…» (o, si la API falló, el texto
+                    // neutro) ya lo dice el resumen de arriba, que es la misma
+                    // frase de la meta description: aquí solo la salida hacia
+                    // el catálogo.
                     <Text c="dimmed">
                         Mientras tanto,{' '}
                         <Anchor component={Link} href="/search" c="primaryRed">

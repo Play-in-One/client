@@ -44,10 +44,109 @@ function dealPlatform(deal: Deal): Platform | null {
     return deal.game.platforms?.find((p) => p.slug === deal.platform) ?? null;
 }
 
-export function dealsHeading(platform?: Platform | null): string {
-    return platform
-        ? `Ofertas de ${platformLongName(platform)} hoy`
-        : 'Ofertas de videojuegos en Chile hoy';
+/* ── ¿Son las ofertas de HOY? ──────────────────────────────────────────────
+ * La API sirve la última fecha calculada, no necesariamente hoy: si el cron de
+ * la noche no corrió, `date` es de ayer (o de antes). Llamarlas «de hoy» sería
+ * publicar precios viejos como frescos, así que todo texto que diga «hoy» pasa
+ * por aquí y, si la fecha no es la de hoy en Chile, dice «del <fecha>».
+ *
+ * Todas reciben `now` (por defecto, el reloj) para poder probarse con una
+ * fecha fija. Y se calculan en el SERVIDOR: la página o la portada pasan los
+ * textos ya resueltos a los componentes de cliente. Un `new Date()` durante el
+ * render del cliente podría caer en otro día que el del servidor (cerca de la
+ * medianoche) y romper la hidratación.
+ */
+
+/** Hasta cuántos días de antigüedad la página se sigue indexando. Más viejas,
+ *  `noindex`: un buscador no debe citar como vigentes rebajas de la semana pasada. */
+export const DEALS_MAX_INDEX_AGE_DAYS = 2;
+
+/** `now` como fecha local de Chile, `YYYY-MM-DD` (el formato de `res.date`):
+ *  `en-CA` es el locale que formatea así. */
+export function santiagoDate(now: Date = new Date()): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(now);
+}
+
+/** ¿La tanda de la respuesta es la de hoy en Chile? Sin fecha (tabla vacía) no. */
+export function isTodayDeals(res: Pick<DealsResponse, 'date'>, now: Date = new Date()): boolean {
+    return res.date != null && res.date === santiagoDate(now);
+}
+
+/** «8 de octubre de 2026» a partir de `YYYY-MM-DD`. No `formatDate(res.date)`
+ *  a secas: `new Date('2026-10-08')` es la medianoche UTC, que en Chile aún es
+ *  el día 7. Al mediodía UTC el día es el mismo en los dos husos. */
+function formatDealsDate(date: string): string | null {
+    return formatDate(`${date}T12:00:00Z`);
+}
+
+/** La fecha legible de una tanda que NO es la de hoy, o null si es de hoy (o
+ *  no hay fecha): null = «hoy» en los textos. */
+function staleDateLabel(res: Pick<DealsResponse, 'date'>, now: Date): string | null {
+    if (res.date == null || isTodayDeals(res, now)) return null;
+    return formatDealsDate(res.date);
+}
+
+/** Días entre la tanda y hoy en Chile (0 = hoy), o null sin fecha. */
+export function dealsAgeDays(res: Pick<DealsResponse, 'date'>, now: Date = new Date()): number | null {
+    if (res.date == null) return null;
+    const day = (iso: string) => {
+        const [y, m, d] = iso.split('-').map(Number);
+        return Date.UTC(y, m - 1, d);
+    };
+    return Math.round((day(santiagoDate(now)) - day(res.date)) / 86_400_000);
+}
+
+export function dealsHeading(
+    platform?: Platform | null,
+    res: Pick<DealsResponse, 'date'> = { date: null },
+    now: Date = new Date(),
+): string {
+    const subject = platform ? `Ofertas de ${platformLongName(platform)}` : 'Ofertas de videojuegos en Chile';
+    const stale = staleDateLabel(res, now);
+    return stale ? `${subject} del ${stale}` : `${subject} hoy`;
+}
+
+/** El título de la sección de la portada y de la de `llms.txt`. */
+export function dealsSectionTitle(res: Pick<DealsResponse, 'date'>, now: Date = new Date()): string {
+    const stale = staleDateLabel(res, now);
+    return stale ? `Ofertas del ${stale}` : 'Ofertas de hoy';
+}
+
+/** Lo que se dice cuando la API de ofertas falló: ni «no hay ofertas» (sería
+ *  falso) ni las de otro día. */
+export const DEALS_UNAVAILABLE = 'Las ofertas del día no están disponibles en este momento.';
+
+/** Textos e indexación de /ofertas y /ofertas/<consola>, resueltos de una vez
+ *  para la página y su metadata (que tienen que decir lo mismo). */
+export interface DealsPageView {
+    heading: string;
+    summary: string;
+    noIndex: boolean;
+    /** La tanda es la de hoy: decide si una tarjeta puede decir «Nueva hoy». */
+    isToday: boolean;
+}
+
+export function dealsPageView(
+    res: DealsResponse,
+    { platform, failed = false, now = new Date() }: { platform?: Platform | null; failed?: boolean; now?: Date } = {},
+): DealsPageView {
+    const heading = dealsHeading(platform, failed ? { date: null } : res, now);
+    if (failed) {
+        // Un fallo no es «no hay ofertas»: texto neutro, y `noindex` para que
+        // un buscador no se quede con una página sin contenido.
+        return { heading, summary: DEALS_UNAVAILABLE, noIndex: true, isToday: false };
+    }
+    const age = dealsAgeDays(res, now);
+    return {
+        heading,
+        summary: dealsSummarySentence(res, platform, now),
+        // Sin ofertas no hay nada que indexar (contenido pobre que además
+        // cambia a diario), y con más de 2 días tampoco: serían rebajas viejas.
+        noIndex: res.count === 0 || (age != null && age > DEALS_MAX_INDEX_AGE_DAYS),
+        isToday: isTodayDeals(res, now),
+    };
 }
 
 /**
@@ -61,17 +160,27 @@ export function dealsHeading(platform?: Platform | null): string {
  * La fecha es la del SCRAPEO y no la del cálculo: el comando corre cada noche,
  * pero los precios solo son tan frescos como la última pasada del scraper.
  */
-export function dealsSummarySentence(res: DealsResponse, platform?: Platform | null): string {
+export function dealsSummarySentence(
+    res: DealsResponse,
+    platform?: Platform | null,
+    now: Date = new Date(),
+): string {
     const scraped = formatDate(res.last_scrape_at);
     const of = platform ? ` de ${platformLongName(platform)}` : '';
+    // Una tanda de otro día se cuenta en pasado y con su fecha: «hoy» y el
+    // presente la harían pasar por vigente.
+    const stale = staleDateLabel(res, now);
 
     if (res.count === 0 || res.results.length === 0) {
         const date = scraped ? ` Datos del scrapeo del ${scraped}.` : '';
-        return `Hoy no hay juegos${of} 15% bajo su precio típico.${date}`;
+        return stale
+            ? `El ${stale} no había juegos${of} 15% bajo su precio típico.${date}`
+            : `Hoy no hay juegos${of} 15% bajo su precio típico.${date}`;
     }
 
-    const subject = res.count === 1 ? `1 juego${of} está` : `${count(res.count)} juegos${of} están`;
-    let text = `${subject} al menos 15% bajo su precio típico de los últimos 90 días.`;
+    const [one, many] = stale ? ['estaba', 'estaban'] : ['está', 'están'];
+    const subject = res.count === 1 ? `1 juego${of} ${one}` : `${count(res.count)} juegos${of} ${many}`;
+    let text = `${stale ? `El ${stale}, ` : ''}${subject} al menos 15% bajo su precio típico de los últimos 90 días.`;
 
     // Los resultados llegan ordenados por descuento: el primero es la mayor rebaja.
     const top = res.results[0];
@@ -85,7 +194,7 @@ export function dealsSummarySentence(res: DealsResponse, platform?: Platform | n
         ? ` (${MINUS}${pct(top)}%) en ${top.seller.name} (${condition})`
         : ` (${MINUS}${pct(top)}%, ${condition})`;
     text +=
-        ` La mayor rebaja es ${top.game.name}${where}: ${formatCLP(top.current_price)} frente a ` +
+        ` La mayor rebaja ${stale ? 'era' : 'es'} ${top.game.name}${where}: ${formatCLP(top.current_price)} frente a ` +
         `${formatCLP(top.typical_price)} habitual${tail}.`;
 
     text += scraped
@@ -100,9 +209,14 @@ export function dealBadgeLine(deal: Deal): string {
 }
 
 /** «Nueva hoy» o «N días en oferta». Distingue lo que acaba de bajar de lo que
- *  lleva semanas así: lo segundo es casi el precio nuevo, no una rebaja. */
-export function dealAgeLabel(deal: Deal): string {
-    if (deal.is_new) return 'Nueva hoy';
+ *  lleva semanas así: lo segundo es casi el precio nuevo, no una rebaja.
+ *
+ *  `isToday` (de `isTodayDeals`, calculado en el servidor) es si la tanda es la
+ *  de hoy. Si no lo es, «Nueva hoy» sería falso —era nueva el día del
+ *  cálculo— y se devuelve null (sin etiqueta); los días en oferta se cuentan
+ *  hasta ese día y siguen siendo ciertos. */
+export function dealAgeLabel(deal: Deal, isToday = true): string | null {
+    if (deal.is_new) return isToday ? 'Nueva hoy' : null;
     return deal.days_on_deal === 1 ? '1 día en oferta' : `${deal.days_on_deal} días en oferta`;
 }
 

@@ -3,6 +3,7 @@ import { getPosts, getTrendingGames, getFeaturedGames, getFeaturedSagas, getDeal
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { itemListJsonLd } from '@/lib/seo';
+import { dealsSectionTitle, isTodayDeals } from '@/lib/deals';
 import HomeClient from './HomeClient';
 
 // Refresh server-rendered news periodically instead of freezing at build time.
@@ -48,6 +49,13 @@ export default async function HomePage() {
     const sagas: Saga[] = sagasResult.status === 'fulfilled' ? sagasResult.value.results : [];
     // Solo las 8 que se pintan: el resto viajaría en el payload de hidratación.
     const deals: Deal[] = dealsResult.status === 'fulfilled' ? dealsResult.value.results.slice(0, 8) : [];
+    // «Ofertas de hoy» o «Ofertas del <fecha>» si el cálculo de la noche no
+    // corrió. Se resuelve AQUÍ, en el servidor, y baja ya escrito: `HomeClient`
+    // se hidrata en el navegador, y leer allí el reloj podría dar otro día.
+    const now = new Date();
+    const dealsDay = dealsResult.status === 'fulfilled' ? dealsResult.value : { date: null };
+    const dealsTitle = dealsSectionTitle(dealsDay, now);
+    const dealsAreToday = isTodayDeals(dealsDay, now);
 
     // ItemList de lo que la home ya muestra. El Organization/WebSite del layout
     // dice qué es el sitio; esto dice qué hay dentro, con precio y tienda por
@@ -70,6 +78,8 @@ export default async function HomePage() {
                 initialFeatured={featured}
                 initialSagas={sagas}
                 deals={deals}
+                dealsTitle={dealsTitle}
+                dealsAreToday={dealsAreToday}
             />
             {/* Va DESPUÉS del contenido a propósito: colocado delante, el
                 carrusel de destacados se descuadraba en mobile y el e2e

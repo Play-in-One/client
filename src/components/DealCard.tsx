@@ -13,7 +13,19 @@ import type { Deal } from '@/lib/types';
  * la rebaja sale en el HTML del servidor, que es lo único que leen los
  * crawlers de IA.
  */
-export default function DealCard({ deal, priority }: { deal: Deal; priority?: boolean }) {
+export default function DealCard({
+    deal,
+    priority,
+    isToday = true,
+}: {
+    deal: Deal;
+    priority?: boolean;
+    /** Si la tanda es la de hoy (`isTodayDeals`). Lo calcula el SERVIDOR y
+     *  llega como prop: esta tarjeta también se pinta en `HomeClient`, y leer
+     *  el reloj en el render del cliente podría no coincidir con el servidor. */
+    isToday?: boolean;
+}) {
+    const age = dealAgeLabel(deal, isToday);
     return (
         <Box data-deal-card style={{ display: 'flex', flexDirection: 'column', gap: 6, height: '100%' }}>
             <Box style={{ flex: 1 }}>
@@ -31,14 +43,18 @@ export default function DealCard({ deal, priority }: { deal: Deal; priority?: bo
                 {dealBadgeLine(deal)}
             </Text>
             <Group gap={4} wrap="wrap">
+                {/* «Registrado» y no «histórico»: la serie empieza cuando PIO
+                    empezó a seguir el juego, no en su lanzamiento. */}
                 {deal.is_all_time_low && (
                     <Badge size="sm" color="green" variant="light">
-                        Mínimo histórico
+                        Mínimo registrado
                     </Badge>
                 )}
-                <Badge size="sm" color={deal.is_new ? 'primaryRed' : 'gray'} variant="light">
-                    {dealAgeLabel(deal)}
-                </Badge>
+                {age && (
+                    <Badge size="sm" color={deal.is_new ? 'primaryRed' : 'gray'} variant="light">
+                        {age}
+                    </Badge>
+                )}
             </Group>
         </Box>
     );

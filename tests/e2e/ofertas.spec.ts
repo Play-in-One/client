@@ -5,6 +5,8 @@ import {
     dealConsoleChipLabel,
     dealConsoleChips,
     dealConsoleSlugs,
+    dealsHeading,
+    dealsSectionTitle,
     dealsSummarySentence,
 } from '../../src/lib/deals';
 import { gamePath } from '../../src/lib/seo';
@@ -121,13 +123,18 @@ test.describe('HTML del servidor', () => {
         expect(res.status()).toBe(200);
 
         const html = await serverHtml(request, '/ofertas');
-        expect(html).toMatch(/<h1[^>]*>Ofertas de videojuegos en Chile hoy<\/h1>/);
+        const api = await apiDeals(request);
+        // «hoy» o «del <fecha>» según la fecha de la tanda (`dealsHeading`):
+        // la base de dev puede no haber recalculado hoy.
+        expect(html).toContain(`>${dealsHeading(undefined, api)}</h1>`);
         expect(html).toContain('Calculadas sobre todas las tiendas y condiciones.');
         expect(html).toContain('Una oferta aparece aquí cuando el precio más bajo de hoy');
-        expect(html).toMatch(/\d+ juegos? (están|está) al menos 15% bajo su precio típico de los últimos 90 días\./);
+        expect(html).toMatch(/\d+ juegos? (están|está|estaban|estaba) al menos 15% bajo su precio típico de los últimos 90 días\./);
         expect(html).toMatch(/href="\/juego\/[a-z0-9-]+-\d+\?platform=[a-z0-9-]+"/);
-        const api = await apiDeals(request);
         expectListsDeals(html, api);
+        // «Registrado», no «histórico»: la serie empieza cuando PIO empezó a medir.
+        expect(html).not.toContain('Mínimo histórico');
+        if (api.results.some((d) => d.is_all_time_low)) expect(html).toContain('Mínimo registrado');
         const [top] = api.results;
         expect(html).toContain(`−${Math.round(top.discount_pct)}%`);
         // Los chips de consola enlazan su página de ofertas.
@@ -165,10 +172,16 @@ test.describe('HTML del servidor', () => {
             expect.arrayContaining(['CollectionPage', 'ItemList', 'BreadcrumbList']),
         );
         const list = blocks.find((b) => b['@type'] === 'ItemList') as {
-            itemListElement: { item: { name: string } }[];
+            itemListElement: Record<string, unknown>[];
         };
         const api = await apiDeals(request);
-        expect(list.itemListElement.map((e) => e.item.name)).toEqual(api.results.map((d) => d.game.name));
+        expect(list.itemListElement.map((e) => e.name)).toEqual(api.results.map((d) => d.game.name));
+        // Coherente para todas las tarjetas: posición, nombre y URL, sin precios
+        // (la tarjeta no siempre conoce el desglose de la oferta).
+        list.itemListElement.forEach((e, i) => {
+            expect(Object.keys(e).sort()).toEqual(['@type', 'name', 'position', 'url']);
+            expect(e.position).toBe(i + 1);
+        });
     });
 
     test('/ofertas/<consola de la mayor rebaja> filtra por consola y se indexa', async ({ request }) => {
@@ -181,10 +194,10 @@ test.describe('HTML del servidor', () => {
         expect(res.status()).toBe(200);
         const html = await serverHtml(request, path);
         const name = escapeHtml(platform.long_name || platform.display_name);
-        expect(html).toMatch(new RegExp(`<h1[^>]*>Ofertas de ${name} hoy</h1>`));
+        const api = await apiDeals(request, platform.slug);
+        expect(html).toContain(`>${escapeHtml(dealsHeading(platform, api))}</h1>`);
         expect(html).toContain(`de ${name}`);
 
-        const api = await apiDeals(request, platform.slug);
         expect(api.results.every((d) => d.platform === platform.slug)).toBe(true);
         expectListsDeals(html, api, platform);
         // La mayor rebaja global es también una oferta de su consola.
@@ -229,7 +242,7 @@ test.describe('enlaces hacia /ofertas', () => {
         // dev además la compilación de la ruta): más que los 5 s por defecto.
         await expect(page).toHaveURL(/\/ofertas$/, { timeout: 30_000 });
         await expect(
-            page.getByRole('heading', { level: 1, name: 'Ofertas de videojuegos en Chile hoy' }),
+            page.getByRole('heading', { level: 1, name: /^Ofertas de videojuegos en Chile (hoy|del )/ }),
         ).toBeVisible();
     });
 
@@ -254,11 +267,13 @@ test.describe('enlaces hacia /ofertas', () => {
 
     test('la home tiene «Ofertas de hoy» con las primeras ofertas y «Ver todas»', async ({ request }) => {
         const html = await serverHtml(request, '/');
-        const start = html.indexOf('Ofertas de hoy');
+        const api = await apiDeals(request);
+        // «Ofertas de hoy», u «Ofertas del <fecha>» si la tanda no es de hoy.
+        const start = html.indexOf(`>${dealsSectionTitle(api)}<`);
         expect(start).toBeGreaterThan(-1);
         const end = html.indexOf('Populares esta semana', start);
         const section = html.slice(start, end > -1 ? end : undefined);
-        const top = (await apiDeals(request)).results.slice(0, 8);
+        const top = api.results.slice(0, 8);
         for (const deal of top) {
             expect(section).toContain(escapeHtml(dealBadgeLine(deal)));
             expect(section).toContain(escapeHtml(deal.game.name));
@@ -280,9 +295,17 @@ test.describe('enlaces hacia /ofertas', () => {
 
     test('llms.txt resume las ofertas del día', async ({ request }) => {
         const text = await (await request.get('/llms.txt')).text();
-        expect(text).toContain('## Ofertas de hoy');
+        const api = await apiDeals(request);
+        // llms.txt cachea su fetch de ofertas 1 h y el cálculo no lo revalida:
+        // justo después de un `build_daily_deals` puede citar la tanda
+        // anterior. Lo que no puede es llamarla «de hoy»: o el título coincide
+        // con el de la API, o lleva la fecha de su propia tanda.
+        const heading = text.match(/^## (Ofertas (?:de hoy|del \d{1,2} de [a-z]+ de \d{4}))$/m)?.[1];
+        expect(heading).toBeTruthy();
         expect(text).toContain('al menos 15% bajo su mediana de los últimos 90 días');
-        const [first] = (await apiDeals(request)).results;
-        expect(text).toContain(first.game.name.replace(/[[\]]/g, '\\$&'));
+        if (heading === dealsSectionTitle(api)) {
+            const [first] = api.results;
+            expect(text).toContain(first.game.name.replace(/[[\]]/g, '\\$&'));
+        }
     });
 });

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SEEDED } from './helpers';
-import { dealBadgeLine } from '../../src/lib/deals';
+import { dealBadgeLine, dealsSectionTitle } from '../../src/lib/deals';
 
 const MOCK_PLATFORMS = [
     { id: 1, name: 'ps5', slug: 'ps5', display_name: 'PS5',
@@ -178,11 +178,13 @@ test('Destacados y Populares no repiten juegos', async ({ page }) => {
    así que no se supone qué juego encabeza: se compara con la API. */
 test('«Ofertas de hoy» muestra las primeras ofertas y enlaza a /ofertas', async ({ page, request }) => {
     const api = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
-    const { results } = await (await request.get(`${api}/deals/`)).json();
+    const res = await (await request.get(`${api}/deals/`)).json();
+    const { results } = res;
     expect(results.length).toBeGreaterThan(0);
 
     await page.goto('/');
-    const title = page.getByRole('heading', { name: 'Ofertas de hoy' });
+    // «Ofertas de hoy», u «Ofertas del <fecha>» si la tanda no es de hoy.
+    const title = page.getByRole('heading', { name: dealsSectionTitle(res) });
     await expect(title).toBeVisible();
     const section = page.locator('.mantine-Container-root', { has: title });
     await expect(section.locator('[data-deal-card]')).toHaveCount(Math.min(8, results.length));

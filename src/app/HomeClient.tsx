@@ -45,6 +45,8 @@ export default function HomeClient({
     initialFeatured,
     initialSagas,
     deals,
+    dealsTitle,
+    dealsAreToday,
 }: {
     initialPosts: Post[];
     initialTrending: Game[];
@@ -53,6 +55,10 @@ export default function HomeClient({
     /** Las primeras 8 ofertas del día. Sin estado ni refetch: son un hecho
      *  del catálogo entero, no dependen de los filtros del visitante. */
     deals: Deal[];
+    /** «Ofertas de hoy» o «Ofertas del <fecha>», resuelto en el servidor. */
+    dealsTitle: string;
+    /** Si la tanda es la de hoy (para «Nueva hoy»), resuelto en el servidor. */
+    dealsAreToday: boolean;
 }) {
     const router = useRouter();
     const [query, setQuery] = useState('');
@@ -343,7 +349,7 @@ export default function HomeClient({
                         <Group justify="space-between" align="flex-end" mb="xl">
                             <Box>
                                 <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                    Ofertas de hoy
+                                    {dealsTitle}
                                 </Title>
                                 <Text c="dimmed" mt={6}>
                                     Al menos 15% bajo su precio típico. {DEALS_SCOPE_NOTE}
@@ -363,7 +369,7 @@ export default function HomeClient({
 
                         <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
                             {deals.slice(0, 8).map((deal) => (
-                                <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} />
+                                <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={dealsAreToday} />
                             ))}
                         </SimpleGrid>
                     </Container>

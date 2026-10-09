@@ -448,7 +448,7 @@ export function bestPriceSentence(game: Game, opts: BestPriceOptions = {}): stri
  */
 export function itemListJsonLd(
     games: Game[],
-    { path, name }: { path: string; name: string },
+    { path, name, withOffers = true }: { path: string; name: string; withOffers?: boolean },
 ): JsonLdObject {
     return {
         '@context': 'https://schema.org',
@@ -456,7 +456,12 @@ export function itemListJsonLd(
         name,
         url: absoluteUrl(path),
         numberOfItems: games.length,
-        itemListElement: games.map((game, i) => ({
+        // `withOffers: false` deja cada elemento en posición, nombre y URL. Lo
+        // usa /ofertas: la tarjeta de una oferta solo conoce el desglose cuando
+        // el mínimo del juego ES la oferta (`dealCardGame`), así que unas
+        // tarjetas llevaban `offers` y otras no — una lista incoherente. Un
+        // resumen sin precios es coherente para todas.
+        itemListElement: games.map((game, i) => (withOffers ? {
             '@type': 'ListItem',
             position: i + 1,
             item: {
@@ -484,6 +489,11 @@ export function itemListJsonLd(
                     }
                     : {}),
             },
+        } : {
+            '@type': 'ListItem',
+            position: i + 1,
+            name: game.name,
+            url: absoluteUrl(gamePath(game)),
         })),
     };
 }

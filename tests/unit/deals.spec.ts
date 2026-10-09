@@ -10,10 +10,25 @@ import {
     dealConsoleSlugs,
     dealConsoles,
     dealLlmsLine,
+    dealsAgeDays,
     dealsHeading,
+    dealsPageView,
+    dealsSectionTitle,
     dealsSummarySentence,
+    isTodayDeals,
+    santiagoDate,
+    DEALS_UNAVAILABLE,
 } from '../../src/lib/deals';
+import { itemListJsonLd } from '../../src/lib/seo';
 import type { Deal, DealsResponse, Game, Platform } from '../../src/lib/types';
+
+/** «Ahora» fijo: el mediodía del 8 de octubre de 2026 en Chile, el mismo día
+ *  que la tanda de `response()`. Sin inyectarlo, los textos dependerían del
+ *  día en que corre el test. */
+const NOW = new Date('2026-10-08T15:00:00Z');
+/** Dos días después de la tanda (aún indexable) y tres (ya no). */
+const TWO_DAYS_LATER = new Date('2026-10-10T15:00:00Z');
+const THREE_DAYS_LATER = new Date('2026-10-11T15:00:00Z');
 
 const PS5: Platform = {
     id: 1, name: 'ps5', slug: 'ps5', display_name: 'PS5', long_name: 'PlayStation 5', order: 12,
@@ -63,7 +78,7 @@ const response = (over: Partial<DealsResponse> = {}): DealsResponse => ({
 
 test.describe('dealsSummarySentence', () => {
     test('arma la frase completa con la mayor rebaja y la fecha del scrapeo', () => {
-        expect(dealsSummarySentence(response())).toBe(
+        expect(dealsSummarySentence(response(), undefined, NOW)).toBe(
             '37 juegos están al menos 15% bajo su precio típico de los últimos 90 días. ' +
             'La mayor rebaja es Juego X (PlayStation 5): $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
             'Precios con envío incluido; datos del scrapeo del 7 de octubre de 2026.',
@@ -71,7 +86,7 @@ test.describe('dealsSummarySentence', () => {
     });
 
     test('con consola la nombra en la cifra y no la repite tras el juego', () => {
-        expect(dealsSummarySentence(response({ count: 4 }), PS5)).toBe(
+        expect(dealsSummarySentence(response({ count: 4 }), PS5, NOW)).toBe(
             '4 juegos de PlayStation 5 están al menos 15% bajo su precio típico de los últimos 90 días. ' +
             'La mayor rebaja es Juego X: $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
             'Precios con envío incluido; datos del scrapeo del 7 de octubre de 2026.',
@@ -79,8 +94,8 @@ test.describe('dealsSummarySentence', () => {
     });
 
     test('un solo juego va en singular y los miles con separador es-CL', () => {
-        expect(dealsSummarySentence(response({ count: 1 }))).toMatch(/^1 juego está al menos/);
-        expect(dealsSummarySentence(response({ count: 1234 }))).toMatch(/^1\.234 juegos están/);
+        expect(dealsSummarySentence(response({ count: 1 }), undefined, NOW)).toMatch(/^1 juego está al menos/);
+        expect(dealsSummarySentence(response({ count: 1234 }), undefined, NOW)).toMatch(/^1\.234 juegos están/);
     });
 
     test('omite las cláusulas sin dato: tienda, consola y fecha', () => {
@@ -89,6 +104,8 @@ test.describe('dealsSummarySentence', () => {
                 last_scrape_at: null,
                 results: [deal({ seller: null, platform: 'xboxone' })],
             }),
+            undefined,
+            NOW,
         );
         expect(text).toBe(
             '37 juegos están al menos 15% bajo su precio típico de los últimos 90 días. ' +
@@ -100,10 +117,10 @@ test.describe('dealsSummarySentence', () => {
 
     test('sin ofertas da la frase del estado vacío, también por consola', () => {
         const empty = response({ count: 0, results: [] });
-        expect(dealsSummarySentence(empty)).toBe(
+        expect(dealsSummarySentence(empty, undefined, NOW)).toBe(
             'Hoy no hay juegos 15% bajo su precio típico. Datos del scrapeo del 7 de octubre de 2026.',
         );
-        expect(dealsSummarySentence({ ...empty, last_scrape_at: null }, SWITCH)).toBe(
+        expect(dealsSummarySentence({ ...empty, last_scrape_at: null }, SWITCH, NOW)).toBe(
             'Hoy no hay juegos de Nintendo Switch 15% bajo su precio típico.',
         );
     });
@@ -120,7 +137,7 @@ test.describe('dealBadgeLine', () => {
 });
 
 test('la frase nombra la condición de la mayor rebaja tras la tienda', () => {
-    const text = dealsSummarySentence(response({ results: [deal({ condition: 'digital' })] }));
+    const text = dealsSummarySentence(response({ results: [deal({ condition: 'digital' })] }), undefined, NOW);
     expect(text).toContain('(−33%) en Zmart (digital).');
 });
 
@@ -139,6 +156,105 @@ test.describe('dealsHeading', () => {
     test('global y por consola, con el nombre largo', () => {
         expect(dealsHeading()).toBe('Ofertas de videojuegos en Chile hoy');
         expect(dealsHeading(SWITCH)).toBe('Ofertas de Nintendo Switch hoy');
+    });
+});
+
+test.describe('ofertas que no son de hoy (el cálculo de la noche no corrió)', () => {
+    test('isTodayDeals compara con el día de Chile, no con el de UTC', () => {
+        expect(isTodayDeals(response(), NOW)).toBe(true);
+        expect(isTodayDeals(response(), TWO_DAYS_LATER)).toBe(false);
+        // 23:30 del 8 en Chile ya es el 9 en UTC: sigue siendo «hoy».
+        expect(isTodayDeals(response(), new Date('2026-10-09T02:30:00Z'))).toBe(true);
+        // 00:30 del 9 en Chile (03:30 UTC): ya no.
+        expect(isTodayDeals(response(), new Date('2026-10-09T03:30:00Z'))).toBe(false);
+        expect(santiagoDate(new Date('2026-10-09T02:30:00Z'))).toBe('2026-10-08');
+        expect(isTodayDeals(response({ date: null }), NOW)).toBe(false);
+    });
+
+    test('el título dice la fecha de la tanda en vez de «hoy»', () => {
+        const res = response();
+        expect(dealsHeading(undefined, res, NOW)).toBe('Ofertas de videojuegos en Chile hoy');
+        expect(dealsHeading(undefined, res, TWO_DAYS_LATER)).toBe(
+            'Ofertas de videojuegos en Chile del 8 de octubre de 2026',
+        );
+        expect(dealsHeading(SWITCH, res, TWO_DAYS_LATER)).toBe('Ofertas de Nintendo Switch del 8 de octubre de 2026');
+    });
+
+    test('la frase pasa a pasado, con la fecha y sin «hoy»', () => {
+        expect(dealsSummarySentence(response(), undefined, TWO_DAYS_LATER)).toBe(
+            'El 8 de octubre de 2026, 37 juegos estaban al menos 15% bajo su precio típico de los últimos 90 días. ' +
+            'La mayor rebaja era Juego X (PlayStation 5): $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
+            'Precios con envío incluido; datos del scrapeo del 7 de octubre de 2026.',
+        );
+        expect(dealsSummarySentence(response({ count: 1 }), PS5, TWO_DAYS_LATER)).toMatch(
+            /^El 8 de octubre de 2026, 1 juego de PlayStation 5 estaba al menos/,
+        );
+        const empty = dealsSummarySentence(response({ count: 0, results: [] }), SWITCH, TWO_DAYS_LATER);
+        expect(empty).toBe(
+            'El 8 de octubre de 2026 no había juegos de Nintendo Switch 15% bajo su precio típico. ' +
+            'Datos del scrapeo del 7 de octubre de 2026.',
+        );
+        expect(empty).not.toMatch(/hoy/i);
+    });
+
+    test('las tarjetas no dicen «Nueva hoy», pero sí los días en oferta', () => {
+        expect(dealAgeLabel(deal({ is_new: true, days_on_deal: 1 }), false)).toBeNull();
+        expect(dealAgeLabel(deal({ is_new: false, days_on_deal: 4 }), false)).toBe('4 días en oferta');
+        expect(dealAgeLabel(deal({ is_new: true, days_on_deal: 1 }), true)).toBe('Nueva hoy');
+    });
+
+    test('la sección de la portada y de llms.txt lleva la fecha', () => {
+        expect(dealsSectionTitle(response(), NOW)).toBe('Ofertas de hoy');
+        expect(dealsSectionTitle(response(), TWO_DAYS_LATER)).toBe('Ofertas del 8 de octubre de 2026');
+        expect(dealsSectionTitle({ date: null }, NOW)).toBe('Ofertas de hoy');
+    });
+
+    test('se indexa hasta 2 días de antigüedad; con más, noindex', () => {
+        expect(dealsAgeDays(response(), NOW)).toBe(0);
+        expect(dealsAgeDays(response(), TWO_DAYS_LATER)).toBe(2);
+        expect(dealsPageView(response(), { now: NOW }).noIndex).toBe(false);
+        expect(dealsPageView(response(), { now: TWO_DAYS_LATER }).noIndex).toBe(false);
+        expect(dealsPageView(response(), { now: THREE_DAYS_LATER }).noIndex).toBe(true);
+        expect(dealsPageView(response(), { now: NOW }).isToday).toBe(true);
+        expect(dealsPageView(response(), { now: TWO_DAYS_LATER }).isToday).toBe(false);
+    });
+});
+
+test.describe('dealsPageView', () => {
+    test('sin ofertas la página no se indexa', () => {
+        const view = dealsPageView(response({ count: 0, results: [] }), { now: NOW });
+        expect(view.noIndex).toBe(true);
+        expect(view.summary).toMatch(/^Hoy no hay juegos/);
+    });
+
+    test('si la API falló: texto neutro y noindex, nunca «Hoy no hay juegos…»', () => {
+        const empty: DealsResponse = { date: null, last_scrape_at: null, count: 0, platforms: [], results: [] };
+        const view = dealsPageView(empty, { failed: true, now: NOW });
+        expect(view.summary).toBe('Las ofertas del día no están disponibles en este momento.');
+        expect(view.summary).toBe(DEALS_UNAVAILABLE);
+        expect(view.noIndex).toBe(true);
+        expect(view.summary).not.toContain('no hay juegos');
+    });
+});
+
+test.describe('itemListJsonLd', () => {
+    test('con `withOffers: false` cada elemento lleva solo posición, nombre y URL', () => {
+        const games = [game(), game({ id: 8, name: 'Juego Y', slug: 'juego-y', min_price_base: null })];
+        const list = itemListJsonLd(games, { path: '/ofertas', name: 'Ofertas', withOffers: false }) as {
+            itemListElement: Record<string, unknown>[];
+        };
+        expect(list.itemListElement).toEqual([
+            { '@type': 'ListItem', position: 1, name: 'Juego X', url: expect.stringMatching(/\/juego\/juego-x-7$/) },
+            { '@type': 'ListItem', position: 2, name: 'Juego Y', url: expect.stringMatching(/\/juego\/juego-y-8$/) },
+        ]);
+        expect(JSON.stringify(list)).not.toContain('offers');
+    });
+
+    test('por defecto (otras páginas) sigue publicando el Product con su oferta', () => {
+        const list = itemListJsonLd([game()], { path: '/', name: 'Destacados' }) as {
+            itemListElement: { item: { offers?: unknown } }[];
+        };
+        expect(list.itemListElement[0].item.offers).toBeDefined();
     });
 });
 
