@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, memo } from 'react';
-import type { ReactNode } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, memo } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
@@ -49,6 +49,42 @@ interface Props {
     priceConsole?: string | null;
 }
 
+/**
+ * Oculta la tienda de la fila del precio cuando no cabe y tendría que abrir una
+ * línea propia: un nombre solo en su línea se lee como un pie suelto. Si cabe
+ * junto a la rebaja (aunque esa ya haya bajado de línea), se queda.
+ *
+ * Lo resuelve el navegador porque CSS no sabe si un elemento envolvió. Se mide
+ * con el estilo directo en el nodo y no con estado de React: mostrar, medir y
+ * decidir ocurre en la misma pasada síncrona, sin re-render ni parpadeo. Se
+ * vuelve a medir cuando cambia el ancho de la fila o cargan las fuentes (cambian
+ * el ancho de la cifra sin cambiar el de la fila).
+ */
+function useHideSellerWhenWrapped(rowRef: RefObject<HTMLDivElement | null>) {
+    useLayoutEffect(() => {
+        const row = rowRef.current;
+        if (!row) return;
+        const check = () => {
+            const seller = row.querySelector<HTMLElement>('[data-card-seller]');
+            const prev = seller?.previousElementSibling as HTMLElement | null;
+            if (!seller || !prev) return;
+            seller.style.display = '';
+            // Abre línea si empieza por debajo del final del elemento anterior.
+            const wrapped = seller.getBoundingClientRect().top >= prev.getBoundingClientRect().bottom - 1;
+            seller.style.display = wrapped ? 'none' : '';
+        };
+        check();
+        const observer = new ResizeObserver(check);
+        observer.observe(row);
+        let alive = true;
+        document.fonts?.ready.then(() => { if (alive) check(); });
+        return () => {
+            alive = false;
+            observer.disconnect();
+        };
+    }, [rowRef]);
+}
+
 function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon, dealsIsToday = false, priceConsole }: Props) {
     const router = useRouter();
     // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
@@ -80,6 +116,8 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     const addon = priceAddon ?? (ownDeal ? <DealPriceLabel deal={ownDeal} isToday={dealsIsToday} /> : null);
     // La consola de ese precio va al lado de la cifra (la rebaja, encima).
     const consoleSlug = priceConsole ?? ownDeal?.platform ?? null;
+    const priceRowRef = useRef<HTMLDivElement>(null);
+    useHideSellerWhenWrapped(priceRowRef);
 
     // La ficha abre en la consola del precio que muestra la tarjeta; sin
     // precio, en la del filtro activo (si lo hay).
@@ -281,7 +319,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                 elemento propio porque una que llega de un Server
                                 Component (DealCard) sin `key` dispara el aviso de
                                 React si cae en la lista de hijos de un `Group`. */}
-                            <Group gap={4} wrap="wrap" align="center" style={{ rowGap: 2 }}>
+                            <Group ref={priceRowRef} gap={4} wrap="wrap" align="center" style={{ rowGap: 2 }}>
                                 <Group gap={2} wrap="nowrap" align="center">
                                     <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                         {formatCLP(price)}
@@ -299,7 +337,9 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                     </span>
                                 )}
                                 {/* Solo la tienda, sin el rótulo «Vendido por»
-                                    (ni «Precio más bajo» cuando no hay tienda). */}
+                                    (ni «Precio más bajo» cuando no hay tienda).
+                                    Si no cabe y abriría línea propia, se oculta
+                                    (`useHideSellerWhenWrapped`). */}
                                 {seller && (
                                     <Group
                                         data-card-seller
