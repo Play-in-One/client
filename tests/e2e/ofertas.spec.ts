@@ -336,6 +336,12 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         await page.goto('/ofertas');
         const label = page.locator('[data-deal-card]').first().locator('[data-deal-label]');
         await expect(label).toContainText(`${Math.round(top.discount_pct)}%`);
+        // A su izquierda, la consola del precio: logo + nombre corto (el
+        // `display_name` de la API es el mismo abreviado del catálogo).
+        const catalog = (await (await request.get(`${API}/platforms/`)).json()).results as Platform[];
+        const short = catalog.find((p) => p.slug === top.platform)?.display_name;
+        const consoleTag = page.locator('[data-deal-card]').first().locator(`[data-deal-console="${top.platform}"]`);
+        await expect(consoleTag).toHaveText(short!);
         // Un click antes de hidratar puede perderse: se reintenta hasta que abra.
         // El aviso de cookies también es un `dialog`: se acota al del detalle.
         const dialog = page.getByRole('dialog').filter({ hasText: 'Precio típico' });

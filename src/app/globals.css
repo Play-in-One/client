@@ -786,6 +786,23 @@ a.saga-banner-link:focus-visible {
   color: var(--mantine-color-primaryRed-filled);
 }
 
+/* Consola del precio de la tarjeta, a la izquierda de la rebaja
+   (`DealPriceLabel`). Neutra a propósito: los colores de marca oscuros (PS4,
+   PS3) no se leerían sobre el fondo del modo oscuro. */
+.pio-deal-console {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--mantine-color-default-hover);
+  color: var(--mantine-color-text);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 /* Rebaja junto al precio de una tarjeta de oferta (`DealPriceLabel`). */
 .pio-deal-label {
   display: inline-flex;

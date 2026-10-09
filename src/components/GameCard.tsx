@@ -282,7 +282,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                             sus hijos como lista, y uno que llega de un
                                             Server Component (DealCard) sin `key` dispara
                                             el aviso de React. */}
-                                        {addon && <span style={{ display: 'inline-flex' }}>{addon}</span>}
+                                        {addon && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{addon}</span>}
                                     </Group>
                                 </Box>
                                 <Box ta="right">
