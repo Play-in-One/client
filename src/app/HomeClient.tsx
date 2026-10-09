@@ -30,7 +30,7 @@ import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
-import { DEALS_SCOPE_NOTE } from '@/lib/deals';
+import { DEALS_TYPICAL_NOTE } from '@/lib/deals';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
 import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
@@ -352,7 +352,7 @@ export default function HomeClient({
                                     {dealsTitle}
                                 </Title>
                                 <Text c="dimmed" mt={6}>
-                                    Al menos 15% bajo su precio típico. {DEALS_SCOPE_NOTE}
+                                    Al menos 15% bajo su precio típico. {DEALS_TYPICAL_NOTE}
                                 </Text>
                             </Box>
                             <Anchor

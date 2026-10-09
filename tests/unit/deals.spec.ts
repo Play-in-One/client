@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
     DEALS_METHOD_LINE,
     DEALS_SCOPE_NOTE,
+    DEALS_TYPICAL_NOTE,
     dealAgeLabel,
     dealBadgeLine,
     dealCardGame,
@@ -267,6 +268,8 @@ test('la línea de método y la nota de alcance son fijas', () => {
         'mediana de los últimos 90 días y ahorra $1.000 o más.',
     );
     expect(DEALS_SCOPE_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición; los totales de arriba son del catálogo completo.');
+    // La portada no tiene totales encima: allí va solo la primera mitad.
+    expect(DEALS_TYPICAL_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición.');
 });
 
 test.describe('ofertas en la galería (`/api/games/?deals=1`)', () => {
