@@ -288,7 +288,8 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
 
         await page.goto('/ofertas');
         const deals = await sidebarSections(page);
-        // «En oferta» (`on_sale`) es otro concepto: aquí no se ofrece.
+        // «En oferta» (`on_sale`) es el mismo filtro que la página ya aplica
+        // (`deals=1`): aquí sería redundante y no se ofrece.
         expect(deals).not.toContain('Ofertas');
         const shared = landing.filter((t) => t !== 'Ofertas');
         expect(shared.length).toBeGreaterThanOrEqual(2);
