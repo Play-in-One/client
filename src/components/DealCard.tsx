@@ -31,7 +31,7 @@ export default function DealCard({
     return (
         <Box data-deal-card style={{ height: '100%' }}>
             {/* Precio, consola y condición de la OFERTA (`dealCardGame`) y su
-                tienda en «Vendido por»: el mínimo del juego puede ser de otra
+                tienda bajo el precio: el mínimo del juego puede ser de otra
                 consola o condición y contradiría la rebaja de al lado. */}
             <GameCard
                 game={dealCardGame(deal)}

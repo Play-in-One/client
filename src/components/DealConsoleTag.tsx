@@ -2,7 +2,7 @@ import { FALLBACK_PLATFORM_ICON, PLATFORMS_BY_SLUG } from '@/lib/platforms';
 
 /**
  * La consola del precio de una tarjeta en oferta: logo y nombre corto, junto
- * al precio (la rebaja «↓N% (i)» va aparte, sobre el precio).
+ * al precio y antes de la rebaja «↓N% (i)».
  *
  * Logo Y nombre: el logo es por familia (PS3, PS4 y PS5 comparten el de
  * PlayStation), así que solo con él no se sabría cuál es. Recibe la consola de

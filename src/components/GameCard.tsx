@@ -272,24 +272,14 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    {/* La rebaja va justo sobre el precio, en su
-                                        propia fila: así no compite con la cifra por
-                                        el ancho. Envuelta en un elemento propio
-                                        porque uno que llega de un Server Component
-                                        (DealCard) sin `key` dispara el aviso de
-                                        React si cae en la lista de hijos de un
-                                        `Group`. */}
-                                    {addon && (
-                                        <span
-                                            data-price-addon
-                                            style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}
-                                        >
-                                            {addon}
-                                        </span>
-                                    )}
-                                    {/* La consola de ese precio, al lado de la cifra.
-                                        Puede bajar de línea en tarjetas angostas. */}
-                                    <Group gap={4} wrap={consoleSlug ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                    {/* Precio, consola de ese precio y rebaja en la
+                                        misma fila; en tarjetas angostas las
+                                        etiquetas bajan de línea. La rebaja va
+                                        envuelta en un elemento propio porque una que
+                                        llega de un Server Component (DealCard) sin
+                                        `key` dispara el aviso de React si cae en la
+                                        lista de hijos de un `Group`. */}
+                                    <Group gap={4} wrap={consoleSlug || addon ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
                                         <Group gap={2} wrap="nowrap" align="center">
                                             <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                                 {formatCLP(price)}
@@ -301,12 +291,18 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                             />
                                         </Group>
                                         {consoleSlug && <DealConsoleTag platform={consoleSlug} />}
+                                        {addon && (
+                                            <span data-price-addon style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                {addon}
+                                            </span>
+                                        )}
                                     </Group>
                                 </Box>
                                 <Box ta="right">
-                                    {seller ? (
-                                        <>
-                                            <Text fz={10} c="dimmed">Vendido por</Text>
+                                    {/* Solo la tienda, sin el rótulo «Vendido por»
+                                        (ni «Precio más bajo» cuando no hay tienda):
+                                        deja la fila del precio más despejada. */}
+                                    {seller && (
                                             <Group
                                                 gap={4}
                                                 justify="flex-end"
@@ -334,9 +330,6 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                                     {seller.name}
                                                 </Text>
                                             </Group>
-                                        </>
-                                    ) : (
-                                        <Text fz={10} c="dimmed">Precio más bajo</Text>
                                     )}
                                 </Box>
                             </Group>

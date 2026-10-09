@@ -227,13 +227,8 @@ function FeaturedGameCard({
 
                         {hasPrice ? (
                             <Box mt="auto">
-                                {/* Igual que GameCard: la rebaja sobre el precio
-                                    y la consola de ese precio al lado de la cifra. */}
-                                {deal && (
-                                    <span style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
-                                        <DealPriceLabel deal={deal} isToday={false} />
-                                    </span>
-                                )}
+                                {/* Igual que GameCard: precio, consola de ese
+                                    precio y rebaja en la misma fila. */}
                                 <Group gap={4} wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
                                     <Group gap={2} wrap="nowrap" align="center">
                                         <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
@@ -246,6 +241,11 @@ function FeaturedGameCard({
                                         />
                                     </Group>
                                     {deal && <DealConsoleTag platform={deal.platform} />}
+                                    {deal && (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                            <DealPriceLabel deal={deal} isToday={false} />
+                                        </span>
+                                    )}
                                 </Group>
                             </Box>
                         ) : (
