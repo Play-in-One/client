@@ -248,9 +248,9 @@ interface Props {
 
     onSale: boolean;
     onToggleOnSale: () => void;
-    /** `false` en /ofertas: «En oferta» (`on_sale`) significa «bajó respecto
-     *  del precio anterior», otra cosa que una oferta del día, y mostrarlo ahí
-     *  haría creer que filtra las ofertas de la página. */
+    /** `false` en /ofertas: «En oferta» (`on_sale`) es exactamente «lleva la
+     *  etiqueta de rebaja», el mismo filtro que `deals=1` que la página ya
+     *  aplica, así que ahí sería un checkbox que no cambia nada. */
     showOnSaleSection?: boolean;
 
     /** 0 = filtro inactivo (sin mínimo). */

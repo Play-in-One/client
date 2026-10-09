@@ -55,13 +55,16 @@ interface Props {
     lockedSaga?: LockedSaga;
     /** Galería acotada a las ofertas del día (/ofertas): toda consulta lleva
      *  `deals=1`, el menú de orden gana «Mayor descuento» y se oculta «En
-     *  oferta» (`on_sale`, «bajó respecto del precio anterior»: otro concepto).
-     *  Cada tarjeta se pinta con `DealCard`, igual que la grilla del servidor.
+     *  oferta» (`on_sale`): es el mismo filtro, ahí ya está puesto. Cada
+     *  tarjeta se pinta con `DealCard`, igual que la grilla del servidor.
      *  El orden por defecto lo fija el padre (`DEALS_ORDERING`). */
     lockedDeals?: boolean;
-    /** Con `lockedDeals`: si la tanda es la de hoy («Nueva hoy»). Lo calcula el
-     *  servidor (`dealsPageView`) y llega como prop, nunca un `new Date()` en
-     *  el render del cliente. */
+    /** Si la tanda de ofertas es la de hoy («Nueva hoy»). Lo calcula el
+     *  servidor de /ofertas (`dealsPageView`) y llega como prop, nunca un
+     *  `new Date()` en el render del cliente. Fuera de /ofertas nadie sabe la
+     *  fecha de la tanda —«En oferta» trae `deal` sin ella—, así que el default
+     *  es `false`: la tarjeta dice «N días en oferta» o nada, nunca «Nueva hoy»
+     *  de un cálculo que puede ser de ayer. */
     dealsIsToday?: boolean;
     /** Solo cuando NO hay `lockedPlatform` (caso /search): la selección de
      *  plataforma la controla el padre (vive en la URL). */
@@ -120,7 +123,7 @@ export default function GameExplorer({
     lockedPlatform,
     lockedSaga,
     lockedDeals = false,
-    dealsIsToday = true,
+    dealsIsToday = false,
     selectedPlatformIds,
     onPlatformFilterChange,
     filtersReady = true,
@@ -369,7 +372,7 @@ export default function GameExplorer({
             condition: conditionParam,
             price_min: priceMin,
             price_max: priceMax,
-            on_sale: onSale || undefined,
+            on_sale: onSale ? 1 : undefined,
             deals: dealsParam,
             rating_min: ratingMin,
             seller_locations: sellerLocationsParam,
@@ -416,7 +419,7 @@ export default function GameExplorer({
             condition: conditionParam,
             price_min: priceMin,
             price_max: priceMax,
-            on_sale: onSale || undefined,
+            on_sale: onSale ? 1 : undefined,
             deals: dealsParam,
             rating_min: ratingMin,
             seller_locations: sellerLocationsParam,

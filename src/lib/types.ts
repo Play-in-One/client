@@ -321,10 +321,15 @@ export interface Game {
      *  cuando el juego no tiene ninguna oferta importada: ahí sería idéntica a
      *  la agregada y el backend no la guarda. */
     min_price_history_national?: MinPriceHistory;
+    /** «En oferta»: el juego lleva la etiqueta de rebaja «↓N% (i)», o sea
+     *  tiene una oferta del día (`DailyDeal`, última fecha) que pasa los
+     *  filtros de la consulta; en la ficha, cualquiera del juego. No es «bajó
+     *  respecto del precio anterior», que era casi todo el catálogo. */
     on_sale: boolean;
     /** La mejor oferta del día del juego entre las que pasan los filtros de la
      *  consulta (consola, condición, ubicación de la tienda). Solo viaja con
-     *  `?deals=1` (/ofertas): sin él la clave no existe y no cuesta consultas. */
+     *  `?deals=1` (/ofertas) u `?on_sale=1` («En oferta» de las galerías): sin
+     *  ellos la clave no existe y no cuesta consultas. */
     deal?: DealOffer | null;
     products?: Product[];
     /** Texto de la tarjeta si el juego sale en "Juegos Destacados". Qué

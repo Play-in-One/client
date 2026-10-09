@@ -451,3 +451,61 @@ test.describe('enlaces hacia /ofertas', () => {
         }
     });
 });
+
+test.describe('«En oferta» en la galería de una consola', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+    });
+
+    test('filtra exactamente los juegos con la etiqueta de rebaja', async ({ page, request }) => {
+        // «En oferta» ya no es «bajó respecto del precio anterior»: es lo mismo
+        // que /ofertas. La consola sale de la API (la sembrada si tiene ofertas).
+        const withDeals = (await apiDeals(request)).platforms ?? [];
+        expect(withDeals.length, '¿sin ofertas calculadas? correr seed_e2e').toBeGreaterThan(0);
+        const slug = withDeals.some((p) => p.slug === DEAL.platform)
+            ? DEAL.platform
+            : withDeals[0].slug;
+        const platforms = (await (await request.get(`${API}/platforms/`)).json()).results as Platform[];
+        const platform = platforms.find((p) => p.slug === slug)!;
+
+        await page.goto(`/juegos/${slug}`);
+        const listing = page.waitForRequest((r) => {
+            const url = new URL(r.url());
+            return /\/api\/games\/$/.test(url.pathname) && url.searchParams.get('on_sale') === '1';
+        });
+        const checkbox = page.locator('[data-explorer-sidebar] [data-filter-section="Ofertas"]')
+            .getByRole('checkbox', { name: 'En oferta' });
+        // Un click antes de hidratar puede perderse: se reintenta hasta que quede.
+        await expect(async () => {
+            await checkbox.check();
+            await expect(checkbox).toBeChecked({ timeout: 1000 });
+        }).toPass();
+        const req = await listing;
+        const res = await req.response();
+        expect(res?.ok()).toBe(true);
+        const body: PaginatedResponse<Game> = await res!.json();
+        const params = new URL(req.url()).searchParams;
+        expect(params.get('platforms')).toBe(String(platform.id));
+        expect(params.get('deals')).toBeNull();
+
+        // Todas las tarjetas son de oferta y llevan «↓N% (i)».
+        expect(body.results.length).toBeGreaterThan(0);
+        expect(body.results.every((g) => g.deal)).toBe(true);
+        await expect(page.locator('[data-deal-card]')).toHaveCount(body.results.length);
+        await expect(page.locator('[data-deal-label]')).toHaveCount(body.results.length);
+        // Fuera de /ofertas no hay fecha de la tanda que diga si es de hoy.
+        await expect(page.locator('[data-deal-age]', { hasText: 'Nueva hoy' })).toHaveCount(0);
+
+        // El conteo es el de la API con `on_sale=1`, y el de `deals=1` (mismo
+        // filtro), con los mismos filtros globales que mandó el explorador.
+        const count = async (swap: Record<string, string | null>) => {
+            const q = new URLSearchParams(params);
+            for (const [k, v] of Object.entries(swap)) {
+                if (v === null) q.delete(k); else q.set(k, v);
+            }
+            return ((await (await request.get(`${API}/games/?${q}`)).json()) as PaginatedResponse<Game>).count;
+        };
+        expect(body.count).toBe(await count({}));
+        expect(body.count).toBe(await count({ on_sale: null, deals: '1' }));
+    });
+});

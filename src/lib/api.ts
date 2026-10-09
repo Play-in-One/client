@@ -346,7 +346,9 @@ export async function getGames(params?: {
     condition?: string;
     price_min?: number;
     price_max?: number;
-    on_sale?: boolean;
+    /** «En oferta»: el mismo filtro que `deals` (los juegos con la etiqueta de
+     *  rebaja), con el nombre de la galería. También trae `deal`. */
+    on_sale?: 1;
     /** Solo juegos con alguna oferta del día (`DailyDeal`) que pase los demás
      *  filtros de la consulta; cada resultado trae su mejor oferta en `deal`. */
     deals?: 1;
@@ -445,7 +447,9 @@ export async function getGameFacets(params?: {
     condition?: string;
     price_min?: number;
     price_max?: number;
-    on_sale?: boolean;
+    /** «En oferta»: el mismo filtro que `deals` (los juegos con la etiqueta de
+     *  rebaja), con el nombre de la galería. También trae `deal`. */
+    on_sale?: 1;
     /** Solo juegos con alguna oferta del día (`DailyDeal`) que pase los demás
      *  filtros de la consulta; cada resultado trae su mejor oferta en `deal`. */
     deals?: 1;
