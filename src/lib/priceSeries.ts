@@ -7,9 +7,10 @@ export interface ChartPoint {
     /** null = sin stock; corta la línea en vez de interpolar sobre el hueco. */
     price: number | null;
     /** Punto NO medido, añadido para que la línea cubra la ventana:
-     *  'edge' = precio vigente al empezar el rango, 'now' = vigente hasta hoy.
+     *  'edge' = precio vigente al empezar el rango, 'now' = vigente hasta hoy,
+     *  'end' = último día con ese precio, justo antes de un "sin stock".
      *  No se le dibuja marca — un punto sugiere una muestra que no existió. */
-    kind?: 'edge' | 'now';
+    kind?: 'edge' | 'now' | 'end';
 }
 
 export interface PriceSeries {
@@ -93,15 +94,28 @@ export function buildPriceSeries(
         points.push({ t: now, price: last.price, kind: 'now' });
     }
 
+    // Cierre antes de un "sin stock": la serie solo anota cambios, así que el
+    // tramo entre un precio y el null que lo sigue tiene UN solo punto con
+    // valor, y con `connectNulls={false}` un punto solo se dibuja como círculo
+    // sin línea. El precio siguió vigente hasta la fecha del null: se repite ahí.
+    const closed: ChartPoint[] = [];
+    points.forEach((p, i) => {
+        closed.push(p);
+        const next = points[i + 1];
+        if (p.price !== null && next && next.price === null) {
+            closed.push({ t: next.t, price: p.price, kind: 'end' });
+        }
+    });
+
     // El dominio arranca siempre en `from`, aunque el historial sea más corto:
     // así 30d y 180d son comparables y el espacio vacío a la izquierda dice
     // "aquí empieza lo que sabemos". Un dominio degenerado divide por cero.
     const domain: [number, number] = from === now ? [from - DAY_MS, now] : [from, now];
 
     return {
-        points,
+        points: closed,
         domain,
-        plotCount: points.filter((p) => p.price !== null).length,
+        plotCount: closed.filter((p) => p.price !== null).length,
         realCount: inRange.filter((p) => p.price !== null).length,
         hasOlderData: older.length > 0,
         lastRealTimestamp: inRange.length ? inRange[inRange.length - 1].t : null,

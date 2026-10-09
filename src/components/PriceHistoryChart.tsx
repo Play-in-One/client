@@ -39,7 +39,9 @@ interface PriceDotProps {
 }
 
 function renderPriceDot({ cx, cy, index, payload }: PriceDotProps) {
-    const key = `dot-${payload?.t ?? index}`;
+    // `t` no basta como key: el punto de cierre ('end') y el null que lo sigue
+    // comparten fecha.
+    const key = `dot-${index}-${payload?.t}`;
     if (payload?.kind || cx == null || cy == null) return <g key={key} />;
     return (
         <circle
@@ -110,6 +112,7 @@ export default function PriceHistoryChart({ points, domain, lastRealTimestamp }:
                             const kind = (payload?.[0]?.payload as ChartPoint | undefined)?.kind;
                             if (kind === 'now') return 'Precio actual';
                             if (kind === 'edge') return 'Vigente al inicio del rango';
+                            if (kind === 'end') return 'Sin stock desde esta fecha';
                             const date = new Date(value).toLocaleDateString('es-CL');
                             // El punto real más reciente es la última vez que este
                             // precio cambió de verdad; de ahí en más el gráfico solo
