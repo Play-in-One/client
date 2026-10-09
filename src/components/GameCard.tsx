@@ -12,6 +12,7 @@ import ConditionIcon from './ConditionIcon';
 import AffiliateMark from './AffiliateMark';
 import PriceInfo from './PriceInfo';
 import DealPriceLabel from './DealPriceLabel';
+import DealConsoleTag from './DealConsoleTag';
 import { formatCLP } from '@/lib/utils';
 import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
@@ -43,9 +44,12 @@ interface Props {
      *  Solo /ofertas lo sabe (lo calcula el servidor); fuera de ahí no hay
      *  fecha con que compararla, así que por defecto nunca dice «Nueva hoy». */
     dealsIsToday?: boolean;
+    /** Consola de la oferta que pasa `DealCard` junto con su `priceAddon`: va
+     *  como etiqueta al lado del precio (`DealConsoleTag`). */
+    priceConsole?: string | null;
 }
 
-function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon, dealsIsToday = false }: Props) {
+function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon, dealsIsToday = false, priceConsole }: Props) {
     const router = useRouter();
     // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
     // producto más barato, cambia cuando el usuario cambia de filtro. Con
@@ -74,6 +78,8 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     // ya solo manda `deal` en ese caso, salvo con `?deals=1` (mejor fila).
     const ownDeal = priceAddon ? null : cardDeal(game);
     const addon = priceAddon ?? (ownDeal ? <DealPriceLabel deal={ownDeal} isToday={dealsIsToday} /> : null);
+    // La consola de ese precio va al lado de la cifra (la rebaja, encima).
+    const consoleSlug = priceConsole ?? ownDeal?.platform ?? null;
 
     // La ficha abre en la consola del precio que muestra la tarjeta; sin
     // precio, en la del filtro activo (si lo hay).
@@ -266,31 +272,35 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    {/* La consola y la rebaja van justo sobre el
-                                        precio, en su propia fila: así no compiten
-                                        con la cifra por el ancho y en móvil no
-                                        empujan la tienda fuera de la tarjeta.
-                                        Envueltas en un elemento propio porque uno
-                                        que llega de un Server Component (DealCard)
-                                        sin `key` dispara el aviso de React si cae
-                                        en la lista de hijos de un `Group`. */}
+                                    {/* La rebaja va justo sobre el precio, en su
+                                        propia fila: así no compite con la cifra por
+                                        el ancho. Envuelta en un elemento propio
+                                        porque uno que llega de un Server Component
+                                        (DealCard) sin `key` dispara el aviso de
+                                        React si cae en la lista de hijos de un
+                                        `Group`. */}
                                     {addon && (
                                         <span
                                             data-price-addon
-                                            style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 2 }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}
                                         >
                                             {addon}
                                         </span>
                                     )}
-                                    <Group gap={2} wrap="nowrap" align="center">
-                                        <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
-                                            {formatCLP(price)}
-                                        </Text>
-                                        <PriceInfo
-                                            basePrice={basePrice}
-                                            shippingCost={shippingCost}
-                                            seller={game.min_price_seller}
-                                        />
+                                    {/* La consola de ese precio, al lado de la cifra.
+                                        Puede bajar de línea en tarjetas angostas. */}
+                                    <Group gap={4} wrap={consoleSlug ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                        <Group gap={2} wrap="nowrap" align="center">
+                                            <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
+                                                {formatCLP(price)}
+                                            </Text>
+                                            <PriceInfo
+                                                basePrice={basePrice}
+                                                shippingCost={shippingCost}
+                                                seller={game.min_price_seller}
+                                            />
+                                        </Group>
+                                        {consoleSlug && <DealConsoleTag platform={consoleSlug} />}
                                     </Group>
                                 </Box>
                                 <Box ta="right">

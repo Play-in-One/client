@@ -8,6 +8,7 @@ import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
 import PriceInfo from './PriceInfo';
 import DealPriceLabel from './DealPriceLabel';
+import DealConsoleTag from './DealConsoleTag';
 import { formatCLP } from '@/lib/utils';
 import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
@@ -225,21 +226,28 @@ function FeaturedGameCard({
                         </Text>
 
                         {hasPrice ? (
-                            <Group gap={2} wrap={deal ? 'wrap' : 'nowrap'} align="center" mt="auto" style={{ rowGap: 2 }}>
-                                <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
-                                    {formatCLP(game.min_price as string)}
-                                </Text>
-                                <PriceInfo
-                                    basePrice={game.min_price_base}
-                                    shippingCost={game.min_price_shipping}
-                                    seller={game.min_price_seller}
-                                />
+                            <Box mt="auto">
+                                {/* Igual que GameCard: la rebaja sobre el precio
+                                    y la consola de ese precio al lado de la cifra. */}
                                 {deal && (
-                                    <span style={{ display: 'inline-flex' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', marginBottom: 2 }}>
                                         <DealPriceLabel deal={deal} isToday={false} />
                                     </span>
                                 )}
-                            </Group>
+                                <Group gap={4} wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                    <Group gap={2} wrap="nowrap" align="center">
+                                        <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
+                                            {formatCLP(game.min_price as string)}
+                                        </Text>
+                                        <PriceInfo
+                                            basePrice={game.min_price_base}
+                                            shippingCost={game.min_price_shipping}
+                                            seller={game.min_price_seller}
+                                        />
+                                    </Group>
+                                    {deal && <DealConsoleTag platform={deal.platform} />}
+                                </Group>
+                            </Box>
                         ) : (
                             <Group mt="auto">
                                 <Badge color="gray" variant="light" size="sm">Sin stock</Badge>

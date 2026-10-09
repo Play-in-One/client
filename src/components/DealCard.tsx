@@ -39,6 +39,7 @@ export default function DealCard({
                 seller={deal.seller}
                 priority={priority}
                 priceAddon={<DealPriceLabel deal={deal} isToday={isToday} />}
+                priceConsole={deal.platform}
             />
         </Box>
     );

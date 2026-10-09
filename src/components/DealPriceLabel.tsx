@@ -5,7 +5,6 @@ import type { KeyboardEvent, MouseEvent } from 'react';
 import { Badge, Divider, Group, Popover, Stack, Text, VisuallyHidden } from '@mantine/core';
 import { IconArrowDown, IconInfoCircle } from '@tabler/icons-react';
 import { CONDITION_LABEL } from '@/lib/conditions';
-import { FALLBACK_PLATFORM_ICON, PLATFORMS_BY_SLUG } from '@/lib/platforms';
 import { dealAgeLabel, dealBadgeLine } from '@/lib/deals';
 import type { Deal } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
@@ -35,26 +34,7 @@ export default function DealPriceLabel({ deal, isToday = true }: { deal: Deal; i
         setOpened((current) => !current);
     };
 
-    // La consola del precio de la tarjeta, a la izquierda de la rebaja. Logo y
-    // nombre corto: el logo es por familia (PS3, PS4 y PS5 comparten el de
-    // PlayStation), así que solo con él no se sabría cuál es. La oferta y el
-    // precio mostrado son siempre de la misma consola (`attach_card_deals` y
-    // `dealCardGame` lo garantizan), por eso sale de `deal.platform`.
-    const console_ = PLATFORMS_BY_SLUG[deal.platform];
-    const ConsoleIcon = console_?.icon ?? FALLBACK_PLATFORM_ICON;
-
     return (
-        <>
-        {console_ && (
-            <span
-                className="pio-deal-console"
-                title={`Precio en ${console_.long}`}
-                data-deal-console={deal.platform}
-            >
-                <ConsoleIcon size={12} aria-hidden />
-                {console_.short}
-            </span>
-        )}
         <Popover opened={opened} onChange={setOpened} withArrow shadow="md" width={250} position="top">
             <Popover.Target>
                 <span
@@ -118,6 +98,5 @@ export default function DealPriceLabel({ deal, isToday = true }: { deal: Deal; i
                 </Stack>
             </Popover.Dropdown>
         </Popover>
-        </>
     );
 }
