@@ -266,10 +266,23 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    {/* Con `priceAddon` puede envolver: en móvil la
-                                        rebaja baja bajo el precio en vez de empujar
-                                        la tienda fuera de la tarjeta. */}
-                                    <Group gap={2} wrap={addon ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                    {/* La consola y la rebaja van justo sobre el
+                                        precio, en su propia fila: así no compiten
+                                        con la cifra por el ancho y en móvil no
+                                        empujan la tienda fuera de la tarjeta.
+                                        Envueltas en un elemento propio porque uno
+                                        que llega de un Server Component (DealCard)
+                                        sin `key` dispara el aviso de React si cae
+                                        en la lista de hijos de un `Group`. */}
+                                    {addon && (
+                                        <span
+                                            data-price-addon
+                                            style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap', marginBottom: 2 }}
+                                        >
+                                            {addon}
+                                        </span>
+                                    )}
+                                    <Group gap={2} wrap="nowrap" align="center">
                                         <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                             {formatCLP(price)}
                                         </Text>
@@ -278,11 +291,6 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                             shippingCost={shippingCost}
                                             seller={game.min_price_seller}
                                         />
-                                        {/* Envuelto en un elemento propio: `Group` trata
-                                            sus hijos como lista, y uno que llega de un
-                                            Server Component (DealCard) sin `key` dispara
-                                            el aviso de React. */}
-                                        {addon && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{addon}</span>}
                                     </Group>
                                 </Box>
                                 <Box ta="right">

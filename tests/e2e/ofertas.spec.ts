@@ -67,13 +67,15 @@ async function consoleWithoutDeals(request: APIRequestContext): Promise<Platform
 }
 
 /** El HTML de cada tarjeta de oferta, en orden: del marcador `data-deal-card`
- *  hasta el siguiente. La última se corta al cerrar su línea de rebaja
- *  (`data-deal-line`, el texto accesible de la etiqueta «↓N% (i)» junto al
- *  precio) para no arrastrar el resto de la página. */
+ *  hasta el siguiente. La última se corta al cerrar el enlace de la tarjeta
+ *  (el primer `</a>` tras su línea de rebaja `data-deal-line`: la tarjeta
+ *  entera es un enlace y no anida otros), para no arrastrar el resto de la
+ *  página. Ojo: la etiqueta va SOBRE el precio, así que cortar en la propia
+ *  línea dejaba el precio fuera. */
 function dealCardsHtml(html: string): string[] {
     return html.split('data-deal-card').slice(1).map((chunk) => {
         const line = chunk.indexOf('data-deal-line');
-        const end = line > -1 ? chunk.indexOf('</span>', line) : -1;
+        const end = line > -1 ? chunk.indexOf('</a>', line) : -1;
         return end > -1 ? chunk.slice(0, end) : chunk;
     });
 }
