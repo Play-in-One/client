@@ -68,11 +68,12 @@ async function consoleWithoutDeals(request: APIRequestContext): Promise<Platform
 
 /** El HTML de cada tarjeta de oferta, en orden: del marcador `data-deal-card`
  *  hasta el siguiente. La última se corta al cerrar su línea de rebaja
- *  (`data-deal-line`) para no arrastrar el resto de la página. */
+ *  (`data-deal-line`, el texto accesible de la etiqueta «↓N% (i)» junto al
+ *  precio) para no arrastrar el resto de la página. */
 function dealCardsHtml(html: string): string[] {
     return html.split('data-deal-card').slice(1).map((chunk) => {
         const line = chunk.indexOf('data-deal-line');
-        const end = line > -1 ? chunk.indexOf('</p>', line) : -1;
+        const end = line > -1 ? chunk.indexOf('</span>', line) : -1;
         return end > -1 ? chunk.slice(0, end) : chunk;
     });
 }
@@ -326,6 +327,25 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         await expect(card.locator('[data-deal-line]')).toHaveText(dealBadgeLine(first!));
         await expect(page.locator('[data-deal-card]')).toHaveCount(body.results.length);
         await expect(page.locator('[data-deal-line]')).toHaveCount(body.results.length);
+    });
+
+    test('la etiqueta «↓N%» junto al precio abre el detalle sin navegar a la ficha', async ({ page, request }) => {
+        const api = await apiDeals(request);
+        const [top] = api.results;
+        await page.goto('/ofertas');
+        const label = page.locator('[data-deal-card]').first().locator('[data-deal-label]');
+        await expect(label).toContainText(`${Math.round(top.discount_pct)}%`);
+        // Un click antes de hidratar puede perderse: se reintenta hasta que abra.
+        // El aviso de cookies también es un `dialog`: se acota al del detalle.
+        const dialog = page.getByRole('dialog').filter({ hasText: 'Precio típico' });
+        await expect(async () => {
+            if ((await label.getAttribute('aria-expanded')) !== 'true') await label.click();
+            await expect(dialog).toBeVisible({ timeout: 1000 });
+        }).toPass();
+        await expect(dialog).toContainText(formatCLP(top.typical_price));
+        await expect(dialog).toContainText(formatCLP(top.savings));
+        // La tarjeta es un enlace a la ficha: abrir la (i) no puede navegar.
+        await expect(page).toHaveURL(/\/ofertas$/);
     });
 
     test('elegir un género pide /api/games/ con deals=1 y ese género', async ({ page }) => {

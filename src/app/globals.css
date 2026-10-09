@@ -786,6 +786,27 @@ a.saga-banner-link:focus-visible {
   color: var(--mantine-color-primaryRed-filled);
 }
 
+/* Rebaja junto al precio de una tarjeta de oferta (`DealPriceLabel`). */
+.pio-deal-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--mantine-color-green-light);
+  color: var(--mantine-color-green-text);
+  font-size: var(--mantine-font-size-xs);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pio-deal-label:hover,
+.pio-deal-label[aria-expanded="true"] {
+  background: var(--mantine-color-green-light-hover);
+}
+
 /* (i) pegada al título de una página (`InfoHeading`): el icono va junto al
    texto y no al otro extremo, y el título no lleva margen propio para que el
    icono quede centrado con él. */

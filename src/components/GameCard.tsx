@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, memo } from 'react';
+import type { ReactNode } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
 import Image from 'next/image';
@@ -33,9 +34,11 @@ interface Props {
     /** Tienda del «Vendido por» cuando no hay `bestProduct`: la de una oferta
      *  del día, que trae su propia tienda y no la del mínimo del catálogo. */
     seller?: Pick<Product['seller'], 'id' | 'name'> & Partial<Pick<Product['seller'], 'favicon' | 'logo'>> | null;
+    /** Algo que va junto al precio (la rebaja de una oferta: `DealPriceLabel`). */
+    priceAddon?: ReactNode;
 }
 
-function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride }: Props) {
+function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon }: Props) {
     const router = useRouter();
     // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
     // producto más barato, cambia cuando el usuario cambia de filtro. Con
@@ -249,7 +252,10 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                         >
                             <Group justify="space-between" align="flex-end">
                                 <Box>
-                                    <Group gap={2} wrap="nowrap" align="center">
+                                    {/* Con `priceAddon` puede envolver: en móvil la
+                                        rebaja baja bajo el precio en vez de empujar
+                                        la tienda fuera de la tarjeta. */}
+                                    <Group gap={2} wrap={priceAddon ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
                                         <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                             {formatCLP(price)}
                                         </Text>
@@ -258,6 +264,11 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                             shippingCost={shippingCost}
                                             seller={game.min_price_seller}
                                         />
+                                        {/* Envuelto en un elemento propio: `Group` trata
+                                            sus hijos como lista, y uno que llega de un
+                                            Server Component (DealCard) sin `key` dispara
+                                            el aviso de React. */}
+                                        {priceAddon && <span style={{ display: 'inline-flex' }}>{priceAddon}</span>}
                                     </Group>
                                 </Box>
                                 <Box ta="right">
