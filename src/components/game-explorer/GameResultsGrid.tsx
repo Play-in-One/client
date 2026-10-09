@@ -3,6 +3,8 @@
 import { Box, Group, Loader, Pagination, SimpleGrid, Stack, Text } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
+import DealCard from '@/components/DealCard';
+import { dealFromGame } from '@/lib/deals';
 import type { Game } from '@/lib/types';
 
 interface Props {
@@ -15,6 +17,10 @@ interface Props {
     selectionMode: boolean;
     selected: { id: number; name: string }[];
     onToggleSelect: (id: number) => void;
+    /** Si la tanda de ofertas es la de hoy (solo /ofertas). Lo resuelve el
+     *  SERVIDOR: un `new Date()` en el render del cliente podría caer en otro
+     *  día que el del HTML cerca de la medianoche. */
+    dealsIsToday?: boolean;
 }
 
 export default function GameResultsGrid({
@@ -27,6 +33,7 @@ export default function GameResultsGrid({
     selectionMode,
     selected,
     onToggleSelect,
+    dealsIsToday = true,
 }: Props) {
     if (loading && games.length === 0) {
         return (
@@ -57,17 +64,27 @@ export default function GameResultsGrid({
             )}
             <Box style={{ opacity: loading ? 0.55 : 1, transition: 'opacity 150ms' }}>
             <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                {games.map((g, i) => (
-                    <GameCard
-                        key={g.id}
-                        game={g}
-                        platformSlug={platformSlugFor(g)}
-                        selectable={selectionMode}
-                        selected={selected.some((s) => s.id === g.id)}
-                        onToggleSelect={onToggleSelect}
-                        priority={i < 4}
-                    />
-                ))}
+                {games.map((g, i) => {
+                    // Con `deals=1` cada juego trae su oferta: se pinta con la
+                    // MISMA tarjeta que la grilla del servidor (precio, consola,
+                    // condición y tienda de la oferta, más la línea de rebaja).
+                    // En modo selección manda la tarjeta seleccionable: la
+                    // fusión de admin no sabe nada de ofertas.
+                    const deal = selectionMode ? null : dealFromGame(g);
+                    return deal ? (
+                        <DealCard key={g.id} deal={deal} priority={i < 4} isToday={dealsIsToday} />
+                    ) : (
+                        <GameCard
+                            key={g.id}
+                            game={g}
+                            platformSlug={platformSlugFor(g)}
+                            selectable={selectionMode}
+                            selected={selected.some((s) => s.id === g.id)}
+                            onToggleSelect={onToggleSelect}
+                            priority={i < 4}
+                        />
+                    );
+                })}
             </SimpleGrid>
 
             {totalPages > 1 && (

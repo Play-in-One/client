@@ -5,7 +5,7 @@
  * página que la respalda. Sin dependencias de React ni de Mantine: lo importan
  * Server Components, rutas de texto y los tests unitarios.
  */
-import type { Deal, DealsResponse, Game, Platform } from './types';
+import type { Deal, DealOffer, DealsResponse, Game, Platform } from './types';
 import { platformLongName } from './types';
 import { formatCLP } from './utils';
 import { CONDITION_LABEL, conditionBucket } from './conditions';
@@ -18,10 +18,17 @@ export const DEALS_METHOD_LINE =
     'Una oferta aparece aquí cuando el precio más bajo de hoy está al menos 15% bajo su ' +
     'mediana de los últimos 90 días y ahorra $1.000 o más.';
 
-/** Las ofertas se calculan sobre el catálogo entero y NO se recalculan con los
- *  filtros del visitante (haría falta otra API). Se dice en vez de esconderlo:
- *  quien tenga apagadas las importadoras puede ver una oferta de una. */
-export const DEALS_SCOPE_NOTE = 'Calculadas sobre todas las tiendas y condiciones.';
+/** Qué ofertas se ven ya sigue las preferencias del visitante (condición,
+ *  ubicación de la tienda): /ofertas filtra con `GameExplorer` y `deals=1`.
+ *  Lo que NO cambia con ellas es el precio típico, que el backend calcula una
+ *  vez por noche sobre todas las tiendas de cada condición: quien tenga
+ *  apagadas las importadoras ve ofertas de tiendas nacionales, pero medidas
+ *  contra una mediana que sí incluye importadas. Se dice en vez de esconderlo. */
+export const DEALS_SCOPE_NOTE = 'El precio típico de cada oferta considera todas las tiendas de esa condición.';
+
+/** Orden por defecto de /ofertas en la galería: la mayor rebaja primero, como
+ *  lista `/api/deals/` la grilla del servidor. */
+export const DEALS_ORDERING = '-deal_discount';
 
 /** El signo menos tipográfico: el guion corto se lee como un guion de unión. */
 const MINUS = '−';
@@ -266,6 +273,25 @@ export function dealCardGame(deal: Deal): Game {
         // La marca 💸 de admin habla de la oferta más barata del catálogo, no de esta.
         min_price_is_affiliate: false,
     };
+}
+
+/**
+ * La oferta de un juego de `/api/games/?deals=1` con la forma de `/api/deals/`,
+ * para que `DealCard` la pinte igual en la grilla del servidor y en la del
+ * explorador: misma tarjeta, misma línea de rebaja, mismo precio de la oferta.
+ * null si el juego no trae `deal` (sin `deals=1`, o un backend anterior): la
+ * galería cae entonces a la `GameCard` de siempre.
+ */
+export function dealFromGame(game: Game): Deal | null {
+    return game.deal ? { ...game.deal, game } : null;
+}
+
+/** La inversa: el juego de una fila de `/api/deals/` con su oferta en `deal`.
+ *  Siembra el explorador de /ofertas con las tarjetas que ya pintó el servidor,
+ *  para que al pasar a modo interactivo no parpadee una galería vacía. */
+export function gameWithDeal(deal: Deal): Game {
+    const { game, ...offer } = deal;
+    return { ...game, deal: offer satisfies DealOffer };
 }
 
 /**

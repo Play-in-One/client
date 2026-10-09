@@ -1,17 +1,18 @@
-import { test, expect, type APIRequestContext } from '@playwright/test';
+import { test, expect, type APIRequestContext, type Page, type Request } from '@playwright/test';
 import { SEEDED, robotsOf, serverHtml } from './helpers';
 import {
     dealBadgeLine,
     dealConsoleChipLabel,
     dealConsoleChips,
     dealConsoleSlugs,
+    dealFromGame,
     dealsHeading,
     dealsSectionTitle,
     dealsSummarySentence,
 } from '../../src/lib/deals';
 import { gamePath } from '../../src/lib/seo';
 import { formatCLP } from '../../src/lib/utils';
-import type { DealsResponse, Platform } from '../../src/lib/types';
+import type { DealsResponse, Game, PaginatedResponse, Platform } from '../../src/lib/types';
 
 /**
  * `/ofertas` se resuelve ENTERA en el servidor (`DealsLanding`), así que estos
@@ -127,7 +128,7 @@ test.describe('HTML del servidor', () => {
         // «hoy» o «del <fecha>» según la fecha de la tanda (`dealsHeading`):
         // la base de dev puede no haber recalculado hoy.
         expect(html).toContain(`>${dealsHeading(undefined, api)}</h1>`);
-        expect(html).toContain('Calculadas sobre todas las tiendas y condiciones.');
+        expect(html).toContain('El precio típico de cada oferta considera todas las tiendas de esa condición.');
         expect(html).toContain('Una oferta aparece aquí cuando el precio más bajo de hoy');
         expect(html).toMatch(/\d+ juegos? (están|está|estaban|estaba) al menos 15% bajo su precio típico de los últimos 90 días\./);
         expect(html).toMatch(/href="\/juego\/[a-z0-9-]+-\d+\?platform=[a-z0-9-]+"/);
@@ -226,6 +227,116 @@ test.describe('HTML del servidor', () => {
     test('una consola que no existe es un 404 de verdad', async ({ request }) => {
         const res = await request.get('/ofertas/consola-que-no-existe');
         expect(res.status()).toBe(404);
+    });
+});
+
+/* ── El explorador: mismos filtros que las galerías de consola ──────────────
+ * Esto sí corre en el navegador: el sidebar y las peticiones con `deals=1` los
+ * monta `GameExplorer` al hidratar. Se miran las peticiones reales (no mocks)
+ * porque lo que se prueba es justamente que salgan con `deals=1`.
+ */
+
+/** Títulos de las secciones del sidebar de escritorio, en orden. */
+async function sidebarSections(page: Page): Promise<string[]> {
+    const sections = page.locator('[data-explorer-sidebar] [data-filter-section]');
+    await expect(sections.first()).toBeVisible();
+    return sections.evaluateAll((els) => els.map((el) => el.getAttribute('data-filter-section') ?? ''));
+}
+
+/** ¿Es una petición del listado de juegos (no de facets) con `deals=1`? */
+const isDealsListing = (req: Request, extra: (params: URLSearchParams) => boolean = () => true) => {
+    const url = new URL(req.url());
+    return /\/api\/games\/$/.test(url.pathname) && url.searchParams.get('deals') === '1' && extra(url.searchParams);
+};
+
+/** Cambia el orden a «Menor precio» (saca al explorador del modo estático) y
+ *  devuelve la respuesta de la petición que eso dispara. */
+async function orderByLowestPrice(page: Page): Promise<{ req: Request; body: PaginatedResponse<Game> }> {
+    const requestPromise = page.waitForRequest((r) =>
+        isDealsListing(r, (p) => p.get('ordering') === 'min_price'));
+    await page.getByRole('textbox', { name: 'Ordenar por' }).click();
+    await page.getByRole('option', { name: 'Menor precio' }).click();
+    const req = await requestPromise;
+    const res = await req.response();
+    expect(res?.ok()).toBe(true);
+    return { req, body: await res!.json() };
+}
+
+test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+    });
+
+    test('el sidebar ofrece los mismos filtros que la galería de una consola, sin «En oferta»', async ({ page }) => {
+        // Los títulos se leen de la landing en vez de escribirlos aquí: si las
+        // galerías ganan o pierden un filtro, /ofertas tiene que seguirlas.
+        await page.goto(`/juegos/${DEAL.platform}`);
+        const landing = await sidebarSections(page);
+        expect(landing).toContain('Ofertas');
+
+        await page.goto('/ofertas');
+        const deals = await sidebarSections(page);
+        // «En oferta» (`on_sale`) es otro concepto: aquí no se ofrece.
+        expect(deals).not.toContain('Ofertas');
+        const shared = landing.filter((t) => t !== 'Ofertas');
+        expect(shared.length).toBeGreaterThanOrEqual(2);
+        for (const title of shared) expect(deals).toContain(title);
+        // Los controles de esas secciones, no solo sus títulos.
+        await expect(page.locator('[data-explorer-sidebar]').getByPlaceholder('Mín')).toBeVisible();
+        await expect(page.locator('[data-explorer-sidebar]').getByRole('slider')).toBeVisible();
+    });
+
+    test('el orden por defecto es «Mayor descuento» y los facets se piden con deals=1', async ({ page }) => {
+        const facets = page.waitForRequest((r) => {
+            const url = new URL(r.url());
+            return url.pathname.endsWith('/api/games/facets/') && url.searchParams.get('deals') === '1';
+        });
+        await page.goto('/ofertas');
+        await facets;
+        await expect(page.getByRole('textbox', { name: 'Ordenar por' })).toHaveValue('Mayor descuento');
+        await page.getByRole('textbox', { name: 'Ordenar por' }).click();
+        // Los demás órdenes siguen ahí.
+        await expect(page.getByRole('option', { name: 'Mayor descuento' })).toBeVisible();
+        await expect(page.getByRole('option', { name: 'Menor precio' })).toBeVisible();
+        await expect(page.getByRole('option', { name: 'Más populares' })).toBeVisible();
+    });
+
+    test('al cambiar el orden pide /api/games/ con deals=1 y las tarjetas siguen siendo de oferta', async ({ page }) => {
+        await page.goto('/ofertas');
+        const { body } = await orderByLowestPrice(page);
+        expect(body.results.length).toBeGreaterThan(0);
+        const first = dealFromGame(body.results[0]);
+        expect(first, '¿backend sin `deal` en /api/games/?deals=1?').not.toBeNull();
+
+        // La grilla interactiva reemplazó a la del servidor: la primera tarjeta
+        // es la primera de la respuesta, con la línea de rebaja de SU oferta.
+        const card = page.locator('[data-deal-card]').first();
+        await expect(card).toContainText(first!.game.name);
+        await expect(card.locator('[data-deal-line]')).toHaveText(dealBadgeLine(first!));
+        await expect(page.locator('[data-deal-card]')).toHaveCount(body.results.length);
+        await expect(page.locator('[data-deal-line]')).toHaveCount(body.results.length);
+    });
+
+    test('elegir un género pide /api/games/ con deals=1 y ese género', async ({ page }) => {
+        await page.goto('/ofertas');
+        const genres = page.locator('[data-explorer-sidebar] [data-filter-section="Género"]').getByRole('checkbox');
+        // «Todos» + los géneros, que llegan de /api/genres/ al hidratar.
+        await expect.poll(() => genres.count()).toBeGreaterThan(1);
+        const request = page.waitForRequest((r) => isDealsListing(r, (p) => !!p.get('genres')));
+        await genres.nth(1).check();
+        const req = await request;
+        expect((await req.response())?.ok()).toBe(true);
+    });
+
+    test('/ofertas/<consola> acota el explorador a esa consola además de a las ofertas', async ({ page, request }) => {
+        const platforms = (await (await request.get(`${API}/platforms/`)).json()).results as Platform[];
+        const platform = platforms.find((p) => p.slug === DEAL.platform)!;
+        await page.goto(`/ofertas/${platform.slug}`);
+        // Sin selector de consola: la fija la URL, como en /juegos/<consola>.
+        expect(await sidebarSections(page)).not.toContain('Plataforma');
+        const { req, body } = await orderByLowestPrice(page);
+        expect(new URL(req.url()).searchParams.get('platforms')).toBe(String(platform.id));
+        for (const game of body.results) expect(game.deal?.platform).toBe(platform.slug);
     });
 });
 

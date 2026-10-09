@@ -27,6 +27,7 @@ import {
 import { useAdmin } from '@/context/AdminContext';
 import type { Genre, GameFacets, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
+import { DEALS_ORDERING } from '@/lib/deals';
 
 /* ── Collapsible Filter Section ── */
 function FilterSection({
@@ -41,7 +42,9 @@ function FilterSection({
     children: React.ReactNode;
 }) {
     return (
-        <Box>
+        // `data-filter-section`: los e2e comparan qué filtros ofrece cada
+        // galería (/ofertas frente a /juegos/<consola>) leyendo los títulos.
+        <Box data-filter-section={title}>
             <Group
                 justify="space-between"
                 onClick={onToggle}
@@ -111,6 +114,14 @@ const ORDERING_DATA = [
     },
 ];
 
+/** Solo en /ofertas (`lockedDeals`): con `deals=1` el backend sabe ordenar por
+ *  la rebaja de la oferta, que fuera de /ofertas no existe. Va primero porque
+ *  es el orden por defecto de esa página. */
+const DEALS_ORDERING_GROUP = {
+    group: 'Ofertas',
+    items: [{ value: DEALS_ORDERING, label: 'Mayor descuento' }],
+};
+
 interface ToolbarProps {
     showSearchInput: boolean;
     searchInput: string;
@@ -119,6 +130,8 @@ interface ToolbarProps {
     ordering: string;
     defaultOrdering: string;
     onOrderingChange: (value: string) => void;
+    /** Añade «Mayor descuento» (`-deal_discount`) al menú de orden. */
+    withDealsOrdering?: boolean;
     selectionMode: boolean;
     onToggleSelectionMode: () => void;
     hasActiveFilters: boolean;
@@ -136,6 +149,7 @@ export function FilterToolbar({
     ordering,
     defaultOrdering,
     onOrderingChange,
+    withDealsOrdering = false,
     selectionMode,
     onToggleSelectionMode,
     hasActiveFilters,
@@ -175,7 +189,7 @@ export function FilterToolbar({
 
             <Select
                 label="Ordenar por"
-                data={ORDERING_DATA}
+                data={withDealsOrdering ? [DEALS_ORDERING_GROUP, ...ORDERING_DATA] : ORDERING_DATA}
                 value={ordering}
                 onChange={(v) => onOrderingChange(v ?? defaultOrdering)}
                 size="sm"
@@ -234,6 +248,10 @@ interface Props {
 
     onSale: boolean;
     onToggleOnSale: () => void;
+    /** `false` en /ofertas: «En oferta» (`on_sale`) significa «bajó respecto
+     *  del precio anterior», otra cosa que una oferta del día, y mostrarlo ahí
+     *  haría creer que filtra las ofertas de la página. */
+    showOnSaleSection?: boolean;
 
     /** 0 = filtro inactivo (sin mínimo). */
     ratingMin: number;
@@ -264,6 +282,7 @@ export default function GameFilterBar({
     onSelectGenre,
     onSale,
     onToggleOnSale,
+    showOnSaleSection = true,
     ratingMin,
     onRatingMinChange,
     facets,
@@ -335,22 +354,25 @@ export default function GameFilterBar({
                 </Box>
             </FilterSection>
 
-            <Divider />
-
             {/* En oferta */}
-            <FilterSection title="Ofertas" open={saleOpen} onToggle={() => setSaleOpen((v) => !v)}>
-                <Checkbox
-                    label="En oferta"
-                    checked={onSale}
-                    onChange={onToggleOnSale}
-                    color="primaryRed"
-                    radius="sm"
-                    styles={{
-                        label: { cursor: 'pointer', fontSize: 14 },
-                        input: { cursor: 'pointer' },
-                    }}
-                />
-            </FilterSection>
+            {showOnSaleSection && (
+                <>
+                    <Divider />
+                    <FilterSection title="Ofertas" open={saleOpen} onToggle={() => setSaleOpen((v) => !v)}>
+                        <Checkbox
+                            label="En oferta"
+                            checked={onSale}
+                            onChange={onToggleOnSale}
+                            color="primaryRed"
+                            radius="sm"
+                            styles={{
+                                label: { cursor: 'pointer', fontSize: 14 },
+                                input: { cursor: 'pointer' },
+                            }}
+                        />
+                    </FilterSection>
+                </>
+            )}
 
             {showPlatformSection && (
                 <>

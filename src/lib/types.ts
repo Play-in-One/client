@@ -322,6 +322,10 @@ export interface Game {
      *  la agregada y el backend no la guarda. */
     min_price_history_national?: MinPriceHistory;
     on_sale: boolean;
+    /** La mejor oferta del día del juego entre las que pasan los filtros de la
+     *  consulta (consola, condición, ubicación de la tienda). Solo viaja con
+     *  `?deals=1` (/ofertas): sin él la clave no existe y no cuesta consultas. */
+    deal?: DealOffer | null;
     products?: Product[];
     /** Texto de la tarjeta si el juego sale en "Juegos Destacados". Qué
      *  juegos salen lo decide el ranking del backend, no un flag editable. */
@@ -773,6 +777,11 @@ export interface Deal {
      *  contra el precio típico de SU condición. */
     condition: 'new' | 'used' | 'digital';
 }
+
+/** Una oferta sin su juego: lo que trae cada juego de `/api/games/?deals=1`
+ *  en `deal`. Misma forma que una fila de `/api/deals/` menos `game`, así que
+ *  se deriva de `Deal` en vez de repetirla: si cambia una, cambia la otra. */
+export type DealOffer = Omit<Deal, 'game'>;
 
 export interface DealsResponse {
     /** Fecha local (ISO) de la tanda más reciente, o null si la tabla está vacía. */

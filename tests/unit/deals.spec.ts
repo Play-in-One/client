@@ -9,6 +9,7 @@ import {
     dealConsoleChips,
     dealConsoleSlugs,
     dealConsoles,
+    dealFromGame,
     dealLlmsLine,
     dealsAgeDays,
     dealsHeading,
@@ -17,7 +18,9 @@ import {
     dealsSummarySentence,
     isTodayDeals,
     santiagoDate,
+    DEALS_ORDERING,
     DEALS_UNAVAILABLE,
+    gameWithDeal,
 } from '../../src/lib/deals';
 import { itemListJsonLd } from '../../src/lib/seo';
 import type { Deal, DealsResponse, Game, Platform } from '../../src/lib/types';
@@ -263,7 +266,46 @@ test('la línea de método y la nota de alcance son fijas', () => {
         'Una oferta aparece aquí cuando el precio más bajo de hoy está al menos 15% bajo su ' +
         'mediana de los últimos 90 días y ahorra $1.000 o más.',
     );
-    expect(DEALS_SCOPE_NOTE).toBe('Calculadas sobre todas las tiendas y condiciones.');
+    expect(DEALS_SCOPE_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición.');
+});
+
+test.describe('ofertas en la galería (`/api/games/?deals=1`)', () => {
+    test('el orden por defecto de /ofertas es la mayor rebaja', () => {
+        expect(DEALS_ORDERING).toBe('-deal_discount');
+    });
+
+    test('dealFromGame arma la oferta con el juego y su `deal` (sin el `game` anidado)', () => {
+        const { game: g, ...offer } = deal({ platform: 'switch', condition: 'used', current_price: '9990.00' });
+        const result = dealFromGame({ ...g, deal: offer });
+        expect(result).not.toBeNull();
+        expect(result!.platform).toBe('switch');
+        expect(result!.condition).toBe('used');
+        expect(result!.current_price).toBe('9990.00');
+        expect(result!.game.id).toBe(g.id);
+        // La línea y la tarjeta salen de la oferta, igual que en la grilla del servidor.
+        expect(dealBadgeLine(result!)).toBe('Usado · −33% · típico $29.990');
+        expect(dealCardGame(result!).min_price).toBe('9990.00');
+        expect(dealCardGame(result!).min_price_platform).toBe('switch');
+    });
+
+    test('dealFromGame devuelve null para un juego sin oferta (backend sin `deals=1`)', () => {
+        expect(dealFromGame(game())).toBeNull();
+        expect(dealFromGame({ ...game(), deal: null })).toBeNull();
+    });
+
+    test('gameWithDeal es la inversa: el juego de /api/deals/ con su oferta adjunta', () => {
+        const d = deal();
+        const g = gameWithDeal(d);
+        expect(g.id).toBe(d.game.id);
+        expect(g.deal).toEqual({
+            platform: 'ps5', current_price: '19990.00', typical_price: '29990.00', discount_pct: 33.3,
+            savings: '10000.00', is_all_time_low: true, days_on_deal: 1, is_new: true,
+            seller: { id: 3, name: 'Zmart' }, condition: 'new',
+        });
+        const back = dealFromGame(g)!;
+        expect(dealBadgeLine(back)).toBe(dealBadgeLine(d));
+        expect(dealAgeLabel(back, true)).toBe(dealAgeLabel(d, true));
+    });
 });
 
 test.describe('dealCardGame', () => {

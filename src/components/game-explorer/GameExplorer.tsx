@@ -53,6 +53,16 @@ interface Props {
      *  cruza consolas y géneros, así que plataforma/género/precio/
      *  calificación/oferta siguen siendo útiles. */
     lockedSaga?: LockedSaga;
+    /** Galería acotada a las ofertas del día (/ofertas): toda consulta lleva
+     *  `deals=1`, el menú de orden gana «Mayor descuento» y se oculta «En
+     *  oferta» (`on_sale`, «bajó respecto del precio anterior»: otro concepto).
+     *  Cada tarjeta se pinta con `DealCard`, igual que la grilla del servidor.
+     *  El orden por defecto lo fija el padre (`DEALS_ORDERING`). */
+    lockedDeals?: boolean;
+    /** Con `lockedDeals`: si la tanda es la de hoy («Nueva hoy»). Lo calcula el
+     *  servidor (`dealsPageView`) y llega como prop, nunca un `new Date()` en
+     *  el render del cliente. */
+    dealsIsToday?: boolean;
     /** Solo cuando NO hay `lockedPlatform` (caso /search): la selección de
      *  plataforma la controla el padre (vive en la URL). */
     selectedPlatformIds?: number[];
@@ -109,6 +119,8 @@ export default function GameExplorer({
     defaultOrdering,
     lockedPlatform,
     lockedSaga,
+    lockedDeals = false,
+    dealsIsToday = true,
     selectedPlatformIds,
     onPlatformFilterChange,
     filtersReady = true,
@@ -143,6 +155,12 @@ export default function GameExplorer({
     const { ready: consentReady } = useConsent();
 
     const isStaticMode = !!staticFallback;
+    /* `undefined` (no `0`) fuera de /ofertas: `qs` omite la clave y la URL de
+       las demás galerías no cambia, que es la clave de su caché. */
+    const dealsParam = lockedDeals ? (1 as const) : undefined;
+    /* /ofertas mide como una landing: es una galería con contenido servido y
+       sidebar, no el buscador. */
+    const surface = lockedPlatform || lockedDeals ? 'landing' : 'search';
     const [interactive, setInteractive] = useState(!isStaticMode);
     const markInteractive = useCallback(() => {
         if (isStaticMode) setInteractive(true);
@@ -352,6 +370,7 @@ export default function GameExplorer({
             price_min: priceMin,
             price_max: priceMax,
             on_sale: onSale || undefined,
+            deals: dealsParam,
             rating_min: ratingMin,
             seller_locations: sellerLocationsParam,
             ordering,
@@ -359,7 +378,7 @@ export default function GameExplorer({
             signal: controller.signal,
         })
             .then((res) => {
-                sendCatalogFilterLoad({ phase: 'results', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: true });
+                sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: true });
                 setGames(res.results);
                 setTotal(res.count);
                 const query = activeQuery.trim();
@@ -370,7 +389,7 @@ export default function GameExplorer({
             })
             .catch((err) => {
                 if (err?.name === 'AbortError') return;
-                sendCatalogFilterLoad({ phase: 'results', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: false });
+                sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: false });
                 setGames([]);
                 const failed = activeQuery.trim();
                 if (failed && trackedSearch.current !== failed) {
@@ -381,7 +400,7 @@ export default function GameExplorer({
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
+    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, dealsParam, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
 
     /* Los contadores del sidebar sí corren en modo estático: solo decoran el
        sidebar, nunca reemplazan el grid/paginación visibles. */
@@ -398,23 +417,24 @@ export default function GameExplorer({
             price_min: priceMin,
             price_max: priceMax,
             on_sale: onSale || undefined,
+            deals: dealsParam,
             rating_min: ratingMin,
             seller_locations: sellerLocationsParam,
             include_sellers: 0,
             signal: controller.signal,
         })
             .then((result) => {
-                sendCatalogFilterLoad({ phase: 'facets', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: true });
+                sendCatalogFilterLoad({ phase: 'facets', surface, duration_ms: performance.now() - started, success: true });
                 setFacets({ ...result, sellers: result.sellers ?? {} });
             })
             .catch((err) => {
                 if (err?.name === 'AbortError') return;
-                sendCatalogFilterLoad({ phase: 'facets', surface: lockedPlatform ? 'landing' : 'search', duration_ms: performance.now() - started, success: false });
+                sendCatalogFilterLoad({ phase: 'facets', surface, duration_ms: performance.now() - started, success: false });
                 setFacets({ platforms: {}, genres: {}, sellers: {} });
             });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
+    }, [ready, filtersReady, activeQuery, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, dealsParam, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
 
     const totalPages = Math.ceil(total / pageSize);
 
@@ -530,6 +550,7 @@ export default function GameExplorer({
                 ordering={ordering}
                 defaultOrdering={defaultOrdering}
                 onOrderingChange={handleOrderingChange}
+                withDealsOrdering={lockedDeals}
                 selectionMode={selectionMode}
                 onToggleSelectionMode={() => (selectionMode ? exitSelection() : setSelectionMode(true))}
                 hasActiveFilters={hasActiveFilters}
@@ -565,6 +586,7 @@ export default function GameExplorer({
                             onSelectGenre={handleSelectGenre}
                             onSale={onSale}
                             onToggleOnSale={handleToggleOnSale}
+                            showOnSaleSection={!lockedDeals}
                             ratingMin={ratingMin ?? 0}
                             onRatingMinChange={applyRatingMin}
                             facets={facets}
@@ -583,6 +605,7 @@ export default function GameExplorer({
                     p="lg"
                     w={240}
                     visibleFrom="md"
+                    data-explorer-sidebar
                     style={{
                         flexShrink: 0,
                         position: 'sticky',
@@ -630,6 +653,7 @@ export default function GameExplorer({
                             onSelectGenre={handleSelectGenre}
                             onSale={onSale}
                             onToggleOnSale={handleToggleOnSale}
+                            showOnSaleSection={!lockedDeals}
                             ratingMin={ratingMin ?? 0}
                             onRatingMinChange={applyRatingMin}
                             facets={facets}
@@ -658,6 +682,7 @@ export default function GameExplorer({
                             selectionMode={selectionMode}
                             selected={selected}
                             onToggleSelect={toggleSelect}
+                            dealsIsToday={dealsIsToday}
                         />
                     )}
                 </Box>

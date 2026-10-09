@@ -347,6 +347,9 @@ export async function getGames(params?: {
     price_min?: number;
     price_max?: number;
     on_sale?: boolean;
+    /** Solo juegos con alguna oferta del día (`DailyDeal`) que pase los demás
+     *  filtros de la consulta; cada resultado trae su mejor oferta en `deal`. */
+    deals?: 1;
     /** Solo juegos con rating estrictamente mayor a este valor. */
     rating_min?: number;
     /** Lista blanca de ubicaciones de tienda (`international,national,CL-RM`):
@@ -443,6 +446,9 @@ export async function getGameFacets(params?: {
     price_min?: number;
     price_max?: number;
     on_sale?: boolean;
+    /** Solo juegos con alguna oferta del día (`DailyDeal`) que pase los demás
+     *  filtros de la consulta; cada resultado trae su mejor oferta en `deal`. */
+    deals?: 1;
     /** Solo juegos con rating estrictamente mayor a este valor. */
     rating_min?: number;
     /** Lista blanca de ubicaciones de tienda (`international,national,CL-RM`):

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
 import { Anchor, Badge, Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
+import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { getDeals, getPlatforms } from '@/lib/api';
 import type { DealsResponse, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
@@ -11,11 +12,13 @@ import InfoHeading from '@/components/InfoHeading';
 import { JsonLd } from '@/components/JsonLd';
 import {
     DEALS_METHOD_LINE,
+    DEALS_ORDERING,
     DEALS_SCOPE_NOTE,
     dealCardGame,
     dealConsoleChipLabel,
     dealConsoleChips,
     dealsPageView,
+    gameWithDeal,
 } from '@/lib/deals';
 import {
     breadcrumbJsonLd,
@@ -32,10 +35,19 @@ import {
  *
  * Las ofertas las calcula cada noche `build_daily_deals` sobre el catálogo
  * ENTERO y el comando revalida estas rutas al terminar; el `revalidate` de las
- * páginas es solo la red de seguridad. No se vuelven a pedir con los filtros
- * del visitante: una oferta es un hecho del catálogo, y filtrarla en el cliente
- * necesitaría otra API. La página lo dice (`DEALS_SCOPE_NOTE`).
+ * páginas es solo la red de seguridad.
+ *
+ * La grilla es la de las galerías de consola: `GameExplorer` con `lockedDeals`
+ * y, de `staticFallback`, las tarjetas de `/api/deals/` resueltas aquí. Un
+ * crawler (sin JS) lee esas tarjetas; un visitante tiene además el sidebar de
+ * filtros, y con sus preferencias globales (condición, ubicación de la tienda)
+ * el explorador vuelve a pedir con `deals=1` en vez de mostrar la grilla sin
+ * filtrar. Lo único que no sigue esas preferencias es el precio típico, y la
+ * página lo dice (`DEALS_SCOPE_NOTE`).
  */
+
+/** Tarjetas con que se siembra el explorador: las de su primera página. */
+const EXPLORER_PAGE_SIZE = 24;
 
 const EMPTY: DealsResponse = { date: null, last_scrape_at: null, count: 0, platforms: [], results: [] };
 
@@ -194,16 +206,36 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                 )}
 
                 {deals.length > 0 ? (
-                    <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing={{ base: 'xs', sm: 'lg' }} verticalSpacing="xl">
-                        {deals.map((deal, i) => (
-                            <DealCard
-                                key={`${deal.game.id}-${deal.platform}`}
-                                deal={deal}
-                                priority={i < 4}
-                                isToday={isToday}
-                            />
-                        ))}
-                    </SimpleGrid>
+                    <GameExplorer
+                        lockedDeals
+                        dealsIsToday={isToday}
+                        lockedPlatform={
+                            platform
+                                ? { id: platform.id, slug: platform.slug, display_name: platformLongName(platform) }
+                                : undefined
+                        }
+                        initialGames={deals.slice(0, EXPLORER_PAGE_SIZE).map(gameWithDeal)}
+                        initialTotal={res.count}
+                        pageSize={EXPLORER_PAGE_SIZE}
+                        defaultOrdering={DEALS_ORDERING}
+                        showHeader={false}
+                        withContainer={false}
+                        staticFallback={
+                            // Columnas de la galería con sidebar (3 en md+, como
+                            // /juegos/<consola>): el sidebar ocupa lo que antes
+                            // era la cuarta.
+                            <SimpleGrid cols={{ base: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', sm: 'lg' }} verticalSpacing="xl">
+                                {deals.map((deal, i) => (
+                                    <DealCard
+                                        key={`${deal.game.id}-${deal.platform}`}
+                                        deal={deal}
+                                        priority={i < 4}
+                                        isToday={isToday}
+                                    />
+                                ))}
+                            </SimpleGrid>
+                        }
+                    />
                 ) : (
                     // El «Hoy no hay juegos…» (o, si la API falló, el texto
                     // neutro) ya lo dice el resumen de arriba, que es la misma
