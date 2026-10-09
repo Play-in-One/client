@@ -270,68 +270,65 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                             pt="sm"
                             style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
                         >
-                            <Group justify="space-between" align="flex-end">
-                                <Box>
-                                    {/* Precio, consola de ese precio y rebaja en la
-                                        misma fila; en tarjetas angostas las
-                                        etiquetas bajan de línea. La rebaja va
-                                        envuelta en un elemento propio porque una que
-                                        llega de un Server Component (DealCard) sin
-                                        `key` dispara el aviso de React si cae en la
-                                        lista de hijos de un `Group`. */}
-                                    <Group gap={4} wrap={consoleSlug || addon ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
-                                        <Group gap={2} wrap="nowrap" align="center">
-                                            <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
-                                                {formatCLP(price)}
-                                            </Text>
-                                            <PriceInfo
-                                                basePrice={basePrice}
-                                                shippingCost={shippingCost}
-                                                seller={game.min_price_seller}
+                            {/* Precio, consola de ese precio, rebaja y tienda en
+                                UN solo flujo que envuelve, centrado en vertical.
+                                La tienda va al final empujada a la derecha
+                                (`marginLeft: auto`): si todo cabe es una línea;
+                                si no, cierra la última línea por la derecha. En
+                                dos columnas (`flex-end` + `wrap`) la tienda
+                                quedaba por debajo de la cifra o sola en una
+                                línea a la izquierda. La rebaja va envuelta en un
+                                elemento propio porque una que llega de un Server
+                                Component (DealCard) sin `key` dispara el aviso de
+                                React si cae en la lista de hijos de un `Group`. */}
+                            <Group gap={4} wrap="wrap" align="center" style={{ rowGap: 2 }}>
+                                <Group gap={2} wrap="nowrap" align="center">
+                                    <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
+                                        {formatCLP(price)}
+                                    </Text>
+                                    <PriceInfo
+                                        basePrice={basePrice}
+                                        shippingCost={shippingCost}
+                                        seller={game.min_price_seller}
+                                    />
+                                </Group>
+                                {consoleSlug && <DealConsoleTag platform={consoleSlug} />}
+                                {addon && (
+                                    <span data-price-addon style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                        {addon}
+                                    </span>
+                                )}
+                                {/* Solo la tienda, sin el rótulo «Vendido por»
+                                    (ni «Precio más bajo» cuando no hay tienda). */}
+                                {seller && (
+                                    <Group
+                                        data-card-seller
+                                        gap={4}
+                                        wrap="nowrap"
+                                        style={{ cursor: 'pointer', marginLeft: 'auto' }}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (selectable) {
+                                                onToggleSelect?.(game.id);
+                                                return;
+                                            }
+                                            router.push(`/store/${seller.id}`);
+                                        }}
+                                    >
+                                        {(seller.favicon || seller.logo) && (
+                                            <img
+                                                src={seller.favicon || seller.logo || ''}
+                                                alt={seller.name}
+                                                style={{ width: 14, height: 14, objectFit: 'contain', flexShrink: 0 }}
+                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                             />
-                                        </Group>
-                                        {consoleSlug && <DealConsoleTag platform={consoleSlug} />}
-                                        {addon && (
-                                            <span data-price-addon style={{ display: 'inline-flex', alignItems: 'center' }}>
-                                                {addon}
-                                            </span>
                                         )}
+                                        <Text fz="xs" fw={700}>
+                                            {seller.name}
+                                        </Text>
                                     </Group>
-                                </Box>
-                                <Box ta="right">
-                                    {/* Solo la tienda, sin el rótulo «Vendido por»
-                                        (ni «Precio más bajo» cuando no hay tienda):
-                                        deja la fila del precio más despejada. */}
-                                    {seller && (
-                                            <Group
-                                                gap={4}
-                                                justify="flex-end"
-                                                wrap="nowrap"
-                                                style={{ cursor: 'pointer' }}
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    if (selectable) {
-                                                        onToggleSelect?.(game.id);
-                                                        return;
-                                                    }
-                                                    router.push(`/store/${seller.id}`);
-                                                }}
-                                            >
-                                                {(seller.favicon || seller.logo) && (
-                                                    <img
-                                                        src={seller.favicon || seller.logo || ''}
-                                                        alt={seller.name}
-                                                        style={{ width: 14, height: 14, objectFit: 'contain', flexShrink: 0 }}
-                                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                                    />
-                                                )}
-                                                <Text fz="xs" fw={700}>
-                                                    {seller.name}
-                                                </Text>
-                                            </Group>
-                                    )}
-                                </Box>
+                                )}
                             </Group>
                         </Box>
                     ) : (
