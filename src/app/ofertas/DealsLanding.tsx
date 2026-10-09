@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
-import { Anchor, Badge, Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
+import { Anchor, Container, SimpleGrid, Text, Title } from '@mantine/core';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { getDeals, getPlatforms } from '@/lib/api';
 import type { DealsResponse, Platform } from '@/lib/types';
@@ -15,8 +15,9 @@ import {
     DEALS_METHOD_LINE,
     DEALS_ORDERING,
     DEALS_SCOPE_NOTE,
+    DEALS_TYPICAL_NOTE,
     dealCardGame,
-    dealConsoleChipLabel,
+    dealConsoleLinkLabel,
     dealConsoleChips,
     dealsPageView,
     gameWithDeal,
@@ -166,42 +167,54 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                     <Text component="p" m={0}>
                         {summary}
                     </Text>
+                    {/* Los enlaces a cada `/ofertas/<consola>` viven aquí y no
+                        en un selector visible: son el ÚNICO enlace interno a
+                        esas páginas (el filtro «Plataforma» del explorador son
+                        checkboxes, que un crawler no sigue). Dentro del
+                        <details> siguen en el HTML inicial, así que quitarlos
+                        de la vista no los deja huérfanos. */}
+                    {consoles.length > 0 && (
+                        <Text component="nav" aria-label="Ofertas por consola" fz="sm" mt="xs">
+                            Ofertas por consola:{' '}
+                            {platform && (
+                                <>
+                                    <Anchor component={Link} href="/ofertas" fz="sm">
+                                        todas
+                                    </Anchor>
+                                    {' · '}
+                                </>
+                            )}
+                            {consoles.map((chip, i) => {
+                                const p = chip.platform;
+                                const active = p.slug === platform?.slug;
+                                return (
+                                    <span key={p.slug}>
+                                        {i > 0 && ' · '}
+                                        <Anchor
+                                            component={Link}
+                                            href={`/ofertas/${p.slug}`}
+                                            fz="sm"
+                                            fw={active ? 700 : undefined}
+                                            aria-current={active ? 'page' : undefined}
+                                            data-deal-chip={p.slug}
+                                        >
+                                            {dealConsoleLinkLabel(chip)}
+                                        </Anchor>
+                                    </span>
+                                );
+                            })}
+                        </Text>
+                    )}
+                    <Text fz="sm" c="dimmed" mt="xs" mb={0}>
+                        {DEALS_SCOPE_NOTE}
+                    </Text>
                 </InfoHeading>
                 <Text fz="sm" c="dimmed" mb="sm">
-                    {DEALS_SCOPE_NOTE}
+                    {DEALS_TYPICAL_NOTE}
                 </Text>
                 <Text component="p" fz="sm" c="dimmed" maw={760} mb="lg">
                     {DEALS_METHOD_LINE}
                 </Text>
-
-                {consoles.length > 0 && (
-                    <Group component="nav" aria-label="Ofertas por consola" gap="xs" mb="xl">
-                        {platform && (
-                            <Badge component={Link} href="/ofertas" size="lg" variant="light" color="gray" style={{ cursor: 'pointer' }}>
-                                Todas
-                            </Badge>
-                        )}
-                        {consoles.map((chip) => {
-                            const p = chip.platform;
-                            const active = p.slug === platform?.slug;
-                            return (
-                                <Badge
-                                    key={p.slug}
-                                    component={Link}
-                                    href={`/ofertas/${p.slug}`}
-                                    size="lg"
-                                    variant={active ? 'filled' : 'light'}
-                                    color="primaryRed"
-                                    aria-current={active ? 'page' : undefined}
-                                    data-deal-chip={p.slug}
-                                    style={{ cursor: 'pointer' }}
-                                >
-                                    {dealConsoleChipLabel(chip)}
-                                </Badge>
-                            );
-                        })}
-                    </Group>
-                )}
 
                 {deals.length > 0 ? (
                     <GameExplorer

@@ -24,14 +24,15 @@ export const DEALS_METHOD_LINE =
  *  vez por noche sobre todas las tiendas de cada condición: quien tenga
  *  apagadas las importadoras ve ofertas de tiendas nacionales, pero medidas
  *  contra una mediana que sí incluye importadas. Se dice en vez de esconderlo. */
-/** De dónde sale el «precio típico». Va solo en la portada, cuya sección no
- *  tiene totales encima ni barra de filtros. */
+/** De dónde sale el «precio típico». Visible en /ofertas y en la sección de la
+ *  portada. */
 export const DEALS_TYPICAL_NOTE = 'El precio típico de cada oferta considera todas las tiendas de esa condición.';
 
-// En /ofertas los totales (frase resumen y conteos de consolas) son del catálogo
-// completo, mientras la grilla y la barra lateral siguen las preferencias del
-// visitante: la segunda mitad evita que esa diferencia se lea como un bug.
-export const DEALS_SCOPE_NOTE = `${DEALS_TYPICAL_NOTE.slice(0, -1)}; los totales de arriba son del catálogo completo.`;
+// En /ofertas los totales (frase resumen y conteos por consola, los dos tras la
+// (i) del título) son del catálogo completo, mientras la grilla y la barra
+// lateral siguen las preferencias del visitante. Va junto a esos totales,
+// dentro del desplegable, para que la diferencia no se lea como un bug.
+export const DEALS_SCOPE_NOTE = 'Estos totales son del catálogo completo; la grilla de abajo sigue tus filtros y preferencias.';
 
 /** Orden por defecto de /ofertas en la galería: la mayor rebaja primero, como
  *  lista `/api/deals/` la grilla del servidor. */
@@ -352,10 +353,12 @@ export function dealConsoleChips(res: DealsResponse, catalog: readonly Platform[
     });
 }
 
-/** «PlayStation 5 · 389»: un solo string, para que React no lo parta en nodos
- *  de texto y el chip se lea (y se busque en el HTML) tal cual. */
-export function dealConsoleChipLabel({ platform, count: n }: DealConsole): string {
-    return n == null ? platformLongName(platform) : `${platformLongName(platform)} · ${count(n)}`;
+/** «PlayStation 4 (129)»: la consola como enlace dentro de la lista «Ofertas
+ *  por consola», que va separada por «·» (de ahí el conteo entre paréntesis).
+ *  Un solo string, para que React no lo parta en nodos de texto y se lea (y se
+ *  busque en el HTML) tal cual. */
+export function dealConsoleLinkLabel({ platform, count: n }: DealConsole): string {
+    return n == null ? platformLongName(platform) : `${platformLongName(platform)} (${count(n)})`;
 }
 
 /** Slugs de las consolas con ofertas, para el sitemap (`/ofertas/<slug>`).

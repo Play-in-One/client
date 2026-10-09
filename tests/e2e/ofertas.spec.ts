@@ -2,7 +2,7 @@ import { test, expect, type APIRequestContext, type Page, type Request } from '@
 import { SEEDED, robotsOf, serverHtml } from './helpers';
 import {
     dealBadgeLine,
-    dealConsoleChipLabel,
+    dealConsoleLinkLabel,
     dealConsoleChips,
     dealConsoleSlugs,
     dealFromGame,
@@ -128,7 +128,10 @@ test.describe('HTML del servidor', () => {
         // «hoy» o «del <fecha>» según la fecha de la tanda (`dealsHeading`):
         // la base de dev puede no haber recalculado hoy.
         expect(html).toContain(`>${dealsHeading(undefined, api)}</h1>`);
-        expect(html).toContain('El precio típico de cada oferta considera todas las tiendas de esa condición; los totales de arriba son del catálogo completo.');
+        expect(html).toContain('El precio típico de cada oferta considera todas las tiendas de esa condición.');
+        // La aclaración de los totales va dentro de la (i), junto a ellos.
+        const disclosure = html.slice(html.indexOf('pio-info-heading'), html.indexOf('</details>', html.indexOf('pio-info-heading')));
+        expect(disclosure).toContain('Estos totales son del catálogo completo; la grilla de abajo sigue tus filtros y preferencias.');
         expect(html).toContain('Una oferta aparece aquí cuando el precio más bajo de hoy');
         expect(html).toMatch(/\d+ juegos? (están|está|estaban|estaba) al menos 15% bajo su precio típico de los últimos 90 días\./);
         expect(html).toMatch(/href="\/juego\/[a-z0-9-]+-\d+\?platform=[a-z0-9-]+"/);
@@ -138,16 +141,18 @@ test.describe('HTML del servidor', () => {
         if (api.results.some((d) => d.is_all_time_low)) expect(html).toContain('Mínimo registrado');
         const [top] = api.results;
         expect(html).toContain(`−${Math.round(top.discount_pct)}%`);
-        // Los chips de consola enlazan su página de ofertas.
+        // La lista «Ofertas por consola» (tras la (i)) enlaza cada página de ofertas.
         expect(html).toMatch(/href="\/ofertas\/[a-z0-9-]+"/);
         // El layout emite «index, follow» por defecto; lo que no puede haber es noindex.
         expect(robotsOf(html) ?? '').not.toMatch(/noindex/);
     });
 
-    test('los chips de consola son TODAS las consolas con ofertas, con su conteo', async ({ request }) => {
+    test('los enlaces por consola van tras la (i), son TODAS las consolas con ofertas y llevan su conteo', async ({ request }) => {
         const api = await apiDeals(request);
         // `platforms` es la lista completa del día: puede traer consolas que no
-        // llegan a las 60 tarjetas, y esas también necesitan su chip.
+        // llegan a las 60 tarjetas, y esas también necesitan su enlace. Son el
+        // único enlace interno a `/ofertas/<consola>`: quitarlos dejaría esas
+        // páginas solo en el sitemap.
         expect(api.platforms?.length).toBeGreaterThan(0);
         const catalog = (await (await request.get(`${API}/platforms/`)).json()).results as Platform[];
         const chips = dealConsoleChips(api, catalog);
@@ -155,13 +160,19 @@ test.describe('HTML del servidor', () => {
 
         for (const path of ['/ofertas', `/ofertas/${DEAL.platform}`]) {
             const html = await serverHtml(request, path);
+            // Dentro del <details> de la (i) del título, no en un selector suelto.
+            const disclosure = html.slice(
+                html.indexOf('pio-info-heading'),
+                html.indexOf('</details>', html.indexOf('pio-info-heading')),
+            );
+            expect(disclosure).toContain('aria-label="Ofertas por consola"');
             // Mismo orden que la API, con o sin consola en la URL.
-            expect([...html.matchAll(/data-deal-chip="([^"]+)"/g)].map((m) => m[1])).toEqual(
+            expect([...disclosure.matchAll(/data-deal-chip="([^"]+)"/g)].map((m) => m[1])).toEqual(
                 chips.map((c) => c.platform.slug),
             );
             for (const chip of chips) {
-                // «PlayStation 5 · 389»
-                expect(html).toContain(escapeHtml(dealConsoleChipLabel(chip)));
+                // «PlayStation 5 (389)»
+                expect(html).toContain(escapeHtml(dealConsoleLinkLabel(chip)));
                 expect(html).toContain(`href="/ofertas/${chip.platform.slug}"`);
             }
         }

@@ -6,7 +6,7 @@ import {
     dealAgeLabel,
     dealBadgeLine,
     dealCardGame,
-    dealConsoleChipLabel,
+    dealConsoleLinkLabel,
     dealConsoleChips,
     dealConsoleSlugs,
     dealConsoles,
@@ -267,8 +267,8 @@ test('la línea de método y la nota de alcance son fijas', () => {
         'Una oferta aparece aquí cuando el precio más bajo de hoy está al menos 15% bajo su ' +
         'mediana de los últimos 90 días y ahorra $1.000 o más.',
     );
-    expect(DEALS_SCOPE_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición; los totales de arriba son del catálogo completo.');
-    // La portada no tiene totales encima: allí va solo la primera mitad.
+    // Va tras la (i), junto a los totales que aclara.
+    expect(DEALS_SCOPE_NOTE).toBe('Estos totales son del catálogo completo; la grilla de abajo sigue tus filtros y preferencias.');
     expect(DEALS_TYPICAL_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición.');
 });
 
@@ -392,19 +392,19 @@ test.describe('dealConsoleChips', () => {
         });
         const chips = dealConsoleChips(res, [SWITCH, XBOX]);
         expect(chips.map((c) => [c.platform.slug, c.count])).toEqual([['ps5', 389], ['xboxone', 1204]]);
-        expect(chips.map(dealConsoleChipLabel)).toEqual(['PlayStation 5 · 389', 'Xbox One · 1.204']);
+        expect(chips.map(dealConsoleLinkLabel)).toEqual(['PlayStation 5 (389)', 'Xbox One (1.204)']);
     });
 
     test('sin catálogo, el nombre sale del juego de las tarjetas', () => {
         const res = response({ platforms: [{ slug: 'ps5', count: 2 }] });
-        expect(dealConsoleChips(res).map(dealConsoleChipLabel)).toEqual(['PlayStation 5 · 2']);
+        expect(dealConsoleChips(res).map(dealConsoleLinkLabel)).toEqual(['PlayStation 5 (2)']);
     });
 
     test('backend anterior (sin `platforms`): las consolas de las tarjetas, sin conteo', () => {
         const res = response({ results: [deal({ platform: 'switch' }), deal()] });
         const chips = dealConsoleChips(res, [XBOX]);
         expect(chips.map((c) => [c.platform.slug, c.count])).toEqual([['ps5', null], ['switch', null]]);
-        expect(chips.map(dealConsoleChipLabel)).toEqual(['PlayStation 5', 'Nintendo Switch']);
+        expect(chips.map(dealConsoleLinkLabel)).toEqual(['PlayStation 5', 'Nintendo Switch']);
     });
 });
 
