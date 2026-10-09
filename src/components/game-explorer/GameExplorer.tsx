@@ -686,6 +686,7 @@ export default function GameExplorer({
                             selected={selected}
                             onToggleSelect={toggleSelect}
                             dealsIsToday={dealsIsToday}
+                            dealCards={lockedDeals || onSale}
                         />
                     )}
                 </Box>

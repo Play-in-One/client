@@ -11,7 +11,9 @@ import PlatformBadge from './PlatformBadge';
 import ConditionIcon from './ConditionIcon';
 import AffiliateMark from './AffiliateMark';
 import PriceInfo from './PriceInfo';
+import DealPriceLabel from './DealPriceLabel';
 import { formatCLP } from '@/lib/utils';
+import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import { ratingColor } from '@/lib/colors';
@@ -34,11 +36,16 @@ interface Props {
     /** Tienda del «Vendido por» cuando no hay `bestProduct`: la de una oferta
      *  del día, que trae su propia tienda y no la del mínimo del catálogo. */
     seller?: Pick<Product['seller'], 'id' | 'name'> & Partial<Pick<Product['seller'], 'favicon' | 'logo'>> | null;
-    /** Algo que va junto al precio (la rebaja de una oferta: `DealPriceLabel`). */
+    /** Algo que va junto al precio (la rebaja de una oferta: `DealPriceLabel`).
+     *  Si viene, manda: `DealCard` pasa la suya y no debe salir dos veces. */
     priceAddon?: ReactNode;
+    /** Si la tanda de ofertas es la de hoy, para el «Nueva hoy» de la rebaja.
+     *  Solo /ofertas lo sabe (lo calcula el servidor); fuera de ahí no hay
+     *  fecha con que compararla, así que por defecto nunca dice «Nueva hoy». */
+    dealsIsToday?: boolean;
 }
 
-function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon }: Props) {
+function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon, dealsIsToday = false }: Props) {
     const router = useRouter();
     // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
     // producto más barato, cambia cuando el usuario cambia de filtro. Con
@@ -60,6 +67,13 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
         : [bestProduct?.base_price ?? null, bestProduct?.shipping_cost ?? null];
     const seller = bestProduct?.seller ?? sellerOverride ?? null;
     const hasPrice = price !== null;
+
+    // La rebaja «↓N% (i)» va junto al precio solo si ese precio ES la oferta
+    // del día (misma consola, condición y pesos; ver `cardDeal`): nunca se
+    // pinta una rebaja al lado de una cifra que no es la rebajada. El backend
+    // ya solo manda `deal` en ese caso, salvo con `?deals=1` (mejor fila).
+    const ownDeal = priceAddon ? null : cardDeal(game);
+    const addon = priceAddon ?? (ownDeal ? <DealPriceLabel deal={ownDeal} isToday={dealsIsToday} /> : null);
 
     // La ficha abre en la consola del precio que muestra la tarjeta; sin
     // precio, en la del filtro activo (si lo hay).
@@ -255,7 +269,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                     {/* Con `priceAddon` puede envolver: en móvil la
                                         rebaja baja bajo el precio en vez de empujar
                                         la tienda fuera de la tarjeta. */}
-                                    <Group gap={2} wrap={priceAddon ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                    <Group gap={2} wrap={addon ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
                                         <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
                                             {formatCLP(price)}
                                         </Text>
@@ -268,7 +282,7 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
                                             sus hijos como lista, y uno que llega de un
                                             Server Component (DealCard) sin `key` dispara
                                             el aviso de React. */}
-                                        {priceAddon && <span style={{ display: 'inline-flex' }}>{priceAddon}</span>}
+                                        {addon && <span style={{ display: 'inline-flex' }}>{addon}</span>}
                                     </Group>
                                 </Box>
                                 <Box ta="right">

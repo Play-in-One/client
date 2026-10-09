@@ -5,6 +5,7 @@ import {
     DEALS_TYPICAL_NOTE,
     dealAgeLabel,
     dealBadgeLine,
+    cardDeal,
     dealCardGame,
     dealConsoleLinkLabel,
     dealConsoleChips,
@@ -426,5 +427,46 @@ test.describe('dealLlmsLine', () => {
         expect(line).toMatch(
             /^- \[Juego \\\[Edición\\\] X \(PlayStation 5, nuevo\)\]\(https?:\/\/[^)]+\/juego\/juego-x-7\?platform=ps5\): \$19\.990, −33% frente a su precio típico de \$29\.990$/,
         );
+    });
+});
+
+test.describe('cardDeal (la rebaja de una tarjeta fuera de /ofertas)', () => {
+    const offer = (over: Partial<Deal> = {}) => {
+        const { game: _g, ...rest } = deal(over);
+        return rest;
+    };
+
+    test('el `min_price` de la tarjeta ES la oferta: la rebaja va, con el juego dentro', () => {
+        const g = game({ deal: offer() });
+        const result = cardDeal(g);
+        expect(result).not.toBeNull();
+        expect(result!.game).toBe(g);
+        expect(dealBadgeLine(result!)).toBe('Nuevo · −33% · típico $29.990');
+    });
+
+    test('sin `deal` no hay rebaja', () => {
+        expect(cardDeal(game())).toBeNull();
+        expect(cardDeal(game({ deal: null }))).toBeNull();
+    });
+
+    test('nunca junto a una cifra que no es la rebajada', () => {
+        // `?deals=1` manda la MEJOR fila, que puede ser de otra consola,
+        // condición o precio que el mínimo de la tarjeta.
+        expect(cardDeal(game({ deal: offer({ platform: 'switch' }) }))).toBeNull();
+        expect(cardDeal(game({ deal: offer({ condition: 'used' }) }))).toBeNull();
+        expect(cardDeal(game({ deal: offer({ current_price: '19989.00' }) }))).toBeNull();
+        expect(cardDeal(game({ min_price: null, deal: offer() }))).toBeNull();
+    });
+
+    test('los centavos no cuentan: se compara en pesos enteros, como el backend', () => {
+        expect(cardDeal(game({ min_price: '19990.40', deal: offer() }))).not.toBeNull();
+        expect(cardDeal(game({ min_price: '19990.50', deal: offer() }))).toBeNull();
+    });
+
+    test('una descarga (store/key) casa con una oferta del cubo digital', () => {
+        for (const stored of ['store', 'key'] as const) {
+            const g = game({ min_price_condition: stored, deal: offer({ condition: 'digital' }) });
+            expect(cardDeal(g)).not.toBeNull();
+        }
     });
 });

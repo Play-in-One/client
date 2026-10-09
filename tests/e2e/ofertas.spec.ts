@@ -510,3 +510,101 @@ test.describe('«En oferta» en la galería de una consola', () => {
         expect(body.count).toBe(await count({ on_sale: null, deals: '1' }));
     });
 });
+
+/* Fuera de /ofertas la tarjeta muestra su `min_price` (el más barato bajo los
+   filtros) y la API le añade `deal` SOLO si esa cifra ES la oferta del día
+   (misma consola, condición y precio). La regla vive en el backend; aquí se
+   exige que cada tarjeta lleve la etiqueta exactamente cuando su resultado de
+   la API trae `deal`, con el mismo porcentaje. Sin suponer datos: se lee la
+   API primero. */
+test.describe('La rebaja en toda tarjeta cuyo precio es la oferta', () => {
+    const LANDING_ORDERING = '-traffic_score,name';
+
+    /** Una consola cuya página 1 de la landing tiene alguna tarjeta con `deal`,
+     *  probando primero las que más ofertas tienen. */
+    async function landingWithDeals(request: APIRequestContext) {
+        const deals = await apiDeals(request);
+        const { results: platforms } = (await (await request.get(`${API}/platforms/`)).json()) as { results: Platform[] };
+        const bySlug = new Map(platforms.map((p) => [p.slug, p]));
+        const slugs = [...(deals.platforms ?? [])].sort((a, b) => b.count - a.count).map((p) => p.slug);
+        for (const slug of slugs) {
+            const platform = bySlug.get(slug);
+            if (!platform) continue;
+            const page: PaginatedResponse<Game> = await (await request.get(
+                `${API}/games/?platforms=${platform.id}&ordering=${encodeURIComponent(LANDING_ORDERING)}&page=1`,
+            )).json();
+            if (page.results.some((g) => g.deal)) return { platform, games: page.results };
+        }
+        return null;
+    }
+
+    async function expectLabelsMatchApi(cards: (game: Game) => ReturnType<Page['locator']>, games: Game[]) {
+        for (const game of games) {
+            const card = cards(game);
+            const n = await card.count();
+            expect(n, `tarjeta de ${game.name}`).toBeGreaterThan(0);
+            for (let i = 0; i < n; i++) {
+                const label = card.nth(i).locator('[data-deal-label]');
+                if (game.deal) {
+                    await expect(label, `rebaja de ${game.name}`).toHaveCount(1);
+                    await expect(label).toContainText(`${Math.round(game.deal.discount_pct)}%`);
+                    await expect(label.locator('[data-deal-age]', { hasText: 'Nueva hoy' })).toHaveCount(0);
+                } else {
+                    await expect(label, `${game.name} no es la oferta`).toHaveCount(0);
+                }
+            }
+        }
+    }
+
+    test('la landing de una consola etiqueta exactamente las tarjetas con `deal`', async ({ page, request }) => {
+        const found = await landingWithDeals(request);
+        test.skip(!found, 'Ninguna landing tiene en su página 1 una tarjeta cuyo precio sea la oferta.');
+        const { platform, games } = found!;
+
+        await page.goto(`/juegos/${platform.slug}`);
+        // La landing solo lista la grilla: ninguna otra rebaja en la página.
+        const grid = page.locator('main');
+        await expectLabelsMatchApi(
+            (g) => grid.locator(`a[href="${gamePath(g, g.min_price_platform ?? platform.slug)}"]`),
+            games,
+        );
+        await expect(grid.locator('[data-deal-label]')).toHaveCount(games.filter((g) => g.deal).length);
+    });
+
+    test('el HTML del servidor de la landing trae el detalle de cada rebaja (crawlers)', async ({ request }) => {
+        const found = await landingWithDeals(request);
+        test.skip(!found, 'Ninguna landing tiene en su página 1 una tarjeta cuyo precio sea la oferta.');
+        const { platform, games } = found!;
+
+        const html = await serverHtml(request, `/juegos/${platform.slug}`);
+        const withDeal = games.filter((g) => g.deal);
+        expect(html.match(/data-deal-line/g)?.length ?? 0).toBe(withDeal.length);
+        for (const game of withDeal) {
+            expect(html).toContain(escapeHtml(dealBadgeLine({ ...game.deal!, game })));
+        }
+    });
+
+    test('la home etiqueta Destacados y Populares según su `deal`', async ({ page, request }) => {
+        const trending: Game[] = (await (await request.get(`${API}/games/trending/`)).json()).results;
+        const featured: Game[] = (await (await request.get(`${API}/games/featured/`)).json()).results;
+
+        await page.goto('/');
+        const populares = page.locator('.mantine-Container-root', {
+            has: page.getByRole('heading', { name: 'Populares esta semana' }),
+        });
+        await expectLabelsMatchApi(
+            (g) => populares.locator(`a[href="${gamePath(g, g.min_price_platform)}"]`),
+            trending.slice(0, 8),
+        );
+        if (featured.length > 0) {
+            const destacados = page.locator('.mantine-Container-root', {
+                has: page.getByRole('heading', { name: 'Juegos Destacados' }),
+            });
+            // El carrusel clona tarjetas para el bucle: cada copia cumple igual.
+            await expectLabelsMatchApi(
+                (g) => destacados.locator(`a[href="${gamePath(g, g.min_price_platform)}"]`),
+                featured,
+            );
+        }
+    });
+});

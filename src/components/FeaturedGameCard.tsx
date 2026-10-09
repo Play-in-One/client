@@ -7,7 +7,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
 import PriceInfo from './PriceInfo';
+import DealPriceLabel from './DealPriceLabel';
 import { formatCLP } from '@/lib/utils';
+import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import { decorative } from '@/lib/colors';
@@ -58,6 +60,10 @@ function FeaturedGameCard({
     useEffect(() => setFailed(false), [game.image]);
     const imgSrc = failed || !game.image ? PLACEHOLDER : game.image;
     const hasPrice = game.min_price !== null;
+    // La misma rebaja «↓N% (i)» que `GameCard`, y con la misma regla: solo si
+    // el precio de la tarjeta ES la oferta del día (`cardDeal`). Fuera de
+    // /ofertas no se sabe si la tanda es de hoy: nunca «Nueva hoy».
+    const deal = cardDeal(game);
 
     /* `justify-content` no es animable (cambiarlo saltaba en seco), así que
        se desplaza con `transform`. Pero los porcentajes dentro de
@@ -219,7 +225,7 @@ function FeaturedGameCard({
                         </Text>
 
                         {hasPrice ? (
-                            <Group gap={2} wrap="nowrap" align="center" mt="auto">
+                            <Group gap={2} wrap={deal ? 'wrap' : 'nowrap'} align="center" mt="auto" style={{ rowGap: 2 }}>
                                 <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
                                     {formatCLP(game.min_price as string)}
                                 </Text>
@@ -228,6 +234,11 @@ function FeaturedGameCard({
                                     shippingCost={game.min_price_shipping}
                                     seller={game.min_price_seller}
                                 />
+                                {deal && (
+                                    <span style={{ display: 'inline-flex' }}>
+                                        <DealPriceLabel deal={deal} isToday={false} />
+                                    </span>
+                                )}
                             </Group>
                         ) : (
                             <Group mt="auto">

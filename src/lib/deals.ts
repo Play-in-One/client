@@ -239,8 +239,22 @@ export function dealAgeLabel(deal: Deal, isToday = true): string | null {
  *  Store o código, y la tarjeta solo tiene icono para esos dos. */
 const CARD_CONDITIONS = new Set(['new', 'used']);
 
+/** Mismo precio en PESOS ENTEROS (redondeo hacia arriba en el medio, como
+ *  `_pesos` del backend): el precio vivo trae centavos de envío y cupón que la
+ *  fila de la oferta no tiene, y $19.990,40 y $19.990 son el mismo precio. */
 const sameAmount = (a: string | null | undefined, b: string | null | undefined) =>
-    a != null && b != null && Number(a) === Number(b);
+    a != null && b != null && Math.round(Number(a)) === Math.round(Number(b));
+
+/** ¿El mínimo que muestra la tarjeta ES esta oferta? Misma consola, mismo
+ *  cubo de condición (el mínimo publica el valor crudo `store`/`key`) y mismo
+ *  precio. Es la regla de `attach_card_deals` en el backend. */
+function minPriceIsDeal(game: Game, offer: DealOffer): boolean {
+    return (
+        game.min_price_platform === offer.platform &&
+        conditionBucket(game.min_price_condition) === offer.condition &&
+        sameAmount(game.min_price, offer.current_price)
+    );
+}
 
 /**
  * El juego que se le pasa a `GameCard` para que su precio sea el de la OFERTA.
@@ -261,11 +275,7 @@ const sameAmount = (a: string | null | undefined, b: string | null | undefined) 
  */
 export function dealCardGame(deal: Deal): Game {
     const game = deal.game;
-    if (
-        game.min_price_platform === deal.platform &&
-        conditionBucket(game.min_price_condition) === deal.condition &&
-        sameAmount(game.min_price, deal.current_price)
-    ) {
+    if (minPriceIsDeal(game, deal)) {
         return game;
     }
     return {
@@ -292,6 +302,23 @@ export function dealCardGame(deal: Deal): Game {
  */
 export function dealFromGame(game: Game): Deal | null {
     return game.deal ? { ...game.deal, game } : null;
+}
+
+/**
+ * La rebaja de una tarjeta que muestra su PROPIO precio (`GameCard` fuera de
+ * /ofertas y de «En oferta»): la oferta del juego solo si su `min_price` ES el
+ * precio de esa oferta, o null.
+ *
+ * Fuera de `?deals=1` el backend ya solo manda `deal` en ese caso; con
+ * `?deals=1` manda la MEJOR fila, que puede ser de otra consola o condición,
+ * y esas tarjetas se pintan con `DealCard` (el precio de la oferta). Se vuelve
+ * a comprobar aquí para que ninguna tarjeta que caiga en `GameCard` con ese
+ * `deal` (p. ej. el modo selección de admin) ponga «↓N%» junto a una cifra
+ * que no es la rebajada.
+ */
+export function cardDeal(game: Game): Deal | null {
+    if (!game.deal || game.min_price == null || !minPriceIsDeal(game, game.deal)) return null;
+    return { ...game.deal, game };
 }
 
 /** La inversa: el juego de una fila de `/api/deals/` con su oferta en `deal`.

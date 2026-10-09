@@ -22,6 +22,12 @@ interface Props {
      *  caer en otro día que el del HTML cerca de la medianoche. Sin él
      *  («En oferta» en otra galería) es `false`: nunca «Nueva hoy». */
     dealsIsToday?: boolean;
+    /** La consulta lleva `deals=1` u `on_sale=1` (/ofertas o «En oferta»):
+     *  el `deal` de cada juego es su MEJOR oferta, que puede no ser su mínimo,
+     *  y la tarjeta tiene que mostrar el precio de esa oferta (`DealCard`).
+     *  Sin el filtro, `GameCard` pone la rebaja por su cuenta junto al mínimo
+     *  solo cuando ese mínimo ES la oferta. */
+    dealCards?: boolean;
 }
 
 export default function GameResultsGrid({
@@ -35,6 +41,7 @@ export default function GameResultsGrid({
     selected,
     onToggleSelect,
     dealsIsToday = false,
+    dealCards = false,
 }: Props) {
     if (loading && games.length === 0) {
         return (
@@ -72,7 +79,7 @@ export default function GameResultsGrid({
                     // condición y tienda de la oferta, más la línea de rebaja).
                     // En modo selección manda la tarjeta seleccionable: la
                     // fusión de admin no sabe nada de ofertas.
-                    const deal = selectionMode ? null : dealFromGame(g);
+                    const deal = selectionMode || !dealCards ? null : dealFromGame(g);
                     return deal ? (
                         <DealCard key={g.id} deal={deal} priority={i < 4} isToday={dealsIsToday} />
                     ) : (
@@ -84,6 +91,7 @@ export default function GameResultsGrid({
                             selected={selected.some((s) => s.id === g.id)}
                             onToggleSelect={onToggleSelect}
                             priority={i < 4}
+                            dealsIsToday={dealsIsToday}
                         />
                     );
                 })}
