@@ -803,6 +803,26 @@ a.saga-banner-link:focus-visible {
   white-space: nowrap;
 }
 
+/* Fila del precio apretada (`useFitPriceRow` en GameCard pone `data-compact`
+   cuando cifra + consola + rebaja no caben en una línea): primero se achica el
+   label de la consola, luego la rebaja pierde la flecha. */
+[data-compact="1"] .pio-deal-console,
+[data-compact="2"] .pio-deal-console {
+  gap: 2px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+
+[data-compact="1"] .pio-deal-console svg,
+[data-compact="2"] .pio-deal-console svg {
+  width: 10px;
+  height: 10px;
+}
+
+[data-compact="2"] .pio-deal-arrow {
+  display: none;
+}
+
 /* Rebaja junto al precio de una tarjeta de oferta (`DealPriceLabel`). */
 .pio-deal-label {
   display: inline-flex;

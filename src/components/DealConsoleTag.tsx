@@ -1,13 +1,14 @@
 import { FALLBACK_PLATFORM_ICON, PLATFORMS_BY_SLUG } from '@/lib/platforms';
 
 /**
- * La consola del precio de una tarjeta en oferta: logo y nombre corto, junto
- * al precio y antes de la rebaja «↓N% (i)».
+ * La consola del precio de una tarjeta: logo y nombre corto, junto al precio
+ * y antes de la rebaja «↓N% (i)» si la hay. Va en todas las tarjetas con
+ * precio, no solo en las ofertas.
  *
  * Logo Y nombre: el logo es por familia (PS3, PS4 y PS5 comparten el de
  * PlayStation), así que solo con él no se sabría cuál es. Recibe la consola de
- * la OFERTA, que es la del precio mostrado (`attach_card_deals` en el backend
- * y `dealCardGame` en /ofertas lo garantizan).
+ * la oferta que fija el precio mostrado (`min_price_platform`, o la fila de
+ * `deal` que `attach_card_deals` y `dealCardGame` hacen coincidir con él).
  *
  * Sin estado ni `'use client'`: sirve también en Server Components.
  */

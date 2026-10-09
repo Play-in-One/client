@@ -240,7 +240,9 @@ function FeaturedGameCard({
                                             seller={game.min_price_seller}
                                         />
                                     </Group>
-                                    {deal && <DealConsoleTag platform={deal.platform} />}
+                                    {(deal?.platform ?? game.min_price_platform) && (
+                                        <DealConsoleTag platform={(deal?.platform ?? game.min_price_platform) as string} />
+                                    )}
                                     {deal && (
                                         <span style={{ display: 'inline-flex', alignItems: 'center' }}>
                                             <DealPriceLabel deal={deal} isToday={false} />

@@ -45,14 +45,25 @@ interface Props {
      *  fecha con que compararla, así que por defecto nunca dice «Nueva hoy». */
     dealsIsToday?: boolean;
     /** Consola de la oferta que pasa `DealCard` junto con su `priceAddon`: va
-     *  como etiqueta al lado del precio (`DealConsoleTag`). */
+     *  como etiqueta al lado del precio (`DealConsoleTag`). Sin ella la tarjeta
+     *  usa la consola del precio mínimo (`min_price_platform`). */
     priceConsole?: string | null;
 }
 
 /**
- * Oculta la tienda de la fila del precio cuando no cabe y tendría que abrir una
- * línea propia: un nombre solo en su línea se lee como un pie suelto. Si cabe
- * junto a la rebaja (aunque esa ya haya bajado de línea), se queda.
+ * Ajusta la fila del precio para que cifra, consola y rebaja quepan en UNA
+ * línea, y decide si la tienda también cabe.
+ *
+ * Primero compacta de a poco, en este orden, hasta que nada baje de línea:
+ *   1. el label de la consola se achica (`data-compact="1"`);
+ *   2. además, la rebaja pierde la flecha (`data-compact="2"`).
+ * La consola nunca se quita: sin ella el precio no dice de qué es. Si ni así
+ * cabe, la fila envuelve como antes.
+ *
+ * La tienda va al final: solo se muestra si cabe en la PRIMERA línea, la de la
+ * cifra. Una tienda en la segunda línea (sola, o junto a una rebaja que ya
+ * bajó) se lee como un pie suelto. Se decide DESPUÉS de compactar, para que no
+ * obligue a achicar nada por ella.
  *
  * Lo resuelve el navegador porque CSS no sabe si un elemento envolvió. Se mide
  * con el estilo directo en el nodo y no con estado de React: mostrar, medir y
@@ -60,18 +71,33 @@ interface Props {
  * vuelve a medir cuando cambia el ancho de la fila o cargan las fuentes (cambian
  * el ancho de la cifra sin cambiar el de la fila).
  */
-function useHideSellerWhenWrapped(rowRef: RefObject<HTMLDivElement | null>) {
+function useFitPriceRow(rowRef: RefObject<HTMLDivElement | null>) {
     useLayoutEffect(() => {
         const row = rowRef.current;
         if (!row) return;
         const check = () => {
             const seller = row.querySelector<HTMLElement>('[data-card-seller]');
-            const prev = seller?.previousElementSibling as HTMLElement | null;
-            if (!seller || !prev) return;
-            seller.style.display = '';
-            // Abre línea si empieza por debajo del final del elemento anterior.
-            const wrapped = seller.getBoundingClientRect().top >= prev.getBoundingClientRect().bottom - 1;
-            seller.style.display = wrapped ? 'none' : '';
+            // El primer hijo es el grupo de la cifra: marca la primera línea.
+            const first = row.firstElementChild as HTMLElement | null;
+            if (!first) return;
+            if (seller) seller.style.display = 'none';
+            const rest = Array.from(row.children).filter((c) => c !== seller) as HTMLElement[];
+            // Fuera de la primera línea si empieza por debajo del final de la cifra.
+            const fits = () => {
+                const limit = first.getBoundingClientRect().bottom - 1;
+                return rest.every((c) => c.getBoundingClientRect().top < limit);
+            };
+            let level = 0;
+            row.dataset.compact = '0';
+            while (level < 2 && !fits()) {
+                level += 1;
+                row.dataset.compact = String(level);
+            }
+            if (seller && seller !== first) {
+                seller.style.display = '';
+                const wrapped = seller.getBoundingClientRect().top >= first.getBoundingClientRect().bottom - 1;
+                seller.style.display = wrapped ? 'none' : '';
+            }
         };
         check();
         const observer = new ResizeObserver(check);
@@ -114,10 +140,14 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
     // ya solo manda `deal` en ese caso, salvo con `?deals=1` (mejor fila).
     const ownDeal = priceAddon ? null : cardDeal(game);
     const addon = priceAddon ?? (ownDeal ? <DealPriceLabel deal={ownDeal} isToday={dealsIsToday} /> : null);
-    // La consola de ese precio va al lado de la cifra (la rebaja, encima).
-    const consoleSlug = priceConsole ?? ownDeal?.platform ?? null;
+    // La consola de ese precio va al lado de la cifra, con o sin rebaja: un
+    // precio sin consola no dice de cuál es. Sale de la misma fuente que la
+    // cifra (la oferta anotada, o el producto cuando no hay anotación).
+    const consoleSlug = priceConsole ?? ownDeal?.platform
+        ?? (game.min_price !== null ? game.min_price_platform : bestProduct?.platform?.slug)
+        ?? null;
     const priceRowRef = useRef<HTMLDivElement>(null);
-    useHideSellerWhenWrapped(priceRowRef);
+    useFitPriceRow(priceRowRef);
 
     // La ficha abre en la consola del precio que muestra la tarjeta; sin
     // precio, en la del filtro activo (si lo hay).

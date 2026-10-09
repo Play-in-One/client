@@ -49,7 +49,7 @@ export default function DealPriceLabel({ deal, isToday = true }: { deal: Deal; i
                         if (event.key === 'Enter' || event.key === ' ') toggle(event);
                     }}
                 >
-                    <IconArrowDown size={13} stroke={3} aria-hidden />
+                    <IconArrowDown className="pio-deal-arrow" size={13} stroke={3} aria-hidden />
                     {pct}%
                     <IconInfoCircle size={14} aria-hidden />
                     <VisuallyHidden component="span" data-deal-line>{dealBadgeLine(deal)}</VisuallyHidden>
