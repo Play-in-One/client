@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { login as apiLogin, logout as apiLogout, setAdminToken, setOnAuthError } from '@/lib/api';
 
 // localStorage (no sessionStorage): se comparte entre todas las pestañas/ventanas
@@ -102,8 +102,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     );
 }
 
+const noopSubscribe = () => () => {};
+
 export function useAdmin() {
     const ctx = useContext(AdminContext);
     if (!ctx) throw new Error('useAdmin must be used within AdminProvider');
-    return ctx;
+    // El provider lee el token en un efecto, pero un boundary <Suspense> (la
+    // ficha de juego, por useSearchParams) puede hidratarse DESPUÉS de ese
+    // efecto: leería `isAdmin: true` mientras el HTML del servidor se pintó
+    // anónimo, y React descarta el árbol ("Hydration failed"). `hydrated` vale
+    // false durante la hidratación de ESTE componente y true después, así que
+    // el primer render siempre coincide con el servidor.
+    const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+    if (hydrated) return ctx;
+    return { ...ctx, token: null, username: null, isAdmin: false };
 }
