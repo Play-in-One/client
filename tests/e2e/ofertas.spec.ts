@@ -128,7 +128,7 @@ test.describe('HTML del servidor', () => {
         // «hoy» o «del <fecha>» según la fecha de la tanda (`dealsHeading`):
         // la base de dev puede no haber recalculado hoy.
         expect(html).toContain(`>${dealsHeading(undefined, api)}</h1>`);
-        expect(html).toContain('El precio típico de cada oferta considera todas las tiendas de esa condición.');
+        expect(html).toContain('El precio típico de cada oferta considera todas las tiendas de esa condición; los totales de arriba son del catálogo completo.');
         expect(html).toContain('Una oferta aparece aquí cuando el precio más bajo de hoy');
         expect(html).toMatch(/\d+ juegos? (están|está|estaban|estaba) al menos 15% bajo su precio típico de los últimos 90 días\./);
         expect(html).toMatch(/href="\/juego\/[a-z0-9-]+-\d+\?platform=[a-z0-9-]+"/);

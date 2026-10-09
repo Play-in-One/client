@@ -24,7 +24,9 @@ export const DEALS_METHOD_LINE =
  *  vez por noche sobre todas las tiendas de cada condición: quien tenga
  *  apagadas las importadoras ve ofertas de tiendas nacionales, pero medidas
  *  contra una mediana que sí incluye importadas. Se dice en vez de esconderlo. */
-export const DEALS_SCOPE_NOTE = 'El precio típico de cada oferta considera todas las tiendas de esa condición.';
+// Los totales (frase resumen y conteos de consolas) son del catálogo completo; grilla y
+// barra lateral siguen las preferencias del visitante: la nota evita leerlos como un bug.
+export const DEALS_SCOPE_NOTE = 'El precio típico de cada oferta considera todas las tiendas de esa condición; los totales de arriba son del catálogo completo.';
 
 /** Orden por defecto de /ofertas en la galería: la mayor rebaja primero, como
  *  lista `/api/deals/` la grilla del servidor. */

@@ -266,7 +266,7 @@ test('la línea de método y la nota de alcance son fijas', () => {
         'Una oferta aparece aquí cuando el precio más bajo de hoy está al menos 15% bajo su ' +
         'mediana de los últimos 90 días y ahorra $1.000 o más.',
     );
-    expect(DEALS_SCOPE_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición.');
+    expect(DEALS_SCOPE_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición; los totales de arriba son del catálogo completo.');
 });
 
 test.describe('ofertas en la galería (`/api/games/?deals=1`)', () => {

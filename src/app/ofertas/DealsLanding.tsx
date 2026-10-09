@@ -7,6 +7,7 @@ import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { getDeals, getPlatforms } from '@/lib/api';
 import type { DealsResponse, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
+import { PAGE_SIZE } from '@/app/juegos/[slug]/landing';
 import DealCard from '@/components/DealCard';
 import InfoHeading from '@/components/InfoHeading';
 import { JsonLd } from '@/components/JsonLd';
@@ -45,9 +46,6 @@ import {
  * filtrar. Lo único que no sigue esas preferencias es el precio típico, y la
  * página lo dice (`DEALS_SCOPE_NOTE`).
  */
-
-/** Tarjetas con que se siembra el explorador: las de su primera página. */
-const EXPLORER_PAGE_SIZE = 24;
 
 const EMPTY: DealsResponse = { date: null, last_scrape_at: null, count: 0, platforms: [], results: [] };
 
@@ -214,9 +212,9 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                                 ? { id: platform.id, slug: platform.slug, display_name: platformLongName(platform) }
                                 : undefined
                         }
-                        initialGames={deals.slice(0, EXPLORER_PAGE_SIZE).map(gameWithDeal)}
+                        initialGames={deals.slice(0, PAGE_SIZE).map(gameWithDeal)}
                         initialTotal={res.count}
-                        pageSize={EXPLORER_PAGE_SIZE}
+                        pageSize={PAGE_SIZE}
                         defaultOrdering={DEALS_ORDERING}
                         showHeader={false}
                         withContainer={false}
