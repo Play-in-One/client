@@ -7,6 +7,7 @@ import { getDeals, getPlatforms } from '@/lib/api';
 import type { DealsResponse, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
 import DealCard from '@/components/DealCard';
+import InfoHeading from '@/components/InfoHeading';
 import { JsonLd } from '@/components/JsonLd';
 import {
     DEALS_METHOD_LINE,
@@ -140,14 +141,24 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
         <>
             <JsonLd data={jsonLd} />
             <Container size="xl" py="xl">
-                <Title order={1} fz={{ base: 28, md: 36 }} fw={800} mb={4}>
-                    {heading}
-                </Title>
+                {/* La frase resumen va tras la (i) del título, como el
+                    resumen de las landings de consola: sigue en el HTML
+                    inicial (y en la meta description) sin empujar las ofertas
+                    hacia abajo. */}
+                <InfoHeading
+                    label="Resumen de las ofertas"
+                    heading={
+                        <Title order={1} fz={{ base: 28, md: 36 }} fw={800}>
+                            {heading}
+                        </Title>
+                    }
+                >
+                    <Text component="p" m={0}>
+                        {summary}
+                    </Text>
+                </InfoHeading>
                 <Text fz="sm" c="dimmed" mb="sm">
                     {DEALS_SCOPE_NOTE}
-                </Text>
-                <Text component="p" maw={760} mb="xs">
-                    {summary}
                 </Text>
                 <Text component="p" fz="sm" c="dimmed" maw={760} mb="lg">
                     {DEALS_METHOD_LINE}

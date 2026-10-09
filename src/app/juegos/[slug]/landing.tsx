@@ -10,6 +10,7 @@ import CrawlablePagination from '@/components/CrawlablePagination';
 import FaqSection from '@/components/FaqSection';
 import { JsonLd } from '@/components/JsonLd';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
+import InfoHeading from '@/components/InfoHeading';
 import {
     buildMetadata,
     breadcrumbJsonLd,
@@ -210,18 +211,27 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
         <>
             <JsonLd data={jsonLd} />
             <Container size="xl" py="xl">
-                <Title order={1} fz={{ base: 28, md: 36 }} fw={800} mb="sm">
-                    {heading}
-                    {!isFirst && (
-                        <Text component="span" fz="inherit" fw="inherit" c="dimmed">
-                            {' '}
-                            — página {page}
-                        </Text>
-                    )}
-                </Title>
-                <Text component="p" c="dimmed" maw={760}>
-                    {summary}
-                </Text>
+                {/* El resumen va tras la (i) del título: sigue en el HTML
+                    inicial (crawlers y meta description dicen lo mismo), pero
+                    no empuja la galería hacia abajo. */}
+                <InfoHeading
+                    label="Resumen de la consola"
+                    heading={
+                        <Title order={1} fz={{ base: 28, md: 36 }} fw={800}>
+                            {heading}
+                            {!isFirst && (
+                                <Text component="span" fz="inherit" fw="inherit" c="dimmed">
+                                    {' '}
+                                    — página {page}
+                                </Text>
+                            )}
+                        </Title>
+                    }
+                >
+                    <Text component="p" c="dimmed" m={0}>
+                        {summary}
+                    </Text>
+                </InfoHeading>
 
                 {games.length > 0 ? (
                     <GameExplorer

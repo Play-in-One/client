@@ -785,3 +785,23 @@ a.saga-banner-link:focus-visible {
 .pio-details-inline[open] > summary .pio-details-info {
   color: var(--mantine-color-primaryRed-filled);
 }
+
+/* (i) pegada al título de una página (`InfoHeading`): el icono va junto al
+   texto y no al otro extremo, y el título no lleva margen propio para que el
+   icono quede centrado con él. */
+.pio-info-heading {
+  margin-bottom: var(--mantine-spacing-sm);
+}
+
+.pio-info-heading > summary {
+  justify-content: flex-start;
+}
+
+.pio-info-heading > summary > :first-child {
+  margin: 0;
+}
+
+.pio-info-heading-body {
+  max-width: 760px;
+  margin-top: var(--mantine-spacing-xs);
+}

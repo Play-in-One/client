@@ -107,12 +107,16 @@ test.describe('landings por consola: contenido veraz e indexación', () => {
         }
     }
 
-    test('el resumen es un párrafo visible, no un <details>', async ({ request }) => {
+    test('el resumen va tras la (i) del título y sigue en el HTML del servidor', async ({ request }) => {
         const platform = await pagedPlatform(request);
         requireLarge(platform);
         const html = await serverHtml(request, `/juegos/${platform!.slug}`);
-        expect(html).toMatch(/<p\b[^>]*>\s*En Play in One comparamos/);
-        expect(html).not.toMatch(/<details\b[^>]*>(?:(?!<\/details>)[\s\S])*En Play in One comparamos/);
+        // Plegado en el <details> cuyo <summary> es el H1: el texto viaja
+        // entero en el HTML inicial, que es lo que leen los crawlers.
+        expect(html).toMatch(
+            // (Mantine puede inyectar un <style> antes del <h1> dentro del summary.)
+            /<details class="[^"]*pio-info-heading[^"]*">\s*<summary[^>]*>(?:(?!<\/summary>)[\s\S])*<h1[\s\S]*?<\/summary>[\s\S]*?<p\b[^>]*>\s*En Play in One comparamos/,
+        );
         expect(html).not.toContain('más barato');
     });
 
