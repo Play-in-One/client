@@ -1,6 +1,12 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import { SEEDED, robotsOf, serverHtml } from './helpers';
-import { dealBadgeLine, dealConsoles, dealsSummarySentence } from '../../src/lib/deals';
+import {
+    dealBadgeLine,
+    dealConsoleChipLabel,
+    dealConsoleChips,
+    dealConsoleSlugs,
+    dealsSummarySentence,
+} from '../../src/lib/deals';
 import { gamePath } from '../../src/lib/seo';
 import { formatCLP } from '../../src/lib/utils';
 import type { DealsResponse, Platform } from '../../src/lib/types';
@@ -57,20 +63,41 @@ async function consoleWithoutDeals(request: APIRequestContext): Promise<Platform
     return null;
 }
 
+/** El HTML de cada tarjeta de oferta, en orden: del marcador `data-deal-card`
+ *  hasta el siguiente. La última se corta al cerrar su línea de rebaja
+ *  (`data-deal-line`) para no arrastrar el resto de la página. */
+function dealCardsHtml(html: string): string[] {
+    return html.split('data-deal-card').slice(1).map((chunk) => {
+        const line = chunk.indexOf('data-deal-line');
+        const end = line > -1 ? chunk.indexOf('</p>', line) : -1;
+        return end > -1 ? chunk.slice(0, end) : chunk;
+    });
+}
+
 /** La página publica la frase y una tarjeta con su línea por cada oferta de
  *  la API, y los dos juegos sembrados que NO califican no salen. */
 function expectListsDeals(html: string, res: DealsResponse, platform?: Platform) {
     expect(res.results.length).toBeGreaterThan(0);
     expect(html).toContain(escapeHtml(dealsSummarySentence(res, platform)));
-    for (const deal of res.results) {
-        expect(html).toContain(escapeHtml(deal.game.name));
-        expect(html).toContain(escapeHtml(dealBadgeLine(deal)));
+    const cards = dealCardsHtml(html);
+    expect(cards).toHaveLength(res.results.length);
+    res.results.forEach((deal, i) => {
+        // Cada aserción sobre SU tarjeta y no sobre la página entera: el precio
+        // de una oferta suele aparecer en otra parte (la frase, otra tarjeta),
+        // y así se colaba una tarjeta que pintaba el mínimo del catálogo.
+        const card = cards[i];
+        expect(card).toContain(escapeHtml(deal.game.name));
+        expect(card).toContain(escapeHtml(dealBadgeLine(deal)));
         // La tarjeta abre la ficha en la consola de la OFERTA y muestra SU
         // precio, no el mínimo del catálogo (Taxi Chaos: oferta en PS4 a
         // $7.900, mínimo del juego $4.585 en Windows).
-        expect(html).toContain(`href="${gamePath(deal.game, deal.platform)}"`);
-        expect(html).toContain(formatCLP(deal.current_price));
-    }
+        expect(card).toContain(`href="${gamePath(deal.game, deal.platform)}"`);
+        expect(card).toContain(formatCLP(deal.current_price));
+        if (deal.game.min_price && Number(deal.game.min_price) !== Number(deal.current_price)) {
+            // El mínimo del catálogo es otra oferta: no puede ser la cifra de la tarjeta.
+            expect(card).not.toContain(`>${formatCLP(deal.game.min_price)}<`);
+        }
+    });
     expect(html).not.toContain(DEAL.shallowGame);
     expect(html).not.toContain(DEAL.shortHistoryGame);
     const seeded = res.results.find((d) => d.game.id === DEAL.gameId);
@@ -107,6 +134,29 @@ test.describe('HTML del servidor', () => {
         expect(html).toMatch(/href="\/ofertas\/[a-z0-9-]+"/);
         // El layout emite «index, follow» por defecto; lo que no puede haber es noindex.
         expect(robotsOf(html) ?? '').not.toMatch(/noindex/);
+    });
+
+    test('los chips de consola son TODAS las consolas con ofertas, con su conteo', async ({ request }) => {
+        const api = await apiDeals(request);
+        // `platforms` es la lista completa del día: puede traer consolas que no
+        // llegan a las 60 tarjetas, y esas también necesitan su chip.
+        expect(api.platforms?.length).toBeGreaterThan(0);
+        const catalog = (await (await request.get(`${API}/platforms/`)).json()).results as Platform[];
+        const chips = dealConsoleChips(api, catalog);
+        expect(chips.map((c) => c.platform.slug)).toEqual(api.platforms!.map((p) => p.slug));
+
+        for (const path of ['/ofertas', `/ofertas/${DEAL.platform}`]) {
+            const html = await serverHtml(request, path);
+            // Mismo orden que la API, con o sin consola en la URL.
+            expect([...html.matchAll(/data-deal-chip="([^"]+)"/g)].map((m) => m[1])).toEqual(
+                chips.map((c) => c.platform.slug),
+            );
+            for (const chip of chips) {
+                // «PlayStation 5 · 389»
+                expect(html).toContain(escapeHtml(dealConsoleChipLabel(chip)));
+                expect(html).toContain(`href="/ofertas/${chip.platform.slug}"`);
+            }
+        }
     });
 
     test('/ofertas publica CollectionPage, ItemList de las tarjetas y BreadcrumbList', async ({ request }) => {
@@ -220,8 +270,11 @@ test.describe('enlaces hacia /ofertas', () => {
     test('el sitemap incluye /ofertas y las consolas con ofertas', async ({ request }) => {
         const xml = await (await request.get('/sitemap.xml')).text();
         expect(xml).toMatch(/<loc>[^<]*\/ofertas<\/loc>/);
-        for (const p of dealConsoles((await apiDeals(request)).results)) {
-            expect(xml).toMatch(new RegExp(`<loc>[^<]*/ofertas/${p.slug}</loc>`));
+        // Todas las consolas del día (`platforms`), no solo las de las tarjetas.
+        const slugs = dealConsoleSlugs(await apiDeals(request));
+        expect(slugs.length).toBeGreaterThan(0);
+        for (const slug of slugs) {
+            expect(xml).toMatch(new RegExp(`<loc>[^<]*/ofertas/${slug}</loc>`));
         }
     });
 

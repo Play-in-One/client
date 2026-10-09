@@ -782,7 +782,17 @@ export interface DealsResponse {
     /** Juegos distintos en oferta (con `platform`: filas de esa consola),
      *  contados ANTES del tope de 60 resultados. */
     count: number;
+    /** Todas las consolas con alguna oferta en `date` (con o sin `platform`),
+     *  en el orden del catálogo, con los juegos distintos de cada una. De aquí
+     *  salen los chips de /ofertas y el sitemap, no de los 60 resultados.
+     *  Opcional: un backend anterior no lo envía (ver `dealConsoleChips`). */
+    platforms?: DealPlatformCount[];
     results: Deal[];
+}
+
+export interface DealPlatformCount {
+    slug: string;
+    count: number;
 }
 
 /* ── Encuestas ── */

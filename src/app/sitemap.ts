@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getDeals, getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
-import { dealConsoles } from '@/lib/deals';
+import { dealConsoleSlugs } from '@/lib/deals';
 import { absoluteUrl, gamePath, postPath } from '@/lib/seo';
 
 /**
@@ -65,12 +65,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     // Ofertas por consola: solo las consolas que HOY tienen ofertas. Una sin
     // ofertas sale `noindex`, y un sitemap solo debe listar URLs indexables.
+    // Todas las del día (`platforms`), no solo las de las 60 primeras tarjetas.
     const deals: MetadataRoute.Sitemap = [];
     try {
         const res = await getDeals();
-        for (const p of dealConsoles(res.results)) {
+        for (const slug of dealConsoleSlugs(res)) {
             deals.push({
-                url: absoluteUrl(`/ofertas/${p.slug}`),
+                url: absoluteUrl(`/ofertas/${slug}`),
                 changeFrequency: 'daily',
                 priority: 0.7,
             });

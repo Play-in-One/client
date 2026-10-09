@@ -5,6 +5,9 @@ import {
     dealAgeLabel,
     dealBadgeLine,
     dealCardGame,
+    dealConsoleChipLabel,
+    dealConsoleChips,
+    dealConsoleSlugs,
     dealConsoles,
     dealLlmsLine,
     dealsHeading,
@@ -176,6 +179,25 @@ test.describe('dealCardGame', () => {
         const d = deal({ condition: 'digital', game: game({ min_price: '1.00' }) });
         expect(dealCardGame(d).min_price_condition).toBeNull();
     });
+
+    test('mismo importe y consola pero otra condición: el mínimo NO es la oferta', () => {
+        // Un usado a $19.990 en PS5 y la oferta de un nuevo a $19.990 en PS5:
+        // devolver el juego tal cual pintaría «Usado» (y su tienda y desglose)
+        // sobre la línea «Nuevo · −33%».
+        const usedSeller = { ...game().min_price_seller!, id: 9, name: 'Usados SpA' };
+        const d = deal({ game: game({ min_price_condition: 'used', min_price_seller: usedSeller }) });
+        const card = dealCardGame(d);
+        expect(card).not.toBe(d.game);
+        expect(card.min_price_condition).toBe('new');
+        expect(card.min_price_seller).toBeNull();
+    });
+
+    test('el mínimo de una descarga (store/key) ES una oferta del cubo digital', () => {
+        for (const stored of ['store', 'key'] as const) {
+            const d = deal({ condition: 'digital', game: game({ min_price_condition: stored }) });
+            expect(dealCardGame(d)).toBe(d.game);
+        }
+    });
 });
 
 test.describe('dealConsoles', () => {
@@ -188,6 +210,52 @@ test.describe('dealConsoles', () => {
             deal({ platform: 'xboxone' }),
         ];
         expect(dealConsoles(deals).map((p) => p.slug)).toEqual(['ps5', 'switch']);
+    });
+});
+
+const XBOX: Platform = {
+    id: 3, name: 'xboxone', slug: 'xboxone', display_name: 'XOne', long_name: 'Xbox One', order: 20,
+};
+
+test.describe('dealConsoleChips', () => {
+    test('salen de `platforms`, en su orden y con su conteo, aunque no estén en las tarjetas', () => {
+        // Las tarjetas son solo de PS5; Xbox One tiene ofertas fuera del top 60.
+        const res = response({
+            results: [deal()],
+            platforms: [
+                { slug: 'ps5', count: 389 },
+                { slug: 'xboxone', count: 1204 },
+                // Sin nombre conocido (ni en el catálogo ni en las tarjetas): se omite.
+                { slug: 'atari', count: 3 },
+            ],
+        });
+        const chips = dealConsoleChips(res, [SWITCH, XBOX]);
+        expect(chips.map((c) => [c.platform.slug, c.count])).toEqual([['ps5', 389], ['xboxone', 1204]]);
+        expect(chips.map(dealConsoleChipLabel)).toEqual(['PlayStation 5 · 389', 'Xbox One · 1.204']);
+    });
+
+    test('sin catálogo, el nombre sale del juego de las tarjetas', () => {
+        const res = response({ platforms: [{ slug: 'ps5', count: 2 }] });
+        expect(dealConsoleChips(res).map(dealConsoleChipLabel)).toEqual(['PlayStation 5 · 2']);
+    });
+
+    test('backend anterior (sin `platforms`): las consolas de las tarjetas, sin conteo', () => {
+        const res = response({ results: [deal({ platform: 'switch' }), deal()] });
+        const chips = dealConsoleChips(res, [XBOX]);
+        expect(chips.map((c) => [c.platform.slug, c.count])).toEqual([['ps5', null], ['switch', null]]);
+        expect(chips.map(dealConsoleChipLabel)).toEqual(['PlayStation 5', 'Nintendo Switch']);
+    });
+});
+
+test.describe('dealConsoleSlugs', () => {
+    test('de `platforms` cuando viene, aunque la consola no esté en las tarjetas', () => {
+        const res = response({ platforms: [{ slug: 'ps5', count: 1 }, { slug: 'xboxone', count: 4 }] });
+        expect(dealConsoleSlugs(res)).toEqual(['ps5', 'xboxone']);
+    });
+
+    test('sin `platforms`, de las tarjetas', () => {
+        const res = response({ results: [deal({ platform: 'switch' }), deal()] });
+        expect(dealConsoleSlugs(res)).toEqual(['ps5', 'switch']);
     });
 });
 

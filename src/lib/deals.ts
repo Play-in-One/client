@@ -8,7 +8,7 @@
 import type { Deal, DealsResponse, Game, Platform } from './types';
 import { platformLongName } from './types';
 import { formatCLP } from './utils';
-import { CONDITION_LABEL } from './conditions';
+import { CONDITION_LABEL, conditionBucket } from './conditions';
 import { absoluteUrl, formatDate, gamePath } from './seo';
 
 /** Cómo se decide qué es una oferta. Corto y factual: es lo que permite leer
@@ -124,10 +124,19 @@ const sameAmount = (a: string | null | undefined, b: string | null | undefined) 
  * condición, y el desglose y la tienda quedan en null porque no se conocen
  * para esta oferta — mezclarlos con los del otro mínimo daría un total que no
  * cuadra (y un cupón que quizá no aplica).
+ *
+ * «Es la oferta» exige además el mismo CUBO de condición: un usado y un nuevo
+ * pueden costar lo mismo en la misma consola, y entonces la tarjeta pintaría
+ * «Usado» y la tienda del usado sobre la línea «Nuevo · −33%». El mínimo
+ * publica el valor crudo (`store`/`key`), por eso se colapsa antes de comparar.
  */
 export function dealCardGame(deal: Deal): Game {
     const game = deal.game;
-    if (game.min_price_platform === deal.platform && sameAmount(game.min_price, deal.current_price)) {
+    if (
+        game.min_price_platform === deal.platform &&
+        conditionBucket(game.min_price_condition) === deal.condition &&
+        sameAmount(game.min_price, deal.current_price)
+    ) {
         return game;
     }
     return {
@@ -146,10 +155,11 @@ export function dealCardGame(deal: Deal): Game {
 }
 
 /**
- * Consolas con ofertas, para los chips y el sitemap: únicas, en el orden de
- * negocio del catálogo (`order`), no en el de los descuentos. Sale de los
- * juegos de las propias ofertas para no pedir `/platforms/`; un slug que el
- * juego no declara no tiene nombre que mostrar y se descarta.
+ * Consolas de las ofertas LISTADAS: únicas, en el orden de negocio del
+ * catálogo (`order`), no en el de los descuentos. Sale de los juegos de las
+ * propias ofertas; un slug que el juego no declara no tiene nombre que mostrar
+ * y se descarta. Solo cubre las tarjetas (≤ 60): los chips y el sitemap usan
+ * `res.platforms` y caen aquí únicamente contra un backend anterior.
  */
 export function dealConsoles(deals: Deal[]): Platform[] {
     const bySlug = new Map<string, Platform>();
@@ -159,6 +169,55 @@ export function dealConsoles(deals: Deal[]): Platform[] {
         if (platform) bySlug.set(platform.slug, platform);
     }
     return [...bySlug.values()].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+/** Un chip de consola: la consola y cuántos juegos tiene en oferta hoy, o
+ *  `null` si el backend no lo dice (versión anterior a `platforms`). */
+export interface DealConsole {
+    platform: Platform;
+    count: number | null;
+}
+
+/**
+ * Los chips de /ofertas. Salen de `res.platforms`, que es la lista COMPLETA del
+ * día: derivarlos de las 60 tarjetas dejaba sin chip a cualquier consola cuyas
+ * rebajas no llegaran al top, aunque su página tuviera cientos de ofertas.
+ * El orden es el que manda el backend (`Platform.order`).
+ *
+ * `platforms` solo trae slugs: el nombre sale del catálogo (`/platforms/`) y,
+ * si no se pudo pedir, del juego de alguna tarjeta. Un slug sin nombre por
+ * ninguna vía se omite, como en `dealConsoles`. Contra un backend anterior,
+ * sin `platforms`, se cae a lo de antes (consolas de las tarjetas, sin conteo).
+ */
+export function dealConsoleChips(res: DealsResponse, catalog: readonly Platform[] = []): DealConsole[] {
+    if (!res.platforms) {
+        return dealConsoles(res.results).map((platform) => ({ platform, count: null }));
+    }
+    const named = new Map<string, Platform>();
+    for (const deal of res.results) {
+        const platform = dealPlatform(deal);
+        if (platform) named.set(platform.slug, platform);
+    }
+    for (const platform of catalog) named.set(platform.slug, platform);
+    return res.platforms.flatMap(({ slug, count: n }) => {
+        const platform = named.get(slug);
+        return platform ? [{ platform, count: n }] : [];
+    });
+}
+
+/** «PlayStation 5 · 389»: un solo string, para que React no lo parta en nodos
+ *  de texto y el chip se lea (y se busque en el HTML) tal cual. */
+export function dealConsoleChipLabel({ platform, count: n }: DealConsole): string {
+    return n == null ? platformLongName(platform) : `${platformLongName(platform)} · ${count(n)}`;
+}
+
+/** Slugs de las consolas con ofertas, para el sitemap (`/ofertas/<slug>`).
+ *  No necesita nombres: de `platforms` tal cual, o de las tarjetas si el
+ *  backend es anterior. */
+export function dealConsoleSlugs(res: DealsResponse): string[] {
+    return res.platforms
+        ? res.platforms.map((p) => p.slug)
+        : dealConsoles(res.results).map((p) => p.slug);
 }
 
 /** Un `]` en el nombre cerraría la etiqueta del enlace Markdown antes de

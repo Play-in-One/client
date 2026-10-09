@@ -18,8 +18,7 @@ export default async function HomePage() {
         getTrendingGames(),
         getFeaturedGames(),
         getFeaturedSagas(),
-        // «Ofertas de hoy». Entra en la misma regla de abajo: una portada sin
-        // la sección por un fallo del backend no debe llegar a la caché.
+        // «Ofertas de hoy». NO entra en la regla de abajo (ver `failed`).
         getDeals(),
     ]);
 
@@ -30,8 +29,15 @@ export default async function HomePage() {
        frontend regeneró la home mientras el backend migraba. Lanzar hace que
        Next siga sirviendo la última versión buena y reintente en la próxima
        visita. En el build se degrada como antes: ahí no hay versión anterior
-       que conservar y lanzar rompería el deploy. */
-    const failed = [postsResult, trendingResult, featuredResult, sagasResult, dealsResult].some((r) => r.status === 'rejected');
+       que conservar y lanzar rompería el deploy.
+
+       Las ofertas quedan FUERA de esta regla a propósito. Son un endpoint
+       nuevo y opcional: si fallara (un backend sin `/api/deals/`, o caído
+       solo ahí), lanzar congelaría también Destacados y Populares en la
+       última versión buena, y esa versión seguiría anunciando bajo «Ofertas
+       de hoy» las ofertas de ayer. Es preferible una portada fresca sin la
+       sección: con la lista vacía, `HomeClient` la omite entera. */
+    const failed = [postsResult, trendingResult, featuredResult, sagasResult].some((r) => r.status === 'rejected');
     if (failed && process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
         throw new Error('La portada no se regenera con secciones del backend caídas');
     }

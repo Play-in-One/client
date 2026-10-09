@@ -12,7 +12,8 @@ import {
     DEALS_METHOD_LINE,
     DEALS_SCOPE_NOTE,
     dealCardGame,
-    dealConsoles,
+    dealConsoleChipLabel,
+    dealConsoleChips,
     dealsHeading,
     dealsSummarySentence,
 } from '@/lib/deals';
@@ -36,7 +37,7 @@ import {
  * necesitaría otra API. La página lo dice (`DEALS_SCOPE_NOTE`).
  */
 
-const EMPTY: DealsResponse = { date: null, last_scrape_at: null, count: 0, results: [] };
+const EMPTY: DealsResponse = { date: null, last_scrape_at: null, count: 0, platforms: [], results: [] };
 
 /**
  * Un fallo del backend no puede convertirse en una página vacía: con ISR esa
@@ -50,16 +51,26 @@ function rethrowOutsideBuild(error: unknown): void {
     if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) throw error;
 }
 
-/** `undefined` = sin consola (la página global); `null` = slug desconocido. */
-async function fetchPlatform(slug?: string): Promise<Platform | null | undefined> {
-    if (slug === undefined) return undefined;
+/** `platform`: `undefined` = sin consola (la página global); `null` = slug
+ *  desconocido. `catalog` da nombre a los chips (`dealConsoleChips`). */
+async function fetchPlatforms(slug?: string): Promise<{ platform: Platform | null | undefined; catalog: Platform[] }> {
     try {
-        const res = await getPlatforms();
-        return res.results.find((p) => p.slug === slug) ?? null;
+        const { results } = await getPlatforms();
+        return {
+            platform: slug === undefined ? undefined : (results.find((p) => p.slug === slug) ?? null),
+            catalog: results,
+        };
     } catch (error) {
-        rethrowOutsideBuild(error);
-        return null;
+        // En la global el catálogo solo nombra chips: sin él, los nombres salen
+        // de las tarjetas y la página no tiene por qué caerse. Con consola, sin
+        // catálogo no se sabe si el slug existe: la regla de siempre.
+        if (slug !== undefined) rethrowOutsideBuild(error);
+        return { platform: slug === undefined ? undefined : null, catalog: [] };
     }
+}
+
+async function fetchPlatform(slug?: string): Promise<Platform | null | undefined> {
+    return (await fetchPlatforms(slug)).platform;
 }
 
 /** `failed` solo es `true` en el build con el backend caído: esa página no es
@@ -96,7 +107,7 @@ export async function buildDealsMetadata(slug?: string): Promise<Metadata> {
 }
 
 export default async function DealsLanding({ slug }: { slug?: string }) {
-    const platform = await fetchPlatform(slug);
+    const { platform, catalog } = await fetchPlatforms(slug);
     // Página propia (sin `loading.tsx`): el 404 es un status real.
     if (platform === null) notFound();
 
@@ -105,9 +116,9 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
     const path = dealsPath(platform);
     const heading = dealsHeading(platform);
     const summary = dealsSummarySentence(res, platform);
-    // En la global, las consolas de las ofertas listadas; en la de una consola,
-    // solo ella (marcada) junto a «Todas».
-    const consoles = platform ? [platform] : dealConsoles(deals);
+    // Todas las consolas con ofertas hoy y cuántos juegos tiene cada una
+    // (`res.platforms`, la misma lista con o sin filtro), con la actual marcada.
+    const consoles = dealConsoleChips(res, catalog);
 
     const jsonLd = [
         collectionPageJsonLd({ name: heading, description: summary, path }),
@@ -147,7 +158,8 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                                 Todas
                             </Badge>
                         )}
-                        {consoles.map((p) => {
+                        {consoles.map((chip) => {
+                            const p = chip.platform;
                             const active = p.slug === platform?.slug;
                             return (
                                 <Badge
@@ -158,9 +170,10 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                                     variant={active ? 'filled' : 'light'}
                                     color="primaryRed"
                                     aria-current={active ? 'page' : undefined}
+                                    data-deal-chip={p.slug}
                                     style={{ cursor: 'pointer' }}
                                 >
-                                    {platformLongName(p)}
+                                    {dealConsoleChipLabel(chip)}
                                 </Badge>
                             );
                         })}
