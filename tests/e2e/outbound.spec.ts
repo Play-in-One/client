@@ -27,6 +27,7 @@ for (const action of ['click', 'middle', 'keyboard'] as const) {
     test(`salida ${action} usa la redirección con campaña y no duplica el beacon`, async ({ page, context }) => {
         const go: string[] = [], beacons: string[] = [];
         context.on('request', req => {
+            expect(req.headers()['x-outbound-events-token']).toBeUndefined();
             if (new URL(req.url()).pathname.startsWith('/go/')) go.push(req.url());
             if (req.method() === 'POST' && req.url().includes('/events/')) beacons.push(req.postData() ?? '');
         });
@@ -51,6 +52,17 @@ test('abrir el destino del enlace directamente también usa la redirección', as
     const response = await page.request.get(href!, { maxRedirects: 0 });
     expect(response.status()).toBe(302);
     expect(response.headers()['location']).toMatch(/^https?:\/\//);
+});
+
+test('la API rechaza clics de salida fabricados sin la credencial del servidor', async ({ page }) => {
+    const api = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
+    for (const eventType of ['offer_click', 'store_click']) {
+        const response = await page.request.post(`${api}/events/`, {
+            data: { event_type: eventType, product: 999999, seller: 999999 },
+            headers: { 'User-Agent': 'Mozilla/5.0 Chrome/130.0.0.0 Safari/537.36' },
+        });
+        expect(response.status()).toBe(403);
+    }
 });
 
 test('cancelar el cupón no registra una salida; confirmarlo abre una sola redirección', async ({ page, context }) => {

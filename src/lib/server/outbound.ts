@@ -156,10 +156,15 @@ export async function handleOutbound(request: NextRequest, kind: OutboundKind, i
     const consent = parseConsent(request.cookies.get(CONSENT_COOKIE)?.value ?? null);
     const prefetch = /prefetch|prerender/i.test(`${request.headers.get('purpose') ?? ''} ${request.headers.get('sec-purpose') ?? ''}`)
         || request.headers.has('next-router-prefetch');
+    const outboundToken = process.env.OUTBOUND_EVENTS_TOKEN;
     if (request.method === 'HEAD' || prefetch || consent?.measure === false) {
         log(request.method === 'HEAD' ? 'head' : prefetch ? 'prefetch' : 'opt_out');
+    } else if (!outboundToken) {
+        log('event_auth_unconfigured');
     } else {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json', 'X-Outbound-Events-Token': outboundToken,
+        };
         for (const [incoming, outgoing] of [['user-agent', 'User-Agent'], ['x-forwarded-for', 'X-Forwarded-For'], ['cf-ipcountry', 'CF-IPCountry']]) {
             const value = request.headers.get(incoming);
             if (value) headers[outgoing] = value;

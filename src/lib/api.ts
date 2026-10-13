@@ -163,7 +163,6 @@ function qs(params: Record<string, string | number | boolean | number[] | undefi
 export type EventType =
     | 'game_click'
     | 'game_view'
-    | 'offer_click'
     | 'search'
     | 'platform_select'
     | 'game_save'
@@ -171,7 +170,6 @@ export type EventType =
     | 'post_view'
     | 'page_view'
     | 'store_view'
-    | 'store_click'
     | 'social_click';
 
 /** Las redes del footer. Espejo de `Event.SocialNetwork` en el backend, que

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { SEEDED, seededGamePath, seededPostId } from './helpers';
 
 /**
  * Flujo de consentimiento.
@@ -213,7 +214,9 @@ test('el desactivar total también corta los eventos de las páginas de detalle'
         }
     });
 
-    for (const path of ['/game/1', '/blog/1', '/search?platform=ps5']) {
+    const gamePath = await seededGamePath(page);
+    const postId = await seededPostId(page, SEEDED.posts[0].title);
+    for (const path of [gamePath, `/blog/${postId}`, '/search?platform=ps5']) {
         await page.goto(path);
         await page.waitForTimeout(700);
     }
@@ -235,7 +238,7 @@ test('el primer evento de una ficha en frío ya lleva el identificador de visita
         }
     });
 
-    await page.goto('/game/1');
+    await page.goto(await seededGamePath(page));
     // El game_view tiene que estar Y tiene que ir identificado. Las dos mitades
     // importan y se protegen entre sí: `measurementEnabled` arranca apagado (así
     // un tracker despistado no se salta el opt-out) y los trackers esperan a

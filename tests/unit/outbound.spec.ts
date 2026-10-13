@@ -4,10 +4,24 @@ import { handleOutbound } from '../../src/lib/server/outbound';
 import { buildConsent } from '../../src/lib/consent';
 
 const originalFetch = globalThis.fetch;
+const originalDateNow = Date.now;
+const originalToken = process.env.OUTBOUND_EVENTS_TOKEN;
+let clockOffset = 0;
 let calls: { url: string; options?: RequestInit }[];
 
-test.beforeEach(() => { calls = []; });
-test.afterEach(() => { globalThis.fetch = originalFetch; });
+test.beforeEach(() => {
+    calls = [];
+    // Expire catalog entries from previous tests without changing the handler.
+    clockOffset += 60 * 60 * 1000;
+    Date.now = () => originalDateNow() + clockOffset;
+    process.env.OUTBOUND_EVENTS_TOKEN = 'test-outbound-events-token';
+});
+test.afterEach(() => {
+    globalThis.fetch = originalFetch;
+    Date.now = originalDateNow;
+    if (originalToken === undefined) delete process.env.OUTBOUND_EVENTS_TOKEN;
+    else process.env.OUTBOUND_EVENTS_TOKEN = originalToken;
+});
 
 function upstream(eventStatus = 201) {
     globalThis.fetch = async (input, options) => {
@@ -45,8 +59,26 @@ test('redirects to the catalog affiliate URL and records one attributed event', 
         event_type: 'offer_click', product: 42, game: 7, platform: 3,
         attr_utm_source: 'tiktok', attr_utm_medium: 'paid', attr_utm_campaign: 'launch',
     });
-    expect(events[0].options!.headers).toMatchObject({ 'User-Agent': 'Browser WebKit Mobile', 'X-Forwarded-For': '192.0.2.1' });
+    expect(events[0].options!.headers).toMatchObject({
+        'User-Agent': 'Browser WebKit Mobile', 'X-Forwarded-For': '192.0.2.1',
+        'X-Outbound-Events-Token': 'test-outbound-events-token',
+    });
+    expect(await response.text()).not.toContain('test-outbound-events-token');
+    expect(JSON.stringify([...response.headers])).not.toContain('test-outbound-events-token');
+    expect(JSON.stringify(events[0].options!.body)).not.toContain('test-outbound-events-token');
+    expect(calls.find(call => call.url.endsWith('/products/42/'))!.options!.headers).toBeUndefined();
 });
+
+for (const kind of ['product', 'store'] as const) {
+    test(`an unconfigured token skips ${kind} analytics but still redirects`, async () => {
+        delete process.env.OUTBOUND_EVENTS_TOKEN;
+        upstream();
+        const id = kind === 'product' ? '42' : '5';
+        const response = await handleOutbound(request(`/go/${kind}/${id}`), kind, id);
+        expect(response.status).toBe(302);
+        expect(calls.filter(call => call.url.endsWith('/events/'))).toHaveLength(0);
+    });
+}
 
 test('reads a landing campaign before hydration without forwarding raw click IDs', async () => {
     upstream();
@@ -72,6 +104,7 @@ test('records a store exit and forwards the token only with analytics consent', 
     const response = await handleOutbound(request('/go/store/5', 'accept'), 'store', '5');
     expect(response.headers.get('location')).toBe('https://shop.example/');
     expect(JSON.parse(calls[1].options!.body as string)).toMatchObject({ event_type: 'store_click', seller: 5, visitor_id: 'signed-token' });
+    expect(calls[1].options!.headers).toMatchObject({ 'X-Outbound-Events-Token': 'test-outbound-events-token' });
 });
 
 test('anonymous measurement does not forward an old visitor cookie', async () => {
@@ -104,7 +137,7 @@ test('HEAD does not record a visit', async () => {
     expect(calls).toHaveLength(1);
 });
 
-for (const status of [202, 400, 429, 500]) {
+for (const status of [202, 400, 403, 429, 500]) {
     test(`event response ${status} never prevents the redirect or triggers a retry`, async () => {
         upstream(status);
         expect((await handleOutbound(request(), 'product', '42')).status).toBe(302);
