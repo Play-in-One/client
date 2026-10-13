@@ -9,11 +9,14 @@ import { login as apiLogin, logout as apiLogout, setAdminToken, setOnAuthError }
 // forma fiable a nuevas ventanas, por lo que perdía los controles de edición.
 const TOKEN_KEY = 'pio_admin_token';
 const USER_KEY = 'pio_admin_user';
+const PRODUCT_IMAGES_KEY = 'pio_staff_product_images';
 
 interface AdminState {
     token: string | null;
     username: string | null;
     isAdmin: boolean;
+    showProductImages: boolean;
+    setShowProductImages: (enabled: boolean) => void;
     login: (username: string, password: string) => Promise<void>;
     logout: () => void;
 }
@@ -23,12 +26,18 @@ const AdminContext = createContext<AdminState | null>(null);
 export function AdminProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
+    const [productImages, setProductImages] = useState(false);
+    const setShowProductImages = (enabled: boolean) => {
+        setProductImages(enabled);
+        try { window.localStorage.setItem(PRODUCT_IMAGES_KEY, String(enabled)); } catch { /* no persistence */ }
+    };
 
     // Rehidratar tras montar (evita desajuste SSR/cliente en la hidratación).
     useEffect(() => {
         try {
             const t = window.localStorage.getItem(TOKEN_KEY);
             const u = window.localStorage.getItem(USER_KEY);
+            setProductImages(window.localStorage.getItem(PRODUCT_IMAGES_KEY) === 'true');
             if (t) {
                 setToken(t);
                 setUsername(u);
@@ -43,10 +52,14 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     // las OTRAS pestañas del mismo origen cuando cambia localStorage.
     useEffect(() => {
         const onStorage = (e: StorageEvent) => {
-            if (e.key !== TOKEN_KEY) return;
+            if (e.key === PRODUCT_IMAGES_KEY || e.key === null) {
+                setProductImages(e.key === null ? false : e.newValue === 'true');
+                if (e.key !== null) return;
+            }
+            if (e.key !== TOKEN_KEY && e.key !== null) return;
             const t = e.newValue;
             setToken(t);
-            setUsername(t ? window.localStorage.getItem(USER_KEY) : null);
+            try { setUsername(t ? window.localStorage.getItem(USER_KEY) : null); } catch { setUsername(null); }
             setAdminToken(t);
         };
         window.addEventListener('storage', onStorage);
@@ -95,7 +108,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     return (
         <AdminContext.Provider
-            value={{ token, username, isAdmin: !!token, login, logout }}
+            value={{ token, username, isAdmin: !!token, showProductImages: !!token && productImages, setShowProductImages, login, logout }}
         >
             {children}
         </AdminContext.Provider>
@@ -115,5 +128,5 @@ export function useAdmin() {
     // el primer render siempre coincide con el servidor.
     const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
     if (hydrated) return ctx;
-    return { ...ctx, token: null, username: null, isAdmin: false };
+    return { ...ctx, token: null, username: null, isAdmin: false, showProductImages: false };
 }

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, memo } from 'react';
+import { useLayoutEffect, useRef, useState, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
-import Image from 'next/image';
+import GameCardImage from './GameCardImage';
 import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
 import PriceInfo from './PriceInfo';
@@ -16,7 +16,6 @@ import { trackEvent } from '@/lib/api';
 import { decorative } from '@/lib/colors';
 import type { Game } from '@/lib/types';
 
-const PLACEHOLDER = '/placeholder-game.png';
 export const CARD_HEIGHT = 300;
 /** Alto en mobile: la tarjeta va a ancho completo del slot, así que necesita
  *  menos alto para no quedar desproporcionada (y para que la carátula fluida
@@ -52,14 +51,6 @@ function FeaturedGameCard({
      *  compresión ni desplazamiento: `isActive` y `side` se ignoran. */
     compact?: boolean;
 }) {
-    // Derivada del prop, no copiada a estado: la portada sale del producto más
-    // barato y cambia al cambiar el filtro de nuevo/usado. Con `useState` el
-    // valor solo se leía en el primer render y quedaba congelado, porque el
-    // carrusel reusa las tarjetas en vez de remontarlas. El estado guarda solo
-    // el fallo de carga, y se resetea cuando llega una portada distinta.
-    const [failed, setFailed] = useState(false);
-    useEffect(() => setFailed(false), [game.image]);
-    const imgSrc = failed || !game.image ? PLACEHOLDER : game.image;
     const hasPrice = game.min_price !== null;
     // La misma rebaja «↓N% (i)» que `GameCard`, y con la misma regla: solo si
     // el precio de la tarjeta ES la oferta del día (`cardDeal`). Fuera de
@@ -165,16 +156,7 @@ function FeaturedGameCard({
                 <Box pos="relative" style={{ zIndex: 1, display: 'flex', flexDirection: 'row', height: '100%' }}>
                     {/* Carátula: siempre visible, ancho fijo */}
                     <Box pos="relative" style={{ width: compact ? IMAGE_WIDTH_COMPACT : IMAGE_WIDTH, flexShrink: 0, height: '100%' }}>
-                        <Image
-                            src={imgSrc}
-                            alt={game.name}
-                            fill
-                            sizes={compact ? '45vw' : `${IMAGE_WIDTH}px`}
-                            priority={priority}
-                            unoptimized
-                            style={{ objectFit: 'cover' }}
-                            onError={() => setFailed(true)}
-                        />
+                        <GameCardImage game={game} sizes={compact ? '45vw' : `${IMAGE_WIDTH}px`} priority={priority} />
                     </Box>
 
                     {/* Info: solo la tarjeta activa (centrada) la muestra; las

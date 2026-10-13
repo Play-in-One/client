@@ -2,7 +2,7 @@ import { Box } from '@mantine/core';
 import GameCard from './GameCard';
 import DealPriceLabel from './DealPriceLabel';
 import { dealCardGame } from '@/lib/deals';
-import type { Deal } from '@/lib/types';
+import type { Deal, ProductPreviewFilters } from '@/lib/types';
 
 /**
  * La tarjeta de un juego en oferta: `GameCard` con el precio de la OFERTA
@@ -18,10 +18,12 @@ import type { Deal } from '@/lib/types';
  */
 export default function DealCard({
     deal,
+    previewFilters,
     priority,
     isToday = true,
 }: {
     deal: Deal;
+    previewFilters?: ProductPreviewFilters;
     priority?: boolean;
     /** Si la tanda es la de hoy (`isTodayDeals`). Lo calcula el SERVIDOR y
      *  llega como prop: esta tarjeta también se pinta en `HomeClient`, y leer
@@ -35,6 +37,7 @@ export default function DealCard({
                 consola o condición y contradiría la rebaja de al lado. */}
             <GameCard
                 game={dealCardGame(deal)}
+                previewFilters={previewFilters}
                 platformSlug={deal.platform}
                 seller={deal.seller}
                 priority={priority}

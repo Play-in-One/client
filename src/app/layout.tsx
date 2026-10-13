@@ -4,6 +4,7 @@ import { ColorSchemeScript } from '@mantine/core';
 import { Providers } from './providers';
 import { AppProvider } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
+import { StaffProductPreviewProvider } from '@/context/StaffProductPreviewContext';
 import PrefsScript from '@/components/PrefsScript';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
@@ -88,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
                 <Providers>
                     <AppProvider>
+                        <StaffProductPreviewProvider>
                         <PageViewTracker />
                         <GoogleAnalytics />
                         <PerfTracker />
@@ -104,6 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             en orden, así que aquí el acumulador del servidor ya
                             contabilizó los fetch de la página. Antes mediría 0. */}
                         <PerfBeacon />
+                        </StaffProductPreviewProvider>
                     </AppProvider>
                 </Providers>
             </body>

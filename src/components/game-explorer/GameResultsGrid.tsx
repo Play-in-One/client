@@ -5,10 +5,11 @@ import { IconSearch } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
 import { dealFromGame } from '@/lib/deals';
-import type { Game } from '@/lib/types';
+import type { Game, ProductPreviewFilters } from '@/lib/types';
 
 interface Props {
     games: Game[];
+    previewFilters?: ProductPreviewFilters;
     loading: boolean;
     page: number;
     totalPages: number;
@@ -32,6 +33,7 @@ interface Props {
 
 export default function GameResultsGrid({
     games,
+    previewFilters,
     loading,
     page,
     totalPages,
@@ -81,11 +83,12 @@ export default function GameResultsGrid({
                     // fusión de admin no sabe nada de ofertas.
                     const deal = selectionMode || !dealCards ? null : dealFromGame(g);
                     return deal ? (
-                        <DealCard key={g.id} deal={deal} priority={i < 4} isToday={dealsIsToday} />
+                        <DealCard key={g.id} deal={deal} previewFilters={previewFilters} priority={i < 4} isToday={dealsIsToday} />
                     ) : (
                         <GameCard
                             key={g.id}
                             game={g}
+                            previewFilters={previewFilters}
                             platformSlug={platformSlugFor(g)}
                             selectable={selectionMode}
                             selected={selected.some((s) => s.id === g.id)}

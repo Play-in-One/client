@@ -1,6 +1,6 @@
 import type {
     Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, PostPayload, Contact, GameFacets,
-    Product, PriceHistory, MinPriceHistory,
+    Product, PriceHistory, MinPriceHistory, ProductPreview, ProductPreviewFilters,
     AnalyticsSummary, TrafficReport, FunnelReport, SearchReport, RetentionReport, ActivityReport,
     SourcesReport,
     PerformanceReport, CatalogFilterPerformanceReport, SlowestReport, GameClickStats, Stats,
@@ -19,6 +19,12 @@ const API_BASE = typeof window === 'undefined'
  * stay anonymous (all read endpoints are public). Kept as a module-level var so
  * every request through fetcher() picks it up without threading it as an arg. */
 let adminToken: string | null = null;
+export function getProductPreviews(ids: number[], filters: ProductPreviewFilters, signal?: AbortSignal) {
+    return fetcher<Record<string, ProductPreview[]>>(`/games/product-previews/${qs({ ids, ...filters })}`, {
+        admin: true, cache: 'no-store', signal,
+    });
+}
+
 export function setAdminToken(token: string | null) {
     adminToken = token;
 }

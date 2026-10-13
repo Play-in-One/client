@@ -111,7 +111,10 @@ export default function RelatedGamesGrid({
             ) : (
                 <SimpleGrid cols={{ base: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
                     {games.map((g) => (
-                        <GameCard key={g.id} game={g} platformSlug={platformSlug} />
+                        <GameCard key={g.id} game={g} platformSlug={platformSlug} previewFilters={
+                            query.kind === 'genre' && query.platform ? { platforms: [query.platform] }
+                                : query.kind === 'popular' && query.platform ? { platform: query.platform } : undefined
+                        } />
                     ))}
                 </SimpleGrid>
             )}

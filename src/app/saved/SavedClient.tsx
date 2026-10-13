@@ -223,7 +223,7 @@ export default function SavedClient() {
                                 >
                                     <IconX size={14} />
                                 </ActionIcon>
-                                <GameCard game={game} />
+                                <GameCard game={game} previewFilters={{ platforms: game.platforms.filter(p => platformFilter.includes(p.slug)).map(p => p.id) }} />
                             </Box>
                         ))}
                     </SimpleGrid>

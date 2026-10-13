@@ -677,6 +677,7 @@ export default function GameExplorer({
                     {isStaticMode && !interactive && !globalFiltersActive ? staticFallback : (
                         <GameResultsGrid
                             games={games}
+                            previewFilters={{ platforms: effectivePlatformIds }}
                             loading={loading}
                             page={page}
                             totalPages={totalPages}

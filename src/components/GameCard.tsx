@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useRef, memo } from 'react';
+import { useLayoutEffect, useRef, memo } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
-import Image from 'next/image';
+import GameCardImage from './GameCardImage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
@@ -18,12 +18,11 @@ import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import { ratingColor } from '@/lib/colors';
-import type { Game, Product } from '@/lib/types';
-
-const PLACEHOLDER = '/placeholder-game.png';
+import type { Game, Product, ProductPreviewFilters } from '@/lib/types';
 
 interface Props {
     game: Game;
+    previewFilters?: ProductPreviewFilters;
     /** Optional best product to show price + seller info */
     bestProduct?: Product | null;
     /** Active console filter slug; if set, deep-links the game detail page to that console's panel */
@@ -111,18 +110,8 @@ function useFitPriceRow(rowRef: RefObject<HTMLDivElement | null>) {
     }, [rowRef]);
 }
 
-function GameCard({ game, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon, dealsIsToday = false, priceConsole }: Props) {
+function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable, selected, onToggleSelect, priority, seller: sellerOverride, priceAddon, dealsIsToday = false, priceConsole }: Props) {
     const router = useRouter();
-    // La portada se DERIVA del prop, no se copia a estado: ahora que sale del
-    // producto más barato, cambia cuando el usuario cambia de filtro. Con
-    // `useState(game.image)` el valor solo se leía en el primer render y la
-    // imagen quedaba congelada, porque al re-fetchear la galería el juego
-    // conserva su key y el componente no se remonta. El estado guarda solo el
-    // fallo de carga, y se resetea cuando llega una portada distinta.
-    const [failed, setFailed] = useState(false);
-    useEffect(() => setFailed(false), [game.image]);
-    const imgSrc = failed || !game.image ? PLACEHOLDER : game.image;
-
     /* Resolve price: prefer min_price from annotation, fall back to product */
     const price = game.min_price ?? bestProduct?.current_price ?? null;
     // El desglose sale de la MISMA fuente que el precio: mezclar el envío del
@@ -210,25 +199,9 @@ function GameCard({ game, bestProduct, platformSlug, selectable, selected, onTog
             >
                 {/* Image */}
                 <Box pos="relative" style={{ aspectRatio: '3/4', overflow: 'hidden' }}>
-                    <Image
-                        src={imgSrc}
-                        alt={game.name}
-                        fill
+                    <GameCardImage game={game} previewFilters={previewFilters}
                         sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 300px"
-                        priority={priority}
-                        /* Las portadas son URLs de CDNs externos de tiendas; varios
-                           bloquean la descarga server-side del optimizador (403).
-                           `unoptimized` las carga directo desde el navegador, como
-                           el <img> original, conservando lazy-load y layout estable. */
-                        unoptimized
-                        style={{
-                            objectFit: 'cover',
-                            transition: 'transform 0.5s',
-                        }}
-                        onMouseEnter={(e) => { (e.target as HTMLImageElement).style.transform = 'scale(1.05)'; }}
-                        onMouseLeave={(e) => { (e.target as HTMLImageElement).style.transform = ''; }}
-                        onError={() => setFailed(true)}
-                    />
+                        priority={priority} hover />
 
                     {/* Overlay de selección (solo admin en modo fusión); visual, el
                         click de la tarjeta gestiona el toggle. */}

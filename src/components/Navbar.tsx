@@ -43,6 +43,7 @@ import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import LocationFilter from '@/components/LocationFilter';
 import InfoHint from '@/components/InfoHint';
+import StaffProductImagesSwitch from '@/components/StaffProductImagesSwitch';
 
 /* El neutro va al centro en los dos: es el default y el que más se elige, así
  * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
@@ -332,6 +333,7 @@ export default function Navbar() {
                                 viewportProps={{ style: { overscrollBehavior: 'contain' } }}
                             >
                                 <Menu.Label>Preferencias</Menu.Label>
+                                <Box px="sm" py="xs"><StaffProductImagesSwitch /></Box>
                                 {/* Mismo control que "Estado físico"/"Formato": un
                                     SegmentedControl con las dos opciones a la vista
                                     en vez de un Switch on/off, para que el ESTADO
@@ -430,13 +432,14 @@ export default function Navbar() {
                         </Menu.Dropdown>
                     </Menu>
 
-                    <Burger opened={opened} onClick={toggle} hiddenFrom="lg" size="sm" />
+                    <Burger opened={opened} onClick={toggle} hiddenFrom="lg" size="sm" aria-label="Abrir menú" />
                 </Group>
             </Group>
 
             {/* Mobile drawer */}
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
+                    <StaffProductImagesSwitch />
                     <Anchor
                         component={Link}
                         href="/ofertas"

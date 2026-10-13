@@ -250,6 +250,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                                             key={game.id}
                                             game={game}
                                             platformSlug={platform.slug}
+                                            previewFilters={{ platforms: [platform.id] }}
                                             priority={i < 6}
                                         />
                                     ))}

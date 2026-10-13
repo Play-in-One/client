@@ -897,3 +897,16 @@ export interface SurveyMetrics {
     average_completion_seconds: number | null;
     abandonment_by_question: { question: number | null; prompt: string; count: number }[];
 }
+
+export interface ProductPreview {
+    product_id: number;
+    image: string | null;
+}
+
+export interface ProductPreviewFilters {
+    platforms?: number[];
+    platform?: string;
+    condition?: string;
+    seller?: number;
+    seller_locations?: string;
+}

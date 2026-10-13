@@ -240,6 +240,7 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                                     <DealCard
                                         key={`${deal.game.id}-${deal.platform}`}
                                         deal={deal}
+                                        previewFilters={platform ? { platform: platform.slug } : undefined}
                                         priority={i < 4}
                                         isToday={isToday}
                                     />
