@@ -271,6 +271,66 @@ export default function HomeClient({
                 </Container>
             </Box>
 
+            {/* ══════ JUEGOS DESTACADOS ══════ */}
+            {(featured.length > 0 || filtering) && (
+                <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
+                    <Container size="lg">
+                        <Box mb="xl">
+                            <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
+                                Juegos Destacados
+                            </Title>
+                            <Text c="dimmed" mt={6}>
+                                Una selección destacada
+                            </Text>
+                        </Box>
+
+                        <Box data-prefs-dependent>
+                            <FeaturedGamesCarousel games={featured} loading={filtering} />
+                        </Box>
+                    </Container>
+                </Box>
+            )}
+
+            {/* ══════ OFERTAS DE HOY ══════ */}
+            {/* Solo con ofertas: una sección vacía no dice nada. Sin
+                `data-prefs-dependent` y sin refetch, a diferencia de Populares:
+                una oferta se calcula sobre todas las tiendas y condiciones, y
+                filtrarla con las preferencias necesitaría otra API. La nota
+                lo dice en vez de esconderlo. Con sagas, el padding inferior
+                separa las tarjetas del banner; sin sagas, Populares abre con 60. */}
+            {deals.length > 0 && (
+                <Box pt={60} pb={initialSagas.length > 0 ? 60 : 0}>
+                    <Container size="lg">
+                        <Group justify="space-between" align="flex-end" mb="xl">
+                            <Box>
+                                <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
+                                    {dealsTitle}
+                                </Title>
+                                <Text c="dimmed" mt={6}>
+                                    Al menos 15% bajo su precio típico. {DEALS_TYPICAL_NOTE}
+                                </Text>
+                            </Box>
+                            <Anchor
+                                component={Link}
+                                href="/ofertas"
+                                c="var(--mantine-color-primaryRed-5)"
+                                fw={600}
+                                fz="sm"
+                                underline="never"
+                            >
+                                Ver todas las ofertas <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
+                            </Anchor>
+                        </Group>
+
+                        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
+                            {deals.slice(0, 8).map((deal) => (
+                                <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={dealsAreToday} />
+                            ))}
+                        </SimpleGrid>
+                    </Container>
+                </Box>
+            )}
+
             {/* ══════ SAGAS BANNER ══════ */}
             {/* Sin datos aún (el admin no cargó ninguna saga como destacada):
                 se omite en vez de mostrar una sección vacía. */}
@@ -312,66 +372,6 @@ export default function HomeClient({
                                 </Anchor>
                             ))}
                         </Group>
-                    </Container>
-                </Box>
-            )}
-
-            {/* ══════ JUEGOS DESTACADOS ══════ */}
-            {(featured.length > 0 || filtering) && (
-                <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
-                    <Container size="lg">
-                        <Box mb="xl">
-                            <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                Juegos Destacados
-                            </Title>
-                            <Text c="dimmed" mt={6}>
-                                Una selección destacada
-                            </Text>
-                        </Box>
-
-                        <Box data-prefs-dependent>
-                            <FeaturedGamesCarousel games={featured} loading={filtering} />
-                        </Box>
-                    </Container>
-                </Box>
-            )}
-
-            {/* ══════ OFERTAS DE HOY ══════ */}
-            {/* Solo con ofertas: una sección vacía no dice nada. Sin
-                `data-prefs-dependent` y sin refetch, a diferencia de Populares:
-                una oferta se calcula sobre todas las tiendas y condiciones, y
-                filtrarla con las preferencias necesitaría otra API. La nota
-                lo dice en vez de esconderlo. Sin `pb`: Populares abre con 60 y
-                sumarlos dejaría un hueco doble entre dos secciones sin fondo. */}
-            {deals.length > 0 && (
-                <Box pt={60}>
-                    <Container size="lg">
-                        <Group justify="space-between" align="flex-end" mb="xl">
-                            <Box>
-                                <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                    {dealsTitle}
-                                </Title>
-                                <Text c="dimmed" mt={6}>
-                                    Al menos 15% bajo su precio típico. {DEALS_TYPICAL_NOTE}
-                                </Text>
-                            </Box>
-                            <Anchor
-                                component={Link}
-                                href="/ofertas"
-                                c="var(--mantine-color-primaryRed-5)"
-                                fw={600}
-                                fz="sm"
-                                underline="never"
-                            >
-                                Ver todas las ofertas <IconArrowRight size={14} style={{ verticalAlign: 'middle' }} />
-                            </Anchor>
-                        </Group>
-
-                        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
-                            {deals.slice(0, 8).map((deal) => (
-                                <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={dealsAreToday} />
-                            ))}
-                        </SimpleGrid>
                     </Container>
                 </Box>
             )}
