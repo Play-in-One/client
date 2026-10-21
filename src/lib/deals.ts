@@ -38,6 +38,25 @@ export const DEALS_SCOPE_NOTE = 'Estos totales son del catálogo completo; la gr
  *  lista `/api/deals/` la grilla del servidor. */
 export const DEALS_ORDERING = 'recommended';
 
+export const DEALS_PAGE_SIZE = 24;
+
+export function dealsPagePath(slug?: string, page = 1): string {
+    const base = slug ? `/ofertas/${slug}` : '/ofertas';
+    return page === 1 ? base : `${base}/pagina/${page}`;
+}
+
+export function parseDealsPage(raw: string): number | undefined {
+    const page = /^[1-9]\d*$/.test(raw) ? Number(raw) : NaN;
+    return Number.isSafeInteger(page) ? page : undefined;
+}
+
+export function dealsRangeLabel(page: number, total: number): string {
+    if (total === 0) return '0 ofertas';
+    const first = (page - 1) * DEALS_PAGE_SIZE + 1;
+    const last = Math.min(page * DEALS_PAGE_SIZE, total);
+    return `Mostrando ${first.toLocaleString('es-CL')}–${last.toLocaleString('es-CL')} de ${total.toLocaleString('es-CL')} ofertas`;
+}
+
 /** El signo menos tipográfico: el guion corto se lee como un guion de unión. */
 const MINUS = '−';
 

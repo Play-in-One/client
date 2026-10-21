@@ -363,6 +363,8 @@ export async function getGames(params?: {
     seller_locations?: string;
     ordering?: string;
     page?: number;
+    /** Tamaño explícito de la página de juegos (máximo 60). */
+    page_size?: number;
     signal?: AbortSignal;
     /** Solo para herramientas de admin (buscador de duplicados al fusionar):
      * incluye juegos sin productos visibles, ocultos al público. */
@@ -485,8 +487,8 @@ export interface GameSitemapEntry {
 /**
  * El catálogo indexable entero en UNA petición, para `app/sitemap.ts`.
  *
- * No es `getGames()` con un page_size grande: la API pagina de a 24 y no acepta
- * `page_size`, así que recorrerla eran ~410 peticiones que además pagaban las
+ * No es `getGames()` con un page_size grande: el máximo es 60, y recorrer el
+ * catálogo aún requiere cientos de peticiones que además pagarían las
  * subconsultas de precio para usar solo el id. El endpoint devuelve id + fecha
  * y nada más.
  */

@@ -20,7 +20,7 @@ import { timingSafeEqual } from 'crypto';
    publicando la cifra vieja mientras tanto. `/ofertas` y `/ofertas/<consola>`
    las revalida `build_daily_deals` al escribir la tanda del día. */
 const ALLOWED_PATH =
-    /^\/$|^\/blog$|^\/blog\/[a-z0-9-]+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$|^\/sagas$|^\/saga\/[a-z0-9-]+$|^\/encuestas$|^\/ofertas(\/[a-z0-9-]+)?$/;
+    /^\/$|^\/blog$|^\/blog\/[a-z0-9-]+$|^\/search$|^\/juego\/[a-z0-9-]+$|^\/store\/\d+$|^\/juegos\/[a-z0-9-]+(\/pagina\/\d+)?$|^\/sagas$|^\/saga\/[a-z0-9-]+$|^\/encuestas$|^\/ofertas(?:\/[a-z0-9-]+)?(?:\/pagina\/[1-9]\d*)?$/;
 
 function tokenMatches(provided: string, expected: string): boolean {
     const a = Buffer.from(provided);
@@ -54,8 +54,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'No valid paths' }, { status: 400 });
     }
 
+    let offersInvalidated = false;
     for (const path of paths) {
-        revalidatePath(path);
+        if (path === '/ofertas' || path.startsWith('/ofertas/')) {
+            if (!offersInvalidated) revalidatePath('/ofertas', 'layout');
+            offersInvalidated = true;
+        } else {
+            revalidatePath(path);
+        }
     }
     return NextResponse.json({ revalidated: true, paths });
 }

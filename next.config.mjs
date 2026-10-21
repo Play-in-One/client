@@ -42,6 +42,14 @@ const nextConfig = {
     },
     async redirects() {
         return [
+            // Resolver la primera página antes de renderizar evita cachear
+            // una respuesta de ISR con encabezados Location duplicados.
+            { source: '/ofertas/pagina/1', destination: '/ofertas', permanent: true },
+            {
+                source: '/ofertas/:platform/pagina/1',
+                destination: '/ofertas/:platform',
+                permanent: true,
+            },
             // `pc` se retiró del catálogo en favor de `win`/`mac`/`linux`, y
             // `/juegos/pc` es una landing que Google ya tenía indexada: sin
             // esto se convierte en un 404. Va en la configuración y no en un

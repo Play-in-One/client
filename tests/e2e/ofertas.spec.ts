@@ -9,6 +9,8 @@ import {
     dealsHeading,
     dealsSectionTitle,
     dealsSummarySentence,
+    DEALS_PAGE_SIZE,
+    dealsPagePath,
 } from '../../src/lib/deals';
 import { gamePath } from '../../src/lib/seo';
 import { formatCLP } from '../../src/lib/utils';
@@ -85,9 +87,10 @@ function dealCardsHtml(html: string): string[] {
 function expectListsDeals(html: string, res: DealsResponse, platform?: Platform) {
     expect(res.results.length).toBeGreaterThan(0);
     expect(html).toContain(escapeHtml(dealsSummarySentence(res, platform)));
+    const visible = res.results.slice(0, DEALS_PAGE_SIZE);
     const cards = dealCardsHtml(html);
-    expect(cards).toHaveLength(res.results.length);
-    res.results.forEach((deal, i) => {
+    expect(cards).toHaveLength(visible.length);
+    visible.forEach((deal, i) => {
         // Cada aserción sobre SU tarjeta y no sobre la página entera: el precio
         // de una oferta suele aparecer en otra parte (la frase, otra tarjeta),
         // y así se colaba una tarjeta que pintaba el mínimo del catálogo.
@@ -111,7 +114,7 @@ function expectListsDeals(html: string, res: DealsResponse, platform?: Platform)
     });
     expect(html).not.toContain(DEAL.shallowGame);
     expect(html).not.toContain(DEAL.shortHistoryGame);
-    const seeded = res.results.find((d) => d.game.id === DEAL.gameId);
+    const seeded = visible.find((d) => d.game.id === DEAL.gameId);
     if (seeded) {
         expect(dealBadgeLine(seeded)).toBe(DEAL.line);
         expect(html).toContain(DEAL.line);
@@ -195,7 +198,7 @@ test.describe('HTML del servidor', () => {
             itemListElement: Record<string, unknown>[];
         };
         const api = await apiDeals(request);
-        expect(list.itemListElement.map((e) => e.name)).toEqual(api.results.map((d) => d.game.name));
+        expect(list.itemListElement.map((e) => e.name)).toEqual(api.results.slice(0, DEALS_PAGE_SIZE).map((d) => d.game.name));
         // Coherente para todas las tarjetas: posición, nombre y URL, sin precios
         // (la tarjeta no siempre conoce el desglose de la oferta).
         list.itemListElement.forEach((e, i) => {
@@ -641,5 +644,127 @@ test.describe('La rebaja en toda tarjeta cuyo precio es la oferta', () => {
                 featured,
             );
         }
+    });
+});
+
+test.describe('Paginación de ofertas', () => {
+    async function offerPage(request: APIRequestContext, page: number, platform?: number) {
+        const params = new URLSearchParams({ deals: '1', ordering: 'recommended', page: String(page), page_size: '24' });
+        if (platform) params.set('platforms', String(platform));
+        const response = await request.get(`${API}/games/?${params}`);
+        expect(response.ok()).toBe(true);
+        return response.json() as Promise<PaginatedResponse<Game>>;
+    }
+
+    function expectPage(html: string, games: Game[]) {
+        const cards = dealCardsHtml(html);
+        expect(cards).toHaveLength(games.length);
+        games.forEach((game, index) => {
+            expect(cards[index]).toContain(escapeHtml(game.name));
+            expect(cards[index]).toContain(escapeHtml(dealBadgeLine(dealFromGame(game)!)));
+        });
+    }
+
+    test('HTML paginado, última página y JSON-LD coinciden con la API y superan el tope de 60', async ({ request }) => {
+        const first = await offerPage(request, 1);
+        expect(first.count, 'seed_e2e debe aportar varias páginas de ofertas').toBeGreaterThan(60);
+        const second = await offerPage(request, 2);
+        const lastNumber = Math.ceil(first.count / DEALS_PAGE_SIZE);
+        const last = await offerPage(request, lastNumber);
+        expect(new Set([...first.results, ...second.results].map((g) => g.id)).size).toBe(48);
+        for (const [page, body] of [[1, first], [2, second], [lastNumber, last]] as const) {
+            const path = dealsPagePath(undefined, page);
+            const html = await serverHtml(request, path);
+            expectPage(html, body.results);
+            expect(html).toContain('aria-label="Paginación"');
+            if (page > 1) {
+                expect(robotsOf(html)).toMatch(/noindex/);
+                expect(html).toContain(`rel="canonical" href=`);
+                expect(html).toContain(`${path}"`);
+            }
+        }
+        expect(last.results.length).toBe(first.count - (lastNumber - 1) * DEALS_PAGE_SIZE);
+        const showcase = new Set((await apiDeals(request)).results.map((d) => d.game.id));
+        expect(last.results.some((g) => !showcase.has(g.id))).toBe(true);
+        const blocks = await jsonLdBlocks(request, '/ofertas/pagina/2');
+        const list = blocks.find((b) => b['@type'] === 'ItemList') as { itemListElement: { name: string }[] };
+        expect(list.itemListElement.map((e) => e.name)).toEqual(second.results.map((g) => g.name));
+    });
+
+    test('la página por consola tiene sus propios enlaces y resultados', async ({ request }) => {
+        const { results } = await (await request.get(`${API}/platforms/`)).json() as { results: Platform[] };
+        const platform = results.find((p) => p.slug === DEAL.platform)!;
+        const second = await offerPage(request, 2, platform.id);
+        const path = dealsPagePath(platform.slug, 2);
+        const html = await serverHtml(request, path);
+        expectPage(html, second.results);
+        expect(html).toContain(`href="${dealsPagePath(platform.slug)}"`);
+        expect(html).toContain(`href="${dealsPagePath(platform.slug, 3)}"`);
+        expect(html).toContain('página 2');
+        expect(robotsOf(html)).toMatch(/noindex/);
+    });
+
+    test('los enlaces funcionan sin JavaScript y la página se conserva al recargar', async ({ browser, baseURL }) => {
+        const context = await browser.newContext({ baseURL, javaScriptEnabled: false });
+        try {
+            const page = await context.newPage();
+            await page.goto('/ofertas');
+            await expect(page.locator('[data-deal-card]')).toHaveCount(24);
+            await page.getByRole('navigation', { name: 'Paginación', exact: true }).getByRole('link', { name: 'Siguiente →' }).click();
+            await expect(page).toHaveURL(/\/ofertas\/pagina\/2$/);
+            await expect(page.locator('[data-deals-range]')).toContainText('25–48');
+            await page.reload();
+            await expect(page.locator('[data-deal-card]')).toHaveCount(24);
+            await expect(page.locator('[data-deals-range]')).toContainText('25–48');
+            await page.getByRole('navigation', { name: 'Paginación', exact: true }).getByRole('link', { name: '← Anterior' }).click();
+            await expect(page).toHaveURL(/\/ofertas$/);
+        } finally {
+            await context.close();
+        }
+    });
+
+    test('las preferencias globales siguen aplicadas al entrar directamente a una página interior', async ({ page }) => {
+        await page.context().addCookies([{
+            name: 'pio_prefs', value: JSON.stringify({ condition: 'new', format: 'physical', digital: 'all', international: true, national: true, region: null }),
+            domain: new URL(test.info().project.use.baseURL!).hostname, path: '/',
+        }]);
+        const filtered = page.waitForResponse((res) => isDealsListing(res.request(), (p) => p.get('condition') === 'new' && p.get('page') === '1'));
+        await page.goto('/ofertas/pagina/2');
+        expect((await filtered).ok()).toBe(true);
+        await expect(page.locator('[data-deal-card]')).toHaveCount(24);
+        await expect(page.locator('[data-deals-range]')).toContainText('1–24');
+    });
+
+    test('redirige la primera página y devuelve 404 para páginas inválidas o inexistentes', async ({ request }) => {
+        for (const path of ['/ofertas/pagina/1', `/ofertas/${DEAL.platform}/pagina/1`]) {
+            const response = await request.get(path, { maxRedirects: 0 });
+            expect(response.status()).toBe(308);
+            expect(response.headers().location).toBe(path.replace('/pagina/1', ''));
+        }
+        for (const suffix of ['0', '-1', 'abc', '99999999', '9007199254740992']) {
+            expect((await request.get(`/ofertas/pagina/${suffix}`)).status()).toBe(404);
+        }
+        expect((await request.get('/ofertas/no-existe/pagina/2')).status()).toBe(404);
+    });
+
+    test('el modo interactivo conserva orden y filtros al avanzar y los cambios vuelven a página 1', async ({ page }) => {
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await page.goto('/ofertas/pagina/2');
+        await orderByLowestPrice(page);
+        const changed = page.waitForResponse((res) => isDealsListing(res.request(), (p) => p.get('price_min') === '1' && p.get('page') === '1'));
+        await page.locator('[data-explorer-sidebar]').getByPlaceholder('Mín').fill('1');
+        await page.locator('[data-explorer-sidebar]').getByPlaceholder('Mín').press('Tab');
+        expect((await changed).ok()).toBe(true);
+        const next = page.waitForResponse((res) => isDealsListing(res.request(), (p) => p.get('page') === '2'));
+        await page.getByRole('button', { name: '2', exact: true }).click();
+        const response = await next;
+        const url = new URL(response.url());
+        expect(url.searchParams.get('page_size')).toBe('24');
+        expect(url.searchParams.get('price_min')).toBe('1');
+        expect(url.searchParams.get('ordering')).toBe('min_price');
+        const body = await response.json() as PaginatedResponse<Game>;
+        await expect(page.locator('[data-deal-card]')).toHaveCount(24);
+        await expect(page.locator('[data-deal-card]').first()).toContainText(body.results[0].name);
+        await expect(page.locator('[data-deals-range]')).toContainText('25–48');
     });
 });

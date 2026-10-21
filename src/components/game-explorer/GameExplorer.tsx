@@ -346,6 +346,17 @@ export default function GameExplorer({
 
     const trackedSearch = useRef<string | null>(null);
     const initialResultsPending = useRef(initialResultsMatchFilters);
+    const appliedDealPreferences = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!lockedDeals || !ready) return;
+        const scope = `${conditionParam ?? ''}|${sellerLocationsParam ?? ''}`;
+        const previous = appliedDealPreferences.current;
+        appliedDealPreferences.current = scope;
+        if ((previous === null && globalFiltersActive) || (previous !== null && previous !== scope)) {
+            setPage(1);
+        }
+    }, [lockedDeals, ready, conditionParam, sellerLocationsParam, globalFiltersActive]);
 
     useEffect(() => {
         // En modo estático (landing sin interactuar) no se toca la red: el
@@ -378,6 +389,7 @@ export default function GameExplorer({
             seller_locations: sellerLocationsParam,
             ordering,
             page,
+            page_size: lockedDeals ? pageSize : undefined,
             signal: controller.signal,
         })
             .then((res) => {
@@ -392,6 +404,10 @@ export default function GameExplorer({
             })
             .catch((err) => {
                 if (err?.name === 'AbortError') return;
+                if (lockedDeals && err?.status === 404 && page > 1) {
+                    setPage(1);
+                    return;
+                }
                 sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: false });
                 setGames([]);
                 const failed = activeQuery.trim();
@@ -403,7 +419,7 @@ export default function GameExplorer({
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, dealsParam, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
+    }, [isStaticMode, interactive, globalFiltersActive, ready, filtersReady, activeQuery, ordering, page, pageSize, lockedDeals, effectivePlatformIds.join(','), selectedGenre, lockedSaga?.slug, dealsParam, conditionParam, priceMin, priceMax, onSale, ratingMin, sellerLocationsParam, refreshKey]);
 
     /* Los contadores del sidebar sí corren en modo estático: solo decoran el
        sidebar, nunca reemplazan el grid/paginación visibles. */
@@ -681,6 +697,7 @@ export default function GameExplorer({
                             loading={loading}
                             page={page}
                             totalPages={totalPages}
+                            dealsTotal={lockedDeals ? total : undefined}
                             onPageChange={handlePageChange}
                             platformSlugFor={platformSlugFor}
                             selectionMode={selectionMode}

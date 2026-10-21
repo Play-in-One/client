@@ -4,7 +4,7 @@ import { Box, Group, Loader, Pagination, SimpleGrid, Stack, Text } from '@mantin
 import { IconSearch } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
-import { dealFromGame } from '@/lib/deals';
+import { dealFromGame, dealsRangeLabel } from '@/lib/deals';
 import type { Game, ProductPreviewFilters } from '@/lib/types';
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
     loading: boolean;
     page: number;
     totalPages: number;
+    dealsTotal?: number;
     onPageChange: (page: number) => void;
     platformSlugFor: (game: Game) => string | undefined;
     selectionMode: boolean;
@@ -37,6 +38,7 @@ export default function GameResultsGrid({
     loading,
     page,
     totalPages,
+    dealsTotal,
     onPageChange,
     platformSlugFor,
     selectionMode,
@@ -66,6 +68,11 @@ export default function GameResultsGrid({
 
     return (
         <Box aria-busy={loading}>
+            {dealsTotal !== undefined && (
+                <Text size="sm" c="dimmed" mb="md" data-deals-range>
+                    {dealsRangeLabel(page, dealsTotal)}
+                </Text>
+            )}
             {loading && (
                 <Group justify="center" mb="md" role="status">
                     <Loader color="primaryRed" size="sm" />

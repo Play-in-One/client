@@ -4,23 +4,26 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
 import { Anchor, Container, SimpleGrid, Text, Title } from '@mantine/core';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
-import { getDeals, getPlatforms } from '@/lib/api';
-import type { DealsResponse, Platform } from '@/lib/types';
+import { ApiError, getDeals, getGames, getPlatforms } from '@/lib/api';
+import type { DealsResponse, Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
-import { PAGE_SIZE } from '@/app/juegos/[slug]/landing';
 import DealCard from '@/components/DealCard';
+import CrawlablePagination from '@/components/CrawlablePagination';
 import InfoHeading from '@/components/InfoHeading';
 import { JsonLd } from '@/components/JsonLd';
 import {
     DEALS_METHOD_LINE,
     DEALS_ORDERING,
+    DEALS_PAGE_SIZE,
     DEALS_SCOPE_NOTE,
     DEALS_TYPICAL_NOTE,
     dealCardGame,
+    dealFromGame,
+    dealsPagePath,
+    dealsRangeLabel,
     dealConsoleLinkLabel,
     dealConsoleChips,
     dealsPageView,
-    gameWithDeal,
 } from '@/lib/deals';
 import {
     breadcrumbJsonLd,
@@ -40,7 +43,7 @@ import {
  * páginas es solo la red de seguridad.
  *
  * La grilla es la de las galerías de consola: `GameExplorer` con `lockedDeals`
- * y, de `staticFallback`, las tarjetas de `/api/deals/` resueltas aquí. Un
+ * y, de `staticFallback`, una página de `/api/games/?deals=1`. Un
  * crawler (sin JS) lee esas tarjetas; un visitante tiene además el sidebar de
  * filtros, y con sus preferencias globales (condición, ubicación de la tienda)
  * el explorador vuelve a pedir con `deals=1` en vez de mostrar la grilla sin
@@ -89,46 +92,80 @@ async function fetchPlatform(slug?: string): Promise<Platform | null | undefined
  *  neutro (`DEALS_UNAVAILABLE`) y sale `noindex` hasta la próxima regeneración. */
 async function fetchDeals(platform?: Platform): Promise<{ res: DealsResponse; failed: boolean }> {
     try {
-        return { res: await getDeals(platform ? { platform: platform.slug } : undefined), failed: false };
+        return { res: await getDeals({ platform: platform?.slug, revalidate: 3600 }), failed: false };
     } catch (error) {
         rethrowOutsideBuild(error);
         return { res: EMPTY, failed: true };
     }
 }
 
-export function dealsPath(platform?: Platform | null): string {
-    return platform ? `/ofertas/${platform.slug}` : '/ofertas';
+async function fetchDealGames(platform: Platform | undefined, page: number): Promise<{ games: Game[]; total: number; failed: boolean }> {
+    try {
+        const res = await getGames({
+            deals: 1, ordering: DEALS_ORDERING, page, page_size: DEALS_PAGE_SIZE,
+            platforms: platform ? [platform.id] : undefined,
+            revalidate: 3600,
+        });
+        return { games: res.results, total: res.count, failed: false };
+    } catch (error) {
+        if (page > 1 && error instanceof ApiError && error.status === 404) {
+            return { games: [], total: 0, failed: false };
+        }
+        rethrowOutsideBuild(error);
+        return { games: [], total: 0, failed: true };
+    }
 }
 
-export async function buildDealsMetadata(slug?: string): Promise<Metadata> {
+export function dealsPath(platform?: Platform | null, page = 1): string {
+    return dealsPagePath(platform?.slug, page);
+}
+
+export async function buildDealsMetadata(slug?: string, page = 1): Promise<Metadata> {
     const platform = await fetchPlatform(slug);
     if (platform === null) return buildMetadata({ title: 'Consola no encontrada', noIndex: true });
 
-    const { res, failed } = await fetchDeals(platform);
+    const [{ res, failed: summaryFailed }, { games, total, failed: gamesFailed }] = await Promise.all([
+        fetchDeals(platform), fetchDealGames(platform, page),
+    ]);
+    const failed = summaryFailed || gamesFailed;
+    if (page > 1 && games.length === 0 && !failed) {
+        return buildMetadata({ title: 'Página no encontrada', noIndex: true });
+    }
     // Las reglas de «hoy», el texto y el `noindex` viven en `dealsPageView`:
     // la página y su metadata tienen que decir lo mismo.
     const view = dealsPageView(res, { platform, failed });
     return buildMetadata({
-        title: view.heading,
+        title: page > 1 ? `${view.heading} — página ${page}` : view.heading,
         // La misma frase que se lee bajo el H1: lo que cita un buscador tiene
         // que estar en la página.
-        description: view.summary,
-        path: dealsPath(platform),
-        noIndex: view.noIndex,
+        description: page > 1 ? `${dealsRangeLabel(page, total)}. ${DEALS_TYPICAL_NOTE}` : view.summary,
+        path: dealsPath(platform, page),
+        noIndex: page > 1 || view.noIndex,
     });
 }
 
-export default async function DealsLanding({ slug }: { slug?: string }) {
+export default async function DealsLanding({ slug, page = 1 }: { slug?: string; page?: number }) {
     const { platform, catalog } = await fetchPlatforms(slug);
     // Página propia (sin `loading.tsx`): el 404 es un status real.
     if (platform === null) notFound();
 
-    const { res, failed } = await fetchDeals(platform);
-    const deals = res.results;
-    const path = dealsPath(platform);
+    const [{ res, failed: summaryFailed }, { games, total, failed: gamesFailed }] = await Promise.all([
+        fetchDeals(platform), fetchDealGames(platform, page),
+    ]);
+    const failed = summaryFailed || gamesFailed;
+    if (page > 1 && games.length === 0 && !failed) notFound();
+    const deals = games.flatMap((game) => {
+        const deal = dealFromGame(game);
+        return deal ? [deal] : [];
+    });
+    const path = dealsPath(platform, page);
+    const totalPages = Math.max(1, Math.ceil(total / DEALS_PAGE_SIZE));
     // En el servidor, con el reloj de esta regeneración: «hoy» o «del <fecha>»
     // llega ya resuelto al HTML y a las tarjetas (`isToday`).
-    const { heading, summary, isToday } = dealsPageView(res, { platform, failed });
+    const view = dealsPageView(res, { platform, failed });
+    const heading = page > 1 ? `${view.heading} — página ${page}` : view.heading;
+    const summary = page > 1 ? `${dealsRangeLabel(page, total)}. ${DEALS_TYPICAL_NOTE}` : view.summary;
+    const { isToday } = view;
     // Todas las consolas con ofertas hoy y cuántos juegos tiene cada una
     // (`res.platforms`, la misma lista con o sin filtro), con la actual marcada.
     const consoles = dealConsoleChips(res, catalog);
@@ -138,7 +175,8 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
         breadcrumbJsonLd([
             { name: 'Inicio', path: '/' },
             { name: 'Ofertas', path: '/ofertas' },
-            ...(platform ? [{ name: platformLongName(platform), path }] : []),
+            ...(platform ? [{ name: platformLongName(platform), path: dealsPath(platform) }] : []),
+            ...(page > 1 ? [{ name: `Página ${page}`, path }] : []),
         ]),
         // El ItemList enumera exactamente las tarjetas visibles, sin precios:
         // la tarjeta no siempre conoce el desglose de la oferta (ver
@@ -218,6 +256,7 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
 
                 {deals.length > 0 ? (
                     <GameExplorer
+                        key={`${slug ?? 'all'}:${page}`}
                         lockedDeals
                         dealsIsToday={isToday}
                         lockedPlatform={
@@ -225,16 +264,18 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                                 ? { id: platform.id, slug: platform.slug, display_name: platformLongName(platform) }
                                 : undefined
                         }
-                        initialGames={deals.slice(0, PAGE_SIZE).map(gameWithDeal)}
-                        initialTotal={res.count}
-                        pageSize={PAGE_SIZE}
+                        initialGames={games}
+                        initialTotal={total}
+                        page={page}
+                        pageSize={DEALS_PAGE_SIZE}
                         defaultOrdering={DEALS_ORDERING}
                         showHeader={false}
                         withContainer={false}
                         staticFallback={
-                            // Columnas de la galería con sidebar (3 en md+, como
-                            // /juegos/<consola>): el sidebar ocupa lo que antes
-                            // era la cuarta.
+                            <>
+                            <Text size="sm" c="dimmed" mb="md" data-deals-range>
+                                {dealsRangeLabel(page, total)}
+                            </Text>
                             <SimpleGrid cols={{ base: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', sm: 'lg' }} verticalSpacing="xl">
                                 {deals.map((deal, i) => (
                                     <DealCard
@@ -246,6 +287,8 @@ export default async function DealsLanding({ slug }: { slug?: string }) {
                                     />
                                 ))}
                             </SimpleGrid>
+                            <CrawlablePagination current={page} total={totalPages} hrefFor={(n) => dealsPath(platform, n)} />
+                            </>
                         }
                     />
                 ) : (
