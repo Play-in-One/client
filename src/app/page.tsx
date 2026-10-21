@@ -20,7 +20,7 @@ export default async function HomePage() {
         getFeaturedGames(),
         getFeaturedSagas(),
         // «Ofertas de hoy». NO entra en la regla de abajo (ver `failed`).
-        getDeals(),
+        getDeals({ homepage: 1 }),
     ]);
 
     /* Una regeneración ISR con una sección caída NO debe llegar a la caché:

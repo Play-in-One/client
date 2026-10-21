@@ -541,6 +541,8 @@ export async function getStats() {
 export async function getDeals(params?: {
     platform?: string;
     ordering?: 'recommended' | '-deal_discount';
+    /** Portada: solo precios que llevan como máximo tres días sin cambiar. */
+    homepage?: 1;
     /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
     revalidate?: number;
 }) {

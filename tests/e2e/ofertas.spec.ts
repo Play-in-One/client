@@ -448,7 +448,7 @@ test.describe('enlaces hacia /ofertas', () => {
 
     test('la home tiene «Ofertas de hoy» con las primeras ofertas y «Ver todas»', async ({ request }) => {
         const html = await serverHtml(request, '/');
-        const api = await apiDeals(request);
+        const api = await (await request.get(`${API}/deals/?homepage=1`)).json() as DealsResponse;
         // «Ofertas de hoy», u «Ofertas del <fecha>» si la tanda no es de hoy.
         const start = html.indexOf(`>${dealsSectionTitle(api)}<`);
         expect(start).toBeGreaterThan(-1);
@@ -461,6 +461,9 @@ test.describe('enlaces hacia /ofertas', () => {
         }
         expect(section.match(/data-deal-card/g)?.length).toBe(top.length);
         expect(section).toContain('href="/ofertas"');
+        const all = await apiDeals(request);
+        expect(all.results.some((d) => d.game.name === 'E2E Oferta Paginada 01')).toBe(true);
+        expect(section).not.toContain('E2E Oferta Paginada 01');
     });
 
     test('el sitemap incluye /ofertas y las consolas con ofertas', async ({ request }) => {
