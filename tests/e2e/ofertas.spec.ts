@@ -99,6 +99,11 @@ function expectListsDeals(html: string, res: DealsResponse, platform?: Platform)
         // $7.900, mínimo del juego $4.585 en Windows).
         expect(card).toContain(`href="${gamePath(deal.game, deal.platform)}"`);
         expect(card).toContain(formatCLP(deal.current_price));
+        if (!platform || deal.game.min_price_platform === deal.platform) {
+            // A ranked expensive variant must never replace the game's actual
+            // minimum (Pokopia: used $110.824 versus new $66.990).
+            expect(Math.round(Number(deal.current_price))).toBe(Math.round(Number(deal.game.min_price)));
+        }
         if (deal.game.min_price && Number(deal.game.min_price) !== Number(deal.current_price)) {
             // El mínimo del catálogo es otra oferta: no puede ser la cifra de la tarjeta.
             expect(card).not.toContain(`>${formatCLP(deal.game.min_price)}<`);
@@ -131,11 +136,11 @@ test.describe('HTML del servidor', () => {
         // «hoy» o «del <fecha>» según la fecha de la tanda (`dealsHeading`):
         // la base de dev puede no haber recalculado hoy.
         expect(html).toContain(`>${dealsHeading(undefined, api)}</h1>`);
-        expect(html).toContain('El precio típico de cada oferta considera todas las tiendas de esa condición.');
+        expect(html).toContain('El precio típico considera el historial del mínimo del juego en esa consola, entre todas las tiendas y condiciones.');
         // La aclaración de los totales va dentro de la (i), junto a ellos.
         const disclosure = html.slice(html.indexOf('pio-info-heading'), html.indexOf('</details>', html.indexOf('pio-info-heading')));
         expect(disclosure).toContain('Estos totales son del catálogo completo; la grilla de abajo sigue tus filtros y preferencias.');
-        expect(html).toContain('Una oferta aparece aquí cuando el precio más bajo de hoy');
+        expect(html).toContain('Solo aparece como oferta el producto más barato disponible del juego en esa consola');
         expect(html).toMatch(/\d+ juegos? (están|está|estaban|estaba) al menos 15% bajo su precio típico de los últimos 90 días\./);
         expect(html).toMatch(/href="\/juego\/[a-z0-9-]+-\d+\?platform=[a-z0-9-]+"/);
         expectListsDeals(html, api);
@@ -475,7 +480,7 @@ test.describe('enlaces hacia /ofertas', () => {
         // con el de la API, o lleva la fecha de su propia tanda.
         const heading = text.match(/^## (Ofertas (?:de hoy|del \d{1,2} de [a-z]+ de \d{4}))$/m)?.[1];
         expect(heading).toBeTruthy();
-        expect(text).toContain('al menos 15% bajo su mediana de los últimos 90 días');
+        expect(text).toContain('al menos 15% bajo su precio mínimo típico de los últimos 90 días');
         if (heading === dealsSectionTitle(api)) {
             const [first] = api.results;
             expect(text).toContain(first.game.name.replace(/[[\]]/g, '\\$&'));

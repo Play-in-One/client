@@ -1,7 +1,7 @@
 import { Box } from '@mantine/core';
 import GameCard from './GameCard';
 import DealPriceLabel from './DealPriceLabel';
-import { dealCardGame } from '@/lib/deals';
+import { dealCardGame, dealUsesBestPrice } from '@/lib/deals';
 import type { Deal, ProductPreviewFilters } from '@/lib/types';
 
 /**
@@ -35,7 +35,14 @@ export default function DealCard({
             {/* Precio, consola y condición de la OFERTA (`dealCardGame`) y su
                 tienda bajo el precio: el mínimo del juego puede ser de otra
                 consola o condición y contradiría la rebaja de al lado. */}
-            <GameCard
+            {!dealUsesBestPrice(deal) ? (
+                <GameCard
+                    game={{ ...deal.game, deal: undefined }}
+                    previewFilters={previewFilters}
+                    priority={priority}
+                    platformSlug={deal.game.min_price_platform ?? undefined}
+                />
+            ) : <GameCard
                 game={dealCardGame(deal)}
                 previewFilters={previewFilters}
                 platformSlug={deal.platform}
@@ -43,7 +50,7 @@ export default function DealCard({
                 priority={priority}
                 priceAddon={<DealPriceLabel deal={deal} isToday={isToday} />}
                 priceConsole={deal.platform}
-            />
+            />}
         </Box>
     );
 }

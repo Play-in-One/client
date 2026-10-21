@@ -766,7 +766,7 @@ export interface Deal {
     game: Game;
     /** Slug de la consola de la oferta. */
     platform: string;
-    /** Precio EFECTIVO (lista + envío) de hoy, como en la galería. */
+    /** Precio EFECTIVO (lista + envío − cupón) del producto más barato. */
     current_price: string;
     /** Mediana ponderada por tiempo de los últimos 90 días. */
     typical_price: string;
@@ -778,8 +778,8 @@ export interface Deal {
     days_on_deal: number;
     is_new: boolean;
     seller: { id: number; name: string } | null;
-    /** Bucket de condición (nunca `store`/`key` crudos): cada oferta se mide
-     *  contra el precio típico de SU condición. */
+    /** Condición del producto mínimo (nunca `store`/`key` crudos). El típico
+     *  considera el historial mínimo del juego entre todas las condiciones. */
     condition: 'new' | 'used' | 'digital';
 }
 

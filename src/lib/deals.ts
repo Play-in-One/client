@@ -15,18 +15,18 @@ import { absoluteUrl, formatDate, gamePath } from './seo';
  *  el «−33%» como un dato y no como un reclamo publicitario. Las cifras tienen
  *  que moverse con las constantes de `games/deals.py` en el backend. */
 export const DEALS_METHOD_LINE =
-    'Una oferta aparece aquí cuando el precio más bajo de hoy está al menos 15% bajo su ' +
-    'mediana de los últimos 90 días y ahorra $1.000 o más.';
+    'Solo aparece como oferta el producto más barato disponible del juego en esa consola: ' +
+    'al menos 15% bajo su precio mínimo típico de los últimos 90 días y con un ahorro de $1.000 o más.';
 
 /** Qué ofertas se ven ya sigue las preferencias del visitante (condición,
  *  ubicación de la tienda): /ofertas filtra con `GameExplorer` y `deals=1`.
  *  Lo que NO cambia con ellas es el precio típico, que el backend calcula una
- *  vez por noche sobre todas las tiendas de cada condición: quien tenga
+ *  vez por noche sobre todas las tiendas y condiciones: quien tenga
  *  apagadas las importadoras ve ofertas de tiendas nacionales, pero medidas
  *  contra una mediana que sí incluye importadas. Se dice en vez de esconderlo. */
 /** De dónde sale el «precio típico». Visible en /ofertas y en la sección de la
  *  portada. */
-export const DEALS_TYPICAL_NOTE = 'El precio típico de cada oferta considera todas las tiendas de esa condición.';
+export const DEALS_TYPICAL_NOTE = 'El precio típico considera el historial del mínimo del juego en esa consola, entre todas las tiendas y condiciones.';
 
 // En /ofertas los totales (frase resumen y conteos por consola, los dos tras la
 // (i) del título) son del catálogo completo, mientras la grilla y la barra
@@ -47,10 +47,8 @@ const pct = (deal: Deal) => Math.round(deal.discount_pct);
 
 const count = (n: number) => n.toLocaleString('es-CL');
 
-/** «Nuevo» / «Usado» / «Digital». Una oferta se compara contra el precio típico
- *  de SU condición (una copia digital contra la mediana del físico daba
- *  rebajas falsas del 85%), así que la condición es parte del dato: sin ella
- *  «−33%» no dice frente a qué. */
+/** «Nuevo» / «Usado» / «Digital». La condición describe la copia más barata;
+ *  el porcentaje se calcula contra el historial mínimo del juego en la consola. */
 const conditionLabel = (deal: Deal) => CONDITION_LABEL[deal.condition] ?? CONDITION_LABEL.new;
 
 /** La consola de la oferta, con su nombre, sacada del propio juego para no
@@ -256,26 +254,19 @@ function minPriceIsDeal(game: Game, offer: DealOffer): boolean {
     );
 }
 
-/**
- * El juego que se le pasa a `GameCard` para que su precio sea el de la OFERTA.
- *
- * `deal.game.min_price` es el mínimo del catálogo completo, que puede venir de
- * otra consola u otra condición: la tarjeta mostraría $9.990 justo encima de
- * «−33% · típico $29.990» de una oferta de $19.990, y enlazaría la ficha en la
- * consola equivocada. Cuando el mínimo ES la oferta se devuelve el juego tal
- * cual, con su desglose de envío; si no, se sustituyen precio, consola y
- * condición, y el desglose y la tienda quedan en null porque no se conocen
- * para esta oferta — mezclarlos con los del otro mínimo daría un total que no
- * cuadra (y un cupón que quizá no aplica).
- *
- * «Es la oferta» exige además el mismo CUBO de condición: un usado y un nuevo
- * pueden costar lo mismo en la misma consola, y entonces la tarjeta pintaría
- * «Usado» y la tienda del usado sobre la línea «Nuevo · −33%». El mínimo
- * publica el valor crudo (`store`/`key`), por eso se colapsa antes de comparar.
- */
+/** Prevent an older cached payload from replacing the game's cheaper copy.
+ * Another console's minimum is outside this comparison's scope. */
+export function dealUsesBestPrice(deal: Deal): boolean {
+    const minimum = Number(deal.game.min_price);
+    const price = Number(deal.current_price);
+    return !(deal.game.min_price != null && minimum > 0 && Number.isFinite(price) &&
+        deal.game.min_price_platform === deal.platform && Math.round(minimum) < Math.round(price));
+}
+
+/** Adapt the card to the requested console, preserving a cheaper known copy. */
 export function dealCardGame(deal: Deal): Game {
     const game = deal.game;
-    if (minPriceIsDeal(game, deal)) {
+    if (!dealUsesBestPrice(deal) || minPriceIsDeal(game, deal)) {
         return game;
     }
     return {
@@ -301,7 +292,9 @@ export function dealCardGame(deal: Deal): Game {
  * galería cae entonces a la `GameCard` de siempre.
  */
 export function dealFromGame(game: Game): Deal | null {
-    return game.deal ? { ...game.deal, game } : null;
+    if (!game.deal) return null;
+    const deal = { ...game.deal, game };
+    return dealUsesBestPrice(deal) ? deal : null;
 }
 
 /**

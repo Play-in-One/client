@@ -7,6 +7,7 @@ import {
     dealBadgeLine,
     cardDeal,
     dealCardGame,
+    dealUsesBestPrice,
     dealConsoleLinkLabel,
     dealConsoleChips,
     dealConsoleSlugs,
@@ -265,12 +266,12 @@ test.describe('itemListJsonLd', () => {
 
 test('la línea de método y la nota de alcance son fijas', () => {
     expect(DEALS_METHOD_LINE).toBe(
-        'Una oferta aparece aquí cuando el precio más bajo de hoy está al menos 15% bajo su ' +
-        'mediana de los últimos 90 días y ahorra $1.000 o más.',
+        'Solo aparece como oferta el producto más barato disponible del juego en esa consola: ' +
+        'al menos 15% bajo su precio mínimo típico de los últimos 90 días y con un ahorro de $1.000 o más.',
     );
     // Va tras la (i), junto a los totales que aclara.
     expect(DEALS_SCOPE_NOTE).toBe('Estos totales son del catálogo completo; la grilla de abajo sigue tus filtros y preferencias.');
-    expect(DEALS_TYPICAL_NOTE).toBe('El precio típico de cada oferta considera todas las tiendas de esa condición.');
+    expect(DEALS_TYPICAL_NOTE).toBe('El precio típico considera el historial del mínimo del juego en esa consola, entre todas las tiendas y condiciones.');
 });
 
 test.describe('ofertas en la galería (`/api/games/?deals=1`)', () => {
@@ -338,7 +339,7 @@ test.describe('dealCardGame', () => {
     });
 
     test('el bucket digital no dice si es Store o código: la tarjeta no pinta icono', () => {
-        const d = deal({ condition: 'digital', game: game({ min_price: '1.00' }) });
+        const d = deal({ condition: 'digital', game: game({ min_price: '1.00', min_price_platform: SWITCH.slug }) });
         expect(dealCardGame(d).min_price_condition).toBeNull();
     });
 
@@ -469,4 +470,13 @@ test.describe('cardDeal (la rebaja de una tarjeta fuera de /ofertas)', () => {
             expect(cardDeal(g)).not.toBeNull();
         }
     });
+});
+
+
+test('una oferta usada cara no reemplaza el mínimo nuevo ni publica su descuento', () => {
+    const cheaper = game({ min_price: '66990.00', min_price_platform: 'ps5', min_price_condition: 'new' });
+    const stale = deal({ game: cheaper, platform: 'ps5', condition: 'used', current_price: '110824.00', discount_pct: 61 });
+    expect(dealUsesBestPrice(stale)).toBe(false);
+    expect(dealCardGame(stale)).toBe(cheaper);
+    expect(dealFromGame(gameWithDeal(stale))).toBeNull();
 });
