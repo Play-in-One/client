@@ -541,13 +541,17 @@ export async function getStats() {
 export async function getDeals(params?: {
     platform?: string;
     ordering?: 'recommended' | '-deal_savings' | '-deal_discount';
+    condition?: string;
+    seller_locations?: string;
+    signal?: AbortSignal;
     /** Portada: solo precios que llevan como máximo tres días sin cambiar. */
     homepage?: 1;
     /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
     revalidate?: number;
 }) {
-    const { revalidate, ...qsParams } = params ?? {};
+    const { revalidate, signal, ...qsParams } = params ?? {};
     return fetcher<DealsResponse>(`/deals/${qs(qsParams)}`, {
+        signal,
         ...(revalidate !== undefined ? { next: { revalidate } } : {}),
     });
 }

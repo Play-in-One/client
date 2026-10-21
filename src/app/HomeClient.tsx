@@ -26,11 +26,11 @@ import {
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
-import { getTrendingGames, getFeaturedGames, trackEvent } from '@/lib/api';
+import { getTrendingGames, getFeaturedGames, getDeals, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
-import { DEALS_TYPICAL_NOTE } from '@/lib/deals';
+import { DEALS_TYPICAL_NOTE, dealsSectionTitle, isTodayDeals } from '@/lib/deals';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
 import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
@@ -44,7 +44,7 @@ export default function HomeClient({
     initialTrending,
     initialFeatured,
     initialSagas,
-    deals,
+    deals: initialDeals,
     dealsTitle,
     dealsAreToday,
 }: {
@@ -52,8 +52,7 @@ export default function HomeClient({
     initialTrending: Game[];
     initialFeatured: Game[];
     initialSagas: Saga[];
-    /** Las primeras 8 ofertas del día. Sin estado ni refetch: son un hecho
-     *  del catálogo entero, no dependen de los filtros del visitante. */
+    /** Primeras 8 ofertas sin filtros, para el HTML inicial. */
     deals: Deal[];
     /** «Ofertas de hoy» o «Ofertas del <fecha>», resuelto en el servidor. */
     dealsTitle: string;
@@ -150,6 +149,49 @@ export default function HomeClient({
             controller.abort();
         };
     }, [ready, conditionParam, sellerLocationsParam, initialTrending, initialFeatured]);
+
+    const [offers, setOffers] = useState({ results: initialDeals, title: dealsTitle, isToday: dealsAreToday });
+    const [dealsLoading, setDealsLoading] = useState(false);
+    const [dealsError, setDealsError] = useState(false);
+    const dealsCache = useRef(new Map<string, typeof offers>());
+    useEffect(() => {
+        if (!ready) return;
+        setDealsError(false);
+        if (!conditionParam && !sellerLocationsParam) {
+            setOffers({ results: initialDeals, title: dealsTitle, isToday: dealsAreToday });
+            setDealsLoading(false);
+            return;
+        }
+        const key = `${conditionParam ?? 'all'}:${sellerLocationsParam ?? 'all'}`;
+        const cached = dealsCache.current.get(key);
+        if (cached) {
+            setOffers(cached);
+            setDealsLoading(false);
+            return;
+        }
+        const controller = new AbortController();
+        let superseded = false;
+        setDealsLoading(true);
+        getDeals({ homepage: 1, condition: conditionParam, seller_locations: sellerLocationsParam, signal: controller.signal })
+            .then((response) => {
+                if (superseded) return;
+                const now = new Date();
+                const next = { results: response.results.slice(0, 8), title: dealsSectionTitle(response, now), isToday: isTodayDeals(response, now) };
+                dealsCache.current.set(key, next);
+                setOffers(next);
+                setDealsLoading(false);
+            })
+            .catch(() => {
+                if (superseded) return;
+                setOffers((previous) => ({ ...previous, results: [] }));
+                setDealsError(true);
+                setDealsLoading(false);
+            });
+        return () => {
+            superseded = true;
+            controller.abort();
+        };
+    }, [ready, conditionParam, sellerLocationsParam, initialDeals, dealsTitle, dealsAreToday]);
 
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();
@@ -292,19 +334,13 @@ export default function HomeClient({
             )}
 
             {/* ══════ OFERTAS DE HOY ══════ */}
-            {/* Solo con ofertas: una sección vacía no dice nada. Sin
-                `data-prefs-dependent` y sin refetch, a diferencia de Populares:
-                una oferta se calcula sobre todas las tiendas y condiciones, y
-                filtrarla con las preferencias necesitaría otra API. La nota
-                lo dice en vez de esconderlo. Con sagas, el padding inferior
-                separa las tarjetas del banner; sin sagas, Populares abre con 60. */}
-            {deals.length > 0 && (
-                <Box pt={60} pb={initialSagas.length > 0 ? 60 : 0}>
+            {(initialDeals.length > 0 || offers.results.length > 0 || dealsLoading || conditionParam || sellerLocationsParam) && (
+                <Box data-home-deals pt={60} pb={initialSagas.length > 0 ? 60 : 0}>
                     <Container size="lg">
                         <Group justify="space-between" align="flex-end" mb="xl">
                             <Box>
                                 <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
-                                    {dealsTitle}
+                                    {offers.title}
                                 </Title>
                                 <Text c="dimmed" mt={6}>
                                     Al menos 15% bajo su precio típico. {DEALS_TYPICAL_NOTE}
@@ -322,11 +358,17 @@ export default function HomeClient({
                             </Anchor>
                         </Group>
 
-                        <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
-                            {deals.slice(0, 8).map((deal) => (
-                                <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={dealsAreToday} />
-                            ))}
-                        </SimpleGrid>
+                        <Box data-prefs-dependent aria-busy={dealsLoading}>
+                            {dealsLoading ? <GameGridSkeleton count={8} testId="home-deals-loading" /> : offers.results.length > 0 ? (
+                                <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
+                                    {offers.results.map((deal) => (
+                                        <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={offers.isToday} />
+                                    ))}
+                                </SimpleGrid>
+                            ) : (
+                                <Text c="dimmed">{dealsError ? 'No se pudieron cargar las ofertas.' : 'No hay ofertas con los filtros seleccionados.'}</Text>
+                            )}
+                        </Box>
                     </Container>
                 </Box>
             )}

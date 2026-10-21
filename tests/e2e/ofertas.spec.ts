@@ -429,6 +429,94 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
 });
 
 test.describe('enlaces hacia /ofertas', () => {
+    test('Ofertas de hoy responde al formato, estado y ubicación de la página', async ({ page }) => {
+        await page.goto('/');
+        const section = page.locator('[data-home-deals]');
+        const checkUpdate = async (condition: string, locations: string | null, action: () => Promise<void>) => {
+            const pending = page.waitForResponse((response) => {
+                const url = new URL(response.url());
+                return url.pathname === '/api/deals/' && url.searchParams.get('homepage') === '1'
+                    && url.searchParams.get('condition') === condition
+                    && url.searchParams.get('seller_locations') === locations;
+            });
+            await action();
+            const response = await pending;
+            expect(response.ok()).toBe(true);
+            const body = await response.json() as DealsResponse;
+            await expect(section.locator('[data-deal-card]')).toHaveCount(Math.min(8, body.results.length));
+            for (const [i, deal] of body.results.slice(0, 8).entries()) {
+                await expect(section.locator('[data-deal-card]').nth(i)).toContainText(deal.game.name);
+            }
+            if (!body.results.length) await expect(section).toContainText('No hay ofertas con los filtros seleccionados.');
+        };
+        await checkUpdate('physical', null, () => page.getByRole('radiogroup', { name: 'Formato' }).first().getByText('Físico', { exact: true }).click());
+        await page.getByRole('button', { name: 'Solo esenciales' }).click({ timeout: 1000 }).catch(() => {});
+        await page.getByRole('button', { name: 'Preferencias' }).click();
+        await checkUpdate('used', null, () => page.getByRole('radiogroup', { name: 'Estado del juego' }).getByText('Usados', { exact: true }).click());
+        await checkUpdate('used', 'national,regions', () => page.getByRole('button', { name: 'Tiendas internacionales', exact: true }).click());
+        await page.keyboard.press('Escape');
+        await checkUpdate('digital', 'national,regions', () => page.getByRole('radiogroup', { name: 'Formato' }).first().getByText('Digital', { exact: true }).click());
+    });
+
+    test('Ofertas de hoy ignora respuestas antiguas y restaura los datos al quitar filtros', async ({ page, request }) => {
+        const source = await apiDeals(request);
+        let releaseOld!: () => void;
+        let oldFinished!: () => void;
+        const oldGate = new Promise<void>((resolve) => { releaseOld = resolve; });
+        const oldSettled = new Promise<void>((resolve) => { oldFinished = resolve; });
+        const calls: string[] = [];
+        await page.route('**/api/deals/**', async (route) => {
+            const condition = new URL(route.request().url()).searchParams.get('condition')!;
+            calls.push(condition);
+            if (condition === 'physical') await oldGate;
+            const name = condition === 'physical' ? 'Oferta física antigua' : 'Oferta digital actual';
+            await route.fulfill({ json: { ...source, count: 1, results: [{ ...source.results[0], game: { ...source.results[0].game, name } }] } }).catch(() => {});
+            if (condition === 'physical') oldFinished();
+        });
+        await page.goto('/');
+        const section = page.locator('[data-home-deals]');
+        const initialLinks = await section.locator('[data-deal-card] > a').evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
+        expect(initialLinks.length).toBeGreaterThan(0);
+        const format = page.getByRole('radiogroup', { name: 'Formato' }).first();
+        const oldRequest = page.waitForRequest((r) => r.url().includes('/api/deals/') && r.url().includes('condition=physical'));
+        await format.getByText('Físico', { exact: true }).click();
+        await oldRequest;
+        await expect(page.getByTestId('home-deals-loading')).toBeVisible();
+        await format.getByText('Digital', { exact: true }).click();
+        await expect(section.locator('[data-deal-card]')).toHaveCount(1);
+        await expect(section).toContainText('Oferta digital actual');
+        releaseOld();
+        await oldSettled;
+        await expect(section).not.toContainText('Oferta física antigua');
+        await format.getByText('Todo', { exact: true }).click();
+        await expect(section.locator('[data-deal-card]')).toHaveCount(initialLinks.length);
+        for (const [i, href] of initialLinks.entries()) {
+            await expect(section.locator('[data-deal-card] > a').nth(i)).toHaveAttribute('href', href);
+        }
+        await format.getByText('Digital', { exact: true }).click();
+        await expect(section).toContainText('Oferta digital actual');
+        expect(calls).toEqual(['physical', 'digital']);
+    });
+
+    test('Ofertas de hoy aplica preferencias guardadas y muestra el fallo sin ofertas ajenas al filtro', async ({ page }) => {
+        await page.addInitScript(() => {
+            localStorage.setItem('pio_format', 'digital');
+            localStorage.setItem('pio_international', 'false');
+        });
+        const calls: URL[] = [];
+        await page.route('**/api/deals/**', async (route) => {
+            calls.push(new URL(route.request().url()));
+            await route.fulfill({ status: 500, json: { detail: 'offline' } });
+        });
+        await page.goto('/');
+        const section = page.locator('[data-home-deals]');
+        await expect(section).toContainText('No se pudieron cargar las ofertas.');
+        await expect(section.locator('[data-deal-card]')).toHaveCount(0);
+        expect(calls).toHaveLength(1);
+        expect(calls[0].searchParams.get('condition')).toBe('digital');
+        expect(calls[0].searchParams.get('seller_locations')).toBe('national,regions');
+    });
+
     test('el Navbar de escritorio enlaza Ofertas', async ({ page }) => {
         await page.setViewportSize({ width: 1280, height: 800 });
         await page.goto('/search');
