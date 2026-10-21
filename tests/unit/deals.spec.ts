@@ -85,7 +85,7 @@ test.describe('dealsSummarySentence', () => {
     test('arma la frase completa con la mayor rebaja y la fecha del scrapeo', () => {
         expect(dealsSummarySentence(response(), undefined, NOW)).toBe(
             '37 juegos están al menos 15% bajo su precio típico de los últimos 90 días. ' +
-            'La mayor rebaja es Juego X (PlayStation 5): $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
+            'Una oferta recomendada es Juego X (PlayStation 5): $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
             'Precios con envío incluido; datos del scrapeo del 7 de octubre de 2026.',
         );
     });
@@ -93,7 +93,7 @@ test.describe('dealsSummarySentence', () => {
     test('con consola la nombra en la cifra y no la repite tras el juego', () => {
         expect(dealsSummarySentence(response({ count: 4 }), PS5, NOW)).toBe(
             '4 juegos de PlayStation 5 están al menos 15% bajo su precio típico de los últimos 90 días. ' +
-            'La mayor rebaja es Juego X: $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
+            'Una oferta recomendada es Juego X: $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
             'Precios con envío incluido; datos del scrapeo del 7 de octubre de 2026.',
         );
     });
@@ -114,7 +114,7 @@ test.describe('dealsSummarySentence', () => {
         );
         expect(text).toBe(
             '37 juegos están al menos 15% bajo su precio típico de los últimos 90 días. ' +
-            'La mayor rebaja es Juego X: $19.990 frente a $29.990 habitual (−33%, nuevo). ' +
+            'Una oferta recomendada es Juego X: $19.990 frente a $29.990 habitual (−33%, nuevo). ' +
             'Precios con envío incluido.',
         );
         expect(text).not.toContain('scrapeo');
@@ -188,7 +188,7 @@ test.describe('ofertas que no son de hoy (el cálculo de la noche no corrió)', 
     test('la frase pasa a pasado, con la fecha y sin «hoy»', () => {
         expect(dealsSummarySentence(response(), undefined, TWO_DAYS_LATER)).toBe(
             'El 8 de octubre de 2026, 37 juegos estaban al menos 15% bajo su precio típico de los últimos 90 días. ' +
-            'La mayor rebaja era Juego X (PlayStation 5): $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
+            'Una oferta recomendada era Juego X (PlayStation 5): $19.990 frente a $29.990 habitual (−33%) en Zmart (nuevo). ' +
             'Precios con envío incluido; datos del scrapeo del 7 de octubre de 2026.',
         );
         expect(dealsSummarySentence(response({ count: 1 }), PS5, TWO_DAYS_LATER)).toMatch(
@@ -274,8 +274,8 @@ test('la línea de método y la nota de alcance son fijas', () => {
 });
 
 test.describe('ofertas en la galería (`/api/games/?deals=1`)', () => {
-    test('el orden por defecto de /ofertas es la mayor rebaja', () => {
-        expect(DEALS_ORDERING).toBe('-deal_discount');
+    test('el orden por defecto de /ofertas es el recomendado', () => {
+        expect(DEALS_ORDERING).toBe('recommended');
     });
 
     test('dealFromGame arma la oferta con el juego y su `deal` (sin el `game` anidado)', () => {

@@ -388,7 +388,7 @@ export async function getTrendingGames(params?: {
     return fetcher<PaginatedResponse<Game>>(`/games/trending/${qs(qsParams)}`, { signal });
 }
 
-/** Juegos destacados curados a mano por el admin (orden manual). */
+/** Juegos destacados: afiliados primero; ahorro, valoración y clics. */
 export async function getFeaturedGames(params?: {
     condition?: string;
     seller_locations?: string;
@@ -538,6 +538,7 @@ export async function getStats() {
  *  desconocido es un 400: el llamador valida antes contra `getPlatforms`). */
 export async function getDeals(params?: {
     platform?: string;
+    ordering?: 'recommended' | '-deal_discount';
     /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
     revalidate?: number;
 }) {

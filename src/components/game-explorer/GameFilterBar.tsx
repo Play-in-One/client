@@ -119,7 +119,10 @@ const ORDERING_DATA = [
  *  es el orden por defecto de esa página. */
 const DEALS_ORDERING_GROUP = {
     group: 'Ofertas',
-    items: [{ value: DEALS_ORDERING, label: 'Mayor descuento' }],
+    items: [
+        { value: DEALS_ORDERING, label: 'Recomendados' },
+        { value: '-deal_discount', label: 'Mayor descuento' },
+    ],
 };
 
 interface ToolbarProps {

@@ -34,9 +34,9 @@ export const DEALS_TYPICAL_NOTE = 'El precio típico de cada oferta considera to
 // dentro del desplegable, para que la diferencia no se lea como un bug.
 export const DEALS_SCOPE_NOTE = 'Estos totales son del catálogo completo; la grilla de abajo sigue tus filtros y preferencias.';
 
-/** Orden por defecto de /ofertas en la galería: la mayor rebaja primero, como
+/** Orden por defecto de /ofertas en la galería: el ranking recomendado, como
  *  lista `/api/deals/` la grilla del servidor. */
-export const DEALS_ORDERING = '-deal_discount';
+export const DEALS_ORDERING = 'recommended';
 
 /** El signo menos tipográfico: el guion corto se lee como un guion de unión. */
 const MINUS = '−';
@@ -166,7 +166,7 @@ export function dealsPageView(
 
 /**
  * «37 juegos están al menos 15% bajo su precio típico de los últimos 90 días.
- *  La mayor rebaja es X (PlayStation 5): $19.990 frente a $29.990 habitual
+ *  Una oferta recomendada es X (PlayStation 5): $19.990 frente a $29.990 habitual
  *  (−33%) en Zmart. Precios con envío incluido; datos del scrapeo del 7 de
  *  octubre de 2026.»
  *
@@ -197,7 +197,7 @@ export function dealsSummarySentence(
     const subject = res.count === 1 ? `1 juego${of} ${one}` : `${count(res.count)} juegos${of} ${many}`;
     let text = `${stale ? `El ${stale}, ` : ''}${subject} al menos 15% bajo su precio típico de los últimos 90 días.`;
 
-    // Los resultados llegan ordenados por descuento: el primero es la mayor rebaja.
+    // La primera tarjeta sigue el ranking recomendado del backend.
     const top = res.results[0];
     // En la página de una consola el paréntesis repetiría lo que ya dice la cifra.
     const topPlatform = platform ? null : dealPlatform(top);
@@ -209,7 +209,7 @@ export function dealsSummarySentence(
         ? ` (${MINUS}${pct(top)}%) en ${top.seller.name} (${condition})`
         : ` (${MINUS}${pct(top)}%, ${condition})`;
     text +=
-        ` La mayor rebaja ${stale ? 'era' : 'es'} ${top.game.name}${where}: ${formatCLP(top.current_price)} frente a ` +
+        ` Una oferta recomendada ${stale ? 'era' : 'es'} ${top.game.name}${where}: ${formatCLP(top.current_price)} frente a ` +
         `${formatCLP(top.typical_price)} habitual${tail}.`;
 
     text += scraped

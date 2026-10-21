@@ -199,7 +199,7 @@ test.describe('HTML del servidor', () => {
         });
     });
 
-    test('/ofertas/<consola de la mayor rebaja> filtra por consola y se indexa', async ({ request }) => {
+    test('/ofertas/<consola de una recomendación> filtra por consola y se indexa', async ({ request }) => {
         const [top] = (await apiDeals(request)).results;
         const platforms = (await (await request.get(`${API}/platforms/`)).json()).results as Platform[];
         const platform = platforms.find((p) => p.slug === top.platform)!;
@@ -215,8 +215,9 @@ test.describe('HTML del servidor', () => {
 
         expect(api.results.every((d) => d.platform === platform.slug)).toBe(true);
         expectListsDeals(html, api, platform);
-        // La mayor rebaja global es también una oferta de su consola.
-        expect(html).toContain(`href="${gamePath(top.game, top.platform)}"`);
+        // El subconjunto por consola vuelve a calcular sus percentiles.
+        // Las tarjetas deben coincidir con su propia respuesta de la API.
+        expect(html).toContain(`href="${gamePath(api.results[0].game, platform.slug)}"`);
         // Cada tarjeta abre la ficha en esa consola.
         const others = new RegExp(`href="/juego/[a-z0-9-]+-\\d+\\?platform=(?!${platform.slug}")[a-z0-9-]+"`);
         expect(html).not.toMatch(others);
@@ -301,14 +302,14 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         await expect(page.locator('[data-explorer-sidebar]').getByRole('slider')).toBeVisible();
     });
 
-    test('el orden por defecto es «Mayor descuento» y los facets se piden con deals=1', async ({ page }) => {
+    test('el orden por defecto es «Recomendados» y los facets se piden con deals=1', async ({ page }) => {
         const facets = page.waitForRequest((r) => {
             const url = new URL(r.url());
             return url.pathname.endsWith('/api/games/facets/') && url.searchParams.get('deals') === '1';
         });
         await page.goto('/ofertas');
         await facets;
-        await expect(page.getByRole('textbox', { name: 'Ordenar por' })).toHaveValue('Mayor descuento');
+        await expect(page.getByRole('textbox', { name: 'Ordenar por' })).toHaveValue('Recomendados');
         await page.getByRole('textbox', { name: 'Ordenar por' }).click();
         // Los demás órdenes siguen ahí.
         await expect(page.getByRole('option', { name: 'Mayor descuento' })).toBeVisible();
@@ -330,6 +331,27 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         await expect(card.locator('[data-deal-line]')).toHaveText(dealBadgeLine(first!));
         await expect(page.locator('[data-deal-card]')).toHaveCount(body.results.length);
         await expect(page.locator('[data-deal-line]')).toHaveCount(body.results.length);
+    });
+
+    test('permite alternar Mayor descuento y Recomendados conservando las tarjetas de la API', async ({ page, request }) => {
+        await page.goto('/ofertas');
+        await orderByLowestPrice(page);
+        for (const [label, ordering] of [['Mayor descuento', '-deal_discount'], ['Recomendados', 'recommended']]) {
+            const pending = page.waitForResponse((res) =>
+                isDealsListing(res.request(), (p) => p.get('ordering') === ordering));
+            await page.getByRole('textbox', { name: 'Ordenar por' }).click();
+            await page.getByRole('option', { name: label, exact: true }).click();
+            const response = await pending;
+            expect(response.ok()).toBe(true);
+            const body = await response.json() as PaginatedResponse<Game>;
+            await expect(page.locator('[data-deal-card]').first()).toContainText(body.results[0].name);
+            if (ordering === 'recommended') {
+                const api = await apiDeals(request);
+                expect(body.results.map((g) => g.id)).toEqual(api.results.slice(0, body.results.length).map((d) => d.game.id));
+                expect(body.results.map((g) => [g.deal?.platform, g.deal?.condition, g.deal?.current_price]))
+                    .toEqual(api.results.slice(0, body.results.length).map((d) => [d.platform, d.condition, d.current_price]));
+            }
+        }
     });
 
     test('la etiqueta «↓N%» junto al precio abre el detalle sin navegar a la ficha', async ({ page, request }) => {
