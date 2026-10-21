@@ -540,7 +540,7 @@ export async function getStats() {
  *  desconocido es un 400: el llamador valida antes contra `getPlatforms`). */
 export async function getDeals(params?: {
     platform?: string;
-    ordering?: 'recommended' | '-deal_discount';
+    ordering?: 'recommended' | '-deal_savings' | '-deal_discount';
     /** Portada: solo precios que llevan como máximo tres días sin cambiar. */
     homepage?: 1;
     /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */

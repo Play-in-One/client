@@ -114,14 +114,13 @@ const ORDERING_DATA = [
     },
 ];
 
-/** Solo en /ofertas (`lockedDeals`): con `deals=1` el backend sabe ordenar por
- *  la rebaja de la oferta, que fuera de /ofertas no existe. Va primero porque
- *  es el orden por defecto de esa página. */
+/** Órdenes de Ofertas: ahorro en pesos primero, seguido del porcentaje. */
 const DEALS_ORDERING_GROUP = {
     group: 'Ofertas',
     items: [
+        { value: '-deal_savings', label: 'Mayor descuento bruto' },
+        { value: '-deal_discount', label: 'Mayor descuento porcentual' },
         { value: DEALS_ORDERING, label: 'Recomendados' },
-        { value: '-deal_discount', label: 'Mayor descuento' },
     ],
 };
 
@@ -133,7 +132,7 @@ interface ToolbarProps {
     ordering: string;
     defaultOrdering: string;
     onOrderingChange: (value: string) => void;
-    /** Añade «Mayor descuento» (`-deal_discount`) al menú de orden. */
+    /** Añade los órdenes de descuento bruto y porcentual al menú. */
     withDealsOrdering?: boolean;
     selectionMode: boolean;
     onToggleSelectionMode: () => void;
@@ -197,7 +196,7 @@ export function FilterToolbar({
                 onChange={(v) => onOrderingChange(v ?? defaultOrdering)}
                 size="sm"
                 radius="md"
-                w={210}
+                w={withDealsOrdering ? 270 : 210}
                 leftSection={<IconFilter size={16} />}
             />
 

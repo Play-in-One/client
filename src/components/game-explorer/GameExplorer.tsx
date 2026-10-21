@@ -54,7 +54,7 @@ interface Props {
      *  calificación/oferta siguen siendo útiles. */
     lockedSaga?: LockedSaga;
     /** Galería acotada a las ofertas del día (/ofertas): toda consulta lleva
-     *  `deals=1`, el menú de orden gana «Mayor descuento» y se oculta «En
+     *  `deals=1`, el menú gana descuentos bruto y porcentual y se oculta «En
      *  oferta» (`on_sale`): es el mismo filtro, ahí ya está puesto. Cada
      *  tarjeta se pinta con `DealCard`, igual que la grilla del servidor.
      *  El orden por defecto lo fija el padre (`DEALS_ORDERING`). */

@@ -320,7 +320,8 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         await expect(page.getByRole('textbox', { name: 'Ordenar por' })).toHaveValue('Recomendados');
         await page.getByRole('textbox', { name: 'Ordenar por' }).click();
         // Los demás órdenes siguen ahí.
-        await expect(page.getByRole('option', { name: 'Mayor descuento' })).toBeVisible();
+        const discountOptions = page.getByRole('option').filter({ hasText: /^Mayor descuento/ });
+        await expect(discountOptions).toHaveText(['Mayor descuento bruto', 'Mayor descuento porcentual']);
         await expect(page.getByRole('option', { name: 'Menor precio' })).toBeVisible();
         await expect(page.getByRole('option', { name: 'Más populares' })).toBeVisible();
     });
@@ -341,19 +342,36 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         await expect(page.locator('[data-deal-line]')).toHaveCount(body.results.length);
     });
 
-    test('permite alternar Mayor descuento y Recomendados conservando las tarjetas de la API', async ({ page, request }) => {
+    test('permite alternar descuento bruto, porcentual y Recomendados conservando las tarjetas de la API', async ({ page, request }) => {
         await page.goto('/ofertas');
         await orderByLowestPrice(page);
-        for (const [label, ordering] of [['Mayor descuento', '-deal_discount'], ['Recomendados', 'recommended']]) {
+        for (const [label, ordering] of [
+            ['Mayor descuento bruto', '-deal_savings'],
+            ['Mayor descuento porcentual', '-deal_discount'],
+            ['Recomendados', 'recommended'],
+        ]) {
             const pending = page.waitForResponse((res) =>
                 isDealsListing(res.request(), (p) => p.get('ordering') === ordering));
             await page.getByRole('textbox', { name: 'Ordenar por' }).click();
             await page.getByRole('option', { name: label, exact: true }).click();
             const response = await pending;
             expect(response.ok()).toBe(true);
+            expect(new URL(response.url()).searchParams.get('page')).toBe('1');
             const body = await response.json() as PaginatedResponse<Game>;
             await expect(page.locator('[data-deal-card]').first()).toContainText(body.results[0].name);
-            if (ordering === 'recommended') {
+            if (ordering !== 'recommended') {
+                const values = body.results.map((g) => Number(ordering === '-deal_savings' ? g.deal?.savings : g.deal?.discount_pct));
+                expect(values).toEqual([...values].sort((a, b) => b - a));
+                expect(body.count).toBeGreaterThan(DEALS_PAGE_SIZE);
+                const next = page.waitForResponse((res) => isDealsListing(res.request(), (p) =>
+                    p.get('ordering') === ordering && p.get('page') === '2'));
+                await page.getByRole('button', { name: '2', exact: true }).click();
+                const secondPage = await (await next).json() as PaginatedResponse<Game>;
+                const secondValues = secondPage.results.map((g) => Number(ordering === '-deal_savings' ? g.deal?.savings : g.deal?.discount_pct));
+                expect([...values, ...secondValues]).toEqual([...values, ...secondValues].sort((a, b) => b - a));
+                expect(secondPage.results.every((g) => !body.results.some((first) => first.id === g.id))).toBe(true);
+                await expect(page.locator('[data-deal-card]').first()).toContainText(secondPage.results[0].name);
+            } else {
                 const api = await apiDeals(request);
                 expect(body.results.map((g) => g.id)).toEqual(api.results.slice(0, body.results.length).map((d) => d.game.id));
                 expect(body.results.map((g) => [g.deal?.platform, g.deal?.condition, g.deal?.current_price]))
