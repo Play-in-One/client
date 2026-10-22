@@ -118,7 +118,14 @@ test('un juego sin ninguna oferta vigente se lista con el badge "Sin stock" y no
     }
 });
 
-test('muestra las facetas mientras la petición de resultados sigue pendiente', async ({ page }) => {
+test('muestra las facetas mientras la petición de resultados sigue pendiente', async ({ page, request }) => {
+    // Platforms are server-rendered, so page.route cannot replace their IDs.
+    const api = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
+    const response = await request.get(`${api}/platforms/`);
+    expect(response.ok()).toBe(true);
+    const catalog = (await response.json()).results as { id: number; slug: string }[];
+    const ps5 = catalog.find((platform) => platform.slug === 'ps5');
+    expect(ps5).toBeDefined();
     let releaseResults = () => {};
     const resultsPending = new Promise<void>((resolve) => { releaseResults = resolve; });
     let resultsRequested = false;
@@ -138,7 +145,7 @@ test('muestra las facetas mientras la petición de resultados sigue pendiente', 
         await route.fulfill({ json: makeResults(2) });
     });
     await page.route(/\/api\/games\/facets\//, (route) =>
-        route.fulfill({ json: { platforms: { 1: 7 }, genres: {}, sellers: {} } }));
+        route.fulfill({ json: { platforms: { [ps5!.id]: 7 }, genres: {}, sellers: {} } }));
 
     try {
         await page.goto('/search?q=mario');

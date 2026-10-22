@@ -388,6 +388,8 @@ test('un envío exitoso muestra confeti y una barra antes de cerrar a los cinco 
     await surveyButton(page).click();
     const dialog = page.getByRole('dialog', { name: 'E2E Mock Nueva' });
     await answerRequiredQuestions(page, dialog);
+    // Leave headroom for the browser round trip before freezing the clock.
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 60_000));
     await dialog.getByRole('button', { name: 'Enviar respuestas' }).click();
     await expect(dialog.getByText('¡Gracias por responder!')).toBeVisible();
     await expect(dialog.locator('[data-survey-confetti]')).toBeVisible();
@@ -397,7 +399,7 @@ test('un envío exitoso muestra confeti y una barra antes de cerrar a los cinco 
     await expect(dialog).toBeVisible();
     await expect(countdown).toHaveAttribute('aria-valuenow', '50');
     await page.clock.fastForward(2500);
-    await page.clock.fastForward(300); // Transición de salida del modal.
+    await page.clock.resume(); // React y la transición del modal necesitan frames.
     await expect(dialog).toBeHidden();
 });
 
@@ -562,7 +564,7 @@ for (const detail of ['Ya respondiste esta encuesta.', 'Esta encuesta ya está c
         await answerRequiredQuestions(page, dialog);
         await dialog.getByLabel('¿Algo más?').fill('Mi opinión');
         // Freeze after the UI is ready; mounting the launcher uses timers.
-        await page.clock.pauseAt(await page.evaluate(() => Date.now()));
+        await page.clock.pauseAt(await page.evaluate(() => Date.now() + 60_000));
         await dialog.getByRole('button', { name: 'Enviar respuestas' }).click();
         await expect(dialog.getByRole('heading', { name: detail })).toBeVisible();
         await expect(dialog.getByRole('button', { name: 'Enviar respuestas' })).toHaveCount(0);
