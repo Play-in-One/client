@@ -23,7 +23,9 @@ export default defineConfig({
         },
     ],
     webServer: EXTERNAL_BASE_URL ? undefined : {
-        command: 'npm run dev',
+        command: process.env.PLAYWRIGHT_PRODUCTION === '1'
+            ? 'node scripts/start-e2e-production.mjs'
+            : 'npm run dev',
         url: `http://localhost:${PORT}`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

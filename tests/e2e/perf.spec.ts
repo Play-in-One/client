@@ -93,6 +93,13 @@ test('el beacon no lo rechaza el backend', async ({ page }) => {
     // Las métricas del navegador llegan con decimales y el backend las guarda
     // como enteros: sin redondear, TODOS los beacons se perdían con un 400 que
     // `sendBeacon` no puede leer. Un 2xx aquí es lo único que lo demuestra.
+    // The isolated Django server has no reverse proxy. Give this browser its
+    // own synthetic address: hundreds of unrelated tests share localhost and
+    // otherwise consume its 60/min quota before this payload check runs.
+    // Production Caddy replaces X-Forwarded-For with the actual client IP.
+    await page.route(/\/api\/rum\/$/, (route) => route.continue({
+        headers: { ...route.request().headers(), 'X-Forwarded-For': '192.0.2.60' },
+    }));
     const statuses: number[] = [];
     page.on('response', (r) => {
         if (r.url().includes('/api/rum/')) statuses.push(r.status());
