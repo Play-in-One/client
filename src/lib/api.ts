@@ -27,6 +27,7 @@ export function getProductPreviews(ids: number[], filters: ProductPreviewFilters
 
 export function setAdminToken(token: string | null) {
     adminToken = token;
+    failedRequestsCache.clear();
 }
 
 /* Callback que AdminContext registra para reaccionar cuando el token deja de ser
@@ -60,9 +61,15 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     const isMutation = !!init?.method && init.method.toUpperCase() !== 'GET';
     const { admin, ...requestInit } = init ?? {};
 
+    const failureKey = `${admin && adminToken ? 'staff' : 'public'}:${path}`;
+    for (const [key, value] of failedRequestsCache) {
+        if (value.expireAt <= Date.now()) failedRequestsCache.delete(key);
+    }
     if (!isMutation) {
-        const cached = failedRequestsCache.get(path);
+        const cached = failedRequestsCache.get(failureKey);
         if (cached && Date.now() < cached.expireAt) {
+            failedRequestsCache.delete(failureKey);
+            failedRequestsCache.set(failureKey, cached);
             throw cached.error;
         }
     }
@@ -125,7 +132,7 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     if (!res.ok) {
         // Sesión admin inválida: si habíamos adjuntado un token y nos deniegan
         // (401/403), el token expiró o fue revocado → limpiar y avisar.
-        if (adminToken && (res.status === 401 || res.status === 403)) {
+        if (attachToken && adminToken && (res.status === 401 || res.status === 403)) {
             adminToken = null;
             onAuthError?.();
         }
@@ -138,15 +145,18 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
         // otherwise get replayed to every other visitor hitting this path for 10s, turning
         // a momentary backend hiccup into a shared outage across unrelated requests.
         if (!isMutation && res.status === 404) {
-            failedRequestsCache.set(path, {
+            failedRequestsCache.set(failureKey, {
                 error,
                 expireAt: Date.now() + FAILED_REQUEST_COOLDOWN_MS,
             });
+            while (failedRequestsCache.size > 512) {
+                failedRequestsCache.delete(failedRequestsCache.keys().next().value!);
+            }
         }
         throw error;
     }
     // Clear any cached failure for this path on success
-    failedRequestsCache.delete(path);
+    failedRequestsCache.delete(failureKey);
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
 }
@@ -321,7 +331,7 @@ export function sendPageLoad(payload: PageLoadPayload): void {
 
 export function sendCatalogFilterLoad(payload: {
     phase: 'results' | 'facets';
-    surface: 'search' | 'landing';
+    surface: 'search' | 'landing' | 'deals';
     duration_ms: number;
     success: boolean;
 }): void {

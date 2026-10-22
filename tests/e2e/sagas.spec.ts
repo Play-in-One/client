@@ -130,7 +130,7 @@ test.describe('vista mobile', () => {
         // nativo nunca lo esconde de un crawler) pero no se pinta hasta abrir.
         const sagaLogo = details.getByAltText(`Logo de ${SEEDED.sagaName}`);
         await expect(sagaLogo).toBeHidden();
-        await details.locator('summary').click();
+        await details.locator(':scope > summary').click();
         await expect(sagaLogo).toBeVisible();
 
         // Bajo el nombre y el selector de consola, no arriba (donde vivía

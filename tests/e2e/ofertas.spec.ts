@@ -1,5 +1,17 @@
 import { test, expect, type APIRequestContext, type Page, type Request } from '@playwright/test';
 import { SEEDED, robotsOf, serverHtml } from './helpers';
+
+test('la medición de filtros identifica la superficie de ofertas', async ({ page }) => {
+    const events: string[] = [];
+    page.on('request', (request) => {
+        if (request.url().includes('/api/rum/catalog-filter/') && request.method() === 'POST') {
+            events.push(request.postData() ?? '');
+        }
+    });
+    await page.goto('/ofertas');
+    await expect.poll(() => events.some((body) => body.includes('deals') && body.includes('facets'))).toBe(true);
+    expect(events.some((body) => body.includes('search'))).toBe(false);
+});
 import {
     dealBadgeLine,
     dealConsoleLinkLabel,
@@ -678,7 +690,7 @@ test.describe('La rebaja en toda tarjeta cuyo precio es la oferta', () => {
             const platform = bySlug.get(slug);
             if (!platform) continue;
             const page: PaginatedResponse<Game> = await (await request.get(
-                `${API}/games/?platforms=${platform.id}&ordering=${encodeURIComponent(LANDING_ORDERING)}&page=1`,
+                `${API}/games/?platforms=${platform.id}&ordering=${encodeURIComponent(LANDING_ORDERING)}&page=1&page_size=24`,
             )).json();
             if (page.results.some((g) => g.deal)) return { platform, games: page.results };
         }

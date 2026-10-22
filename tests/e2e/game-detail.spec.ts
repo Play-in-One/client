@@ -48,6 +48,9 @@ test('muestra las calificaciones como gauges por fuente', async ({ page }) => {
     await expect(page.getByTestId('rating-gauge-metacritic').first()).toBeVisible();
     await expect(page.getByTestId('rating-gauge-igdb').first()).toBeVisible();
     await expect(page.getByTestId('rating-gauge-steam').first()).toBeVisible();
+    const source = page.getByRole('link', { name: 'Ver en Metacritic', exact: true }).first();
+    await expect(source).toHaveAttribute('href', 'https://www.metacritic.com/game/e2e');
+    await expect(source).toHaveAttribute('rel', 'noopener noreferrer');
     await expect(page.getByText('8.6/10', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('8.5/10', { exact: true }).first()).toBeVisible();
 });

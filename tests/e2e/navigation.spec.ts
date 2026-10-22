@@ -7,6 +7,9 @@ test.beforeEach(async ({ page }) => {
     await page.route(/\/api\//, (route) =>
         route.fulfill({ json: emptyPaginated })
     );
+    await page.route(/\/api\/games\/facets\//, (route) =>
+        route.fulfill({ json: { platforms: {}, genres: {}, sellers: {} } })
+    );
 });
 
 test('el link del logo navega a la página de inicio', async ({ page }) => {

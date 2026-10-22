@@ -657,7 +657,7 @@ export interface PerformanceReport {
 export interface CatalogFilterPerformanceReport {
     days: number;
     rows: {
-        surface: 'search' | 'landing';
+        surface: 'search' | 'landing' | 'deals';
         phase: 'results' | 'facets';
         samples: number;
         failures: number;

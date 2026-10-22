@@ -22,7 +22,7 @@ async function fetchFirstPage(): Promise<{ games: Game[]; total: number }> {
     try {
         // La página es dinámica (lee `searchParams`), así que el `revalidate`
         // de arriba no la cachea: sin Data Cache cada visita pagaba este fetch.
-        const res = await getGames({ page: 1, ordering: DEFAULT_ORDERING, revalidate });
+        const res = await getGames({ page_size: 24, page: 1, ordering: DEFAULT_ORDERING, revalidate });
         return { games: res.results, total: res.count };
     } catch {
         // La galería se llena igual en el cliente: un backend caído no debe

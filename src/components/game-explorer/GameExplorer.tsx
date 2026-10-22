@@ -163,7 +163,7 @@ export default function GameExplorer({
     const dealsParam = lockedDeals ? (1 as const) : undefined;
     /* /ofertas mide como una landing: es una galería con contenido servido y
        sidebar, no el buscador. */
-    const surface = lockedPlatform || lockedDeals ? 'landing' : 'search';
+    const surface = lockedDeals ? 'deals' : lockedPlatform ? 'landing' : 'search';
     const [interactive, setInteractive] = useState(!isStaticMode);
     const markInteractive = useCallback(() => {
         if (isStaticMode) setInteractive(true);
@@ -173,6 +173,7 @@ export default function GameExplorer({
     const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
     const [total, setTotal] = useState(initialTotal);
     const [page, setPage] = useState(initialPage);
+    const [resultsError, setResultsError] = useState(false);
     const [loading, setLoading] = useState(initialGames.length === 0);
     const [searchInput, setSearchInput] = useState(query);
     const [activeQuery, setActiveQuery] = useState(query);
@@ -375,6 +376,7 @@ export default function GameExplorer({
         const controller = new AbortController();
         const started = performance.now();
         setLoading(true);
+        setResultsError(false);
         getGames({
             search: activeQuery || undefined,
             platforms: effectivePlatformIds.length > 0 ? effectivePlatformIds : undefined,
@@ -389,11 +391,12 @@ export default function GameExplorer({
             seller_locations: sellerLocationsParam,
             ordering,
             page,
-            page_size: lockedDeals ? pageSize : undefined,
+            page_size: pageSize,
             signal: controller.signal,
         })
             .then((res) => {
                 sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: true });
+                if (controller.signal.aborted) return;
                 setGames(res.results);
                 setTotal(res.count);
                 const query = activeQuery.trim();
@@ -403,13 +406,13 @@ export default function GameExplorer({
                 }
             })
             .catch((err) => {
-                if (err?.name === 'AbortError') return;
+                if (controller.signal.aborted || err?.name === 'AbortError') return;
                 if (lockedDeals && err?.status === 404 && page > 1) {
                     setPage(1);
                     return;
                 }
                 sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: false });
-                setGames([]);
+                setResultsError(true);
                 const failed = activeQuery.trim();
                 if (failed && trackedSearch.current !== failed) {
                     trackedSearch.current = failed;
@@ -447,7 +450,7 @@ export default function GameExplorer({
                 setFacets({ ...result, sellers: result.sellers ?? {} });
             })
             .catch((err) => {
-                if (err?.name === 'AbortError') return;
+                if (controller.signal.aborted || err?.name === 'AbortError') return;
                 sendCatalogFilterLoad({ phase: 'facets', surface, duration_ms: performance.now() - started, success: false });
                 setFacets({ platforms: {}, genres: {}, sellers: {} });
             });
@@ -688,9 +691,13 @@ export default function GameExplorer({
                     CSS lo tapa para quien se desvía del default. Cubre a la vez
                     /search y las dos rutas de landing. */}
                 <Box style={{ flex: 1, minWidth: 0 }} data-prefs-dependent>
+                    {resultsError && <Alert color="red" title="No pudimos actualizar los resultados" role="alert" mb="md">
+                        <Text size="sm">Inténtalo otra vez. Los resultados anteriores se conservan.</Text>
+                        <Button mt="sm" variant="light" onClick={() => setRefreshKey(key => key + 1)}>Reintentar</Button>
+                    </Alert>}
                     {/* La MISMA condición que corta el fetch, o se gastaría la
                         petición para luego seguir pintando el HTML estático. */}
-                    {isStaticMode && !interactive && !globalFiltersActive ? staticFallback : (
+                    {isStaticMode && !interactive && !globalFiltersActive ? staticFallback : resultsError && games.length === 0 ? null : (
                         <GameResultsGrid
                             games={games}
                             previewFilters={{ platforms: effectivePlatformIds }}

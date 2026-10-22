@@ -280,7 +280,7 @@ export function PerformancePanel() {
                     <Table.Tbody>
                         {catalogFilters?.rows.map((row) => (
                             <Table.Tr key={`${row.surface}-${row.phase}`}>
-                                <Table.Td>{row.surface === 'search' ? 'Búsqueda' : 'Consola'}</Table.Td>
+                                <Table.Td>{row.surface === 'search' ? 'Búsqueda' : row.surface === 'deals' ? 'Ofertas' : 'Consola'}</Table.Td>
                                 <Table.Td>{row.phase === 'results' ? 'Resultados' : 'Contadores'}</Table.Td>
                                 <Table.Td>{row.samples}</Table.Td>
                                 <Table.Td>{row.failures}</Table.Td>

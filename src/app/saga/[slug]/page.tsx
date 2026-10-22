@@ -41,7 +41,7 @@ async function fetchSaga(slug: string): Promise<SagaDetail | null> {
  *  detalle de saga antes de que se retirara por colar juegos ocultos. */
 async function fetchGames(slug: string): Promise<{ games: Game[]; total: number }> {
     try {
-        const res = await getGames({ saga: slug, ordering: ORDERING });
+        const res = await getGames({ page_size: 24, saga: slug, ordering: ORDERING });
         return { games: res.results, total: res.count };
     } catch {
         return { games: [], total: 0 };

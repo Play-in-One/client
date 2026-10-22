@@ -33,7 +33,7 @@ async function fetchSeller(id: string): Promise<Seller | null> {
  *  la meta description en una respuesta y no en una plantilla. */
 async function fetchGames(id: string): Promise<{ games: Game[]; total: number }> {
     try {
-        const res = await getGames({ seller: Number(id), ordering: 'min_price' });
+        const res = await getGames({ page_size: 24, seller: Number(id), ordering: 'min_price' });
         return { games: res.results, total: res.count };
     } catch {
         // La ficha de la tienda vale por sí sola: si el catálogo falla se

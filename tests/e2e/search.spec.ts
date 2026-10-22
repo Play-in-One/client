@@ -75,7 +75,8 @@ test('con ?platform= no se pide el catálogo sin filtrar mientras se resuelve la
 });
 
 test('la página de búsqueda carga con resultados', async ({ page }) => {
-    await page.goto('/search');
+    // Una consulta fuerza el fetch del navegador; /search consume datos SSR.
+    await page.goto('/search?q=prueba');
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
 });
 
@@ -155,7 +156,7 @@ test('los filtros de plataforma se muestran en el sidebar', async ({ page }) => 
     // página (navbar, sidebar, tarjetas) y `getByText` moría por strict mode.
     // El sidebar usa el nombre LARGO de la consola, que es el que se lee.
     await expect(page.getByRole('checkbox', { name: /PlayStation 5/ })).toBeVisible();
-    await expect(page.getByRole('checkbox', { name: /Nintendo Switch/ })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /^Nintendo Switch \(/ })).toBeVisible();
 });
 
 test('la URL con ?q= precarga el término de búsqueda', async ({ page }) => {
@@ -199,7 +200,7 @@ test('conserva los juegos mientras cambia la consola y omite el conteo de tienda
         }
     });
 
-    await page.goto('/search');
+    await page.goto('/search?q=prueba');
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
     await page.getByRole('checkbox', { name: /PlayStation 5/ }).first().click();
     await expect(page.getByText('Actualizando resultados...')).toBeVisible();
@@ -232,4 +233,18 @@ test('la galería pide como anónimo aunque haya una sesión del admin abierta',
     await page.goto('/search?ordering=-traffic_score');
     await expect.poll(() => cookieHeaders.length, { timeout: 15_000 }).toBeGreaterThan(0);
     expect(cookieHeaders.filter((c) => c.includes('sessionid'))).toEqual([]);
+});
+
+test('una búsqueda fallida ofrece reintento', async ({ page }) => {
+    let broken = true;
+    await page.route(/\/api\/games\/\?/, route => {
+        expect(new URL(route.request().url()).searchParams.get('page_size')).toBe('24');
+        return broken ? route.fulfill({ status: 503, body: 'unavailable' }) : route.fulfill({ json: makeResults(2) });
+    });
+    await page.goto('/search?q=retry-regression');
+    await expect(page.getByRole('alert').filter({ hasText: 'No pudimos actualizar' })).toBeVisible();
+    broken = false;
+    await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
+    await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: 'No pudimos actualizar' })).toHaveCount(0);
 });

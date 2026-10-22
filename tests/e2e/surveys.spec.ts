@@ -561,6 +561,8 @@ for (const detail of ['Ya respondiste esta encuesta.', 'Esta encuesta ya está c
         const dialog = page.getByRole('dialog', { name: 'E2E Mock Nueva' });
         await answerRequiredQuestions(page, dialog);
         await dialog.getByLabel('¿Algo más?').fill('Mi opinión');
+        // Freeze after the UI is ready; mounting the launcher uses timers.
+        await page.clock.pauseAt(await page.evaluate(() => Date.now()));
         await dialog.getByRole('button', { name: 'Enviar respuestas' }).click();
         await expect(dialog.getByRole('heading', { name: detail })).toBeVisible();
         await expect(dialog.getByRole('button', { name: 'Enviar respuestas' })).toHaveCount(0);
@@ -572,7 +574,8 @@ for (const detail of ['Ya respondiste esta encuesta.', 'Esta encuesta ya está c
             await expect(dialog).toBeVisible();
             await expect(countdown).toHaveAttribute('aria-valuenow', '20');
             await page.clock.fastForward(1000);
-            await page.clock.fastForward(300);
+            // React and the modal transition must be able to schedule frames.
+            await page.clock.resume();
             await expect(dialog).toBeHidden();
         }
     });

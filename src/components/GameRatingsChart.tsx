@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Center, Stack } from '@mantine/core';
+import { Anchor, Box, Center, Stack } from '@mantine/core';
 import type { IconType } from 'react-icons';
 import { SiMetacritic, SiIgdb, SiSteam } from 'react-icons/si';
 import type { GameRating, GameRatingSource } from '@/lib/types';
@@ -56,14 +56,18 @@ export default function GameRatingsChart({ ratings }: GameRatingsChartProps) {
                 }}
             >
                 {normalized.map((rating) => (
+                    <Stack key={rating.source} gap={2}>
                     <RatingGauge
-                        key={rating.source}
                         value={rating.normalized}
                         label={rating.sourceLabel}
                         icon={SOURCE_ICON[rating.source]}
                         count={rating.count}
                         testId={`rating-gauge-${rating.source}`}
                     />
+                    {/^https?:\/\//i.test(rating.url ?? '') && <Anchor href={rating.url} target="_blank" rel="noopener noreferrer" size="xs" ta="center">
+                        Ver en {rating.sourceLabel}
+                    </Anchor>}
+                    </Stack>
                 ))}
             </Box>
         </Stack>

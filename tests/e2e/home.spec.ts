@@ -198,7 +198,7 @@ test('Destacados y Populares no repiten juegos', async ({ page }) => {
    así que no se supone qué juego encabeza: se compara con la API. */
 test('«Ofertas de hoy» muestra las primeras ofertas y enlaza a /ofertas', async ({ page, request }) => {
     const api = process.env.NEXT_PUBLIC_API_URL ?? 'http://pio.localhost:8080/api';
-    const res = await (await request.get(`${api}/deals/`)).json();
+    const res = await (await request.get(`${api}/deals/?homepage=1`)).json();
     const { results } = res;
     expect(results.length).toBeGreaterThan(0);
 

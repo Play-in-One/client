@@ -69,7 +69,7 @@ async function fetchGames(
     page: number,
 ): Promise<{ games: Game[]; total: number; failed: boolean }> {
     try {
-        const res = await getGames({ platforms: [platform.id], ordering: ORDERING, page });
+        const res = await getGames({ page_size: 24, platforms: [platform.id], ordering: ORDERING, page });
         return { games: res.results, total: res.count, failed: false };
     } catch (error) {
         // El 404 de DRF es una página fuera de rango: vacía de verdad. El
