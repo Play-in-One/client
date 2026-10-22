@@ -26,7 +26,7 @@ import {
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces, decorative } from '@/lib/colors';
-import { getTrendingGames, getFeaturedGames, getDeals, trackEvent } from '@/lib/api';
+import { getHomeGames, getDeals, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
@@ -120,19 +120,16 @@ export default function HomeClient({
             condition: conditionParam,
             seller_locations: sellerLocationsParam,
         };
-        Promise.all([
-            getTrendingGames({ ...query, signal: controller.signal }),
-            getFeaturedGames({ ...query, signal: controller.signal }),
-        ])
-            .then(([t, f]) => {
+        getHomeGames({ ...query, signal: controller.signal })
+            .then(({ trending: nextTrending, featured: nextFeatured }) => {
                 if (superseded) return;
-                filterCache.current.set(cacheKey, { trending: t.results, featured: f.results });
+                filterCache.current.set(cacheKey, { trending: nextTrending, featured: nextFeatured });
                 /* startTransition marca el swap de contenido como no urgente:
                    la animación del SegmentedControl y el resto de la UI no
                    quedan bloqueados por el re-render del carrusel + grilla. */
                 startTransition(() => {
-                    setTrending(t.results);
-                    setFeatured(f.results);
+                    setTrending(nextTrending);
+                    setFeatured(nextFeatured);
                     setFiltering(false);
                 });
             })

@@ -76,6 +76,26 @@ test.beforeEach(async ({ page }) => {
     // orden inverso al registro, así que la última registrada es la que gana.
     await page.route(/\/api\/games\/facets\//, (route) =>
         route.fulfill({ json: { platforms: {}, genres: {}, sellers: {} } }));
+    await page.route(/\/api\/games\/home\//, (route) =>
+        route.fulfill({ json: { featured: MOCK_GAMES.results.slice(0, 1), trending: MOCK_GAMES.results.slice(1) } }));
+});
+
+test('el formato global pide destacados y populares una sola vez', async ({ page }) => {
+    await page.goto('/');
+    const requests: string[] = [];
+    page.on('request', (request) => {
+        if (/\/api\/games\/(home|featured|trending)\//.test(request.url())) requests.push(request.url());
+    });
+    const response = page.waitForResponse((r) => r.url().includes('/api/games/home/') && r.url().includes('condition=physical'));
+    await page.getByRole('radiogroup', { name: 'Formato' }).getByText('Físico', { exact: true }).click();
+    await response;
+    await expect(page.locator('main').getByText('God of War Ragnarök', { exact: true }).first()).toBeVisible();
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toContain('/api/games/home/');
+    await page.getByRole('radiogroup', { name: 'Formato' }).getByText('Todo', { exact: true }).click();
+    await page.getByRole('radiogroup', { name: 'Formato' }).getByText('Físico', { exact: true }).click();
+    await expect(page.locator('main').getByText('God of War Ragnarök', { exact: true }).first()).toBeVisible();
+    expect(requests).toHaveLength(1);
 });
 
 test('la página de inicio carga con el título correcto', async ({ page }) => {

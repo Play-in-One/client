@@ -122,15 +122,16 @@ async function serverHtml(page: import('@playwright/test').Page, path: string) {
 }
 
 test('el detalle llega del servidor ya filtrado, sin ofertas importadas', async ({ page, context }) => {
+    const path = await seededGamePath(page);
     const conCookie = await (async () => {
         await context.addCookies([OFF]);
-        return serverHtml(page, '/game/1');
+        return serverHtml(page, path);
     })();
     // El globo sólo lo renderizan las tiendas internacionales (SellerScopeBadge).
     expect(conCookie).not.toContain('Tienda internacional');
 
     await context.clearCookies();
-    const sinCookie = await serverHtml(page, '/game/1');
+    const sinCookie = await serverHtml(page, path);
     // Control: sin la preferencia sí vienen, o el test de arriba no probaría nada.
     expect(sinCookie).toContain('Tienda internacional');
 });

@@ -380,6 +380,16 @@ export async function getGames(params?: {
     });
 }
 
+/** Destacados y populares con una sola consulta por combinación de filtros globales. */
+export async function getHomeGames(params?: {
+    condition?: string;
+    seller_locations?: string;
+    signal?: AbortSignal;
+}) {
+    const { signal, ...qsParams } = params ?? {};
+    return fetcher<{ featured: Game[]; trending: Game[] }>(`/games/home/${qs(qsParams)}`, { signal });
+}
+
 /** Juegos con más tráfico en los últimos 7 días (con relleno por rating). */
 export async function getTrendingGames(params?: {
     condition?: string;
