@@ -44,6 +44,7 @@ import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import LocationFilter from '@/components/LocationFilter';
 import InfoHint from '@/components/InfoHint';
 import StaffProductImagesSwitch from '@/components/StaffProductImagesSwitch';
+import { CONSOLES_ENABLED } from '@/lib/features';
 
 /* El neutro va al centro en los dos: es el default y el que más se elige, así
  * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
@@ -126,7 +127,8 @@ export default function Navbar() {
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();
         setSearchQuery(localQuery);
-        router.push(`/search?q=${encodeURIComponent(localQuery)}`);
+        const consoleSearch = CONSOLES_ENABLED && (pathname?.startsWith('/consola') || new URLSearchParams(window.location.search).get('category') === 'console');
+        router.push(consoleSearch ? `/consolas?search=${encodeURIComponent(localQuery)}` : `/search?q=${encodeURIComponent(localQuery)}`);
     };
 
     return (
@@ -186,7 +188,9 @@ export default function Navbar() {
                     280 (abajo): el enlace a Ofertas no cabía y la barra se salía
                     53 px por la derecha en cualquier página con buscador (todas
                     menos la home), tapando el engranaje de preferencias. */}
-                <Group gap="md" visibleFrom="lg" wrap="nowrap">
+                <Group gap={CONSOLES_ENABLED ? 'sm' : 'md'} visibleFrom="lg" wrap="nowrap">
+                    {CONSOLES_ENABLED && <UnstyledButton component={Link} href="/consolas" fw={600} fz="sm"
+                        c={pathname?.startsWith('/consola') ? 'var(--mantine-color-primaryRed-5)' : 'dimmed'}>Consolas</UnstyledButton>}
                     {/* Ofertas va primero y fuera de los menús de consola: es la
                         página con más intención de compra del sitio y no
                         pertenece a ninguna marca. Enlace real (`<a href>`) para
@@ -280,13 +284,13 @@ export default function Navbar() {
                     {pathname !== '/' && (
                         <form onSubmit={handleSearch}>
                             <TextInput
-                                placeholder="Buscar juegos..."
+                                placeholder={CONSOLES_ENABLED && pathname?.startsWith('/consola') ? 'Buscar consolas...' : 'Buscar juegos...'}
                                 leftSection={<IconSearch size={18} />}
                                 value={localQuery}
                                 onChange={(e) => setLocalQuery(e.currentTarget.value)}
                                 radius="xl"
                                 size="sm"
-                                w={{ base: 140, sm: 220, lg: 200 }}
+                                w={{ base: 140, sm: 220, lg: CONSOLES_ENABLED ? 160 : 200 }}
                                 classNames={{ input: 'search-input' }}
                                 styles={{
                                     input: {
@@ -440,6 +444,7 @@ export default function Navbar() {
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
                     <StaffProductImagesSwitch />
+                    {CONSOLES_ENABLED && <Anchor component={Link} href="/consolas" onClick={close} fw={600} fz="lg" c="inherit" underline="never" px="md">Consolas</Anchor>}
                     <Anchor
                         component={Link}
                         href="/ofertas"

@@ -6,6 +6,8 @@ const BASE_URL = EXTERNAL_BASE_URL ?? `http://localhost:${PORT}`;
 
 export default defineConfig({
     testDir: './tests/e2e',
+    // Hardware tests run with their own SSR HTTP fixture and server configuration.
+    testIgnore: 'consoles.spec.ts',
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,

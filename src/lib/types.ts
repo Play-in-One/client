@@ -151,6 +151,8 @@ export interface IssueReport {
 
 export interface Product {
     id: number;
+    category?: 'game' | 'console';
+    configuration?: number | null;
     title: string;
     platform: Platform;
     url: string;

@@ -71,9 +71,10 @@ function errorResponse(request: NextRequest, status: number): NextResponse {
     if (status === 404) {
         const back = backPath(request);
         title = 'Esta oferta ya no está disponible';
-        text = 'Esta oferta salió del catálogo después de que se cargó la página. Vuelve al juego para ver los precios actualizados.';
+        const subject = back?.startsWith('/consola') ? 'a la consola' : 'al juego';
+        text = `Esta oferta salió del catálogo después de que se cargó la página. Vuelve ${subject} para ver los precios actualizados.`;
         link = back
-            ? `<a href="${escapeHtml(back)}">Volver al juego</a>`
+            ? `<a href="${escapeHtml(back)}">Volver ${subject}</a>`
             : '<a href="/">Ir a Play In One</a>';
     } else {
         title = 'No se pudo abrir la tienda';

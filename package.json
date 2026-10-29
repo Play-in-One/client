@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test:e2e": "playwright test",
+    "test:consoles": "playwright test --config playwright.consoles.config.ts",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {

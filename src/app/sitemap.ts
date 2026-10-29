@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next';
-import { getDeals, getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
+import { CONSOLES_ENABLED } from '@/lib/features';
+import { getConsoles, getDeals, getGamesForSitemap, getPlatforms, getPosts, getSellers } from '@/lib/api';
+import { consolePath } from '@/lib/consoles';
 import { dealConsoleSlugs } from '@/lib/deals';
 import { absoluteUrl, gamePath, postPath } from '@/lib/seo';
 
@@ -29,6 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const staticRoutes: MetadataRoute.Sitemap = [
         { url: absoluteUrl('/'), changeFrequency: 'daily', priority: 1 },
         { url: absoluteUrl('/search'), changeFrequency: 'daily', priority: 0.9 },
+        ...(CONSOLES_ENABLED ? [{ url: absoluteUrl('/consolas'), changeFrequency: 'daily' as const, priority: 0.8 }] : []),
         // Cambia cada noche con `build_daily_deals`. Va siempre, aunque hoy
         // esté vacía: es una URL estable que mañana vuelve a tener ofertas.
         { url: absoluteUrl('/ofertas'), changeFrequency: 'daily', priority: 0.8 },
@@ -135,5 +138,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         /* ignore */
     }
 
-    return [...staticRoutes, ...platforms, ...deals, ...games, ...posts, ...stores];
+    const consoles: MetadataRoute.Sitemap = [];
+    try {
+        for (let page = 1; CONSOLES_ENABLED && page <= MAX_PAGES; page++) {
+            const res = await getConsoles({ page, page_size: 60 });
+            consoles.push(...res.results.map(model => ({ url: absoluteUrl(consolePath(model)), changeFrequency: 'daily' as const, priority: 0.7 })));
+            if (!res.next) break;
+        }
+    } catch { /* Keep the other catalog sources available during a backend rollout. */ }
+    return [...staticRoutes, ...platforms, ...deals, ...games, ...posts, ...stores, ...consoles];
 }

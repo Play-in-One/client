@@ -9,6 +9,7 @@ import type {
 } from './types';
 import { appendAttribution } from './attribution';
 import { tryServerPerf } from './serverPerf';
+import type { ConsoleDetail, ConsoleModel, ConsoleQuery } from './consoles';
 
 const API_BASE = typeof window === 'undefined'
     ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api')
@@ -173,6 +174,20 @@ function qs(params: Record<string, string | number | boolean | number[] | undefi
     }
     const s = usp.toString();
     return s ? `?${s}` : '';
+}
+
+export async function getConsoles(params: ConsoleQuery = {}, options?: { revalidate?: number; signal?: AbortSignal }) {
+    return fetcher<PaginatedResponse<ConsoleModel>>(`/consoles/${qs({ ...params })}`, {
+        signal: options?.signal,
+        ...(options?.revalidate !== undefined ? { next: { revalidate: options.revalidate } } : {}),
+    });
+}
+
+export async function getConsole(id: number | string, params: ConsoleQuery = {}, options?: { revalidate?: number; signal?: AbortSignal }) {
+    return fetcher<ConsoleDetail>(`/consoles/${id}/${qs({ ...params })}`, {
+        signal: options?.signal,
+        ...(options?.revalidate !== undefined ? { next: { revalidate: options.revalidate } } : {}),
+    });
 }
 
 /* ── Popularity tracking (fire-and-forget) ── */

@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { CONSOLES_ENABLED } from '@/lib/features';
 import { notFound } from 'next/navigation';
-import { getGames, getSeller } from '@/lib/api';
+import { getConsoles, getGames, getSeller } from '@/lib/api';
+import { StoreConsoleCatalog } from '@/components/consoles/ConsoleBrowser';
 import type { Game, Seller } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, storeJsonLd, breadcrumbJsonLd } from '@/lib/seo';
@@ -91,6 +93,9 @@ export default async function StoreDetailPage({
     if (!seller) notFound();
 
     const summary = storeSummary(seller, games, total);
+    const consoles = CONSOLES_ENABLED
+        ? await getConsoles({ seller: seller.id, page_size: 6 }, { revalidate }).catch(() => null)
+        : null;
 
     // Sin ItemList ni CollectionPage: la galería se retiró de la vista y un
     // ItemList habría seguido enumerando un catálogo que la página ya no
@@ -110,6 +115,7 @@ export default async function StoreDetailPage({
         <>
             <JsonLd data={jsonLd} />
             <StoreClient initialSeller={seller} summary={summary} />
+            {consoles && consoles.count > 0 && <StoreConsoleCatalog seller={seller.id} initialData={consoles} />}
         </>
     );
 }

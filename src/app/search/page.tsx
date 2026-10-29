@@ -1,5 +1,11 @@
 import type { Metadata } from 'next';
-import { getGames, getPlatforms } from '@/lib/api';
+import { notFound } from 'next/navigation';
+import { CONSOLES_ENABLED } from '@/lib/features';
+import { getConsoles, getGames, getPlatforms } from '@/lib/api';
+import Link from 'next/link';
+import { Anchor, Container, Group, Text } from '@mantine/core';
+import { ConsoleCatalog } from '@/components/consoles/ConsoleBrowser';
+import { consoleQuery } from '@/lib/consoles';
 import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
@@ -38,6 +44,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const sp = await searchParams;
     const q = typeof sp.q === 'string' ? sp.q.trim() : '';
+    if (sp.category === 'console') {
+        if (!CONSOLES_ENABLED) notFound();
+        return buildMetadata({ title: 'Buscar consolas', path: '/consolas', noIndex: true });
+    }
 
     const title = q ? `Resultados para "${q}"` : 'Buscar videojuegos';
     const description = q
@@ -69,6 +79,12 @@ export default async function SearchPage({
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
     const sp = await searchParams;
+    if (sp.category === 'console') {
+        if (!CONSOLES_ENABLED) notFound();
+        const query = consoleQuery({ ...sp, search: sp.search ?? sp.q });
+        const data = await getConsoles(query, { revalidate }).catch(() => null);
+        return <ConsoleCatalog key={JSON.stringify(query)} initialData={data} initialQuery={query} />;
+    }
     const isCleanEntry = Object.keys(sp).length === 0;
     const [firstPage, platformList] = await Promise.all([
         isCleanEntry ? fetchFirstPage() : Promise.resolve({ games: [] as Game[], total: 0 }),
@@ -91,6 +107,7 @@ export default async function SearchPage({
 
     return (
         <>
+            {CONSOLES_ENABLED && <Container size="lg" pt="lg"><Group gap="lg"><Text fw={700}>Juegos</Text><Anchor component={Link} href={`/search?category=console${typeof sp.q === 'string' ? `&q=${encodeURIComponent(sp.q)}` : ''}`}>Consolas</Anchor></Group></Container>}
             {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
             <SearchClient initialGames={games} initialTotal={total}
                 initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0} />

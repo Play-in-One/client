@@ -2,6 +2,33 @@
 
 Interfaz web del comparador de precios de videojuegos para Chile. Construida con Next.js 15 (App Router) y Mantine 7.
 
+## Consolas
+
+La categoría está oculta en el frontend público mientras se pospone su desarrollo:
+`CONSOLES_ENABLED = false` en `src/lib/features.ts`. Sus rutas responden 404 y no
+aparece en navegación, búsqueda, tiendas ni sitemap. Se conserva el código para
+retomarlo después; el backend y las subidas desde Gestión siguen disponibles.
+Los enlaces antiguos a la búsqueda de consolas vuelven al buscador de juegos.
+
+`/consolas` lista modelos y precios desde; `/consola/{slug}-{id}` compara sus
+configuraciones y ofertas. Cada oferta identifica edición, almacenamiento,
+juegos incluidos y condición. La búsqueda permite cambiar entre Juegos y
+Consolas, y las tiendas tienen una sección separada de hardware.
+
+Se respetan las preferencias globales de nuevo/usado y ubicación; el formato
+digital y los tipos de código de videojuegos no filtran consolas. Un pack con
+código sigue siendo una consola física. Las ofertas usan el desglose de
+precio, cupones y salidas a tienda existentes. El contenido inicial se
+renderiza en servidor, con URL canónica, sitemap y revalidación de precios.
+
+Requiere la migración `games.0076_console_catalog` del backend. La carga se
+realiza en Django Admin; los modelos nuevos permanecen ocultos hasta publicarlos.
+
+`npm run test:consoles` ejecuta las pruebas de navegador con una API HTTP local
+de fixtures, compartida por SSR y cliente. Usa los puertos 3217 y 43210, sin
+consultar producción. Ejecutarlo por separado de `npm run build` y de otro
+servidor Next que utilice el mismo directorio `.next`.
+
 ## Salidas a tiendas
 
 Las ofertas y enlaces generales de tienda pasan por `/go/product/{id}` y
