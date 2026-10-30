@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { CONSOLES_ENABLED } from '../../src/lib/features';
 
 test('una pestaña anterior recarga al navegar después de un despliegue', async ({ page }) => {
     test.skip(!process.env.E2E_DEPLOYMENT_ID, 'requiere un build de producción con NEXT_DEPLOYMENT_ID');
@@ -43,4 +44,13 @@ test('una pestaña previa a la protección también recibe la orden de recargar'
     const response = await request.get('/about', { headers: { rsc: '1' } });
     expect(response.status()).toBe(409);
     expect(response.headers()['cache-control']).toBe('no-store');
+});
+
+test('document searches remain available and hidden consoles redirect to games', async ({ page, request }) => {
+    const games = await request.get('/search?q=Zelda');
+    expect(games.status()).toBe(200);
+    if (!CONSOLES_ENABLED) {
+        await page.goto('/search?category=console&search=PS5&storage_gb=1000');
+        await expect(page).toHaveURL(/\/search\?q=PS5$/);
+    }
 });

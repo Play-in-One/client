@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { CONSOLES_ENABLED } from '@/lib/features';
 import { getConsoles, getGames, getPlatforms } from '@/lib/api';
 import Link from 'next/link';
@@ -15,6 +15,16 @@ import SearchClient from './SearchClient';
 // sirviera un orden distinto del que pide el cliente al hidratar, la galería
 // se reordenaría sola delante de quien la está mirando.
 const DEFAULT_ORDERING = '-traffic_score,name';
+
+function redirectHiddenConsoleSearch(sp: Record<string, string | string[] | undefined>) {
+    if (CONSOLES_ENABLED || sp.category !== 'console') return;
+    const q = typeof sp.q === 'string' ? sp.q : '';
+    const search = typeof sp.search === 'string' ? sp.search : '';
+    const query = q || search;
+    const params = new URLSearchParams();
+    if (query) params.set('q', query);
+    redirect(`/search${query ? `?${params}` : ''}`);
+}
 
 // El catálogo se mueve con cada scrapeo. 5 minutos mantiene fresca la entrada
 // indexable sin pagar el fetch en cada visita — que es lo que motivó que esta
@@ -43,9 +53,9 @@ export async function generateMetadata({
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
     const sp = await searchParams;
+    redirectHiddenConsoleSearch(sp);
     const q = typeof sp.q === 'string' ? sp.q.trim() : '';
     if (sp.category === 'console') {
-        if (!CONSOLES_ENABLED) notFound();
         return buildMetadata({ title: 'Buscar consolas', path: '/consolas', noIndex: true });
     }
 
@@ -79,8 +89,8 @@ export default async function SearchPage({
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
     const sp = await searchParams;
+    redirectHiddenConsoleSearch(sp);
     if (sp.category === 'console') {
-        if (!CONSOLES_ENABLED) notFound();
         const query = consoleQuery({ ...sp, search: sp.search ?? sp.q });
         const data = await getConsoles(query, { revalidate }).catch(() => null);
         return <ConsoleCatalog key={JSON.stringify(query)} initialData={data} initialQuery={query} />;

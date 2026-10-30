@@ -110,13 +110,12 @@ test('price fetch failure offers a retry and console paths can be revalidated', 
 test.describe('Consoles hidden from the public frontend', () => {
     test.skip(CONSOLES_ENABLED, 'La categoría de consolas está habilitada.');
 
-    test('catalog, detail and console search are unavailable even by direct URL', async ({ request }) => {
+    test('catalog, detail and console search are unavailable even by direct URL', async ({ request, page }) => {
         for (const path of ['/consolas', '/consola/ps5-slim-981']) {
             expect((await request.get(path)).status(), path).toBe(404);
         }
-        const search = await request.get('/search?category=console&q=PS5');
-        expect(search.status()).toBe(200);
-        expect(new URL(search.url()).search).toBe('?q=PS5');
+        await page.goto('/search?category=console&q=PS5');
+        await expect(page).toHaveURL(/\/search\?q=PS5$/);
     });
 
     test('navigation, search and store pages do not advertise consoles', async ({ page }) => {
