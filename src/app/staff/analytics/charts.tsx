@@ -17,6 +17,7 @@ import {
     YAxis,
 } from 'recharts';
 
+import { chart } from '@/lib/colors';
 import type { DailyFunnel, DailyTraffic, PagePerfRow, SellerStat, SourcesReport } from '@/lib/types';
 import { CHANNEL_GROUPS, channelGroup, type ChannelGroup } from './channels';
 
@@ -26,17 +27,19 @@ import { CHANNEL_GROUPS, channelGroup, type ChannelGroup } from './channels';
  * `AnalyticsClient` lo deje fuera del bundle inicial, igual que hace el detalle
  * de juego con `PriceHistoryChart`. */
 
+const { series } = chart;
+
 const COLORS = {
-    sessions: '#7C3AED',
-    returning: '#0EA5E9',
-    known: '#2563EB',
-    fresh: '#22C55E',
-    views: '#6366F1',
-    clicks: '#F97316',
-    offers: '#EF4444',
-    lcp: '#8B5CF6',
-    ttfb: '#06B6D4',
-    server: '#F59E0B',
+    sessions: series.violet,
+    returning: series.sky,
+    known: series.blue,
+    fresh: series.green,
+    views: series.indigo,
+    clicks: series.orange,
+    offers: series.red,
+    lcp: series.purple,
+    ttfb: series.cyan,
+    server: series.amber,
 };
 
 /** Etiqueta corta para el eje X: '2026-08-27' → '27/08'. */
@@ -49,7 +52,7 @@ export function useAxisColor(): string {
     // El dashboard se usa en ambos temas y los ejes en gris fijo desaparecían
     // sobre el fondo oscuro.
     const scheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
-    return scheme === 'dark' ? '#909296' : '#868e96';
+    return scheme === 'dark' ? chart.axis.dark : chart.axis.light;
 }
 
 export const TOOLTIP_STYLE = {
@@ -112,7 +115,7 @@ export function FunnelChart({ series }: { series: DailyFunnel[] }) {
 
 export function SellersChart({ sellers }: { sellers: SellerStat[] }) {
     const axis = useAxisColor();
-    const palette = ['#7C3AED', '#2563EB', '#6366F1', '#F97316', '#EF4444', '#22C55E', '#EAB308', '#14B8A6'];
+    const palette = chart.sequence;
     return (
         <ResponsiveContainer width="100%" height={Math.max(220, sellers.length * 34)}>
             <BarChart data={sellers} layout="vertical" margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
@@ -151,15 +154,8 @@ export function DevicesChart({ series }: { series: DailyTraffic[] }) {
 /* Un color por GRUPO de canales y no por canal: son dieciséis canales y ocho
    tonos distinguibles como mucho, y el color tiene que seguir al grupo aunque
    cambie el ranking del periodo. El detalle por canal está en la tabla de al
-   lado. Paleta validada con el validador de dataviz (claro y oscuro). */
-const GROUP_COLORS: Record<ChannelGroup, { light: string; dark: string }> = {
-    search: { light: '#2a78d6', dark: '#3987e5' },
-    paid: { light: '#eb6834', dark: '#d95926' },
-    social: { light: '#1baf7a', dark: '#199e70' },
-    direct: { light: '#eda100', dark: '#c98500' },
-    other: { light: '#e87ba4', dark: '#d55181' },
-    unknown: { light: '#adb5bd', dark: '#5c5f66' },
-};
+   lado. La paleta vive en `lib/colors.ts` (`chart.channels`). */
+const GROUP_COLORS: Record<ChannelGroup, { light: string; dark: string }> = chart.channels;
 
 /** Sesiones por día, apiladas por grupo de canal. */
 export function SourcesChart({ series }: { series: SourcesReport['series'] }) {

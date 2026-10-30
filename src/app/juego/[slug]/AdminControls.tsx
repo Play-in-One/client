@@ -78,7 +78,7 @@ function GameSearchPicker({
     }, [debounced, excludeId]);
 
     return (
-        <Stack gap={4}>
+        <Stack gap="2xs">
             <TextInput
                 size="xs"
                 placeholder={placeholder ?? 'Buscar juego…'}
@@ -98,7 +98,7 @@ function GameSearchPicker({
                         setResults([]);
                     }}
                 >
-                    {g.name} <Text component="span" c="dimmed" ml={4}>#{g.id}</Text>
+                    {g.name} <Text component="span" c="dimmed" ml="2xs">#{g.id}</Text>
                 </Button>
             ))}
         </Stack>
@@ -138,14 +138,14 @@ export function AdminGameControls({ game }: { game: Game }) {
     };
 
     return (
-        <Card withBorder radius="lg" p="lg" bg="light-dark(var(--mantine-color-yellow-0), var(--mantine-color-dark-6))">
+        <Card p="lg" bg="light-dark(var(--mantine-color-yellow-0), var(--mantine-color-dark-6))">
             <Group justify="space-between" mb="sm">
                 <Title order={4}>Edición de administrador</Title>
                 <Badge color="yellow" variant="light">Admin</Badge>
             </Group>
 
-            {error && <Alert color="red" variant="light" mb="sm">{error}</Alert>}
-            {ok && <Alert color="green" variant="light" mb="sm">{ok}</Alert>}
+            {error && <Alert color="danger" variant="light" mb="sm">{error}</Alert>}
+            {ok && <Alert color="success" variant="light" mb="sm">{ok}</Alert>}
 
             <Stack gap="md">
                 <Group align="flex-end" gap="sm" wrap="nowrap">
@@ -186,7 +186,7 @@ export function AdminGameControls({ game }: { game: Game }) {
                     (pesos en el admin de Django). Aquí solo se edita el texto de su tarjeta.
                 </Text>
 
-                <Stack gap={4}>
+                <Stack gap="2xs">
                     <Textarea
                         label="Texto de la tarjeta si sale en Destacados"
                         value={featuredDescription}
@@ -217,7 +217,7 @@ export function AdminGameControls({ game }: { game: Game }) {
                     </Text>
                 ) : (
                     <Group align="center" gap="sm">
-                        <Stack gap={6}>
+                        <Stack gap="2xs">
                             {sagas.map((s) => (
                                 <Switch
                                     key={s.id}
@@ -259,13 +259,13 @@ export function AdminGameControls({ game }: { game: Game }) {
                     }
                 />
                 {sources.length > 0 && (
-                    <Stack gap={4}>
+                    <Stack gap="2xs">
                         {sources.map((s) => (
                             <Group key={s.id} gap="xs">
                                 <Text fz="sm" style={{ flex: 1 }}>{s.name} <Text component="span" c="dimmed">#{s.id}</Text></Text>
                                 <ActionIcon
                                     variant="subtle"
-                                    color="red"
+                                    color="danger"
                                     onClick={() => setSources((prev) => prev.filter((x) => x.id !== s.id))}
                                 >
                                     <IconTrash size={16} />
@@ -273,7 +273,7 @@ export function AdminGameControls({ game }: { game: Game }) {
                             </Group>
                         ))}
                         <Button
-                            color="orange"
+                            color="caution"
                             disabled={busy}
                             onClick={() =>
                                 run(
@@ -345,12 +345,12 @@ function ProductRow({ product, platforms, onDeleted }: { product: Product; platf
     const platformData = platforms.map((pl) => ({ value: String(pl.id), label: platformLongName(pl) }));
 
     return (
-        <Card withBorder radius="md" p="md">
+        <Card radius="md" p="md">
             <Text fw={600} fz="sm" mb="xs">
                 {product.seller.name} — <Text component="span" c="dimmed">{product.title}</Text>
             </Text>
             {msg && (
-                <Alert color={msg.type === 'ok' ? 'green' : 'red'} variant="light" mb="sm" py={4}>
+                <Alert color={msg.type === 'ok' ? 'green' : 'red'} variant="light" mb="sm" py="2xs">
                     {msg.text}
                 </Alert>
             )}

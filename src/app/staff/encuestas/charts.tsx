@@ -2,6 +2,8 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
+import { chart } from '@/lib/colors';
+
 import { TOOLTIP_LABEL_STYLE, TOOLTIP_STYLE, useAxisColor } from '../analytics/charts';
 
 /* Gráficos de resultados de encuestas. Van en su propio módulo para que el
@@ -16,7 +18,7 @@ export function ChoiceBarChart({ choices }: { choices: { label: string; count: n
                 <XAxis type="number" stroke={axis} fontSize={11} allowDecimals={false} />
                 <YAxis type="category" dataKey="label" stroke={axis} fontSize={11} width={160} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-                <Bar dataKey="count" name="Respuestas" fill="#7C3AED" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" name="Respuestas" fill={chart.series.violet} radius={[0, 4, 4, 0]} />
             </BarChart>
         </ResponsiveContainer>
     );
@@ -31,7 +33,7 @@ export function SliderHistogram({ histogram }: { histogram: { value: number; cou
                 <XAxis dataKey="value" stroke={axis} fontSize={11} />
                 <YAxis stroke={axis} fontSize={11} allowDecimals={false} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-                <Bar dataKey="count" name="Respuestas" fill="#2563EB" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" name="Respuestas" fill={chart.series.blue} radius={[4, 4, 0, 0]} />
             </BarChart>
         </ResponsiveContainer>
     );

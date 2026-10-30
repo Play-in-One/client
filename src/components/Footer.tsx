@@ -33,7 +33,7 @@ import {
     IconBrandTumblr,
     IconBrandTelegram,
 } from '@tabler/icons-react';
-import { social } from '@/lib/colors';
+import { onDark, social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
 import { trackEvent, type SocialNetwork } from '@/lib/api';
 import { PLATFORMS } from '@/lib/platforms';
@@ -57,7 +57,7 @@ function SocialIcon({ icon: Icon, brandColor, href, network }: {
     const [hover, setHover] = useState(false);
     const colorScheme = useComputedColorScheme('light');
     // Threads es negro puro: en modo oscuro sería invisible sobre el fondo, así que se invierte.
-    const resolvedColor = brandColor === '#000000' && colorScheme === 'dark' ? '#ffffff' : brandColor;
+    const resolvedColor = brandColor === social.threads && colorScheme === 'dark' ? onDark.text : brandColor;
     return (
         <ActionIcon
             component="a"
@@ -83,7 +83,7 @@ export default function Footer() {
     return (
         <Box
             component="footer"
-            pt={60}
+            pt="section"
             pb={32}
             style={{ borderTop: '1px solid var(--mantine-color-default-border)' }}
         >
@@ -127,7 +127,7 @@ export default function Footer() {
 
                     {/* Consolas */}
                     <Stack gap="xs">
-                        <Text fw={700} mb={4}>Juegos por plataforma</Text>
+                        <Text fw={700} mb="2xs">Juegos por plataforma</Text>
                         {CONSOLES_ENABLED && <Anchor component={Link} href="/consolas" fz="sm" c="dimmed" underline="never">Comprar consolas</Anchor>}
                         {/* A la landing por consola, no a /search?platform=: esa
                             variante va noindex y se renderiza en el cliente. Van
@@ -141,7 +141,7 @@ export default function Footer() {
                             partía «Nintendo Switch 2» y «PlayStation Vita» en dos
                             líneas. Pasar a 4 columnas no lo arreglaba (seguía
                             partiendo y dejaba «Síguenos» sola en otra fila). */}
-                        <SimpleGrid cols={{ base: 2, lg: 1 }} spacing={4} verticalSpacing={4}>
+                        <SimpleGrid cols={{ base: 2, lg: 1 }} spacing="2xs" verticalSpacing={4}>
                             {PLATFORMS.map((p) => (
                                 <Anchor key={p.slug} component={Link} href={`/juegos/${p.slug}`} fz="sm" c="dimmed" underline="never">
                                     {p.long}
@@ -152,7 +152,7 @@ export default function Footer() {
 
                     {/* Información */}
                     <Stack gap="xs">
-                        <Text fw={700} mb={4}>Información</Text>
+                        <Text fw={700} mb="2xs">Información</Text>
                         <Anchor component={Link} href="/ofertas" fz="sm" c="dimmed" underline="never">Ofertas</Anchor>
                         <Anchor component={Link} href="/contact" fz="sm" c="dimmed" underline="never">Contacto</Anchor>
                         <Anchor component={Link} href="/about" fz="sm" c="dimmed" underline="never">Sobre Nosotros</Anchor>
@@ -164,7 +164,7 @@ export default function Footer() {
 
                     {/* Legal */}
                     <Stack gap="xs">
-                        <Text fw={700} mb={4}>Legal</Text>
+                        <Text fw={700} mb="2xs">Legal</Text>
                         <Anchor component={Link} href="/terms" fz="sm" c="dimmed" underline="never">Términos de Servicio</Anchor>
                         <Anchor component={Link} href="/privacy" fz="sm" c="dimmed" underline="never">Política de Privacidad</Anchor>
                         <Anchor component={Link} href="/cookies" fz="sm" c="dimmed" underline="never">Cookies</Anchor>
@@ -172,7 +172,7 @@ export default function Footer() {
 
                     {/* Newsletter */}
                     <Stack gap="xs">
-                        <Text fw={700} mb={4}>Siguenos</Text>
+                        <Text fw={700} mb="2xs">Siguenos</Text>
                         <Text fz="sm" c="dimmed">Mantente al dia de las mejores ofertas y novedades.</Text>
                         <Group gap="xs">
                             <SocialIcon icon={IconBrandInstagram} brandColor={social.instagram} href={siteConfig.social.instagram} network="instagram" />

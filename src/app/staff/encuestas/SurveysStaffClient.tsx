@@ -86,8 +86,8 @@ export function SurveysStaffClient() {
 
     if (!isAdmin) {
         return (
-            <Container size="sm" py={60}>
-                <Alert color="yellow" title="Necesitas iniciar sesión">
+            <Container size="sm" py="section">
+                <Alert color="warning" title="Necesitas iniciar sesión">
                     Este panel es solo para administradores.{' '}
                     <Anchor component={Link} href="/staff">Ir al inicio de sesión</Anchor>.
                 </Alert>
@@ -113,7 +113,7 @@ export function SurveysStaffClient() {
                 </Group>
             </Group>
 
-            {error && <Alert color="red" mb="md" withCloseButton onClose={() => setError(null)}>{error}</Alert>}
+            {error && <Alert color="danger" mb="md" withCloseButton onClose={() => setError(null)}>{error}</Alert>}
 
             {surveys === null ? (
                 surveysFailed ? null : <Center py={80}><Loader /></Center>
@@ -174,7 +174,7 @@ export function SurveysStaffClient() {
                         {results.questions.map((q) => <QuestionResult key={q.id} result={q} />)}
                     </SimpleGrid>
                     {results.survey.allow_comment && (
-                        <Card withBorder radius="md">
+                        <Card radius="md">
                             <Text fw={600} mb="xs">Comentarios ({results.comments.length})</Text>
                             <TextList entries={results.comments} />
                         </Card>
@@ -197,7 +197,7 @@ function ParticipationMetrics({ metrics: m }: { metrics: SurveyMetrics }) {
                     ['Tasa de abandono', m.abandonment_rate === null ? '—' : `${m.abandonment_rate}%`],
                     ['Encuestas enviadas', m.completed_count],
                 ].map(([label, value]) => (
-                    <Card key={label} withBorder radius="md">
+                    <Card key={label} radius="md">
                         <Text fz="xs" c="dimmed">{label}</Text>
                         <Text fz="xl" fw={700}>{value}</Text>
                     </Card>
@@ -208,7 +208,7 @@ function ParticipationMetrics({ metrics: m }: { metrics: SurveyMetrics }) {
                 {' '}El tiempo mide los envíos completos mientras el formulario está visible. Se considera abandono cerrar sin enviar
                 o pasar 30 minutos sin actividad; la tasa excluye las encuestas en curso. Estas métricas se registran desde la activación del guardado automático.
             </Text>
-            <Card withBorder radius="md">
+            <Card radius="md">
                 <Text fw={600} mb="sm">¿En qué pregunta abandonan?</Text>
                 <Table>
                     <Table.Thead><Table.Tr><Table.Th>Pregunta</Table.Th><Table.Th ta="right">Abandonos</Table.Th></Table.Tr></Table.Thead>
@@ -228,7 +228,7 @@ function ParticipationMetrics({ metrics: m }: { metrics: SurveyMetrics }) {
 
 function QuestionResult({ result: q }: { result: SurveyQuestionResult }) {
     return (
-        <Card withBorder radius="md">
+        <Card radius="md">
             <Text fw={600}>{q.prompt}</Text>
             <Text fz="xs" c="dimmed" mb="sm">{q.answered} respuestas</Text>
             {q.choices && <ChoiceBarChart choices={q.choices} />}

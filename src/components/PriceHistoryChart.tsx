@@ -49,7 +49,7 @@ function renderPriceDot({ cx, cy, index, payload }: PriceDotProps) {
             cx={cx}
             cy={cy}
             r={4}
-            fill="#fff"
+            fill={chart.pointFill}
             stroke="var(--mantine-color-primaryRed-5)"
             strokeWidth={2}
         />
@@ -93,13 +93,13 @@ export default function PriceHistoryChart({ points, domain, lastRealTimestamp }:
                         interval="preserveStartEnd"
                         minTickGap={24}
                         padding={{ left: 4, right: 4 }}
-                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                        tick={{ fontSize: 12, fill: chart.tick }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={formatTick}
                     />
                     <YAxis
-                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                        tick={{ fontSize: 12, fill: chart.tick }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
@@ -121,9 +121,9 @@ export default function PriceHistoryChart({ points, domain, lastRealTimestamp }:
                         }}
                         contentStyle={{
                             background: isDark ? chart.tooltipBg.dark : chart.tooltipBg.light,
-                            border: '1px solid rgba(255,255,255,0.1)',
+                            border: `1px solid ${chart.tooltipBorder}`,
                             borderRadius: 8,
-                            color: isDark ? '#fff' : '#1F2937',
+                            color: isDark ? chart.tooltipText.dark : chart.tooltipText.light,
                         }}
                     />
                     <Area
@@ -147,7 +147,7 @@ export default function PriceHistoryChart({ points, domain, lastRealTimestamp }:
                     {lastRealTimestamp != null && (
                         <ReferenceLine
                             x={lastRealTimestamp}
-                            stroke={isDark ? 'rgba(255,255,255,0.35)' : 'rgba(31,41,55,0.35)'}
+                            stroke={isDark ? chart.referenceLine.dark : chart.referenceLine.light}
                             strokeDasharray="4 4"
                         />
                     )}

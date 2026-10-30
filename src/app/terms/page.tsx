@@ -11,7 +11,7 @@ export const metadata: Metadata = buildMetadata({
 
 export default function TermsPage() {
     return (
-        <Container size="md" py={60}>
+        <Container size="md" py="section">
             <Title order={1} mb="xl" ta="center">Términos de Servicio</Title>
 
             <Box className="content-card" p="xl">

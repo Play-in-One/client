@@ -40,7 +40,7 @@ export default function SagaCard({ saga }: { saga: Saga }) {
 
     return (
         <Anchor component={Link} href={`/saga/${saga.slug}`} underline="never">
-            <Card withBorder shadow="sm" radius="lg" py="md" px="xl" h={CARD_HEIGHT} style={{ cursor: 'pointer' }}>
+            <Card shadow="sm" py="md" px="xl" h={CARD_HEIGHT} className="pio-lift" style={{ cursor: 'pointer' }}>
                 <Box className="saga-card">
                     <Box style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
                         {saga.logo && <SagaLogo saga={saga} height={CONTENT_HEIGHT} maxWidth={LOGO_MAX_WIDTH} />}

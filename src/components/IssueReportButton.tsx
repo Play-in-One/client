@@ -10,6 +10,7 @@ import { submitIssueReport } from '@/lib/api';
 import { finishReport, getReportState, REPORT_REASONS, runReport, subscribeReports } from '@/lib/reportStorage';
 import type { ReportDisplayContext, ReportReason, ReportTargetType } from '@/lib/types';
 import classes from './IssueReportButton.module.css';
+import { onDark, scrim } from '@/lib/colors';
 
 const ICONS = {
     image_not_official: IconPhotoCheck, image_wrong_game: IconPhotoX,
@@ -83,7 +84,7 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                 } }}
             >
                 <Popover.Target>
-                    <Tooltip label={blocked ? 'Ya reportaste este elemento hoy' : label} withArrow>
+                    <Tooltip label={blocked ? 'Ya reportaste este elemento hoy' : label}>
                         <ActionIcon
                             ref={buttonRef}
                             aria-label={label}
@@ -93,11 +94,11 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                             color={cover ? 'gray' : 'yellow'}
                             className={cover ? classes.coverButton : undefined}
                             vars={cover ? () => ({ root: {
-                                '--ai-bg': 'rgba(0, 0, 0, 0.28)',
-                                '--ai-hover': 'rgba(0, 0, 0, 0.52)',
-                                '--ai-color': 'rgba(255, 255, 255, 0.78)',
-                                '--ai-hover-color': '#fff',
-                                '--ai-bd': '1px solid rgba(255, 255, 255, 0.12)',
+                                '--ai-bg': scrim.soft,
+                                '--ai-hover': scrim.medium,
+                                '--ai-color': onDark.textMuted,
+                                '--ai-hover-color': onDark.text,
+                                '--ai-bd': `1px solid ${onDark.borderMedium}`,
                             } }) : undefined}
                             size="lg"
                             radius="md"
@@ -117,7 +118,7 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                     <Stack gap="sm">
                         <Text fw={700} size="sm">{label}</Text>
                         {sent ? (
-                            <Text role="status" size="sm" c="green">Reporte enviado. Gracias por avisarnos.</Text>
+                            <Text role="status" size="sm" c="success">Reporte enviado. Gracias por avisarnos.</Text>
                         ) : blocked ? (
                             <Text size="sm">Ya reportaste este elemento hoy.</Text>
                         ) : (
@@ -135,7 +136,7 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                                         })}
                                     </Stack>
                                 </Radio.Group>
-                                {error && <Alert color="red" p="xs" role="alert">No se pudo enviar el reporte. Inténtalo de nuevo.</Alert>}
+                                {error && <Alert color="danger" p="xs" role="alert">No se pudo enviar el reporte. Inténtalo de nuevo.</Alert>}
                                 <Button fullWidth onClick={submit} disabled={!reason || state !== 'ready'} loading={sending}>Enviar</Button>
                             </>
                         )}

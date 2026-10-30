@@ -72,7 +72,7 @@ export default function PriceInfo({ basePrice, shippingCost, seller, size = 15, 
                 </ActionIcon>
             </Popover.Target>
             <Popover.Dropdown onClick={(event) => event.preventDefault()}>
-                <Stack gap={4}>
+                <Stack gap="2xs">
                     {hasShipping && hasCoupon && coupon && couponResult ? (
                         <>
                             <Text fz="xs" c="dimmed">

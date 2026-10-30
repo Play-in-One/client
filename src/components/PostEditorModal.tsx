@@ -117,7 +117,7 @@ export default function PostEditorModal({ post, onClose, onSaved }: {
                 <Stack>
                     <Text size="sm" c="dimmed">Al guardar, el contenido se publica en el blog.</Text>
                     {(error || !isAdmin) && (
-                        <Alert color="red" role="alert">
+                        <Alert color="danger" role="alert">
                             {error ?? 'Inicia sesión como staff para guardar. Tu texto sigue en este formulario.'}
                             {!isAdmin && (
                                 <Text mt="xs" size="sm">
@@ -139,7 +139,7 @@ export default function PostEditorModal({ post, onClose, onSaved }: {
                             if (category) setField('category', category.value);
                         }}
                     />
-                    <Stack gap={6}>
+                    <Stack gap="2xs">
                         <SegmentedControl
                             size="xs" value={bodyMode} disabled={saving}
                             aria-label="Editar o previsualizar"

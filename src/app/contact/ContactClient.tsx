@@ -37,7 +37,7 @@ export default function ContactClient() {
     };
 
     return (
-        <Container size="sm" py={60}>
+        <Container size="sm" py="section">
             <Title order={1} mb="xl" ta="center">Contacto</Title>
 
             <Box className="content-card" p="xl">
@@ -77,12 +77,12 @@ export default function ContactClient() {
                     />
 
                     {status === 'success' && (
-                        <Text c="green" mb="md" ta="center">
+                        <Text c="success" mb="md" ta="center">
                             Mensaje enviado. ¡Gracias por escribirnos!
                         </Text>
                     )}
                     {status === 'error' && (
-                        <Text c="red" mb="md" ta="center">
+                        <Text c="danger" mb="md" ta="center">
                             {errorMessage}
                         </Text>
                     )}

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { IconAlertTriangle, IconChartHistogram, IconMessageCircleQuestion, IconNews } from '@tabler/icons-react';
+import { IconAlertTriangle, IconChartHistogram, IconMessageCircleQuestion, IconNews, IconPalette } from '@tabler/icons-react';
 import {
     Alert,
     Badge,
@@ -52,12 +52,12 @@ export default function StaffLoginClient() {
 
     return (
         <Center mih="70vh" px="md">
-            <Card withBorder shadow="sm" radius="md" p="xl" w={380} maw="100%">
+            <Card shadow="sm" radius="md" p="xl" w={380} maw="100%">
                 {isAdmin ? (
                     <Stack>
                         <Group justify="space-between">
                             <Title order={3}>Sesión de administrador</Title>
-                            <Badge color="green">Activa</Badge>
+                            <Badge color="success">Activa</Badge>
                         </Group>
                         <Text size="sm" c="dimmed">
                             Conectado como <b>{username}</b>. Ya puedes editar juegos y
@@ -90,7 +90,10 @@ export default function StaffLoginClient() {
                         <Button component={Link} href="/staff/reportes" variant="light" leftSection={<IconAlertTriangle size={18} />}>
                             Ver reportes
                         </Button>
-                        <Button variant="light" color="red" onClick={logout}>
+                        <Button component={Link} href="/staff/diseno" variant="light" leftSection={<IconPalette size={18} />}>
+                            Sistema de diseño
+                        </Button>
+                        <Button variant="light" color="danger" onClick={logout}>
                             Cerrar sesión
                         </Button>
                     </Stack>
@@ -99,7 +102,7 @@ export default function StaffLoginClient() {
                         <Stack>
                             <Title order={3}>Acceso administrador</Title>
                             {error && (
-                                <Alert color="red" variant="light">
+                                <Alert color="danger" variant="light">
                                     {error}
                                 </Alert>
                             )}

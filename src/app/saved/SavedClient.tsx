@@ -145,11 +145,11 @@ export default function SavedClient() {
             </Text>
 
             {loading ? (
-                <Center py={60}>
+                <Center py="section">
                     <Loader />
                 </Center>
             ) : games.length === 0 ? (
-                <Stack align="center" py={60} gap="sm">
+                <Stack align="center" py="section" gap="sm">
                     <IconBookmark size={48} color="var(--mantine-color-dimmed)" />
                     <Text fw={600}>Aún no has guardado ningún juego</Text>
                     <Text c="dimmed" fz="sm" ta="center" maw={360}>
@@ -164,7 +164,7 @@ export default function SavedClient() {
                     {availablePlatforms.length > 1 && (
                         <Group justify="center" mb="lg">
                             <Box
-                                p={4}
+                                p="2xs"
                                 style={{
                                     display: 'inline-flex',
                                     flexWrap: 'wrap',

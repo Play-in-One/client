@@ -58,7 +58,7 @@ import { platformLongName, activeCoupon, isAffiliateOffer } from '@/lib/types';
 import { allowedConditionsFor, isSellerVisible, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
-import { surfaces, decorative } from '@/lib/colors';
+import { decorative, elevation, onDark, sellerAvatarColors, surfaces } from '@/lib/colors';
 import { ratingLines } from '@/lib/priceSummary';
 import { genreHref } from '@/lib/routes';
 import PriceInfo from '@/components/PriceInfo';
@@ -548,7 +548,7 @@ export default function GameDetailClient({
     };
 
     // Seller initials color map
-    const sellerColors = ['#7C3AED', '#2563EB', '#6366F1', '#6B7280', '#F97316'];
+    const sellerColors = sellerAvatarColors;
 
     const breadcrumbPlatform = game.platforms.find((p) => p.slug === selectedPlatform) ?? game.platforms[0];
 
@@ -563,7 +563,7 @@ export default function GameDetailClient({
                 fz="sm"
             >
                 <Anchor component={Link} href="/" c="dimmed" underline="never">
-                    <Group gap={4}><IconHome size={14} /> Inicio</Group>
+                    <Group gap="2xs"><IconHome size={14} /> Inicio</Group>
                 </Anchor>
                 {breadcrumbPlatform && (
                     <Anchor component={Link} href={`/juegos/${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
@@ -586,7 +586,7 @@ export default function GameDetailClient({
                             style={{
                                 borderRadius: 'var(--mantine-radius-lg)',
                                 overflow: 'hidden',
-                                boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+                                boxShadow: elevation.cover,
                                 border: '1px solid var(--mantine-color-default-border)',
                                 aspectRatio: '3/4',
                             }}
@@ -613,7 +613,7 @@ export default function GameDetailClient({
                         se movió bajo el nombre y el selector de consola, como
                         tarjeta desplegable (ver más abajo, `hiddenFrom="lg"`).
                         Acá solo desktop. */}
-                    <Card withBorder radius="lg" p="lg" mt="md" visibleFrom="lg">
+                    <Card p="lg" mt="md" visibleFrom="lg">
                         <GameInfoCardBody game={game} summarySlot={summarySlot} />
                     </Card>
                 </Grid.Col>
@@ -634,7 +634,7 @@ export default function GameDetailClient({
                                 marginBottom: -16,
                             }}
                         >
-                            <Group gap="sm" mb={6} wrap="wrap">
+                            <Group gap="sm" mb="2xs" wrap="wrap">
                                 <Group gap="xs" wrap="nowrap">
                                     <ActionIcon
                                         variant={isSaved(game.id) ? 'filled' : 'default'}
@@ -648,7 +648,6 @@ export default function GameDetailClient({
                                     </ActionIcon>
                                     <MantineTooltip
                                         label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                        withArrow
                                     >
                                         <ActionIcon
                                             variant="default"
@@ -683,9 +682,9 @@ export default function GameDetailClient({
 
                             {/* Selector de consola: game.platforms ya viene podado por el backend */}
                             {platformOptions.length > 0 && (
-                                <Group gap={4} mb="sm">
+                                <Group gap="2xs" mb="sm">
                                     <Box
-                                        p={4}
+                                        p="2xs"
                                         style={{
                                             display: 'flex',
                                             flexWrap: 'wrap',
@@ -740,8 +739,6 @@ export default function GameDetailClient({
                             (`<details>`, vía `component`): funciona sin JS. */}
                         <Card
                             component="details"
-                            withBorder
-                            radius="lg"
                             p="lg"
                             hiddenFrom="lg"
                             onToggle={(e) => setMobileInfoOpen((e.target as HTMLDetailsElement).open)}
@@ -789,7 +786,7 @@ export default function GameDetailClient({
                                 style={{
                                     borderRadius: 'var(--mantine-radius-xl)',
                                     background: `linear-gradient(135deg, light-dark(${decorative.bestPriceCardGradient.light.from}, ${decorative.bestPriceCardGradient.dark.from}), light-dark(${decorative.bestPriceCardGradient.light.to}, ${decorative.bestPriceCardGradient.dark.to}))`,
-                                    color: '#fff',
+                                    color: onDark.text,
                                     position: 'relative',
                                     overflow: 'hidden',
                                 }}
@@ -820,8 +817,8 @@ export default function GameDetailClient({
                                             activos sin pedir nada más. */}
                                         <Group gap={8} align="center" mb="sm">
                                             <Badge
-                                                color="primaryRed"
-                                                variant="light"
+                                                color="primaryRed.6"
+                                                variant="filled"
                                                 size="sm"
                                                 leftSection={<IconTag size={12} />}
                                             >
@@ -831,41 +828,41 @@ export default function GameDetailClient({
                                         </Group>
 
                                         <Group gap="sm" align="baseline" mb="sm">
-                                            <Text fz={42} fw={800} lh={1}>{bestPrice !== null ? formatCLP(bestPrice) : '—'}</Text>
+                                            <Text fz="3xl" fw={800} lh={1}>{bestPrice !== null ? formatCLP(bestPrice) : '—'}</Text>
                                         </Group>
                                         {conditionBucket(bestProduct.condition) === 'digital' ? (
-                                            <Group gap={4} c="green.4" fz="xs" align="center">
+                                            <Group gap="2xs" c={onDark.success} fz="xs" align="center">
                                                 <IconCheck size={14} /> Entrega inmediata
                                                 <PriceInfo
                                                     basePrice={bestProduct.base_price}
                                                     shippingCost={bestProduct.shipping_cost}
                                                     seller={bestProduct.seller}
-                                                    color="green"
+                                                    color="success"
                                                 />
                                             </Group>
                                         ) : bestShipping > 0 ? (
-                                            <Group gap={4} c="green.4" fz="xs" align="center">
+                                            <Group gap="2xs" c={onDark.success} fz="xs" align="center">
                                                 <IconCheck size={14} /> Incluye envío promedio
                                                 <PriceInfo
                                                     basePrice={bestProduct.base_price}
                                                     shippingCost={bestProduct.shipping_cost}
                                                     seller={bestProduct.seller}
-                                                    color="green"
+                                                    color="success"
                                                 />
                                             </Group>
                                         ) : (
-                                            <Group gap={4} c="green.4" fz="xs" align="center">
+                                            <Group gap="2xs" c={onDark.success} fz="xs" align="center">
                                                 <IconCheck size={14} /> No incluye gastos de envío
                                                 <PriceInfo
                                                     basePrice={bestProduct.base_price}
                                                     shippingCost={bestProduct.shipping_cost}
                                                     seller={bestProduct.seller}
-                                                    color="green"
+                                                    color="success"
                                                 />
                                             </Group>
                                         )}
 
-                                        <Group gap="xs" mt="sm" c="rgba(255,255,255,0.7)" fz="sm">
+                                        <Group gap="xs" mt="sm" c={onDark.textSecondary} fz="sm">
                                             <Text>Vendido por <Anchor
                                                 component="a"
                                                 href={outgoingHref('product', bestProduct.id)}
@@ -873,13 +870,13 @@ export default function GameDetailClient({
                                                 rel="noopener"
                                                 onClick={(e) => handleOfferClick(e, bestProduct)}
                                                 fw={700}
-                                                c="#fff"
+                                                c={onDark.text}
                                                 underline="hover"
                                             >{bestProduct.seller.name}</Anchor></Text>
-                                            <Text c="rgba(255,255,255,0.4)">•</Text>
+                                            <Text c={onDark.separator}>•</Text>
                                         </Group>
 
-                                        <Text fz="xs" c="rgba(255,255,255,0.5)" mt={4} fs="italic">
+                                        <Text fz="xs" c={onDark.textSecondary} mt="2xs" fs="italic">
                                             &quot;{bestProduct.title}&quot;
                                         </Text>
                                     </Box>
@@ -903,7 +900,7 @@ export default function GameDetailClient({
                                             <IssueReportButton targetType="product" targetId={bestProduct.id}
                                                 context={{ displayed_price: bestProduct.current_price, platform: bestProduct.platform.name }} />
                                         </Group>
-                                        <Text fz="xs" c="rgba(255,255,255,0.5)" ta="center">
+                                        <Text fz="xs" c={onDark.textSecondary} ta="center">
                                             {/* La fecha del último CAMBIO, no de la última
                                                 revisión (diaria): `PriceHistory` solo
                                                 escribe cuando el precio se mueve. */}
@@ -931,7 +928,7 @@ export default function GameDetailClient({
                         )}
 
                         {/* ══════ Price comparison table ══════ */}
-                        <Card withBorder radius="xl" p={0} style={{ overflow: 'hidden' }}>
+                        <Card radius="xl" p={0} style={{ overflow: 'hidden' }}>
                             <Box
                                 p="lg"
                                 style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}
@@ -1024,10 +1021,8 @@ export default function GameDetailClient({
                                                     <HoverCard.Target>
                                                         <Table.Tr
                                                             className="game-offer-row"
-                                                            style={{
-                                                                transition: 'background 0.15s',
-                                                                opacity: p.in_stock ? 1 : 0.55,
-                                                            }}
+                                                            data-out-of-stock={p.in_stock ? undefined : true}
+                                                            style={{ transition: 'background 0.15s' }}
                                                             onClick={(e) => handleMobileOfferRowClick(e, p)}
                                                         >
                                                     <Table.Td style={{ width: '100%' }}>
@@ -1049,13 +1044,16 @@ export default function GameDetailClient({
                                                                     h={40}
                                                                     style={{
                                                                         borderRadius: 'var(--mantine-radius-sm)',
-                                                                        background: 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))',
+                                                                        /* Con logo, fondo neutro: el color se vería a través de uno transparente. */
+                                                                        background: (p.seller.favicon || p.seller.logo)
+                                                                            ? 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))'
+                                                                            : sellerColors[idx % sellerColors.length],
                                                                         display: 'flex',
                                                                         alignItems: 'center',
                                                                         justifyContent: 'center',
                                                                         fontWeight: 700,
-                                                                        fontSize: 12,
-                                                                        color: sellerColors[idx % sellerColors.length],
+                                                                        fontSize: 'var(--mantine-font-size-xs)',
+                                                                        color: onDark.text,
                                                                         flexShrink: 0,
                                                                         overflow: 'hidden',
                                                                     }}
@@ -1093,14 +1091,14 @@ export default function GameDetailClient({
                                                                 c="inherit"
                                                             >
                                                                 <Box style={{ minWidth: 0 }}>
-                                                                    <Group gap={6} wrap="nowrap" align="center" visibleFrom="sm">
+                                                                    <Group gap="2xs" wrap="nowrap" align="center" visibleFrom="sm">
                                                                         <Text fw={700} fz="sm">{p.seller.name}</Text>
                                                                         <SellerScopeBadge seller={p.seller} />
                                                                         {isAffiliateOffer(p) && (
                                                                             <AffiliateMark label="Tienda afiliada (solo admin)" size={18} />
                                                                         )}
                                                                     </Group>
-                                                                    <Text fw={{ base: 500, sm: 400 }} fz={{ base: 'sm', sm: 'xs' }} c="var(--mantine-color-primaryRed-5)" lineClamp={1}>
+                                                                    <Text fw={{ base: 500, sm: 400 }} fz={{ base: 'sm', sm: 'xs' }} c="var(--pio-brand-text)" lineClamp={1}>
                                                                         {p.title}
                                                                     </Text>
                                                                     {!p.in_stock && (
@@ -1112,7 +1110,7 @@ export default function GameDetailClient({
                                                                         <Text
                                                                             fw={700}
                                                                             fz="xl"
-                                                                            c={isBest ? 'var(--mantine-color-primaryRed-5)' : undefined}
+                                                                            c={isBest ? 'var(--pio-brand-text)' : undefined}
                                                                         >
                                                                             {p.current_price ? formatCLP(p.current_price) : '—'}
                                                                         </Text>
@@ -1122,7 +1120,7 @@ export default function GameDetailClient({
                                                                             seller={p.seller}
                                                                         />
                                                                         {isAffiliateOffer(p) && (
-                                                                            <AffiliateMark label="Tienda afiliada (solo admin)" size={18} ml={4} />
+                                                                            <AffiliateMark label="Tienda afiliada (solo admin)" size={18} ml="2xs" />
                                                                         )}
                                                                     </Group>
                                                                 </Box>
@@ -1130,7 +1128,7 @@ export default function GameDetailClient({
                                                         </Group>
                                                     </Table.Td>
                                                     <Table.Td hiddenFrom="sm" ta="right" style={{ whiteSpace: 'nowrap' }}>
-                                                        <Stack gap={6} align="flex-end">
+                                                        <Stack gap="2xs" align="flex-end">
                                                             <Badge
                                                                 color={conditionBadgeColorFor(p.condition)}
                                                                 variant="light"
@@ -1152,7 +1150,7 @@ export default function GameDetailClient({
                                                             <Text
                                                                 fw={700}
                                                                 fz="md"
-                                                                c={isBest ? 'var(--mantine-color-primaryRed-5)' : undefined}
+                                                                c={isBest ? 'var(--pio-brand-text)' : undefined}
                                                             >
                                                                 {p.current_price ? formatCLP(p.current_price) : '—'}
                                                             </Text>
@@ -1175,8 +1173,8 @@ export default function GameDetailClient({
                                                         </Badge>
                                                     </Table.Td>
                                                     <Table.Td ta="right" visibleFrom="sm">
-                                                        <Group gap={6} justify="flex-end" wrap="nowrap">
-                                                            <MantineTooltip label="Ver en Tienda" withArrow>
+                                                        <Group gap="2xs" justify="flex-end" wrap="nowrap">
+                                                            <MantineTooltip label="Ver en Tienda">
                                                                 <ActionIcon
                                                                     component="a"
                                                                     href={outgoingHref('product', p.id)}
@@ -1198,7 +1196,7 @@ export default function GameDetailClient({
                                                                 <ProductClickBadge counts={clickStats?.products?.[String(p.id)]} />
                                                             )}
                                                             {showAdminControls && (
-                                                                <MantineTooltip label="Editar producto" withArrow>
+                                                                <MantineTooltip label="Editar producto">
                                                                     <ActionIcon
                                                                         variant={editingProductId === p.id ? 'filled' : 'subtle'}
                                                                         color="yellow"

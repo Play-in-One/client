@@ -115,7 +115,6 @@ export function ActivityHeatmap({ report }: { report: ActivityReport }) {
                                 return (
                                     <Tooltip
                                         key={hour}
-                                        withArrow
                                         label={
                                             `${WEEKDAYS[weekday]} ${hourLabel(hour)} — ` +
                                             `${events} eventos · ${cell?.sessions ?? 0} sesiones` +
@@ -142,7 +141,7 @@ export function ActivityHeatmap({ report }: { report: ActivityReport }) {
                 <Text fz="xs" c="dimmed">
                     Horas de {timezone.replace('_', ' ')}
                 </Text>
-                <Group gap={6}>
+                <Group gap="2xs">
                     <Text fz="xs" c="dimmed">Menos</Text>
                     {[0, 0.15, 0.4, 0.7, 1].map((fraction) => (
                         <Box

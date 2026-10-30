@@ -60,7 +60,7 @@ export default function RatingGauge({ value, label, icon: Icon, count, countLabe
     return (
         <Stack
             align="center"
-            gap={4}
+            gap="2xs"
             data-testid={testId}
             role="img"
             aria-label={`${label}: ${displayValue} de 10`}
@@ -104,7 +104,7 @@ export default function RatingGauge({ value, label, icon: Icon, count, countLabe
                     <Text fz={Math.round(14 * scale)} fw={700}>{displayValue}/10</Text>
                 </Box>
                 {/* En el hueco de la base del arco, no debajo de todo el gauge. */}
-                <Tooltip label={label} withArrow>
+                <Tooltip label={label}>
                     <Box
                         style={{
                             position: 'absolute',

@@ -53,7 +53,7 @@ export function ConsoleCards({ models }: { models: ConsoleModel[] }) {
         {models.map(model => <Link className={styles.model} href={consolePath(model)} key={model.id}>
             <Picture image={model.image} name={model.name} />
             <Text size="sm" c="dimmed" mt="md">{model.platform.long_name || model.platform.display_name}</Text>
-            <Title order={2} size="h3" mt={4}>{model.name}</Title>
+            <Title order={2} size="h3" mt="2xs">{model.name}</Title>
             <Text fw={700} size="xl" mt="xs" className={styles.price}>
                 {model.min_price != null ? `Desde ${formatCLP(model.min_price)}` : 'Sin precio disponible'}
             </Text>
@@ -134,7 +134,7 @@ export function StoreConsoleCatalog({ seller, initialData }: { seller: number; i
 }
 
 function RequestState({ error, busy, retry }: { error: boolean; busy: boolean; retry: () => void }) {
-    if (error) return <Alert color="red" title="No pudimos actualizar las ofertas" mb="lg">
+    if (error) return <Alert color="danger" title="No pudimos actualizar las ofertas" mb="lg">
         Inténtalo nuevamente para consultar precios vigentes. <Button onClick={retry} variant="subtle">Reintentar</Button>
     </Alert>;
     return busy ? <Group gap="xs" mb="md" role="status"><Loader size="xs" /><Text size="sm">Actualizando ofertas…</Text></Group> : null;
@@ -197,7 +197,7 @@ export function ConsoleDetailBrowser({ initialData, initialQuery = {} }: { initi
                     const configuration = configurations.get(product.configuration ?? 0);
                     return <article className={styles.offer} key={product.id} data-stock={String(product.in_stock)} data-console-offer>
                         <Group justify="space-between" align="flex-start" gap="lg">
-                            <Stack gap={6} style={{ flex: '1 1 260px', minWidth: 0 }}>
+                            <Stack gap="2xs" style={{ flex: '1 1 260px', minWidth: 0 }}>
                                 <Anchor component={Link} href={`/store/${product.seller.id}`} fw={700}>{product.seller.name}</Anchor>
                                 <Text fw={500}>{configuration ? configurationLabel(configuration) : product.title}</Text>
                                 <Text size="sm" c="dimmed">{product.condition === 'used' ? 'Usado' : 'Nuevo'}{!product.in_stock ? ' · Sin stock' : ''}</Text>
@@ -206,7 +206,7 @@ export function ConsoleDetailBrowser({ initialData, initialQuery = {} }: { initi
                                 </Text>)}
                             </Stack>
                             <Stack gap="sm" align="flex-end">
-                                <Group gap={6}><Text fw={700} size="xl" className={styles.price}>
+                                <Group gap="2xs"><Text fw={700} size="xl" className={styles.price}>
                                     {product.current_price != null && Number(product.current_price) > 0 ? formatCLP(product.current_price) : 'Sin precio'}
                                 </Text><PriceInfo basePrice={product.base_price} shippingCost={product.shipping_cost} seller={product.seller} /></Group>
                                 {product.in_stock && product.current_price != null && Number(product.current_price) > 0

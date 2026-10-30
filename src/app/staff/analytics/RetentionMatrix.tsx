@@ -71,7 +71,7 @@ export function RetentionMatrix({ cohorts }: { cohorts: RetentionCohortRow[] }) 
                                     }
                                     return (
                                         <Table.Td key={offset} ta="center" style={cellStyle(row.rate)}>
-                                            <Tooltip label={`${row.visitors} de ${row.cohort_size}`} withArrow>
+                                            <Tooltip label={`${row.visitors} de ${row.cohort_size}`}>
                                                 <Box component="span">{row.rate}%</Box>
                                             </Tooltip>
                                         </Table.Td>

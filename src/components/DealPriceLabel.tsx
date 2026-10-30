@@ -58,7 +58,7 @@ export default function DealPriceLabel({ deal, isToday = true }: { deal: Deal; i
                 </span>
             </Popover.Target>
             <Popover.Dropdown onClick={(event) => event.preventDefault()}>
-                <Stack gap={4}>
+                <Stack gap="2xs">
                     <Text fz="xs" c="dimmed">
                         Rebaja frente a la mediana de sus últimos 90 días en la misma condición.
                     </Text>
@@ -82,11 +82,11 @@ export default function DealPriceLabel({ deal, isToday = true }: { deal: Deal; i
                         </Text>
                     </Group>
                     {(age || deal.is_all_time_low) && (
-                        <Group gap={4} mt={4} wrap="wrap">
+                        <Group gap="2xs" mt="2xs" wrap="wrap">
                             {/* «Registrado» y no «histórico»: la serie empieza cuando
                                 PIO empezó a seguir el juego, no en su lanzamiento. */}
                             {deal.is_all_time_low && (
-                                <Badge size="sm" color="green" variant="light">Mínimo registrado</Badge>
+                                <Badge size="sm" color="success" variant="light">Mínimo registrado</Badge>
                             )}
                             {age && (
                                 <Badge size="sm" color={deal.is_new ? 'primaryRed' : 'gray'} variant="light">

@@ -10,10 +10,10 @@ export default function SearchLoading() {
                 {Array.from({ length: 12 }).map((_, i) => (
                     <Box key={i}>
                         <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
-                        <Stack gap={6} mt="sm">
+                        <Stack gap="2xs" mt="sm">
                             <Skeleton height={10} width="40%" radius="sm" />
                             <Skeleton height={14} width="80%" radius="sm" />
-                            <Skeleton height={22} width="55%" radius="sm" mt={4} />
+                            <Skeleton height={22} width="55%" radius="sm" mt="2xs" />
                         </Stack>
                     </Box>
                 ))}

@@ -243,7 +243,7 @@ export function SurveyForm({ survey, onClose, onDone }: SurveyFormProps) {
                         </Stack>
                     )}
                 </fieldset>
-                {error && <Alert color="red" variant="light" mt="md" role="alert">{error}</Alert>}
+                {error && <Alert color="danger" variant="light" mt="md" role="alert">{error}</Alert>}
             </div>
             <div className={styles.navigation}>
                 {question && invalid && (
@@ -401,7 +401,7 @@ function SliderField({ question: q, value, invalid, errorId, onChange }: {
         <Stack gap="sm">
             <Text fw={500} fz="sm">
                 {q.prompt}
-                {q.required && <Text span c="red"> *</Text>}
+                {q.required && <Text span c="danger"> *</Text>}
             </Text>
             {q.help_text && <Text fz="xs" c="dimmed">{q.help_text}</Text>}
             <Box className={styles.sliderControl}>

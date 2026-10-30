@@ -33,7 +33,7 @@ export default function GameDetailLoading() {
                 <Box style={{ flex: '2 1 480px', minWidth: 0 }}>
                     <Stack gap="xl">
                         <Box>
-                            <Group gap="sm" mb={6}>
+                            <Group gap="sm" mb="2xs">
                                 <Skeleton height={20} width={70} radius="xl" />
                                 <Skeleton height={20} width={90} radius="xl" />
                             </Group>

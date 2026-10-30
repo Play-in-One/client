@@ -19,7 +19,7 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
     const posts = [...createdPosts, ...initialPosts.filter((post) => !createdPosts.some((created) => created.id === post.id))];
 
     return (
-        <Container size="lg" py={60}>
+        <Container size="lg" py="section">
             <Group justify="space-between" mb="xl">
                 <Group gap="xs" align="baseline">
                     <Title order={1}>Noticias y Comunidad</Title>
@@ -32,7 +32,7 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                 )}
             </Group>
             {lastCreated && (
-                <Alert color="green" mb="lg" role="status">
+                <Alert color="success" mb="lg" role="status">
                     Post publicado. <Link href={postPath(lastCreated)}>Ver post</Link>
                 </Alert>
             )}
@@ -42,14 +42,11 @@ export default function BlogListClient({ initialPosts }: { initialPosts: Post[] 
                         key={post.id}
                         component={Link}
                         href={postPath(post)}
-                        withBorder
                         shadow="sm"
-                        radius="lg"
                         p={0}
-                        style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                        className="pio-lift"
+                        style={{ overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
                         onClick={() => trackEvent({ event_type: 'post_click', post: post.id })}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = ''; }}
                     >
                         <Box
                             h={180}

@@ -43,7 +43,7 @@ export default function RelatedGamesSection({
     if (games.length === 0) return null;
 
     return (
-        <Box component="section" aria-labelledby="juegos-relacionados" pb={60}>
+        <Box component="section" aria-labelledby="juegos-relacionados" pb="section">
             {/* 'lg' como el Container de GameDetailClient y el de FaqSection: con
                 otro tamaño la sección se sale por un lado del resto de la ficha. */}
             <Container size="lg">
@@ -54,7 +54,7 @@ export default function RelatedGamesSection({
                     <Anchor
                         component={Link}
                         href={moreHref}
-                        c="var(--mantine-color-primaryRed-5)"
+                        c="var(--pio-brand-text)"
                         fw={600}
                         fz="sm"
                         underline="never"

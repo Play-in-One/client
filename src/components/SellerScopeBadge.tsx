@@ -20,7 +20,7 @@ export default function SellerScopeBadge({ seller, size = 13 }: Props) {
     if (!seller.is_international) return null;
 
     return (
-        <Tooltip label="Tienda internacional" withArrow events={{ hover: true, focus: true, touch: true }}>
+        <Tooltip label="Tienda internacional" events={{ hover: true, focus: true, touch: true }}>
             <span role="img" aria-label="Tienda internacional" style={{ fontSize: size, lineHeight: 1 }}>
                 🌐
             </span>

@@ -5,9 +5,10 @@ import { Progress, Stack, Text, Title } from '@mantine/core';
 import { useReducedMotion } from '@mantine/hooks';
 import { IconCircleCheck } from '@tabler/icons-react';
 import styles from './Survey.module.css';
+import { confettiColors } from '@/lib/colors';
 
 const CLOSE_AFTER_MS = 5000;
-const COLORS = ['var(--mantine-primary-color-filled)', '#ffca57', '#4ecdc4', '#8f80ff', '#ff8c69'];
+const COLORS = confettiColors;
 
 interface SurveyCompletionProps {
     title: string;

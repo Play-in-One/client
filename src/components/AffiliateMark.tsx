@@ -2,6 +2,7 @@
 
 import { Box, Tooltip, type BoxProps } from '@mantine/core';
 import { useAdmin } from '@/context/AdminContext';
+import CoverChip from './CoverChip';
 
 interface Props extends BoxProps {
     /** Qué marca el 💸; va al tooltip y al aria-label. */
@@ -32,28 +33,18 @@ export default function AffiliateMark({ label, size = 22, ...boxProps }: Props) 
             style={{ display: 'flex', zIndex: 2 }}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
         >
-            <Tooltip label={label} withArrow events={{ hover: true, focus: true, touch: true }}>
-                <Box
-                    component="span"
+            <Tooltip label={label} events={{ hover: true, focus: true, touch: true }}>
+                <CoverChip
                     role="img"
                     aria-label={label}
                     data-testid="affiliate-mark"
                     tabIndex={0}
-                    style={{
-                        width: size,
-                        height: size,
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: Math.round(size * 0.7),
-                        lineHeight: 1,
-                        borderRadius: 'var(--mantine-radius-sm)',
-                        background: 'rgba(0,0,0,0.55)',
-                        cursor: 'default',
-                    }}
+                    w={size}
+                    h={size}
+                    style={{ fontSize: Math.round(size * 0.7), lineHeight: 1, cursor: 'default' }}
                 >
                     💸
-                </Box>
+                </CoverChip>
             </Tooltip>
         </Box>
     );

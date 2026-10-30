@@ -216,7 +216,7 @@ export function CookiePreferences() {
                     asociado a él, y borra las dos cookies propias. Es inmediato y no hace falta
                     que nos escribas. Después de hacerlo:
                 </Text>
-                <List spacing={4} fz="sm" c="dimmed" mb="lg">
+                <List spacing="2xs" fz="sm" c="dimmed" mb="lg">
                     <List.Item>Volverás a ser un visitante nuevo y el aviso reaparecerá.</List.Item>
                     <List.Item>
                         Los eventos que ya se registraron sobreviven como cifras sueltas sin nada que
@@ -234,13 +234,13 @@ export function CookiePreferences() {
                 </List>
 
                 {forgotten && (
-                    <Alert variant="light" color="green" mb="md">
+                    <Alert variant="light" color="success" mb="md">
                         Listo. Tus datos se borraron y este navegador vuelve a ser anónimo.
                     </Alert>
                 )}
 
                 <Group>
-                    <Button color="red" variant="light" loading={busy} disabled={!ready} onClick={handleForget}>
+                    <Button color="danger" variant="light" loading={busy} disabled={!ready} onClick={handleForget}>
                         Borrar mis datos
                     </Button>
                 </Group>

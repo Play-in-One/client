@@ -90,12 +90,12 @@ function Kpi({
     const Icon = delta == null || delta === 0 ? IconMinus : delta > 0 ? IconArrowUpRight : IconArrowDownRight;
 
     return (
-        <Card withBorder radius="md" p="md">
+        <Card radius="md" p="md">
             <Text fz="xs" tt="uppercase" c="dimmed" fw={700} style={{ letterSpacing: 0.5 }}>
                 {label}
             </Text>
-            <Group gap="xs" align="baseline" mt={4} wrap="nowrap">
-                <Text fz={28} fw={700} lh={1.1}>{value}</Text>
+            <Group gap="xs" align="baseline" mt="2xs" wrap="nowrap">
+                <Text fz="2xl" fw={700} lh={1.1}>{value}</Text>
                 {delta != null && (
                     <Group gap={2} wrap="nowrap">
                         <Icon size={14} color={good === null ? undefined : `var(--mantine-color-${good ? 'teal' : 'red'}-6)`} />
@@ -105,14 +105,14 @@ function Kpi({
                     </Group>
                 )}
             </Group>
-            {hint && <Text fz="xs" c="dimmed" mt={4}>{hint}</Text>}
+            {hint && <Text fz="xs" c="dimmed" mt="2xs">{hint}</Text>}
         </Card>
     );
 }
 
 function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
     return (
-        <Card withBorder radius="md" p="lg">
+        <Card radius="md" p="lg">
             <Title order={2} fz="md" fw={700}>{title}</Title>
             {subtitle && <Text fz="xs" c="dimmed" mt={2} mb="md">{subtitle}</Text>}
             <Box mt={subtitle ? 0 : 'md'}>{children}</Box>
@@ -164,8 +164,8 @@ export function AnalyticsClient() {
 
     if (!isAdmin) {
         return (
-            <Container size="sm" py={60}>
-                <Alert color="yellow" title="Necesitas iniciar sesión">
+            <Container size="sm" py="section">
+                <Alert color="warning" title="Necesitas iniciar sesión">
                     Este panel es solo para administradores.{' '}
                     <Anchor component={Link} href="/staff">Ir al inicio de sesión</Anchor>.
                 </Alert>
@@ -188,7 +188,7 @@ export function AnalyticsClient() {
                 <SegmentedControl data={RANGES} value={days} onChange={setDays} size="sm" />
             </Group>
 
-            {error && <Alert color="red" mb="lg">{error}</Alert>}
+            {error && <Alert color="danger" mb="lg">{error}</Alert>}
 
             {/* Un rollup caído no se distingue de un día tranquilo: las dos cosas
                 se ven como cifras bajas. La API lo dice en `rollup_ran_today` y
@@ -196,7 +196,7 @@ export function AnalyticsClient() {
                 incompletos como si fueran completos. */}
             {reports && !reports.summary.rollup_ran_today && (
                 <Alert
-                    color="orange"
+                    color="caution"
                     icon={<IconAlertTriangle size={18} />}
                     title="Faltan los datos de hoy"
                     mb="lg"
@@ -463,7 +463,7 @@ function SearchTable({
                                 {row.avg_results == null ? (
                                     <Text fz="xs" c="dimmed">sin dato</Text>
                                 ) : highlight ? (
-                                    <Badge color="red" variant="light" size="sm">0</Badge>
+                                    <Badge color="danger" variant="light" size="sm">0</Badge>
                                 ) : (
                                     <Text fz="sm" c="dimmed">{Math.round(row.avg_results)}</Text>
                                 )}

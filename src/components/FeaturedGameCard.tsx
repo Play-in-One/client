@@ -13,7 +13,7 @@ import { formatCLP } from '@/lib/utils';
 import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
-import { decorative } from '@/lib/colors';
+import { decorative, ratingStar } from '@/lib/colors';
 import type { Game } from '@/lib/types';
 
 export const CARD_HEIGHT = 300;
@@ -117,25 +117,16 @@ function FeaturedGameCard({
         >
             <Card
                 shadow="sm"
-                radius="lg"
-                withBorder
                 padding={0}
                 pos="relative"
+                /* En compacto la tarjeta es la diapositiva del carrusel móvil y
+                   no se eleva; en escritorio, el mismo hover que toda tarjeta. */
+                className={compact ? undefined : 'pio-lift'}
                 style={{
                     overflow: 'hidden',
                     width: compact ? '100%' : undefined,
                     height: compact ? CARD_HEIGHT_COMPACT : CARD_HEIGHT,
                     cursor: 'pointer',
-                    transition: 'box-shadow 0.3s, transform 0.3s',
-                }}
-                /* El hover no aplica en touch y deja el estado pegado tras el tap. */
-                onMouseEnter={compact ? undefined : (e) => {
-                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.2)';
-                    e.currentTarget.style.transform = 'translateY(-3px)';
-                }}
-                onMouseLeave={compact ? undefined : (e) => {
-                    e.currentTarget.style.boxShadow = '';
-                    e.currentTarget.style.transform = '';
                 }}
             >
                 {/* Blob de acento, igual al del hero (decorative.heroBlobRed) */}
@@ -183,15 +174,15 @@ function FeaturedGameCard({
                                 : 'width 0.7s ease, padding 0.7s ease, opacity 0.5s ease',
                         }}
                     >
-                        <Group gap={6} mb={10} justify="space-between" align="flex-start">
-                            <Group gap={6} wrap="wrap" style={{ flex: 1 }}>
+                        <Group gap="2xs" mb={10} justify="space-between" align="flex-start">
+                            <Group gap="2xs" wrap="wrap" style={{ flex: 1 }}>
                                 {game.platforms.map((p) => (
                                     <PlatformBadge key={p.id} platform={p} />
                                 ))}
                             </Group>
                             {game.rating && (
-                                <Group gap={4} wrap="nowrap" style={{ flexShrink: 0 }}>
-                                    <IconStarFilled size={14} style={{ color: '#f5b400', flexShrink: 0 }} />
+                                <Group gap="2xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                                    <IconStarFilled size={14} style={{ color: `light-dark(${ratingStar.light}, ${ratingStar.dark})`, flexShrink: 0 }} />
                                     <Text fz="sm" fw={700}>{game.rating}</Text>
                                 </Group>
                             )}
@@ -211,9 +202,9 @@ function FeaturedGameCard({
                             <Box mt="auto">
                                 {/* Igual que GameCard: precio, consola de ese
                                     precio y rebaja en la misma fila. */}
-                                <Group gap={4} wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                <Group gap="2xs" wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
                                     <Group gap={2} wrap="nowrap" align="center">
-                                        <Text fz={compact ? 20 : 24} fw={800} c="var(--mantine-color-primaryRed-5)" style={{ whiteSpace: 'nowrap' }}>
+                                        <Text fz={compact ? 20 : 24} fw={800} c="var(--pio-brand-text)" style={{ whiteSpace: 'nowrap' }}>
                                             {formatCLP(game.min_price as string)}
                                         </Text>
                                         <PriceInfo

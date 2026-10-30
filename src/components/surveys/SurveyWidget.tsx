@@ -103,7 +103,7 @@ export function SurveyWidget() {
                         <div ref={ref} style={styles} className="survey-widget">
                             {bubble && (
                                 <Paper className="survey-widget__bubble" role="status" shadow="md" radius="md" p="sm" withBorder>
-                                    <Group gap={4} wrap="nowrap" align="flex-start">
+                                    <Group gap="2xs" wrap="nowrap" align="flex-start">
                                         <UnstyledButton onClick={open}>
                                             <Text fz="sm">{invitation}</Text>
                                         </UnstyledButton>
@@ -117,7 +117,6 @@ export function SurveyWidget() {
                                 w={280}
                                 maw="calc(100vw - 32px)"
                                 position="top-start"
-                                withArrow
                                 zIndex={195}
                                 events={{ hover: true, focus: true, touch: false }}
                                 styles={{ tooltip: { overflowWrap: 'anywhere' } }}

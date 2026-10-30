@@ -43,4 +43,26 @@ export default [
             'react-hooks/exhaustive-deps': 'warn',
         },
     },
+    {
+        /* Sistema de diseño: los colores viven en `src/lib/colors.ts` (y los de
+           cada consola en el catálogo `src/lib/platforms.ts`). Un hex o un rgba
+           escrito en un componente es un color que el tema no puede cambiar —
+           así sobrevivió el rojo anterior a «Signature Red» en dos botones—, y
+           por eso aquí es error y no aviso: el código ya está limpio. */
+        files: ['src/**/*.{ts,tsx}'],
+        ignores: ['src/lib/colors.ts', 'src/lib/platforms.ts'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: 'Literal[value=/#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}(?:[0-9a-fA-F]{2})?)?\\b|rgba?\\(/]',
+                    message: 'Color literal: usa un token de src/lib/colors.ts o una variable --mantine-*/--pio-*.',
+                },
+                {
+                    selector: 'TemplateElement[value.raw=/#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3}(?:[0-9a-fA-F]{2})?)?\\b|rgba?\\(/]',
+                    message: 'Color literal: usa un token de src/lib/colors.ts o una variable --mantine-*/--pio-*.',
+                },
+            ],
+        },
+    },
 ];

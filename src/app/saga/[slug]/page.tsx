@@ -133,13 +133,13 @@ export default async function SagaDetailPage({
             {/* Misma sección que "Juegos Destacados" del home (banda, ancho `lg`
                 para el que está pensado el carrusel, y títulos). */}
             {saga.featured_games.length > 0 && (
-                <Box py={60} mt="xl" style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
+                <Box py="section" mt="xl" style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
                     <Container size="lg">
                         <Box mb="xl">
                             <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
                                 Destacados de {saga.name}
                             </Title>
-                            <Text c="dimmed" mt={6}>
+                            <Text c="dimmed" mt="2xs">
                                 Selección del equipo PIO.
                             </Text>
                         </Box>

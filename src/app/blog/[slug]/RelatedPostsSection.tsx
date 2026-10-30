@@ -56,7 +56,7 @@ export default async function RelatedPostsSection({ post }: { post: Post }) {
     if (posts.length === 0) return null;
 
     return (
-        <Box component="section" aria-labelledby="posts-relacionados" pb={60}>
+        <Box component="section" aria-labelledby="posts-relacionados" pb="section">
             {/* 'md' como el Container de BlogPostClient: alineado con el artículo. */}
             <Container size="md">
                 <Group justify="space-between" align="flex-end" mb="lg">
@@ -66,7 +66,7 @@ export default async function RelatedPostsSection({ post }: { post: Post }) {
                     <Anchor
                         component={Link}
                         href="/blog"
-                        c="var(--mantine-color-primaryRed-5)"
+                        c="var(--pio-brand-text)"
                         fw={600}
                         fz="sm"
                         underline="never"
@@ -76,7 +76,7 @@ export default async function RelatedPostsSection({ post }: { post: Post }) {
                 </Group>
                 <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
                     {posts.map((related) => (
-                        <Card key={related.id} withBorder radius="lg" padding="lg">
+                        <Card key={related.id} padding="lg">
                             <Badge color="primaryRed" mb="sm" style={{ alignSelf: 'flex-start' }}>
                                 {CATEGORY_LABEL[related.category] ?? related.category}
                             </Badge>

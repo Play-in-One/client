@@ -80,7 +80,7 @@ export default function CouponInfo({ basePrice, seller, size = 15, color = 'grap
                 </ActionIcon>
             </Popover.Target>
             <Popover.Dropdown onClick={(e) => e.preventDefault()}>
-                <Stack gap={4}>
+                <Stack gap="2xs">
                     <Text fz="xs" c="dimmed">Precio con el cupón {coupon.code}</Text>
                     <Group justify="space-between" gap="xs">
                         <Text fz="sm">Precio en tienda</Text>

@@ -73,7 +73,7 @@ export default function ShippingInfo({ basePrice, shippingCost, size = 15, color
                 </ActionIcon>
             </Popover.Target>
             <Popover.Dropdown onClick={(e) => e.preventDefault()}>
-                <Stack gap={4}>
+                <Stack gap="2xs">
                     <Text fz="xs" c="dimmed">Este precio incluye el envío</Text>
                     <Group justify="space-between" gap="xs">
                         <Text fz="sm">Precio en tienda</Text>

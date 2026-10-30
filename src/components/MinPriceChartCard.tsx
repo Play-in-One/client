@@ -55,7 +55,7 @@ export default function MinPriceChartCard({
     const canPlot = built.plotCount >= 2;
 
     return (
-        <Card withBorder radius="xl" p={0} style={{ overflow: 'hidden' }}>
+        <Card radius="xl" p={0} style={{ overflow: 'hidden' }}>
             <Box p="lg" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
                 <Group justify="space-between" wrap="wrap" gap="md">
                     <Title order={3} fz="lg" fw={700}>

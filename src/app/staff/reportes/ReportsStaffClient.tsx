@@ -84,8 +84,8 @@ export default function ReportsStaffClient() {
     };
 
     if (!isAdmin) return (
-        <Container size="sm" py={60}>
-            <Alert color="yellow" title="Necesitas iniciar sesión">
+        <Container size="sm" py="section">
+            <Alert color="warning" title="Necesitas iniciar sesión">
                 Este panel es solo para administradores.{' '}
                 <Anchor component={Link} href="/staff">Ir al inicio de sesión</Anchor>.
             </Alert>
@@ -117,7 +117,7 @@ export default function ReportsStaffClient() {
                         { value: '', label: 'Todos' }, { value: 'false', label: 'Pendientes' }, { value: 'true', label: 'Revisados' },
                     ]} onChange={value => { setReviewed(value ?? ''); setPage(1); }} />
                 </SimpleGrid>
-                {error && <Alert role="alert" color="red">{error}</Alert>}
+                {error && <Alert role="alert" color="danger">{error}</Alert>}
                 {loading && <Group justify="center"><Loader size="sm" /></Group>}
                 {!loading && data?.count === 0 && <Text c="dimmed">No hay reportes con estos filtros.</Text>}
                 {data && data.results.length > 0 && (

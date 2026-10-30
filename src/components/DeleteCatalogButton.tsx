@@ -51,7 +51,7 @@ export default function DeleteCatalogButton({ kind, id, name, disabled = false, 
         <>
             {isAdmin && (
                 <Button
-                    color="red" variant="light" disabled={disabled || busy}
+                    color="danger" variant="light" disabled={disabled || busy}
                     leftSection={<IconTrash size={16} />}
                     onClick={() => { setError(null); setOpened(true); }}
                 >
@@ -71,10 +71,10 @@ export default function DeleteCatalogButton({ kind, id, name, disabled = false, 
                             : 'Se eliminarán este producto y su historial de precios.'}
                         {' '}Esta acción no se puede deshacer.
                     </Text>
-                    {error && <Alert color="red" role="alert">{error}</Alert>}
+                    {error && <Alert color="danger" role="alert">{error}</Alert>}
                     <Group justify="flex-end">
                         <Button variant="default" disabled={busy} onClick={() => setOpened(false)}>Cancelar</Button>
-                        <Button color="red" loading={busy} disabled={busy || disabled || !isAdmin} onClick={confirm}>
+                        <Button color="danger" loading={busy} disabled={busy || disabled || !isAdmin} onClick={confirm}>
                             Eliminar definitivamente
                         </Button>
                     </Group>

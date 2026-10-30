@@ -6,16 +6,16 @@ import { usePathname } from 'next/navigation';
 import { Affix, Anchor, Button, Group, Paper, Stack, Text, Transition } from '@mantine/core';
 
 import { useConsent } from '@/context/ConsentContext';
-import { darkScale, decorative } from '@/lib/colors';
+import { darkScale, decorative, onDark } from '@/lib/colors';
 
 /* «Solo esenciales» en contorno sobre la tarjeta oscura. Van como variables del
    botón y no como clase: Mantine las fija inline según la variante, y una clase
    no las puede pisar. */
 const GHOST_BUTTON_VARS = {
     '--button-bg': 'transparent',
-    '--button-hover': 'rgba(255, 255, 255, 0.06)',
-    '--button-color': '#fff',
-    '--button-bd': '1px solid rgba(255, 255, 255, 0.18)',
+    '--button-hover': onDark.hover,
+    '--button-color': onDark.text,
+    '--button-bd': `1px solid ${onDark.borderStrong}`,
 };
 
 // Rutas de administración: son tráfico propio y no se miden (ver
@@ -88,7 +88,7 @@ export function CookieBanner() {
                         style={{
                             ...styles,
                             backgroundColor: darkScale[8],
-                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            border: `1px solid ${onDark.border}`,
                         }}
                         p="lg"
                         radius="xl"

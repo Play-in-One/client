@@ -52,7 +52,7 @@ export default function CouponModal({ offer, onClose, onConfirm }: Props) {
             centered
             radius="lg"
             title={
-                <Group gap={6}>
+                <Group gap="2xs">
                     <IconGift size={20} />
                     <Text fw={700}>¡Esta tienda tiene cupón!</Text>
                 </Group>
@@ -63,7 +63,7 @@ export default function CouponModal({ offer, onClose, onConfirm }: Props) {
                     {savings && (
                         <Stack gap={0}>
                             <Text size="xl">
-                                Ahorra <Text component="span" fw={700} c="green">{formatCLP(savings.savings)}</Text> utilizando un cupón !!
+                                Ahorra <Text component="span" fw={700} c="success">{formatCLP(savings.savings)}</Text> utilizando un cupón !!
                             </Text>
                             <Text fz="sm">De {formatCLP(savings.base)} a {formatCLP(savings.discounted)}.</Text>
                         </Stack>
@@ -77,7 +77,7 @@ export default function CouponModal({ offer, onClose, onConfirm }: Props) {
                         <Text ta="center" fz="xl" fw={700} ff="monospace" style={{ letterSpacing: 1 }}>
                             {coupon.code}
                         </Text>
-                        <Tooltip label={copied ? '¡Copiado!' : 'Copiar código'} withArrow>
+                        <Tooltip label={copied ? '¡Copiado!' : 'Copiar código'}>
                             <ActionIcon
                                 variant="light"
                                 size="lg"

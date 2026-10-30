@@ -26,7 +26,6 @@ export default function ProductClickBadge({ counts }: Props) {
 
     return (
         <Tooltip
-            withArrow
             multiline
             w={180}
             position="bottom"

@@ -91,7 +91,7 @@ export default async function ScrapStatsPage() {
     }
 
     return (
-        <Container size="md" py={60}>
+        <Container size="md" py="section">
             <Group justify="center" gap="xs" mb="xs">
                 <Image
                     src="/PIO-punto-negro.svg"
@@ -160,22 +160,22 @@ export default async function ScrapStatsPage() {
                                 <tr>
                                     <th>Plataforma</th>
                                     <th className="value-col">
-                                        <Group gap={4} justify="center" wrap="nowrap">
+                                        <Group gap="2xs" justify="center" wrap="nowrap">
                                             <IconSparkles size={16} /><span>Nuevo</span>
                                         </Group>
                                     </th>
                                     <th className="value-col">
-                                        <Group gap={4} justify="center" wrap="nowrap">
+                                        <Group gap="2xs" justify="center" wrap="nowrap">
                                             <IconRecycle size={16} /><span>Usado</span>
                                         </Group>
                                     </th>
                                     <th className="value-col">
-                                        <Group gap={4} justify="center" wrap="nowrap">
+                                        <Group gap="2xs" justify="center" wrap="nowrap">
                                             <IconCloudDownload size={16} /><span>Store</span>
                                         </Group>
                                     </th>
                                     <th className="value-col">
-                                        <Group gap={4} justify="center" wrap="nowrap">
+                                        <Group gap="2xs" justify="center" wrap="nowrap">
                                             <IconKey size={16} /><span>Key</span>
                                         </Group>
                                     </th>
@@ -262,7 +262,7 @@ export default async function ScrapStatsPage() {
 
                         <div className="scrape-kpi-grid">
                             <Box className="scrape-kpi scrape-kpi-created">
-                                <Group className="scrape-kpi-heading" gap={6} wrap="nowrap">
+                                <Group className="scrape-kpi-heading" gap="2xs" wrap="nowrap">
                                     <IconSparkles className="scrape-kpi-icon" size={19} />
                                     <Text className="scrape-kpi-label">Productos nuevos</Text>
                                 </Group>
@@ -272,7 +272,7 @@ export default async function ScrapStatsPage() {
                                 <Text className="scrape-kpi-hint">Incorporados al catálogo</Text>
                             </Box>
                             <Box className="scrape-kpi scrape-kpi-updated">
-                                <Group className="scrape-kpi-heading" gap={6} wrap="nowrap">
+                                <Group className="scrape-kpi-heading" gap="2xs" wrap="nowrap">
                                     <IconRefresh className="scrape-kpi-icon" size={19} />
                                     <Text className="scrape-kpi-label">Actualizados</Text>
                                 </Group>
@@ -282,7 +282,7 @@ export default async function ScrapStatsPage() {
                                 <Text className="scrape-kpi-hint">Con cambios detectados</Text>
                             </Box>
                             <Box className="scrape-kpi scrape-kpi-unchanged">
-                                <Group className="scrape-kpi-heading" gap={6} wrap="nowrap">
+                                <Group className="scrape-kpi-heading" gap="2xs" wrap="nowrap">
                                     <IconRecycle className="scrape-kpi-icon" size={19} />
                                     <Text className="scrape-kpi-label">Sin cambios</Text>
                                 </Group>
@@ -292,7 +292,7 @@ export default async function ScrapStatsPage() {
                                 <Text className="scrape-kpi-hint">Revisados, con el mismo precio</Text>
                             </Box>
                             <Box className="scrape-kpi scrape-kpi-price-drop">
-                                <Group className="scrape-kpi-heading" gap={6} wrap="nowrap">
+                                <Group className="scrape-kpi-heading" gap="2xs" wrap="nowrap">
                                     <IconTrendingDown className="scrape-kpi-icon" size={19} />
                                     <Text className="scrape-kpi-label">Bajaron de precio</Text>
                                 </Group>
@@ -305,7 +305,7 @@ export default async function ScrapStatsPage() {
                     </Box>
                 ) : (
                     <Box className="scrape-empty-state">
-                        <Title order={2} fz="lg" mb={4}>Último scrapeo</Title>
+                        <Title order={2} fz="lg" mb="2xs">Último scrapeo</Title>
                         <Text c="dimmed">Aún no hay una corrida de scrapeo finalizada.</Text>
                     </Box>
                 )}

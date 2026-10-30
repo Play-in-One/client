@@ -68,7 +68,7 @@ export default function StoreClient({
                 fz="sm"
             >
                 <Anchor component={Link} href="/" c="dimmed" underline="never">
-                    <Group gap={4}><IconHome size={14} /> Inicio</Group>
+                    <Group gap="2xs"><IconHome size={14} /> Inicio</Group>
                 </Anchor>
                 <Text fw={500}>{seller.name}</Text>
             </Breadcrumbs>
@@ -116,7 +116,7 @@ export default function StoreClient({
                             fz="sm"
                             c="dimmed"
                         >
-                            <Group gap={4}>
+                            <Group gap="2xs">
                                 {seller.url} <IconExternalLink size={14} />
                             </Group>
                         </Anchor>
@@ -126,7 +126,7 @@ export default function StoreClient({
 
             <Stack gap="lg">
                 {/* Description */}
-                <Card withBorder radius="lg" p="lg">
+                <Card p="lg">
                     <Text fw={700} mb="xs">Acerca de la tienda</Text>
                     <Text fz="sm" c="dimmed" lh={1.6}>
                         {seller.description || summary || 'Sin descripción disponible.'}
@@ -135,7 +135,7 @@ export default function StoreClient({
 
                 {/* Envío: explica de dónde sale el sobreprecio que la plataforma
                     suma a todas las ofertas de esta tienda. */}
-                <Card withBorder radius="lg" p="lg">
+                <Card p="lg">
                     <Group gap="xs" mb="xs">
                         <IconTruck size={18} color="var(--mantine-color-primaryRed-5)" />
                         <Text fw={700}>Envío</Text>
@@ -156,7 +156,7 @@ export default function StoreClient({
                 </Card>
 
                 {/* Addresses */}
-                <Card withBorder radius="lg" p="lg">
+                <Card p="lg">
                     <Text fw={700} mb="md">Sucursales</Text>
                     {addresses.length === 0 ? (
                         <Text fz="sm" c="dimmed">No hay sucursales registradas.</Text>

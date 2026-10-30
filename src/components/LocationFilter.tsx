@@ -51,8 +51,8 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
         <Stack gap="sm">
             {/* Internacionales arriba y nacionales debajo, con el mismo aspecto: son
                 el mismo tipo de control (incluir o no una categoría de tiendas). */}
-            <Stack gap={6}>
-                <Group gap={6} wrap="nowrap">
+            <Stack gap="2xs">
+                <Group gap="2xs" wrap="nowrap">
                     <Button
                         size={size}
                         radius="xl"
@@ -70,7 +70,7 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
                         dejan de contar en toda la plataforma.
                     </InfoHint>
                 </Group>
-                <Group gap={6} wrap="nowrap">
+                <Group gap="2xs" wrap="nowrap">
                     <Button
                         size={size}
                         radius="xl"
@@ -92,8 +92,8 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
             </Stack>
 
             <div>
-                <Group justify="space-between" wrap="nowrap" gap={4}>
-                    <Group gap={4} wrap="nowrap">
+                <Group justify="space-between" wrap="nowrap" gap="2xs">
+                    <Group gap="2xs" wrap="nowrap">
                         {/* El título también abre el desplegable (comodidad con el ratón);
                             el botón accesible es el de la derecha. */}
                         <UnstyledButton
@@ -117,7 +117,7 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
                         onKeyDown={keepKeysInside}
                         style={{ flex: 1, minWidth: 0 }}
                     >
-                        <Group justify="flex-end" gap={4} wrap="nowrap">
+                        <Group justify="flex-end" gap="2xs" wrap="nowrap">
                             <Text fz="sm" c={region ? 'primaryRed' : 'dimmed'} fw={region ? 600 : 400}>
                                 {region ? regionName(region) : 'Todas'}
                             </Text>

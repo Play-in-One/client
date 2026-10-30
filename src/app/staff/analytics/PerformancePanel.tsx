@@ -56,12 +56,12 @@ function lcpColor(value: number | null): string | undefined {
 
 function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
     return (
-        <Card withBorder radius="md" p="md">
+        <Card radius="md" p="md">
             <Text fz="xs" tt="uppercase" c="dimmed" fw={700} style={{ letterSpacing: 0.5 }}>
                 {label}
             </Text>
-            <Text fz={28} fw={700} lh={1.1} mt={4}>{value}</Text>
-            {hint && <Text fz="xs" c="dimmed" mt={4}>{hint}</Text>}
+            <Text fz="2xl" fw={700} lh={1.1} mt="2xs">{value}</Text>
+            {hint && <Text fz="xs" c="dimmed" mt="2xs">{hint}</Text>}
         </Card>
     );
 }
@@ -70,7 +70,7 @@ function Panel({ title, subtitle, children }: {
     title: string; subtitle?: string; children: React.ReactNode;
 }) {
     return (
-        <Card withBorder radius="md" p="lg">
+        <Card radius="md" p="lg">
             <Title order={2} fz="md" fw={700}>{title}</Title>
             {subtitle && <Text fz="xs" c="dimmed" mt={2} mb="md">{subtitle}</Text>}
             <Box mt={subtitle ? 0 : 'md'}>{children}</Box>
@@ -164,7 +164,6 @@ function SlowestTable({ rows }: { rows: PageLoadDetail[] }) {
                                     label={row.server_view
                                         ? `${row.server_view} · ${row.server_queries ?? '?'} consultas`
                                         : 'Sin correlación con el backend'}
-                                    withArrow
                                 >
                                     <Text fz="sm" span>{ms(row.server_ms)}</Text>
                                 </Tooltip>
@@ -173,7 +172,7 @@ function SlowestTable({ rows }: { rows: PageLoadDetail[] }) {
                                 {/* No se mide: es el TTFB menos lo que fue Django.
                                     Incluye la red interna entre los dos, que es
                                     despreciable dentro del mismo host. */}
-                                <Tooltip label="Primer byte menos el tiempo de Django" withArrow>
+                                <Tooltip label="Primer byte menos el tiempo de Django">
                                     <Text fz="sm" span>{ms(row.frontend_ms)}</Text>
                                 </Tooltip>
                             </Table.Td>
@@ -181,7 +180,7 @@ function SlowestTable({ rows }: { rows: PageLoadDetail[] }) {
                                 {row.api_calls == null ? '—' : `×${row.api_calls}`}
                             </Table.Td>
                             <Table.Td>
-                                <Group gap={4} wrap="nowrap">
+                                <Group gap="2xs" wrap="nowrap">
                                     {row.cache_state && (
                                         <Badge size="xs" variant="outline"
                                             color={row.cache_state === 'hit' ? 'gray' : 'blue'}>
@@ -245,7 +244,7 @@ export function PerformancePanel() {
     if (loading && !report) {
         return <Center py="xl"><Loader /></Center>;
     }
-    if (error) return <Alert color="red">{error}</Alert>;
+    if (error) return <Alert color="danger">{error}</Alert>;
     if (!report) return null;
 
     const totals = report.totals as PagePerfRow;
@@ -294,7 +293,7 @@ export function PerformancePanel() {
             </Panel>
 
             {measured === 0 ? (
-                <Alert color="yellow" title="Todavía no hay mediciones">
+                <Alert color="warning" title="Todavía no hay mediciones">
                     Las cargas se registran cuando alguien visita el sitio y cierra o abandona la
                     página. Si acabas de desplegar, dale unas horas.
                 </Alert>

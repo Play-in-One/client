@@ -26,7 +26,6 @@ export default function GameClickBadge({ stats }: Props) {
 
     return (
         <Tooltip
-            withArrow
             multiline
             w={260}
             position="bottom"

@@ -32,7 +32,7 @@ export function EncuestasClient({ surveys }: { surveys: Survey[] }) {
     const completed = surveys.filter((s) => done.has(s.id));
 
     return (
-        <Container size="sm" py={60}>
+        <Container size="sm" py="section">
             <Title order={1} ta="center" mb="xs">Encuestas</Title>
             <Text c="dimmed" ta="center" mb="xl">
                 Preguntas cortas para saber qué mejorar. Toman un minuto y no te pedimos ningún dato personal.
@@ -61,7 +61,7 @@ function SurveyCard({ survey, onAnswer }: { survey: Survey; onAnswer?: () => voi
     return (
         <Box className={`content-card ${styles.card}`} p="lg" component="article" aria-label={survey.title}>
             <div className={styles.cardContent}>
-                <Stack className={styles.cardText} gap={4}>
+                <Stack className={styles.cardText} gap="2xs">
                     <Title order={2} fz="lg">{survey.title}</Title>
                     {survey.description && <Text fz="sm" c="dimmed">{survey.description}</Text>}
                     <Text fz="xs" c="dimmed">
@@ -71,7 +71,7 @@ function SurveyCard({ survey, onAnswer }: { survey: Survey; onAnswer?: () => voi
                 {onAnswer ? (
                     <Button onClick={onAnswer} style={{ flexShrink: 0 }}>Responder</Button>
                 ) : (
-                    <Badge color="green" variant="light" leftSection={<IconCheck size={12} />} style={{ flexShrink: 0 }}>
+                    <Badge color="success" variant="light" leftSection={<IconCheck size={12} />} style={{ flexShrink: 0 }}>
                         Respondida
                     </Badge>
                 )}

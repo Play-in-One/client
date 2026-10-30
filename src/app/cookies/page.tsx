@@ -13,7 +13,7 @@ export const metadata: Metadata = buildMetadata({
 
 export default function CookiesPage() {
     return (
-        <Container size="md" py={60}>
+        <Container size="md" py="section">
             <Title order={1} mb="xs" ta="center">Cookies y preferencias</Title>
             <Text fz="sm" c="dimmed" ta="center" mb="xl">
                 Dos cookies, ninguna de terceros, ninguna publicitaria.

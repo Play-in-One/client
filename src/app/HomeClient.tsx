@@ -25,7 +25,7 @@ import {
 } from '@tabler/icons-react';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
-import { surfaces, decorative } from '@/lib/colors';
+import { decorative, elevation, surfaces } from '@/lib/colors';
 import { getHomeGames, getDeals, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
@@ -273,23 +273,23 @@ export default function HomeClient({
                             <Group
                                 gap={0}
                                 pos="relative"
-                                p={6}
+                                p="2xs"
                                 style={{
                                     borderRadius: 'var(--mantine-radius-xl)',
                                     background: `light-dark(${surfaces.light.heroSearchBar}, ${surfaces.dark.heroSearchBar})`,
-                                    boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+                                    boxShadow: elevation.raised,
                                     border: '1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))',
                                 }}
                             >
                                 <TextInput
                                     placeholder="Ej: Elden Ring, FIFA 24, Zelda..."
-                                    leftSection={<IconSearch size={22} style={{ color: '#9ca3af' }} />}
+                                    leftSection={<IconSearch size={22} style={{ color: 'var(--mantine-color-dimmed)' }} />}
                                     value={query}
                                     onChange={(e) => setQuery(e.currentTarget.value)}
                                     size="lg"
                                     radius="xl"
                                     styles={{
-                                        input: { border: 'none', background: 'transparent', fontSize: 16 },
+                                        input: { border: 'none', background: 'transparent', fontSize: 'var(--mantine-font-size-md)' },
                                         root: { flex: 1 },
                                     }}
                                 />
@@ -312,13 +312,13 @@ export default function HomeClient({
 
             {/* ══════ JUEGOS DESTACADOS ══════ */}
             {(featured.length > 0 || filtering) && (
-                <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
+                <Box py="section" style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
                     <Container size="lg">
                         <Box mb="xl">
                             <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
                                 Juegos Destacados
                             </Title>
-                            <Text c="dimmed" mt={6}>
+                            <Text c="dimmed" mt="2xs">
                                 Una selección destacada
                             </Text>
                         </Box>
@@ -332,21 +332,21 @@ export default function HomeClient({
 
             {/* ══════ OFERTAS DE HOY ══════ */}
             {(initialDeals.length > 0 || offers.results.length > 0 || dealsLoading || conditionParam || sellerLocationsParam) && (
-                <Box data-home-deals pt={60} pb={initialSagas.length > 0 ? 60 : 0}>
+                <Box data-home-deals pt="section" pb={initialSagas.length > 0 ? 60 : 0}>
                     <Container size="lg">
                         <Group justify="space-between" align="flex-end" mb="xl">
                             <Box>
                                 <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
                                     {offers.title}
                                 </Title>
-                                <Text c="dimmed" mt={6}>
+                                <Text c="dimmed" mt="2xs">
                                     Al menos 15% bajo su precio típico. {DEALS_TYPICAL_NOTE}
                                 </Text>
                             </Box>
                             <Anchor
                                 component={Link}
                                 href="/ofertas"
-                                c="var(--mantine-color-primaryRed-5)"
+                                c="var(--pio-brand-text)"
                                 fw={600}
                                 fz="sm"
                                 underline="never"
@@ -384,7 +384,7 @@ export default function HomeClient({
                                 Explora tus sagas favoritas
                             </Link>
                         </Text>
-                        <Group justify="center" gap={60} align="center" mt="xl">
+                        <Group justify="center" gap="section" align="center" mt="xl">
                             {initialSagas.map((s) => (
                                 <Anchor
                                     key={s.slug}
@@ -420,21 +420,21 @@ export default function HomeClient({
                 /* Cierra con 20 y no con los 60 del resto: sumado a la apertura
                    de "Noticias" daban 120 px de hueco, el doble que entre
                    cualquier otro par de secciones. */
-                <Box pt={60} pb={20}>
+                <Box pt="section" pb={20}>
                     <Container size="lg">
                         <Group justify="space-between" align="flex-end" mb="xl">
                             <Box>
                                 <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
                                     Populares esta semana
                                 </Title>
-                                <Text c="dimmed" mt={6}>
+                                <Text c="dimmed" mt="2xs">
                                     Los juegos con más movimiento en los últimos 7 días.
                                 </Text>
                             </Box>
                             <Anchor
                                 component={Link}
                                 href="/search"
-                                c="var(--mantine-color-primaryRed-5)"
+                                c="var(--pio-brand-text)"
                                 fw={600}
                                 fz="sm"
                                 underline="never"
@@ -464,21 +464,21 @@ export default function HomeClient({
             )}
 
             {/* ══════ NOTICIAS Y COMUNIDAD ══════ */}
-            <Box py={60}>
+            <Box py="section">
                 <Container size="lg">
                     <Group justify="space-between" align="flex-end" mb="xl">
                         <Box>
                             <Title order={2} fz={{ base: 24, md: 30 }} fw={700}>
                                 Noticias y Comunidad
                             </Title>
-                            <Text c="dimmed" mt={6}>
+                            <Text c="dimmed" mt="2xs">
                                 Mantente al día con lo último de Play in One y el mundo gaming.
                             </Text>
                         </Box>
                         <Anchor
                             component={Link}
                             href="/blog"
-                            c="var(--mantine-color-primaryRed-5)"
+                            c="var(--pio-brand-text)"
                             fw={600}
                             fz="sm"
                             underline="never"
@@ -493,14 +493,11 @@ export default function HomeClient({
                                 key={n.id}
                                 component="a"
                                 href={postPath(n)}
-                                withBorder
                                 shadow="sm"
-                                radius="lg"
                                 p={0}
-                                style={{ overflow: 'hidden', transition: 'box-shadow 0.3s', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
+                                className="pio-lift"
+                                style={{ overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
                                 onClick={() => trackEvent({ event_type: 'post_click', post: n.id })}
-                                onMouseEnter={(e) => { e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.12)'; }}
-                                onMouseLeave={(e) => { e.currentTarget.style.boxShadow = ''; }}
                             >
                                 {/* Placeholder image area */}
                                 <Box
@@ -521,7 +518,7 @@ export default function HomeClient({
                                     )}
                                 </Box>
                                 <Box p={{ base: 'md', md: 'lg' }}>
-                                    <Text fz={{ base: 10, md: 'xs' }} fw={700} c="var(--mantine-color-primaryRed-5)" tt="uppercase" mb={{ base: 4, md: 6 }} style={{ letterSpacing: 1 }}>
+                                    <Text fz={{ base: 10, md: 'xs' }} fw={700} c="var(--pio-brand-text)" tt="uppercase" mb={{ base: 4, md: 6 }} style={{ letterSpacing: 1 }}>
                                         {CATEGORY_LABEL[n.category] ?? n.category}
                                     </Text>
                                     <Text fw={700} fz={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 6 }} lineClamp={2}>{n.title}</Text>
@@ -540,7 +537,7 @@ export default function HomeClient({
             <AdSlot slot={AD_SLOT_HOME_FOOTER} />
 
             {/* ══════ EXPLORAR POR PLATAFORMA ══════ */}
-            <Box py={60} style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
+            <Box py="section" style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>
                 <Container size="lg">
                     <Title order={2} fz={24} fw={700} mb="xl">
                         Explorar por Plataforma
@@ -557,23 +554,13 @@ export default function HomeClient({
                             return (
                                 <Anchor key={group.label} href={href} underline="never">
                                     <Card
-                                        withBorder
                                         shadow="sm"
-                                        radius="lg"
                                         py="xl"
+                                        className="pio-lift"
                                         style={{
                                             textAlign: 'center',
-                                            transition: 'transform 0.2s, box-shadow 0.2s',
                                             cursor: 'pointer',
                                             backgroundColor: group.color,
-                                        }}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.transform = 'translateY(-4px)';
-                                            e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.1)';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.transform = '';
-                                            e.currentTarget.style.boxShadow = '';
                                         }}
                                     >
                                         <Stack align="center" gap="xs">

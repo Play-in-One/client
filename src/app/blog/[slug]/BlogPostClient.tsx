@@ -63,14 +63,14 @@ export default function BlogPostClient({ initialPost, bodySlot }: {
     const updatedAt = updatedAfterPublishing(post);
 
     return (
-        <Container size="md" py={60}>
+        <Container size="md" py="section">
             <Group justify="space-between" mb="md">
                 <Badge color="primaryRed">{CATEGORY_LABEL[post.category] ?? post.category}</Badge>
                 {isAdmin && (
                     <Button variant="light" leftSection={<IconPencil size={18} />} onClick={() => setEditing(true)}>Editar post</Button>
                 )}
             </Group>
-            {edited && <Alert color="green" mb="lg" role="status">Cambios guardados.</Alert>}
+            {edited && <Alert color="success" mb="lg" role="status">Cambios guardados.</Alert>}
             <Title order={1} mb="sm">{post.title}</Title>
             {/* La fecha se formatea con zona fija (America/Santiago): con
                 `toLocaleDateString()` el HTML del servidor y el del navegador

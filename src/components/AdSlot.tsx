@@ -173,7 +173,7 @@ export default function AdSlot({
             ref={holder}
             component="aside"
             size="lg"
-            pb={60}
+            pb="section"
             aria-label={label}
             data-ad-slot-holder
             data-ad-state={adStatus}
@@ -182,7 +182,7 @@ export default function AdSlot({
                 fz="xs"
                 c="dimmed"
                 ta="center"
-                mb={4}
+                mb="2xs"
                 aria-hidden={!filled}
                 style={{ opacity: filled ? 1 : 0, transition: 'opacity 150ms' }}
             >

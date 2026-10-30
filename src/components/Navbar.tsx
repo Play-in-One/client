@@ -49,21 +49,21 @@ import { CONSOLES_ENABLED } from '@/lib/features';
 /* El neutro va al centro en los dos: es el default y el que más se elige, así
  * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
 const CONDITION_OPTIONS = [
-    { label: <Group gap={4} wrap="nowrap"><IconRecycle size={15} /><span>Usados</span></Group>, value: 'used' },
+    { label: <Group gap="2xs" wrap="nowrap"><IconRecycle size={15} /><span>Usados</span></Group>, value: 'used' },
     { label: 'Todos', value: 'all' },
-    { label: <Group gap={4} wrap="nowrap"><IconSparkles size={15} /><span>Nuevos</span></Group>, value: 'new' },
+    { label: <Group gap="2xs" wrap="nowrap"><IconSparkles size={15} /><span>Nuevos</span></Group>, value: 'new' },
 ];
 
 const DIGITAL_OPTIONS = [
-    { label: <Group gap={4} wrap="nowrap"><IconKey size={15} /><span>Código</span></Group>, value: 'key' },
+    { label: <Group gap="2xs" wrap="nowrap"><IconKey size={15} /><span>Código</span></Group>, value: 'key' },
     { label: 'Todos', value: 'all' },
-    { label: <Group gap={4} wrap="nowrap"><IconCloudDownload size={15} /><span>Store</span></Group>, value: 'store' },
+    { label: <Group gap="2xs" wrap="nowrap"><IconCloudDownload size={15} /><span>Store</span></Group>, value: 'store' },
 ];
 
 const FORMAT_OPTIONS = [
     {
         label: (
-            <Group gap={6} wrap="nowrap">
+            <Group gap="2xs" wrap="nowrap">
                 <IconDisc size={18} />
                 <span>Físico</span>
             </Group>
@@ -73,7 +73,7 @@ const FORMAT_OPTIONS = [
     { label: 'Todo', value: 'all' },
     {
         label: (
-            <Group gap={6} wrap="nowrap">
+            <Group gap="2xs" wrap="nowrap">
                 <IconDeviceFloppy size={18} stroke={2.25} />
                 <span>Digital</span>
             </Group>
@@ -190,7 +190,7 @@ export default function Navbar() {
                     menos la home), tapando el engranaje de preferencias. */}
                 <Group gap={CONSOLES_ENABLED ? 'sm' : 'md'} visibleFrom="lg" wrap="nowrap">
                     {CONSOLES_ENABLED && <UnstyledButton component={Link} href="/consolas" fw={600} fz="sm"
-                        c={pathname?.startsWith('/consola') ? 'var(--mantine-color-primaryRed-5)' : 'dimmed'}>Consolas</UnstyledButton>}
+                        c={pathname?.startsWith('/consola') ? 'var(--pio-brand-text)' : 'dimmed'}>Consolas</UnstyledButton>}
                     {/* Ofertas va primero y fuera de los menús de consola: es la
                         página con más intención de compra del sitio y no
                         pertenece a ninguna marca. Enlace real (`<a href>`) para
@@ -200,10 +200,10 @@ export default function Navbar() {
                         href="/ofertas"
                         fw={600}
                         fz="sm"
-                        c={pathname?.startsWith('/ofertas') ? 'var(--mantine-color-primaryRed-5)' : 'dimmed'}
+                        c={pathname?.startsWith('/ofertas') ? 'var(--pio-brand-text)' : 'dimmed'}
                         style={{ transition: 'color 0.15s' }}
                     >
-                        <Group gap={6} wrap="nowrap">
+                        <Group gap="2xs" wrap="nowrap">
                             <IconRosetteDiscount size={18} />
                             <Box component="span">Ofertas</Box>
                         </Group>
@@ -242,7 +242,7 @@ export default function Navbar() {
                                             e.currentTarget.style.color = 'var(--mantine-color-dimmed)';
                                         }}
                                     >
-                                        <Group gap={6} wrap="nowrap">
+                                        <Group gap="2xs" wrap="nowrap">
                                             <Icon size={group.brand === 'PlayStation' || group.brand === 'PC' ? 22 : 18} />
                                             <Box component="span">
                                                 {group.brand}
@@ -265,7 +265,7 @@ export default function Navbar() {
                         );
                     })}
 
-                    <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx={6} />
+                    <Box w={1} h={24} bg="var(--mantine-color-default-border)" mx="2xs" />
 
                     <SegmentedControl
                         data={FORMAT_OPTIONS}
@@ -347,7 +347,7 @@ export default function Navbar() {
                                     no se monta hasta que se abre: no hay primer
                                     render que hidratar. */}
                                 <Menu.Item component="div" closeMenuOnClick={false}>
-                                    <Text fz="sm" fw={500} mb={6}>Tema</Text>
+                                    <Text fz="sm" fw={500} mb="2xs">Tema</Text>
                                     <SegmentedControl
                                         data={THEME_OPTIONS}
                                         value={isDark ? 'dark' : 'light'}
@@ -379,7 +379,7 @@ export default function Navbar() {
                                     vuelve a aparecer intacto al salir de Digital. */}
                                 {format !== 'digital' && (
                                     <Menu.Item component="div" closeMenuOnClick={false}>
-                                        <Group gap={4} mb={6} wrap="nowrap">
+                                        <Group gap="2xs" mb="2xs" wrap="nowrap">
                                             <Text fz="sm" fw={500}>Estado físico</Text>
                                             <InfoHint label="¿Qué hace el estado físico?">
                                                 Acota el catálogo a juegos nuevos o usados.
@@ -401,7 +401,7 @@ export default function Navbar() {
                                 )}
                                 {format !== 'physical' && (
                                     <Menu.Item component="div" closeMenuOnClick={false}>
-                                        <Group gap={4} mb={6} wrap="nowrap">
+                                        <Group gap="2xs" mb="2xs" wrap="nowrap">
                                             <Text fz="sm" fw={500}>Tipo digital</Text>
                                             <InfoHint label="¿Qué hace el tipo digital?">
                                                 Acota el catálogo a compras en Store o códigos de canje.
@@ -501,7 +501,7 @@ export default function Navbar() {
                     <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 
                     <div>
-                        <Text fz="sm" fw={500} mb={6}>Formato</Text>
+                        <Text fz="sm" fw={500} mb="2xs">Formato</Text>
                         <SegmentedControl
                             data={FORMAT_OPTIONS}
                             value={format}
@@ -516,7 +516,7 @@ export default function Navbar() {
 
                     {format !== 'digital' && (
                         <div>
-                            <Group gap={4} mb={6} wrap="nowrap">
+                            <Group gap="2xs" mb="2xs" wrap="nowrap">
                                 <Text fz="sm" fw={500}>Estado físico</Text>
                                 <InfoHint label="¿Qué hace el estado físico?">
                                     Acota el catálogo a juegos nuevos o usados.
@@ -537,7 +537,7 @@ export default function Navbar() {
 
                     {format !== 'physical' && (
                         <div>
-                            <Group gap={4} mb={6} wrap="nowrap">
+                            <Group gap="2xs" mb="2xs" wrap="nowrap">
                                 <Text fz="sm" fw={500}>Tipo digital</Text>
                                 <InfoHint label="¿Qué hace el tipo digital?">
                                     Acota el catálogo a compras en Store o códigos de canje.
@@ -559,7 +559,7 @@ export default function Navbar() {
                     <Box h={1} bg="var(--mantine-color-default-border)" my="sm" />
 
                     <div>
-                        <Text fz="sm" fw={500} mb={6}>Tema</Text>
+                        <Text fz="sm" fw={500} mb="2xs">Tema</Text>
                         <SegmentedControl
                             data={THEME_OPTIONS}
                             value={isDark ? 'dark' : 'light'}

@@ -53,11 +53,11 @@ export default function CrawlablePagination({
             )}
             {pageWindow(current, total).map((page, i) =>
                 page === 'gap' ? (
-                    <Text key={`gap-${i}`} c="dimmed" px={4} aria-hidden>
+                    <Text key={`gap-${i}`} c="dimmed" px="2xs" aria-hidden>
                         …
                     </Text>
                 ) : page === current ? (
-                    <Text key={page} fw={700} px={6} aria-current="page">
+                    <Text key={page} fw={700} px="2xs" aria-current="page">
                         {page}
                     </Text>
                 ) : (
@@ -65,7 +65,7 @@ export default function CrawlablePagination({
                         key={page}
                         component={Link}
                         href={hrefFor(page)}
-                        px={6}
+                        px="2xs"
                         fz="sm"
                         c="primaryRed"
                         underline="hover"

@@ -32,7 +32,7 @@ function StatCounter({ value, label }: { value: number; label: string }) {
     const animated = useCountUp(value);
     return (
         <Stack gap={0} align="center">
-            <Text fz={28} fw={800}>
+            <Text fz="2xl" fw={800}>
                 {animated.toLocaleString('es-CL')}+
             </Text>
             <Text fz="sm" c="dimmed">{label}</Text>

@@ -11,7 +11,7 @@ export const metadata: Metadata = buildMetadata({
 
 export default function AboutPage() {
     return (
-        <Container size="md" py={60}>
+        <Container size="md" py="section">
             <Title order={1} mb="xl" ta="center">Sobre Nosotros</Title>
 
             <Box className="content-card" p="xl" mb="xl">
@@ -28,7 +28,7 @@ export default function AboutPage() {
                 </Text>
             </Box>
 
-            <Title order={2} ta="center" mt={60} mb="md">¿Qué es PIO?</Title>
+            <Title order={2} ta="center" mt="section" mb="md">¿Qué es PIO?</Title>
             <Box className="content-card" p="xl" mb="xl">
                 <Text fz="lg" ta="center">
                     Play in One es una plataforma web que te permite comparar los precios de videojuegos entre 50+ tiendas a nivel nacional.
@@ -36,8 +36,8 @@ export default function AboutPage() {
                 </Text>
             </Box>
 
-            <Title order={2} ta="center" mt={60} mb="xl">Fundadores</Title>
-            <Card withBorder radius="lg" padding="xl" ta="center">
+            <Title order={2} ta="center" mt="section" mb="xl">Fundadores</Title>
+            <Card padding="xl" ta="center">
                 <Text c="dimmed">
                     Dos egresados de ingeniería apasionados por el mundo start up, el desarrollo web, la tecnología y los videojuegos (entre otros).
                     Estamos comprometidos en crear la mejor plataforma para la comunidad en Chile.

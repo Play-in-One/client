@@ -641,7 +641,7 @@ export default function GameExplorer({
                     }}
                 >
                     <Group justify="space-between" mb="md">
-                        <Group gap={6}>
+                        <Group gap="2xs">
                             <IconAdjustmentsHorizontal size={18} />
                             <Text fw={700} fz="md">Filtros</Text>
                         </Group>
@@ -691,7 +691,7 @@ export default function GameExplorer({
                     CSS lo tapa para quien se desvía del default. Cubre a la vez
                     /search y las dos rutas de landing. */}
                 <Box style={{ flex: 1, minWidth: 0 }} data-prefs-dependent>
-                    {resultsError && <Alert color="red" title="No pudimos actualizar los resultados" role="alert" mb="md">
+                    {resultsError && <Alert color="danger" title="No pudimos actualizar los resultados" role="alert" mb="md">
                         <Text size="sm">Inténtalo otra vez. Los resultados anteriores se conservan.</Text>
                         <Button mt="sm" variant="light" onClick={() => setRefreshKey(key => key + 1)}>Reintentar</Button>
                     </Alert>}
@@ -724,7 +724,7 @@ export default function GameExplorer({
                         <Paper withBorder shadow="md" radius="md" p="md" maw={720} w="100%">
                             <Stack gap="xs">
                                 {mergeError && (
-                                    <Alert color="red" variant="light" py={6}>{mergeError}</Alert>
+                                    <Alert color="danger" variant="light" py="2xs">{mergeError}</Alert>
                                 )}
                                 <Group justify="space-between" wrap="wrap" gap="md">
                                     <Text fw={600} fz="sm">
@@ -744,7 +744,7 @@ export default function GameExplorer({
                                         />
                                         <Button
                                             size="xs"
-                                            color="orange"
+                                            color="caution"
                                             leftSection={<IconGitMerge size={16} />}
                                             loading={merging}
                                             disabled={selected.length < 2 || !effectiveTarget}

@@ -40,12 +40,78 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--pio-scrollbar-thumb);
   border-radius: 20px;
 }
 
-[data-mantine-color-scheme='dark'] ::-webkit-scrollbar-thumb {
-  background-color: #2e2e2e;
+/* Hover de tarjeta clicable: el ÚNICO. Antes cada tarjeta lo hacía con sus
+   propios onMouseEnter y valores (subía 2, 3 o 4 px, o no subía; tres sombras y
+   dos duraciones distintas). En CSS además:
+   - no se activa en táctil (`hover: hover`), donde el tap lo dejaba pegado;
+   - respeta `prefers-reduced-motion`: sin desplazamiento, solo la sombra;
+   - un `box-shadow` inline (la tarjeta seleccionada de GameCard) le gana al
+     hover, así que el anillo de selección ya no desaparece al pasar el cursor. */
+.pio-lift {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+@media (hover: hover) {
+  .pio-lift:hover {
+    box-shadow: var(--pio-shadow-hover);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .pio-lift:hover {
+    transform: translateY(-2px);
+  }
+}
+
+/* Skeleton: un brillo que cruza de izquierda a derecha, en vez del pulso de
+   Mantine. Va anclado a la pantalla (`fixed`), así que todos los bloques muestran
+   partes de la MISMA franja y una fila se lee como una sola onda. Por eso el
+   recorrido va en `vw` y no en porcentajes, y hay que quitar el `transform` de
+   Mantine: un elemento transformado anula el `fixed` y cada bloque tendría la suya. */
+.mantine-Skeleton-root {
+  transform: none;
+  -webkit-transform: none;
+}
+
+.mantine-Skeleton-root[data-animate][data-visible]::after {
+  background-image: linear-gradient(90deg, transparent, var(--pio-skeleton-shine), transparent);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 40vw 100%;
+  animation: pio-skeleton-shine 1500ms linear infinite;
+}
+
+@keyframes pio-skeleton-shine {
+  from { background-position: -40vw 0; }
+  to { background-position: 100vw 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mantine-Skeleton-root[data-animate][data-visible]::after {
+    animation: none;
+    background-image: none;
+  }
+}
+
+/* Oferta sin stock: se apaga con color y no con opacidad. Con `opacity: 0.55` el
+   detalle quedaba en 1,8:1. El !important le gana a la prop `c`, que va inline. */
+.game-offer-row[data-out-of-stock] .mantine-Text-root {
+  color: var(--mantine-color-dimmed) !important;
+}
+
+.game-offer-row[data-out-of-stock] .mantine-Badge-root {
+  /* Sin relleno: el gris tenue sobre un tinte gris se queda en 4,3:1. */
+  --badge-bg: transparent !important;
+  --badge-bd: 1px solid var(--mantine-color-default-border) !important;
+  --badge-color: var(--mantine-color-dimmed) !important;
+}
+
+.game-offer-row[data-out-of-stock] img {
+  filter: grayscale(1);
 }
 
 /* Navbar utilities for SSR/ hydration-safe dark mode */
@@ -125,7 +191,7 @@ body {
 
 [data-mantine-color-scheme='dark'] .condition-switch.mantine-SegmentedControl-root {
   background-color: var(--pio-condition-switch-bg);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: var(--pio-on-dark-border-strong);
 }
 
 .condition-switch .mantine-SegmentedControl-indicator {
@@ -198,11 +264,11 @@ body {
 }
 
 [data-mantine-color-scheme='dark'] .condition-switch .mantine-SegmentedControl-label {
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--pio-on-dark-label);
 }
 
 .condition-switch .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label {
-  color: #fff;
+  color: var(--pio-on-dark-text);
 }
 
 /* Static content card (about/contact/terms) — hydration-safe dark mode via CSS, not JS */
@@ -830,8 +896,8 @@ a.saga-banner-link:focus-visible {
   gap: 2px;
   padding: 2px 6px;
   border-radius: 999px;
-  background: var(--mantine-color-green-light);
-  color: var(--mantine-color-green-text);
+  background: var(--mantine-color-success-light);
+  color: var(--mantine-color-success-light-color);
   font-size: var(--mantine-font-size-xs);
   font-weight: 700;
   line-height: 1.2;
@@ -841,7 +907,7 @@ a.saga-banner-link:focus-visible {
 
 .pio-deal-label:hover,
 .pio-deal-label[aria-expanded="true"] {
-  background: var(--mantine-color-green-light-hover);
+  background: var(--mantine-color-success-light-hover);
 }
 
 /* (i) pegada al título de una página (`InfoHeading`): el icono va junto al

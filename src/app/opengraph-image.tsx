@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og';
 import { siteConfig } from '@/lib/seo';
-import { og } from '@/lib/colors';
+import { brand, og } from '@/lib/colors';
 
 export const alt = siteConfig.title;
 export const size = { width: 1200, height: 630 };
@@ -25,7 +25,7 @@ export default function OpengraphImage() {
                 }}
             >
                 <div style={{ display: 'flex', fontSize: 34, fontWeight: 800, letterSpacing: 2 }}>
-                    PLAY<span style={{ color: '#f02f68' }}> IN </span>ONE
+                    PLAY<span style={{ color: brand.primary }}> IN </span>ONE
                 </div>
                 <div
                     style={{
@@ -38,7 +38,7 @@ export default function OpengraphImage() {
                 >
                     Compara precios de videojuegos
                 </div>
-                <div style={{ fontSize: 36, marginTop: 24, color: '#cbd5e1', textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginTop: 24, color: og.subtitle, textAlign: 'center' }}>
                     Las mejores ofertas entre tiendas chilenas 🇨🇱
                 </div>
             </div>

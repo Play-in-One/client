@@ -49,7 +49,7 @@ function FilterSection({
                 justify="space-between"
                 onClick={onToggle}
                 style={{ cursor: 'pointer', userSelect: 'none' }}
-                py={4}
+                py="2xs"
             >
                 <Text fw={700} fz="sm" tt="uppercase" c="dimmed" style={{ letterSpacing: 1 }}>
                     {title}
@@ -72,7 +72,7 @@ function FilterSection({
 
 function CheckboxLabel({ text, count }: { text: string; count?: number }) {
     return (
-        <Group gap={6} wrap="nowrap">
+        <Group gap="2xs" wrap="nowrap">
             <Text fz="sm" span>{text}</Text>
             {count !== undefined && (
                 <Text fz="xs" c="dimmed" span>({count})</Text>
@@ -337,8 +337,8 @@ export default function GameFilterBar({
 
             {/* Calificación */}
             <FilterSection title="Calificación" open={ratingOpen} onToggle={() => setRatingOpen((v) => !v)}>
-                <Box px={4}>
-                    <Text fz="xs" c="dimmed" mb={6}>
+                <Box px="2xs">
+                    <Text fz="xs" c="dimmed" mb="2xs">
                         {ratingMin === 0 ? 'Todas' : `Mayor a ${ratingMin}`}
                     </Text>
                     <Slider
@@ -368,7 +368,7 @@ export default function GameFilterBar({
                             color="primaryRed"
                             radius="sm"
                             styles={{
-                                label: { cursor: 'pointer', fontSize: 14 },
+                                label: { cursor: 'pointer', fontSize: 'var(--mantine-font-size-sm)' },
                                 input: { cursor: 'pointer' },
                             }}
                         />
@@ -380,7 +380,7 @@ export default function GameFilterBar({
                 <>
                     <Divider />
                     <FilterSection title="Plataforma" open={platformsOpen} onToggle={() => setPlatformsOpen((v) => !v)}>
-                        <Stack gap={6}>
+                        <Stack gap="2xs">
                             <Checkbox
                                 label="Todos"
                                 checked={selectedPlatforms.length === 0}
@@ -388,7 +388,7 @@ export default function GameFilterBar({
                                 color="primaryRed"
                                 radius="sm"
                                 styles={{
-                                    label: { cursor: 'pointer', fontSize: 14 },
+                                    label: { cursor: 'pointer', fontSize: 'var(--mantine-font-size-sm)' },
                                     input: { cursor: 'pointer' },
                                 }}
                             />
@@ -401,7 +401,7 @@ export default function GameFilterBar({
                                     color="primaryRed"
                                     radius="sm"
                                     styles={{
-                                        label: { cursor: 'pointer', fontSize: 14 },
+                                        label: { cursor: 'pointer', fontSize: 'var(--mantine-font-size-sm)' },
                                         input: { cursor: 'pointer' },
                                     }}
                                 />
@@ -415,7 +415,7 @@ export default function GameFilterBar({
 
             {/* Genres */}
             <FilterSection title="Género" open={genresOpen} onToggle={() => setGenresOpen((v) => !v)}>
-                <Stack gap={6}>
+                <Stack gap="2xs">
                     <Checkbox
                         label="Todos"
                         checked={selectedGenre === null}
@@ -423,7 +423,7 @@ export default function GameFilterBar({
                         color="primaryRed"
                         radius="sm"
                         styles={{
-                            label: { cursor: 'pointer', fontSize: 14 },
+                            label: { cursor: 'pointer', fontSize: 'var(--mantine-font-size-sm)' },
                             input: { cursor: 'pointer' },
                         }}
                     />
@@ -436,7 +436,7 @@ export default function GameFilterBar({
                             color="primaryRed"
                             radius="sm"
                             styles={{
-                                label: { cursor: 'pointer', fontSize: 14 },
+                                label: { cursor: 'pointer', fontSize: 'var(--mantine-font-size-sm)' },
                                 input: { cursor: 'pointer' },
                             }}
                         />

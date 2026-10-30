@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { brand, darkScale, foregrounds, onDark, surfaces } from '@/lib/colors';
 import { CONSENT_COOKIE, VISITOR_COOKIE, parseConsent } from '@/lib/consent';
 
 type OutboundKind = 'product' | 'store';
@@ -47,10 +48,13 @@ function attribution(request: NextRequest): Record<string, string> {
     return result;
 }
 
-const ERROR_STYLE = 'body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:#1a1b1e;background:#fff}'
-    + 'main{max-width:32rem;margin:0 auto;padding:3rem 1rem}h1{font-size:1.5rem;margin:0 0 .75rem}p{line-height:1.5;color:#495057}'
-    + 'a{display:inline-block;margin-top:1rem;padding:.6rem 1.1rem;border-radius:.5rem;background:#e64980;color:#fff;text-decoration:none;font-weight:600}'
-    + '@media (prefers-color-scheme:dark){body{color:#e9ecef;background:#1a1b1e}p{color:#adb5bd}}';
+/* Página suelta, servida sin Mantine: los colores salen de los mismos tokens
+   que el tema para que el botón sea el rojo de la marca y el modo oscuro el del
+   sitio. Antes llevaba el rosa y el gris por defecto de Mantine. */
+const ERROR_STYLE = `body{margin:0;font-family:system-ui,-apple-system,sans-serif;color:${foregrounds.light.primary};background:${surfaces.light.body}}`
+    + `main{max-width:32rem;margin:0 auto;padding:3rem 1rem}h1{font-size:1.5rem;margin:0 0 .75rem}p{line-height:1.5;color:${foregrounds.light.secondary}}`
+    + `a{display:inline-block;margin-top:1rem;padding:.6rem 1.1rem;border-radius:.5rem;background:${brand.primary};color:${onDark.text};text-decoration:none;font-weight:600}`
+    + `@media (prefers-color-scheme:dark){body{color:${darkScale[0]};background:${darkScale[7]}}p{color:${darkScale[1]}}}`;
 
 /** Same-origin page that linked here, as a path. Nothing else is reflected. */
 function backPath(request: NextRequest): string | null {

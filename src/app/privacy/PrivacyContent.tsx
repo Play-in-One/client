@@ -81,7 +81,7 @@ const DATA_ROWS: readonly DataRow[] = [
 
 export function PrivacyContent() {
     return (
-        <Container size="md" py={60}>
+        <Container size="md" py="section">
             <Title order={1} mb="xs" ta="center">Política de Privacidad</Title>
             <Text fz="sm" c="dimmed" ta="center" mb="xl">
                 Versión {POLICY_VERSION} · Última actualización: {LAST_UPDATED}

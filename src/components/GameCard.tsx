@@ -3,12 +3,11 @@
 import { useLayoutEffect, useRef, memo } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
-import { IconStarFilled } from '@tabler/icons-react';
 import GameCardImage from './GameCardImage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
-import ConditionIcon from './ConditionIcon';
+import ConditionIcon, { hasConditionIcon } from './ConditionIcon';
 import AffiliateMark from './AffiliateMark';
 import PriceInfo from './PriceInfo';
 import DealPriceLabel from './DealPriceLabel';
@@ -17,7 +16,8 @@ import { formatCLP } from '@/lib/utils';
 import { cardDeal } from '@/lib/deals';
 import { gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
-import { ratingColor } from '@/lib/colors';
+import CoverChip from './CoverChip';
+import RatingPill from './RatingPill';
 import type { Game, Product, ProductPreviewFilters } from '@/lib/types';
 
 interface Props {
@@ -175,26 +175,16 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
         >
             <Card
                 shadow="sm"
-                radius="lg"
-                withBorder
                 padding={0}
+                className="pio-lift"
                 style={{
                     overflow: 'hidden',
-                    transition: 'box-shadow 0.3s, transform 0.3s',
                     display: 'flex',
                     flexDirection: 'column',
                     height: '100%',
                     cursor: 'pointer',
                     borderColor: selected ? 'var(--mantine-color-primaryRed-5)' : undefined,
                     boxShadow: selected ? '0 0 0 2px var(--mantine-color-primaryRed-5)' : undefined,
-                }}
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(0,0,0,0.15)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '';
-                    e.currentTarget.style.transform = '';
                 }}
             >
                 {/* Image */}
@@ -227,23 +217,17 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                         admin): el tooltip necesita hover y foco. Y con el click
                         cortado, porque la tarjeta entera es un <Link> y tocar
                         el emoji para leer el tooltip navegaría a la ficha. */}
-                    {game.min_price_condition && (
-                        <Box
+                    {hasConditionIcon(game.min_price_condition) && (
+                        <CoverChip
                             pos="absolute"
                             top={8}
                             right={8}
-                            p={4}
-                            style={{
-                                zIndex: 2,
-                                borderRadius: 'var(--mantine-radius-sm)',
-                                background: 'rgba(0,0,0,0.55)',
-                                display: 'flex',
-                                color: 'white',
-                            }}
+                            p="2xs"
+                            style={{ zIndex: 2 }}
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                         >
                             <ConditionIcon condition={game.min_price_condition} size={15} />
-                        </Box>
+                        </CoverChip>
                     )}
 
                     {/* Solo admin (💸): la oferta que fija el precio es de una tienda
@@ -263,35 +247,13 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                         (derecha). Mismo criterio de color que RatingGauge y la
                         ficha de detalle (ratingColor). */}
                     {game.rating && (
-                        <Box
-                            pos="absolute"
-                            bottom={8}
-                            right={8}
-                            px={6}
-                            py={2}
-                            style={{
-                                zIndex: 2,
-                                borderRadius: 'var(--mantine-radius-sm)',
-                                background: 'rgba(0,0,0,0.65)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                            }}
-                        >
-                            <IconStarFilled
-                                size={12}
-                                color={`var(--mantine-color-${ratingColor(Number(game.rating))}-5)`}
-                            />
-                            <Text fz={11} fw={700} c="white">
-                                {Number(game.rating).toFixed(1)}
-                            </Text>
-                        </Box>
+                        <RatingPill value={Number(game.rating)} pos="absolute" bottom={8} right={8} style={{ zIndex: 2 }} />
                     )}
                 </Box>
 
                 {/* Info */}
                 <Box p={{ base: 'xs', sm: 'sm' }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <Group gap={4} mb="xs" wrap="wrap">
+                    <Group gap="2xs" mb="xs" wrap="wrap">
                         {game.platforms.map((p) => (
                             <PlatformBadge key={p.id} platform={p} />
                         ))}
@@ -322,9 +284,9 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                                 elemento propio porque una que llega de un Server
                                 Component (DealCard) sin `key` dispara el aviso de
                                 React si cae en la lista de hijos de un `Group`. */}
-                            <Group ref={priceRowRef} gap={4} wrap="wrap" align="center" style={{ rowGap: 2 }}>
+                            <Group ref={priceRowRef} gap="2xs" wrap="wrap" align="center" style={{ rowGap: 2 }}>
                                 <Group gap={2} wrap="nowrap" align="center">
-                                    <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--mantine-color-primaryRed-5)">
+                                    <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--pio-brand-text)">
                                         {formatCLP(price)}
                                     </Text>
                                     <PriceInfo
@@ -346,7 +308,7 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                                 {seller && (
                                     <Group
                                         data-card-seller
-                                        gap={4}
+                                        gap="2xs"
                                         wrap="nowrap"
                                         style={{ cursor: 'pointer', marginLeft: 'auto' }}
                                         onClick={(e) => {
