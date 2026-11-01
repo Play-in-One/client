@@ -255,3 +255,15 @@ test('una búsqueda fallida ofrece reintento', async ({ page }) => {
     await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
     await expect(page.getByRole('alert').filter({ hasText: 'No pudimos actualizar' })).toHaveCount(0);
 });
+
+test('un fallo de facetas no se presenta como cero resultados', async ({ page }) => {
+    await page.route(/\/api\/games\/facets\//, route =>
+        route.fulfill({ status: 503, body: 'unavailable' }));
+    await page.goto('/search?q=facets-offline');
+    await expect(page.getByText('Juego de Prueba 1')).toBeVisible();
+    await expect(page.getByRole('status').filter({ hasText: 'Contadores no disponibles' })).toBeVisible();
+    const platform = page.getByRole('checkbox', { name: 'PlayStation 5', exact: true });
+    await expect(platform).toBeVisible();
+    await expect(platform).toBeEnabled();
+    await expect(page.getByRole('checkbox', { name: 'PlayStation 5 (0)', exact: true })).toHaveCount(0);
+});

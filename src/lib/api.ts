@@ -1,3 +1,4 @@
+import { publicBrowserGet } from './sharedGet';
 import type {
     Game, Genre, Saga, SagaDetail, Seller, Platform, PaginatedResponse, Post, PostPayload, Contact, GameFacets,
     Product, PriceHistory, MinPriceHistory, ProductPreview, ProductPreviewFilters,
@@ -108,7 +109,9 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
 
     let res: Response;
     try {
-        res = await fetch(`${API_BASE}${path}`, {
+        const transport = omitCredentials && !isMutation
+            ? publicBrowserGet.request.bind(publicBrowserGet) : fetch;
+        res = await transport(`${API_BASE}${path}`, {
             ...(omitCredentials ? { credentials: 'omit' as const } : {}),
             ...requestInit,
             headers: {
@@ -470,11 +473,12 @@ export async function getPopularGames(params?: {
  *  detalle no trae embebidas. */
 export async function getMinPriceHistory(
     gameId: number,
-    sellerLocations: string,
+    sellerLocations: string | undefined,
     signal?: AbortSignal,
+    published = false,
 ) {
     return fetcher<{ min_price_history: MinPriceHistory }>(
-        `/games/${gameId}/min-price-history/${qs({ seller_locations: sellerLocations })}`,
+        `/games/${gameId}/min-price-history/${qs({ seller_locations: sellerLocations, source: published ? 'published' : undefined })}`,
         { signal },
     );
 }
@@ -506,8 +510,8 @@ export async function getGameFacets(params?: {
     return fetcher<GameFacets>(`/games/facets/${qs(qsParams)}`, { signal });
 }
 
-export async function getGame(id: number | string) {
-    return fetcher<Game>(`/games/${id}/`);
+export async function getGame(id: number | string, options?: { summary?: boolean }) {
+    return fetcher<Game>(`/games/${id}/${options?.summary ? '?view=summary' : ''}`);
 }
 
 /** Entrada del catálogo indexable: lo mínimo que necesita un `<url>` del sitemap. */
@@ -871,3 +875,10 @@ export async function downloadSurveyCsv(id: number): Promise<Blob> {
 
 /** Raíz del Django admin, para enlazar la creación/edición de encuestas. */
 export const DJANGO_ADMIN_URL = `${API_BASE.replace(/\/api\/?$/, '')}/admin/`;
+
+
+export async function getRelatedGames(id: number, platform?: string) {
+    return fetcher<{ kind: 'saga' | 'genre' | 'popular'; results: Game[] }>(
+        `/games/${id}/related/${qs({ platform })}`,
+    );
+}

@@ -11,7 +11,7 @@ import { buildGameFaq } from '@/lib/gameFaq';
 import { priceSummarySentences, monthlyMinimums } from '@/lib/priceSummary';
 import { genreHref } from '@/lib/routes';
 import { formatCLP } from '@/lib/utils';
-import { getGames, getPopularGames } from '@/lib/api';
+import { getGames, getPopularGames, getRelatedGames } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import { AD_SLOT_GAME_FOOTER, adsAllowedForCountry } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
@@ -53,6 +53,33 @@ interface Related {
  * una sección de descubrimiento.
  */
 async function fetchRelated(game: Game, platform: Platform | undefined): Promise<Related | null> {
+    if (process.env.CATALOG_RELATED_ENABLED === '1') {
+        try {
+            const result = await getRelatedGames(game.id, platform?.slug);
+            if (!result.results.length) return null;
+            const saga = game.sagas?.[0];
+            const genre = game.genres?.[0];
+            const platformName = platform ? platformLongName(platform) : null;
+            if (result.kind === 'saga' && saga) return {
+                games: result.results, query: { kind: 'saga', saga: saga.slug },
+                title: `Más juegos de la saga ${saga.name}`, moreHref: `/saga/${saga.slug}`,
+                moreLabel: 'Ver toda la saga',
+            };
+            if (result.kind === 'genre' && genre) return {
+                games: result.results, query: { kind: 'genre', genre: genre.id, platform: platform?.id },
+                title: `Más juegos de ${genre.name}${platformName ? ` para ${platformName}` : ''}`,
+                moreHref: genreHref(genre, platform?.slug), moreLabel: 'Ver más de este género',
+            };
+            return {
+                games: result.results, query: { kind: 'popular', limit: RELATED_LIMIT + 1, platform: platform?.slug },
+                title: platformName ? `Otros juegos populares de ${platformName}` : 'Otros juegos populares',
+                moreHref: platform ? `/juegos/${platform.slug}` : '/search', moreLabel: 'Ver todos',
+            };
+        } catch (error) {
+            console.error('Failed to fetch related games:', error);
+            return null;
+        }
+    }
     const pick = async (load: () => Promise<{ results: Game[] }>) => {
         try {
             const { results } = await load();

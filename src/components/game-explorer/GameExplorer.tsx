@@ -171,6 +171,7 @@ export default function GameExplorer({
 
     const [games, setGames] = useState<Game[]>(initialGames);
     const [facets, setFacets] = useState<GameFacets>({ platforms: {}, genres: {}, sellers: {} });
+    const [facetStatus, setFacetStatus] = useState<'loading' | 'ready' | 'error'>('loading');
     const [total, setTotal] = useState(initialTotal);
     const [page, setPage] = useState(initialPage);
     const [resultsError, setResultsError] = useState(false);
@@ -395,8 +396,8 @@ export default function GameExplorer({
             signal: controller.signal,
         })
             .then((res) => {
-                sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: true });
                 if (controller.signal.aborted) return;
+                sendCatalogFilterLoad({ phase: 'results', surface, duration_ms: performance.now() - started, success: true });
                 setGames(res.results);
                 setTotal(res.count);
                 const query = activeQuery.trim();
@@ -428,6 +429,7 @@ export default function GameExplorer({
        sidebar, nunca reemplazan el grid/paginación visibles. */
     useEffect(() => {
         if (!ready || !filtersReady) return;
+        setFacetStatus('loading');
         const controller = new AbortController();
         const started = performance.now();
         getGameFacets({
@@ -446,13 +448,17 @@ export default function GameExplorer({
             signal: controller.signal,
         })
             .then((result) => {
+                if (controller.signal.aborted) return;
                 sendCatalogFilterLoad({ phase: 'facets', surface, duration_ms: performance.now() - started, success: true });
                 setFacets({ ...result, sellers: result.sellers ?? {} });
+                setFacetStatus('ready');
             })
             .catch((err) => {
                 if (controller.signal.aborted || err?.name === 'AbortError') return;
                 sendCatalogFilterLoad({ phase: 'facets', surface, duration_ms: performance.now() - started, success: false });
+                // Unknown counts stay absent; an error is not evidence of zero results.
                 setFacets({ platforms: {}, genres: {}, sellers: {} });
+                setFacetStatus('error');
             });
         return () => controller.abort();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -612,6 +618,7 @@ export default function GameExplorer({
                             ratingMin={ratingMin ?? 0}
                             onRatingMinChange={applyRatingMin}
                             facets={facets}
+                            facetStatus={facetStatus}
                             hasActiveFilters={hasActiveFilters}
                             onClearFilters={handleClearFilters}
                         />
@@ -679,6 +686,7 @@ export default function GameExplorer({
                             ratingMin={ratingMin ?? 0}
                             onRatingMinChange={applyRatingMin}
                             facets={facets}
+                            facetStatus={facetStatus}
                             hasActiveFilters={hasActiveFilters}
                             onClearFilters={handleClearFilters}
                         />

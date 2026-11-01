@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { ApiError, getGame } from '@/lib/api';
 import type { Game } from '@/lib/types';
 
@@ -10,12 +11,12 @@ export function parseGameSegment(segment: string): { slug: string; id: string } 
 
 /** `null` solo ante un 404 de la API. Un fallo de red o un 5xx NO es "el juego
  *  no existe": se relanza en vez de convertirlo en silencio en un notFound(). */
-export async function fetchGame(id: string): Promise<Game | null> {
+export const fetchGame = cache(async (id: string): Promise<Game | null> => {
     try {
-        return await getGame(id);
+        return await getGame(id, { summary: process.env.CATALOG_LIGHT_DETAIL_ENABLED === '1' });
     } catch (err) {
         if (err instanceof ApiError && err.status === 404) return null;
         console.error(`Failed to fetch game ${id}:`, err);
         throw err;
     }
-}
+});

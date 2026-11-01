@@ -260,6 +260,7 @@ interface Props {
     onRatingMinChange: (value: number) => void;
 
     facets: GameFacets;
+    facetStatus?: 'loading' | 'ready' | 'error';
     hasActiveFilters: boolean;
     onClearFilters: () => void;
 }
@@ -288,6 +289,7 @@ export default function GameFilterBar({
     ratingMin,
     onRatingMinChange,
     facets,
+    facetStatus = 'ready',
     hasActiveFilters,
     onClearFilters,
 }: Props) {
@@ -299,6 +301,11 @@ export default function GameFilterBar({
 
     return (
         <Stack gap="sm">
+            {facetStatus !== 'ready' && (
+                <Text size="xs" c="dimmed" role="status">
+                    {facetStatus === 'loading' ? 'Actualizando contadores…' : 'Contadores no disponibles. Puedes seguir filtrando.'}
+                </Text>
+            )}
             {/* Price */}
             <FilterSection title="Precio" open={priceOpen} onToggle={() => setPriceOpen((v) => !v)}>
                 <Group gap="xs" grow>
@@ -395,7 +402,7 @@ export default function GameFilterBar({
                             {platforms.map((p) => (
                                 <Checkbox
                                     key={p.id}
-                                    label={<CheckboxLabel text={platformLongName(p)} count={facets.platforms[p.id] ?? 0} />}
+                                    label={<CheckboxLabel text={platformLongName(p)} count={facetStatus === 'ready' ? facets.platforms[p.id] ?? 0 : undefined} />}
                                     checked={selectedPlatforms.includes(p.id)}
                                     onChange={() => onTogglePlatform(p.id)}
                                     color="primaryRed"
@@ -430,7 +437,7 @@ export default function GameFilterBar({
                     {genres.map((g) => (
                         <Checkbox
                             key={g.id}
-                            label={<CheckboxLabel text={g.name} count={facets.genres[g.id] ?? 0} />}
+                            label={<CheckboxLabel text={g.name} count={facetStatus === 'ready' ? facets.genres[g.id] ?? 0 : undefined} />}
                             checked={selectedGenre === g.id}
                             onChange={() => onSelectGenre(selectedGenre === g.id ? null : g.id)}
                             color="primaryRed"

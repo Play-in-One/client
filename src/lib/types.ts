@@ -315,6 +315,8 @@ export interface Game {
     /** Historial del precio mínimo por consola y condición. Solo lo envía el
      *  detalle, acotado a los últimos meses. */
     min_price_history?: MinPriceHistory;
+    /** Aggregate series remain in SSR; fetch full graph dimensions separately. */
+    history_deferred?: boolean;
     /** Resumen numérico del precio. `null` si el juego no tiene ofertas ni historial. */
     price_stats?: PriceStats | null;
     /** El backend decide si la ficha se indexa; el cliente solo lo respeta. */
@@ -692,6 +694,7 @@ export interface PageLoadDetail {
     cls: number | null;
     server_ms: number | null;
     server_db_ms: number | null;
+    server_slowest_ms?: number | null;
     server_queries: number | null;
     api_calls: number | null;
     server_view: string;

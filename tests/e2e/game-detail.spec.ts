@@ -216,6 +216,8 @@ test('el historial sigue al filtro de condición sin recargar', async ({ page })
     await page.goto(gamePath);
     const heading = page.getByRole('heading', { name: /historial de precio mínimo/i });
     await expect(heading).toBeVisible();
+    // Wait for the complete series, whether embedded or fetched separately.
+    await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
 
     // El Select de condición vive en la comparativa; el card del historial
     // debe reaccionar sin pedir datos nuevos (la serie viaja embebida).
@@ -246,6 +248,7 @@ test('el selector de rango recorta el eje sin pedir datos nuevos', async ({ page
     await page.goto(gamePath);
     const heading = page.getByRole('heading', { name: /historial de precio mínimo/i });
     await expect(heading).toBeVisible();
+    await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
 
     // La serie completa ya viaja en el detalle: cambiar el rango es puro
     // recorte en el cliente y no debe disparar ninguna request.
