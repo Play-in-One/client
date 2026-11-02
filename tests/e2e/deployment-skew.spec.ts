@@ -54,3 +54,27 @@ test('document searches remain available and hidden consoles redirect to games',
         await expect(page).toHaveURL(/\/search\?q=PS5$/);
     }
 });
+
+test('un chunk que ya no existe recarga la página una sola vez', async ({ page }) => {
+    const documents: string[] = [];
+    let missing = '';
+    let failed = 0;
+    page.on('request', (request) => {
+        if (request.isNavigationRequest() && request.resourceType() === 'document') documents.push(request.url());
+    });
+    // Como un estado de un despliegue anterior: el mismo chunk responde 404 siempre.
+    await page.route(/\/_next\/static\/chunks\/.*\.js/, (route) => {
+        const url = new URL(route.request().url()).pathname;
+        missing ||= url;
+        if (url !== missing) return route.continue();
+        failed += 1;
+        return route.fulfill({ status: 404, body: '' });
+    });
+
+    await page.goto('/about');
+    await expect.poll(() => documents.length).toBe(2);
+    // Sin bucle: el segundo fallo dentro del mismo minuto no vuelve a recargar.
+    await page.waitForTimeout(1500);
+    expect(documents).toHaveLength(2);
+    expect(failed).toBe(2);
+});

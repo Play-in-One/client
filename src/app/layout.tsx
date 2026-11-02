@@ -6,6 +6,7 @@ import { AppProvider } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import { StaffProductPreviewProvider } from '@/context/StaffProductPreviewContext';
 import PrefsScript from '@/components/PrefsScript';
+import StaleChunkReload from '@/components/StaleChunkReload';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import PageViewTracker from '@/components/PageViewTracker';
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="es" className={`${poppins.variable} ${figtree.variable}`} suppressHydrationWarning>
             <head>
                 <ColorSchemeScript defaultColorScheme="auto" />
+                <StaleChunkReload />
                 <PrefsScript />
             </head>
             <body>
