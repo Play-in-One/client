@@ -57,6 +57,13 @@ export class ApiError extends Error {
 }
 
 /* ── helpers ── */
+const CLOSED_CONNECTION_CODES = new Set(['UND_ERR_SOCKET', 'UND_ERR_CLOSED', 'ECONNRESET', 'EPIPE']);
+
+function isClosedConnection(error: unknown): boolean {
+    const code = (error as { cause?: { code?: unknown } } | null)?.cause?.code;
+    return typeof code === 'string' && CLOSED_CONNECTION_CODES.has(code);
+}
+
 async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }): Promise<T> {
     // Mutations (POST/PUT/PATCH/DELETE) carry request-specific outcomes (e.g. validation
     // errors tied to the submitted data) — never cache/replay those by path like GETs.
@@ -111,7 +118,7 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     try {
         const transport = omitCredentials && !isMutation
             ? publicBrowserGet.request.bind(publicBrowserGet) : fetch;
-        res = await transport(`${API_BASE}${path}`, {
+        const send = () => transport(`${API_BASE}${path}`, {
             ...(omitCredentials ? { credentials: 'omit' as const } : {}),
             ...requestInit,
             headers: {
@@ -124,6 +131,18 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
                 ...requestInit.headers,
             },
         });
+        try {
+            res = await send();
+        } catch (error) {
+            // En el servidor, la API a veces cierra una conexión reutilizada
+            // justo cuando Next le escribe (`other side closed`; visto en
+            // producción el 2026-11-02 en fichas). Sin reintento, la ficha
+            // respondía 500 al visitante. Un GET es idempotente: se repite una
+            // vez, por una conexión nueva. Las mutaciones no se repiten nunca.
+            if (isMutation || typeof window !== 'undefined' || requestInit.signal?.aborted
+                || !isClosedConnection(error)) throw error;
+            res = await send();
+        }
     } finally {
         // En `finally` para que una llamada que revienta también cuente: una
         // petición que tarda 30 s y muere por timeout es justo la que explica

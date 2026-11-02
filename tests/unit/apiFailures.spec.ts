@@ -25,3 +25,22 @@ test('transient failures retry and session changes clear cached failures', async
     await missing('missing'); await missing('missing'); expect(calls).toBe(3);
     setAdminToken('new-test-session'); await missing('missing'); expect(calls).toBe(4);
 });
+const socketClosed = () => Object.assign(new TypeError('fetch failed'), { cause: { code: 'UND_ERR_SOCKET' } });
+test('a closed connection is retried once on the server', async () => {
+    globalThis.fetch = async () => {
+        calls++;
+        if (calls === 1) throw socketClosed();
+        return Response.json({ count: 0, next: null, previous: null, results: [] });
+    };
+    expect((await getGames({ search: 'retry' })).count).toBe(0);
+    expect(calls).toBe(2);
+});
+test('a second closed connection or another network error is not retried', async () => {
+    globalThis.fetch = async () => { calls++; throw socketClosed(); };
+    await expect(getGames({ search: 'twice' })).rejects.toThrow('fetch failed');
+    expect(calls).toBe(2);
+    calls = 0;
+    globalThis.fetch = async () => { calls++; throw Object.assign(new TypeError('fetch failed'), { cause: { code: 'ETIMEDOUT' } }); };
+    await expect(getGames({ search: 'timeout' })).rejects.toThrow('fetch failed');
+    expect(calls).toBe(1);
+});
