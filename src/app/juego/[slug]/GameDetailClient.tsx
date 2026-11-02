@@ -4,7 +4,6 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { handleImageError } from '@/lib/imageFallback';
 import { useOutboundHref } from '@/hooks/useOutboundHref';
 import { gamePath, formatDate } from '@/lib/seo';
 import {
@@ -70,6 +69,7 @@ import AffiliateMark from '@/components/AffiliateMark';
 import GameClickBadge from '@/components/GameClickBadge';
 import ProductClickBadge from '@/components/ProductClickBadge';
 import SagaLogo from '@/components/SagaLogo';
+import RemoteImage from '@/components/RemoteImage';
 import {
     conditionBadgeColorFor,
     conditionBucket,
@@ -592,18 +592,8 @@ export default function GameDetailClient({
                             }}
                         >
                             {/* Game image (base layer) */}
-                            <img
-                                src={coverImage}
-                                alt={game.name}
-                                style={{
-                                    position: 'absolute',
-                                    inset: 0,
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                }}
-                                onError={handleImageError('/placeholder-game.png')}
-                            />
+                            <RemoteImage src={coverImage || null} alt={game.name} priority
+                                sizes="(max-width: 1200px) 85vw, 380px" style={{ objectFit: 'cover' }} />
                             <IssueReportButton targetType="game" targetId={game.id} cover
                                 context={{ image_url: coverImage, platform: selectedPlatform ?? '' }} />
                         </Box>

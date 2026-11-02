@@ -393,7 +393,11 @@ body {
    con margen.
    Doble clase para ganarle a la regla de Affix, que posiciona con
    `inset-inline-*` leyendo variables inline. */
-.mantine-Affix-root.cookie-banner {
+/* Visible desde la primera pintura solo si `ConsentScript` marcó el documento
+   (falta una decisión válida). Tras hidratar manda `data-state`. */
+.cookie-banner {
+  position: fixed;
+  z-index: 300;
   top: auto;
   bottom: 24px;
   inset-inline-start: auto;
@@ -401,8 +405,17 @@ body {
   width: min(480px, calc(100vw - 48px));
 }
 
+.cookie-banner[data-state='pending'],
+.cookie-banner[data-state='closed'] {
+  display: none;
+}
+
+html[data-consent='pending'] .cookie-banner[data-state='pending'] {
+  display: block;
+}
+
 @media (max-width: 36em) {
-  .mantine-Affix-root.cookie-banner {
+  .cookie-banner {
     bottom: 12px;
     inset-inline: 12px;
     width: auto;

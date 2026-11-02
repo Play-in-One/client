@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Affix, Anchor, Button, Group, Paper, Stack, Text, Transition } from '@mantine/core';
+import { Anchor, Box, Button, Group, Paper, Stack, Text } from '@mantine/core';
 
 import { useConsent } from '@/context/ConsentContext';
 import { darkScale, decorative, onDark } from '@/lib/colors';
@@ -36,10 +36,27 @@ export function CookieBanner() {
     const { consent, ready, decide } = useConsent();
     const pathname = usePathname();
 
-    // `ready` evita que el banner asome durante la hidratación a quien ya
-    // había decidido: la cookie solo se puede leer una vez montado.
+    /* El aviso viene en el HTML del servidor (`pending`) y `ConsentScript`
+       decide antes de la primera pintura si se ve: así un visitante nuevo lo
+       tiene desde el principio y no a los ~9 s, al hidratar en un móvil lento.
+       Tras montar, `ready` y `parseConsent` deciden como siempre. */
     const hidden = HIDDEN_ON.some((prefix) => pathname?.startsWith(prefix));
-    const visible = ready && consent === null && !hidden;
+    const [queued, setQueued] = useState(false);
+    const visible = ready && consent === null && !hidden && !queued;
+    const state = !ready ? 'pending' : visible ? 'open' : 'closed';
+
+    // Un clic antes de hidratar quedó guardado por `ConsentScript`.
+    useEffect(() => {
+        if (!ready) return;
+        const w = window as typeof window & { __pioConsentReady?: boolean; __pioConsentChoice?: string };
+        w.__pioConsentReady = true;
+        const choice = w.__pioConsentChoice;
+        if (choice !== 'accept' && choice !== 'essential') return;
+        delete w.__pioConsentChoice;
+        if (consent !== null) return;
+        setQueued(true);
+        void decide(choice, choice === 'accept').finally(() => setQueued(false));
+    }, [ready, consent, decide]);
 
     /* El banner es `position: fixed` a z-index 300, o sea que está FUERA del
        flujo y por encima de todo: mientras se muestra, sus ~250-310px de alto
@@ -48,17 +65,14 @@ export function CookieBanner() {
        ese alto al final del documento mientras dura. Se mide en vez de fijarlo:
        el alto depende de cuántas líneas ocupe el texto en cada ancho.
 
-       El nodo va en estado y no en un `useRef`: `Affix` pinta dentro de un
-       `Portal` que no monta a sus hijos hasta su propio efecto, así que en el
-       primer efecto de aquí un ref todavía vale `null`. Con `[]` de
-       dependencias el efecto no volvía a correr y la reserva nunca se aplicó. */
+       El nodo va en estado y no en un `useRef`, para que el efecto corra
+       cuando el nodo exista aunque cambie de montaje. */
     const [affix, setAffix] = useState<HTMLDivElement | null>(null);
     useEffect(() => {
         if (!affix) return;
-        /* Se observa el Affix y no el Paper: el Affix está montado siempre (mide
-           0 cuando no hay banner) y el Paper aparece un render más tarde, dentro
-           del Transition. Así el mismo observer cubre montaje, desmontaje y los
-           saltos de alto cuando el texto legal cambia de número de líneas.
+        /* Se observa el contenedor y no el Paper: está montado siempre (mide
+           0 cuando no hay aviso). Así el mismo observer cubre la aparición, el
+           cierre y los saltos de alto cuando el texto cambia de líneas.
            Se reserva desde el borde superior de la tarjeta hasta el final del
            viewport, no solo su alto: flota separada del borde y ese margen
            también tapa contenido. */
@@ -75,18 +89,16 @@ export function CookieBanner() {
         };
     }, [affix]);
 
-    /* La posición (esquina inferior derecha en escritorio, ancho completo con
-       margen en móvil) la resuelve `.cookie-banner` en globals.css: `Affix` solo
-       admite una posición fija y aquí depende del ancho. */
+    /* Posición y visibilidad las resuelve `.cookie-banner` en globals.css,
+       según `data-state` y el `data-consent` que pone `ConsentScript`. No usa
+       `Affix`: su Portal no se renderiza en el servidor. */
     return (
-        <Affix ref={setAffix} className="cookie-banner" zIndex={300}>
-            <Transition mounted={visible} transition="slide-up" duration={200}>
-                {(styles) => (
+        <Box ref={setAffix} className="cookie-banner" data-state={state}>
+                {state !== 'closed' && (
                     <Paper
                         /* Siempre oscura, en los dos temas. El borde es lo que la
                            separa del fondo en modo oscuro (#121212). */
                         style={{
-                            ...styles,
                             backgroundColor: darkScale[8],
                             border: `1px solid ${onDark.border}`,
                         }}
@@ -141,6 +153,7 @@ export function CookieBanner() {
                                         radius="xl"
                                         variant="default"
                                         vars={() => ({ root: GHOST_BUTTON_VARS })}
+                                        data-consent-choice="essential"
                                         onClick={() => decide('essential', false)}
                                     >
                                         Solo esenciales
@@ -150,6 +163,7 @@ export function CookieBanner() {
                                         fz="sm"
                                         radius="xl"
                                         style={{ boxShadow: decorative.primaryButtonShadow }}
+                                        data-consent-choice="accept"
                                         onClick={() => decide('accept', true)}
                                     >
                                         Aceptar todo
@@ -159,7 +173,6 @@ export function CookieBanner() {
                         </Stack>
                     </Paper>
                 )}
-            </Transition>
-        </Affix>
+        </Box>
     );
 }

@@ -30,6 +30,7 @@ import { getHomeGames, getDeals, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
+import RemoteImage from '@/components/RemoteImage';
 import { DEALS_TYPICAL_NOTE, dealsSectionTitle, isTodayDeals } from '@/lib/deals';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
 import SagaLogo from '@/components/SagaLogo';
@@ -453,8 +454,11 @@ export default function HomeClient({
                                 <GameGridSkeleton />
                             ) : (
                                 <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                                    {trending.slice(0, 8).map((g, i) => (
-                                        <GameCard key={g.id} game={g} priority={i < 4} />
+                                    {/* Sin `priority`: la sección queda bajo destacados y
+                                        ofertas (~4.000 px en un móvil), y precargarla le
+                                        quitaba ancho de banda a lo visible. */}
+                                    {trending.slice(0, 8).map((g) => (
+                                        <GameCard key={g.id} game={g} />
                                     ))}
                                 </SimpleGrid>
                             )}
@@ -512,7 +516,8 @@ export default function HomeClient({
                                     }}
                                 >
                                     {n.image ? (
-                                        <img src={n.image} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <RemoteImage src={n.image} alt={n.title} sizes="(max-width: 992px) 100vw, 380px"
+                                            style={{ objectFit: 'cover' }} />
                                     ) : (
                                         <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
                                     )}

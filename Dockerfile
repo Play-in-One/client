@@ -40,6 +40,11 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Caché del optimizador de imágenes. En producción es un volumen (ver
+# docker-compose.prod.yml): sin él, cada deploy la vaciaba y las primeras
+# visitas pagaban otra vez la descarga y la conversión de cada portada. El
+# directorio se crea aquí con su dueño para que el volumen nuevo lo herede.
+RUN mkdir -p .next/cache/images && chown -R nextjs:nodejs .next/cache
 USER nextjs
 EXPOSE 3001
 ENV PORT=3001 HOSTNAME="0.0.0.0"

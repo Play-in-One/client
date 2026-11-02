@@ -29,6 +29,29 @@ test('el aviso aparece en la primera visita', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Solo esenciales' })).toBeVisible();
 });
 
+test('el aviso se ve antes de hidratar y un clic temprano no se pierde', async ({ page }) => {
+    // Sin JavaScript de la app la página no hidrata: solo corren los scripts
+    // inline del <head>, como en un móvil lento antes de bajar los chunks.
+    let release!: () => void;
+    const hydrated = new Promise<void>((resolve) => { release = resolve; });
+    await page.route(/\/_next\/static\/chunks\//, async (route) => {
+        await hydrated;
+        await route.continue();
+    });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(banner(page)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Solo esenciales' }).click();
+    await expect(banner(page)).toBeHidden();
+    expect(await cookieValue(page, 'pio_consent')).toBeUndefined();
+
+    // Al hidratar se aplica la elección guardada y el aviso no vuelve.
+    release();
+    await expect.poll(async () => (await storedConsent(page))?.analytics).toBe(false);
+    expect(await cookieValue(page, 'pio_vid')).toBeUndefined();
+    await expect(banner(page)).toBeHidden();
+});
+
 test('el aviso no aparece en las rutas de administración', async ({ page }) => {
     // Es tráfico propio y no se mide (ver PageViewTracker), así que preguntar
     // ahí no tiene sentido y además el banner tapa el dashboard.

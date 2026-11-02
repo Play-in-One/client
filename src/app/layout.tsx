@@ -7,6 +7,7 @@ import Navbar from '@/components/Navbar';
 import { StaffProductPreviewProvider } from '@/context/StaffProductPreviewContext';
 import PrefsScript from '@/components/PrefsScript';
 import StaleChunkReload from '@/components/StaleChunkReload';
+import ConsentScript from '@/components/ConsentScript';
 import Footer from '@/components/Footer';
 import { JsonLd } from '@/components/JsonLd';
 import PageViewTracker from '@/components/PageViewTracker';
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <ColorSchemeScript defaultColorScheme="auto" />
                 <StaleChunkReload />
                 <PrefsScript />
+                <ConsentScript />
             </head>
             <body>
                 <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />

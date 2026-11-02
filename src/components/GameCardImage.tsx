@@ -1,22 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import RemoteImage from './RemoteImage';
 import { useStaffProductPreviews } from '@/context/StaffProductPreviewContext';
 import type { Game, ProductPreview, ProductPreviewFilters } from '@/lib/types';
-
-const PLACEHOLDER = '/placeholder-game.png';
 
 function CardPhoto({ image, alt, sizes, priority, contain = false, hover = false }: {
     image: string | null; alt: string; sizes: string; priority?: boolean; contain?: boolean; hover?: boolean;
 }) {
-    const [failedSource, setFailedSource] = useState<string | null>(null);
-    const src = !image || failedSource === image ? PLACEHOLDER : image;
-    return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized
+    return <RemoteImage src={image} alt={alt} sizes={sizes} priority={priority}
         style={{ objectFit: contain ? 'contain' : 'cover', transition: hover ? 'transform 0.5s' : undefined }}
         onMouseEnter={hover ? e => { e.currentTarget.style.transform = 'scale(1.05)'; } : undefined}
-        onMouseLeave={hover ? e => { e.currentTarget.style.transform = ''; } : undefined}
-        onError={() => { if (image) setFailedSource(image); }} />;
+        onMouseLeave={hover ? e => { e.currentTarget.style.transform = ''; } : undefined} />;
 }
 
 export default function GameCardImage({ game, previewFilters, sizes, priority, hover }: {
