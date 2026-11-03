@@ -118,9 +118,10 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
     try {
         const transport = omitCredentials && !isMutation
             ? publicBrowserGet.request.bind(publicBrowserGet) : fetch;
-        const send = () => transport(`${API_BASE}${path}`, {
+        const send = (signal?: AbortSignal) => transport(`${API_BASE}${path}`, {
             ...(omitCredentials ? { credentials: 'omit' as const } : {}),
             ...requestInit,
+            ...(signal ? { signal } : {}),
             headers: {
                 // Solo en mutaciones: un GET con Content-Type deja de ser "simple
                 // request" y fuerza un preflight CORS (OPTIONS) por cada llamada.
@@ -139,9 +140,15 @@ async function fetcher<T>(path: string, init?: RequestInit & { admin?: boolean }
             // producción el 2026-11-02 en fichas). Sin reintento, la ficha
             // respondía 500 al visitante. Un GET es idempotente: se repite una
             // vez, por una conexión nueva. Las mutaciones no se repiten nunca.
+            //
+            // El reintento lleva su propio `signal`. Next memoiza los GET
+            // idénticos de un mismo render (`dedupe-fetch`), incluida la promesa
+            // rechazada; sin un signal, que es lo que lo excluye, el reintento
+            // recibía el mismo error sin salir a la red (visto en producción el
+            // 2026-11-03, con el primer intento de este arreglo).
             if (isMutation || typeof window !== 'undefined' || requestInit.signal?.aborted
                 || !isClosedConnection(error)) throw error;
-            res = await send();
+            res = await send(requestInit.signal ?? new AbortController().signal);
         }
     } finally {
         // En `finally` para que una llamada que revienta también cuente: una

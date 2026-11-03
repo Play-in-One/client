@@ -35,6 +35,20 @@ test('a closed connection is retried once on the server', async () => {
     expect((await getGames({ search: 'retry' })).count).toBe(0);
     expect(calls).toBe(2);
 });
+test('the retry escapes the per-render fetch memoization of Next', async () => {
+    // Como `dedupe-fetch` de Next: un GET sin signal reutiliza la promesa, también rechazada.
+    const memo = new Map<string, Promise<Response>>();
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+        if (!init?.signal && memo.has(url)) return memo.get(url)!;
+        calls++;
+        const promise = calls === 1 ? Promise.reject(socketClosed())
+            : Promise.resolve(Response.json({ count: 0, next: null, previous: null, results: [] }));
+        if (!init?.signal) memo.set(url, promise);
+        return promise;
+    }) as typeof fetch;
+    expect((await getGames({ search: 'memoized' })).count).toBe(0);
+    expect(calls).toBe(2);
+});
 test('a second closed connection or another network error is not retried', async () => {
     globalThis.fetch = async () => { calls++; throw socketClosed(); };
     await expect(getGames({ search: 'twice' })).rejects.toThrow('fetch failed');
