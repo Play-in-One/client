@@ -34,6 +34,10 @@ const products = [
 const consoleModel = { id: 981, name: 'PS5 Slim', slug: 'ps5-slim', platform, image: '', is_published: published,
     description: 'Modelo de prueba para comparar capacidades y packs.' };
 const empty = { count: 0, next: null, previous: null, results: [] };
+// A sibling of 981 on the same platform, listed only (it has no detail), for
+// the model switcher. It has no offers that the offer filters could narrow.
+const siblingModel = { id: 982, name: 'PS5 Pro', slug: 'ps5-pro', platform, image: '', is_published: published,
+    description: '', min_price: '899990.00', seller_count: 1, pack_count: 1, in_stock: true };
 
 const live = list => list.filter(p => p.in_stock && Number(p.current_price) > 0);
 const minimum = list => live(list).length ? String(Math.min(...live(list).map(p => Number(p.current_price)))) : null;
@@ -78,7 +82,11 @@ createServer((req, res) => {
             return send({ ...model, configurations: packs, products: offers });
         }
         const listed = visible && offers.length > 0;
-        return send({ ...empty, count: listed ? 1 : 0, results: listed ? [model] : [] });
+        const narrowed = ['configuration', 'edition', 'storage_gb', 'condition', 'has_game', 'seller'].some(key => q.has(key));
+        const sibling = visible && !narrowed && (!q.get('platform') || q.get('platform') === 'ps5')
+            && (!q.get('search') || siblingModel.name.toLowerCase().includes(q.get('search').toLowerCase()));
+        const results = [...(listed ? [model] : []), ...(sibling ? [siblingModel] : [])];
+        return send({ ...empty, count: results.length, results });
     }
     if (url.pathname.startsWith('/api/consoles/')) return send({ detail: 'Not found' }, 404);
     if (url.pathname === '/api/platforms/') return send({ ...empty, count: 1, results: [platform] });

@@ -50,6 +50,15 @@ async function gamesCounterLinksToTheGallery(page: Page) {
     await expect(counter).toHaveAttribute('href', '/juegos/ps5');
 }
 
+/* 982 (PS5 Pro) is listed on the same platform: the switcher links to it. */
+async function switchesBetweenModels(page: Page) {
+    await page.goto('/consola/ps5-slim-981');
+    const models = page.getByRole('navigation', { name: 'Modelos de PlayStation 5' });
+    await expect(models.getByRole('link', { name: 'PS5 Slim' })).toHaveAttribute('aria-current', 'page');
+    await expect(models.getByRole('link', { name: /PS5 Pro/ })).toHaveAttribute('href', '/consola/ps5-pro-982');
+    await expect(models.getByRole('link', { name: /PS5 Pro/ })).toContainText('899.990');
+}
+
 async function honestEmptyStates(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await page.locator('a[href*="configuration=12"]').click();
@@ -154,6 +163,11 @@ test.describe('Staff preview of the console pages', () => {
         await gamesCounterLinksToTheGallery(page);
     });
 
+    test('a switcher leads to the other models of the console', async ({ page }) => {
+        await signInAsStaff(page);
+        await switchesBetweenModels(page);
+    });
+
     test('offers open the store directly, since /go cannot see drafts', async ({ page }) => {
         await signInAsStaff(page);
         await page.goto('/consola/ps5-slim-981');
@@ -202,6 +216,7 @@ test.describe('Public console experience', () => {
 
     test('packs narrow the offers and keep retired offers apart', async ({ page }) => comparePacks(page));
     test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
+    test('a switcher leads to the other models of the console', async ({ page }) => switchesBetweenModels(page));
     test('pack selections without offers have an honest empty state', async ({ page }) => honestEmptyStates(page));
     test('global digital format does not hide physical console offers', async ({ page }) => hardwareIgnoresDigitalFormat(page));
     test('mobile navigation and filters fit the viewport', async ({ page }) => mobileFits(page));

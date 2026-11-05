@@ -16,13 +16,14 @@ import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
 import { getConsole } from '@/lib/api';
 import { decorative, elevation, onDark } from '@/lib/colors';
-import { configurationLabel, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleQuery } from '@/lib/consoles';
+import { configurationLabel, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
 import { activeCoupon, platformLongName, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
 import { ConsoleOfferRow, hasLivePrice } from './ConsoleOfferRow';
 import { ConsolePackPicker } from './ConsolePackPicker';
 import { PlatformGamesLink } from './PlatformGamesLink';
+import { SiblingModels } from './SiblingModels';
 import { StaffPreviewNotice } from './StaffOnly';
 import { replaceQueryInUrl, useConsoleRequest } from './useConsoleRequest';
 import styles from './ConsoleCatalog.module.css';
@@ -95,11 +96,13 @@ function BestPriceCard({ model, best, packLabel, packSelected, href, onOffer }: 
     );
 }
 
-export function ConsoleDetailView({ consoleId, initialData, initialGameCount, initialQuery = {}, preview = false }: {
+export function ConsoleDetailView({ consoleId, initialData, initialGameCount, initialSiblings, initialQuery = {}, preview = false }: {
     consoleId: number;
     initialData: ConsoleDetail | null;
     /** Games of the console's platform, resolved by the server; omitted in the preview. */
     initialGameCount?: number | null;
+    /** The models of the same platform, resolved by the server; omitted in the preview. */
+    initialSiblings?: ConsoleModel[] | null;
     initialQuery?: ConsoleQuery;
     /** Staff preview: loads with the admin token, so it can show drafts. */
     preview?: boolean;
@@ -185,12 +188,15 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                     </StaffPreviewNotice>
                 )}
 
-                <Grid gutter="xl" align="center">
+                <Grid gutter="xl" align="flex-start">
                     <Grid.Col span={{ base: 12, md: 5 }}>
-                        <div className={styles.heroMedia} style={{ boxShadow: elevation.cover }}>
-                            <ConsoleImage image={image} name={model.name} platform={model.platform.slug} priority
-                                sizes="(max-width: 62em) 90vw, 420px" />
-                        </div>
+                        <Stack gap="md">
+                            <div className={styles.heroMedia} style={{ boxShadow: elevation.cover }}>
+                                <ConsoleImage image={image} name={model.name} platform={model.platform.slug} priority
+                                    sizes="(max-width: 62em) 90vw, 420px" />
+                            </div>
+                            <PlatformGamesLink platform={model.platform} initialCount={initialGameCount} />
+                        </Stack>
                     </Grid.Col>
                     <Grid.Col span={{ base: 12, md: 7 }}>
                         <Stack gap="md">
@@ -199,6 +205,7 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                                 <Text fz="sm" c="dimmed">{platformLongName(model.platform)}</Text>
                             </Group>
                             <Title order={1} fz={{ base: 28, md: 36 }} fw={800} lh={1.15}>{model.name}</Title>
+                            <SiblingModels current={model} initialModels={initialSiblings} preview={preview} />
                             <Group gap="xs" c="dimmed" fz="sm" wrap="nowrap" align="flex-start">
                                 <IconBuildingStore size={16} style={{ flexShrink: 0, marginTop: 2 }} />
                                 <Text fz="sm">
@@ -206,7 +213,6 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                                     {' · '}{plural(model.configurations.length, 'configuración', 'configuraciones')}
                                 </Text>
                             </Group>
-                            <PlatformGamesLink platform={model.platform} initialCount={initialGameCount} />
                             <BestPriceCard model={model} best={best} onOffer={beginOffer} packSelected={!!selected}
                                 packLabel={selected ? configurationLabel(selected) : bestConfiguration ? configurationLabel(bestConfiguration) : undefined}
                                 href={best ? offerHref(best) : undefined} />

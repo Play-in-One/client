@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { cache } from 'react';
 import { CONSOLES_PUBLIC, CONSOLES_VISIBILITY } from '@/lib/features';
-import { ApiError, getConsole } from '@/lib/api';
+import { ApiError, getConsole, getConsoles } from '@/lib/api';
 import { ConsoleDetailSkeleton, ConsoleDetailView } from '@/components/consoles/ConsoleDetail';
 import { StaffOnly } from '@/components/consoles/StaffOnly';
 import { JsonLd } from '@/components/JsonLd';
@@ -55,7 +55,11 @@ export default async function ConsolePage({ params, searchParams }: Props) {
     const path = consolePath(model);
     if (`/consola/${slug}` !== path) permanentRedirect(`${path}${consoleQueryString(query)}`);
     // The counter links to the console's landing; a failure only hides its number.
-    const gameCount = await platformGameCount(model.platform.id, { revalidate }).catch(() => null);
+    const [gameCount, siblings] = await Promise.all([
+        platformGameCount(model.platform.id, { revalidate }).catch(() => null),
+        // The model switcher: a failure only hides it.
+        getConsoles({ platform: model.platform.slug }, { revalidate }).then(page => page.results).catch(() => null),
+    ]);
     const configurations = new Map(model.configurations.map(c => [c.id, c]));
     // Each offer describes its exact pack. Do not advertise one configuration's price for another.
     const offers = model.products.filter(p => p.in_stock && Number(p.current_price) > 0).map(p => ({
@@ -69,5 +73,5 @@ export default async function ConsolePage({ params, searchParams }: Props) {
         url: absoluteUrl(path), ...(model.image ? { image: model.image } : {}), ...(offers.length ? { offers } : {}),
     }, breadcrumbJsonLd([{ name: 'Inicio', path: '/' }, { name: 'Consolas', path: '/consolas' }, { name: model.name, path }])];
     return <><JsonLd data={jsonLd} /><ConsoleDetailView key={JSON.stringify(query)} consoleId={model.id} initialData={model} initialQuery={query}
-        initialGameCount={gameCount} /></>;
+        initialGameCount={gameCount} initialSiblings={siblings} /></>;
 }
