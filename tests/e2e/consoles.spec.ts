@@ -42,6 +42,14 @@ async function comparePacks(page: Page) {
     await expect(offers(page)).toHaveCount(2);
 }
 
+/* The counter is the PS5 landing's own total and leads to it. */
+async function gamesCounterLinksToTheGallery(page: Page) {
+    await page.goto('/consola/ps5-slim-981');
+    const counter = page.locator('[data-console-games]');
+    await expect(counter).toContainText('1.234 juegos compatibles');
+    await expect(counter).toHaveAttribute('href', '/juegos/ps5');
+}
+
 async function honestEmptyStates(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await page.locator('a[href*="configuration=12"]').click();
@@ -141,6 +149,19 @@ test.describe('Staff preview of the console pages', () => {
         await comparePacks(page);
     });
 
+    test('the games counter links to the console gallery', async ({ page }) => {
+        await signInAsStaff(page);
+        await gamesCounterLinksToTheGallery(page);
+    });
+
+    test('offers open the store directly, since /go cannot see drafts', async ({ page }) => {
+        await signInAsStaff(page);
+        await page.goto('/consola/ps5-slim-981');
+        const exits = page.locator('[data-console-offer] a[target="_blank"]');
+        await expect(exits.first()).toHaveAttribute('href', /^https:\/\/example\.com\//);
+        await expect(page.locator('a[href*="/go/product/"]')).toHaveCount(0);
+    });
+
     test('pack selections without offers have an honest empty state', async ({ page }) => {
         await signInAsStaff(page);
         await honestEmptyStates(page);
@@ -176,9 +197,11 @@ test.describe('Public console experience', () => {
         expect(html).toContain('Juego de aventura');
         expect(html).toContain('application/ld+json');
         expect(html).toContain('/go/product/991');
+        expect(html).toContain('1.234 juegos compatibles');
     });
 
     test('packs narrow the offers and keep retired offers apart', async ({ page }) => comparePacks(page));
+    test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
     test('pack selections without offers have an honest empty state', async ({ page }) => honestEmptyStates(page));
     test('global digital format does not hide physical console offers', async ({ page }) => hardwareIgnoresDigitalFormat(page));
     test('mobile navigation and filters fit the viewport', async ({ page }) => mobileFits(page));

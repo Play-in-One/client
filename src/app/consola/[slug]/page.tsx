@@ -6,6 +6,7 @@ import { ApiError, getConsole } from '@/lib/api';
 import { ConsoleDetailSkeleton, ConsoleDetailView } from '@/components/consoles/ConsoleDetail';
 import { StaffOnly } from '@/components/consoles/StaffOnly';
 import { JsonLd } from '@/components/JsonLd';
+import { platformGameCount } from '@/lib/platformGames';
 import { configurationLabel, consolePath, consoleQuery, consoleQueryString, type ConsoleQuery } from '@/lib/consoles';
 import { absoluteUrl, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 
@@ -53,6 +54,8 @@ export default async function ConsolePage({ params, searchParams }: Props) {
     const model = await resolve(slug, JSON.stringify(query));
     const path = consolePath(model);
     if (`/consola/${slug}` !== path) permanentRedirect(`${path}${consoleQueryString(query)}`);
+    // The counter links to the console's landing; a failure only hides its number.
+    const gameCount = await platformGameCount(model.platform.id, { revalidate }).catch(() => null);
     const configurations = new Map(model.configurations.map(c => [c.id, c]));
     // Each offer describes its exact pack. Do not advertise one configuration's price for another.
     const offers = model.products.filter(p => p.in_stock && Number(p.current_price) > 0).map(p => ({
@@ -65,5 +68,6 @@ export default async function ConsolePage({ params, searchParams }: Props) {
         description: model.description || `${model.name}: compara configuraciones y precios.`,
         url: absoluteUrl(path), ...(model.image ? { image: model.image } : {}), ...(offers.length ? { offers } : {}),
     }, breadcrumbJsonLd([{ name: 'Inicio', path: '/' }, { name: 'Consolas', path: '/consolas' }, { name: model.name, path }])];
-    return <><JsonLd data={jsonLd} /><ConsoleDetailView key={JSON.stringify(query)} consoleId={model.id} initialData={model} initialQuery={query} /></>;
+    return <><JsonLd data={jsonLd} /><ConsoleDetailView key={JSON.stringify(query)} consoleId={model.id} initialData={model} initialQuery={query}
+        initialGameCount={gameCount} /></>;
 }

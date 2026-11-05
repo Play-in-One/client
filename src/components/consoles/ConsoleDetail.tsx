@@ -22,6 +22,7 @@ import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
 import { ConsoleOfferRow, hasLivePrice } from './ConsoleOfferRow';
 import { ConsolePackPicker } from './ConsolePackPicker';
+import { PlatformGamesLink } from './PlatformGamesLink';
 import { StaffPreviewNotice } from './StaffOnly';
 import { replaceQueryInUrl, useConsoleRequest } from './useConsoleRequest';
 import styles from './ConsoleCatalog.module.css';
@@ -94,9 +95,11 @@ function BestPriceCard({ model, best, packLabel, packSelected, href, onOffer }: 
     );
 }
 
-export function ConsoleDetailView({ consoleId, initialData, initialQuery = {}, preview = false }: {
+export function ConsoleDetailView({ consoleId, initialData, initialGameCount, initialQuery = {}, preview = false }: {
     consoleId: number;
     initialData: ConsoleDetail | null;
+    /** Games of the console's platform, resolved by the server; omitted in the preview. */
+    initialGameCount?: number | null;
     initialQuery?: ConsoleQuery;
     /** Staff preview: loads with the admin token, so it can show drafts. */
     preview?: boolean;
@@ -144,18 +147,25 @@ export function ConsoleDetailView({ consoleId, initialData, initialQuery = {}, p
     const bestConfiguration = best ? configurations.get(best.configuration ?? 0) : undefined;
     const image = model.image || model.products.find(p => p.image)?.image || null;
     const basePath = consolePath(model);
+    // `/go/product/<id>` looks the offer up anonymously, and the API hides the
+    // offers of unpublished models: in the preview every exit answered «esta
+    // oferta ya no está disponible». Staff goes straight to the store, which
+    // also keeps those clicks out of the offer_click metrics.
+    const offerHref = (product: Product) => preview
+        ? product.affiliate_url || product.url
+        : outgoingHref('product', product.id);
     const beginOffer = (event: MouseEvent, product: Product) => {
         const coupon = activeCoupon(product.seller);
         if (!coupon) return;
         event.preventDefault();
         setPendingOffer({
-            url: outgoingHref('product', product.id), productId: product.id, platformId: product.platform?.id, seller: product.seller,
+            url: offerHref(product), productId: product.id, platformId: product.platform?.id, seller: product.seller,
             basePrice: product.base_price, reportContext: { displayed_price: product.current_price, platform: product.platform.name },
         });
     };
     const row = (product: Product, index: number) => (
         <ConsoleOfferRow key={product.id} product={product} configuration={configurations.get(product.configuration ?? 0)} index={index}
-            best={product.id === best?.id} showPack={!selected} href={outgoingHref('product', product.id)} onOffer={beginOffer} />
+            best={product.id === best?.id} showPack={!selected} href={offerHref(product)} onOffer={beginOffer} />
     );
 
     return (
@@ -196,9 +206,10 @@ export function ConsoleDetailView({ consoleId, initialData, initialQuery = {}, p
                                     {' · '}{plural(model.configurations.length, 'configuración', 'configuraciones')}
                                 </Text>
                             </Group>
+                            <PlatformGamesLink platform={model.platform} initialCount={initialGameCount} />
                             <BestPriceCard model={model} best={best} onOffer={beginOffer} packSelected={!!selected}
                                 packLabel={selected ? configurationLabel(selected) : bestConfiguration ? configurationLabel(bestConfiguration) : undefined}
-                                href={best ? outgoingHref('product', best.id) : undefined} />
+                                href={best ? offerHref(best) : undefined} />
                             {model.description && (
                                 <details className="pio-details">
                                     <summary>Acerca de esta consola</summary>

@@ -3,6 +3,7 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
 import { Container, SimpleGrid, Text, Title } from '@mantine/core';
 import { ApiError, getGames, getPlatforms } from '@/lib/api';
+import { LANDING_ORDERING } from '@/lib/platformGames';
 import type { Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
 import GameCard from '@/components/GameCard';
@@ -30,7 +31,7 @@ import {
  * salida. Con ~10.000 juegos, eso dejaba al 96% sin ningún enlace entrante.
  */
 
-const ORDERING = '-traffic_score,name';
+const ORDERING = LANDING_ORDERING;
 
 /** Lo que devuelve una página de la API (`PAGE_SIZE` de DRF, en settings.py). */
 export const PAGE_SIZE = 24;

@@ -82,6 +82,8 @@ createServer((req, res) => {
     }
     if (url.pathname.startsWith('/api/consoles/')) return send({ detail: 'Not found' }, 404);
     if (url.pathname === '/api/platforms/') return send({ ...empty, count: 1, results: [platform] });
+    // The PS5 landing's first page: the console detail shows its total as the games counter.
+    if (url.pathname === '/api/games/' && url.searchParams.get('platforms') === '5') return send({ ...empty, count: 1234 });
     if (url.pathname === '/api/products/991/') return send(products[0]);
     if (url.pathname === '/api/sellers/77/') return send({ ...seller, description: 'Tienda de prueba', addresses: [] });
     if (url.pathname === '/api/sellers/') return send({ ...empty, count: 1, results: [seller] });
