@@ -10,7 +10,9 @@ import { IconChevronRight, IconHome, IconSearch } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import InfoHeading from '@/components/InfoHeading';
 import { getConsoles } from '@/lib/api';
-import { CONSOLE_FAMILIES, CONSOLE_PLATFORMS, consoleQueryString, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
+import {
+    CONSOLE_FAMILIES, CONSOLE_PLATFORMS, consoleConditionOptions, consoleQueryString, isConsoleCondition, type ConsoleModel, type ConsoleQuery,
+} from '@/lib/consoles';
 import { FALLBACK_PLATFORM_ICON, PLATFORM_ICONS } from '@/lib/platformIcons';
 import type { PaginatedResponse } from '@/lib/types';
 import { PLATFORM_COLORS } from '@/lib/utils';
@@ -140,14 +142,13 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
                     <TextInput className={styles.toolbarSearch} name="search" type="search" label="Buscar consola"
                         placeholder="Modelo, por ejemplo «Switch OLED»" value={search} onChange={event => setSearch(event.currentTarget.value)}
                         leftSection={<IconSearch size={16} />} />
-                    <Box>
+                    <Box className={styles.segmentScroll}>
                         <Text component="span" id="console-condition" fz="sm" fw={500} display="block" mb={4}>Condición</Text>
                         <SegmentedControl aria-labelledby="console-condition" value={query.condition ?? 'any'}
-                            onChange={value => update({ condition: value === 'any' ? undefined : value as 'new' | 'used' })}
-                            data={[{ value: 'any', label: globalCondition === 'all' ? 'Todas' : 'Según preferencia' },
-                                { value: 'new', label: 'Nuevo' }, { value: 'used', label: 'Usado' }]} />
+                            onChange={value => update({ condition: isConsoleCondition(value) ? value : undefined })}
+                            data={consoleConditionOptions(globalCondition)} />
                     </Box>
-                    <Box>
+                    <Box className={styles.segmentScroll}>
                         <Text component="span" id="console-has-game" fz="sm" fw={500} display="block" mb={4}>Juego incluido</Text>
                         <SegmentedControl aria-labelledby="console-has-game"
                             value={query.has_game === undefined ? 'any' : String(query.has_game)}

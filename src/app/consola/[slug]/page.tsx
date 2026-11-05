@@ -7,7 +7,7 @@ import { ConsoleDetailSkeleton, ConsoleDetailView } from '@/components/consoles/
 import { StaffOnly } from '@/components/consoles/StaffOnly';
 import { JsonLd } from '@/components/JsonLd';
 import { configurationLabel, consolePath, consoleQuery, consoleQueryString, type ConsoleQuery } from '@/lib/consoles';
-import { absoluteUrl, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
+import { absoluteUrl, breadcrumbJsonLd, buildMetadata, conditionToSchema } from '@/lib/seo';
 
 export const revalidate = 300;
 
@@ -58,7 +58,7 @@ export default async function ConsolePage({ params, searchParams }: Props) {
     const offers = model.products.filter(p => p.in_stock && Number(p.current_price) > 0).map(p => ({
         '@type': 'Offer', name: `${model.name} · ${configurations.has(p.configuration ?? 0) ? configurationLabel(configurations.get(p.configuration ?? 0)!) : p.title}`,
         price: p.current_price, priceCurrency: 'CLP', availability: 'https://schema.org/InStock',
-        itemCondition: p.condition === 'used' ? 'https://schema.org/UsedCondition' : 'https://schema.org/NewCondition',
+        itemCondition: conditionToSchema(p.condition),
         url: absoluteUrl(`/go/product/${p.id}`), seller: { '@type': 'Organization', name: p.seller.name },
     }));
     const jsonLd = [{ '@context': 'https://schema.org', '@type': 'Product', name: model.name,

@@ -224,10 +224,13 @@ export function websiteJsonLd(): JsonLdObject {
     };
 }
 
-function conditionToSchema(condition: string): string {
+export function conditionToSchema(condition: string): string {
     switch (condition) {
         case 'used':
             return 'https://schema.org/UsedCondition';
+        // Solo consolas: un juego no vuelve de fábrica.
+        case 'refurbished':
+            return 'https://schema.org/RefurbishedCondition';
         // Las dos variantes digitales se venden nuevas.
         case 'new':
         case 'store':

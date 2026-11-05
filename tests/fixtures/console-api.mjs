@@ -30,6 +30,7 @@ const products = [
     offer(992, 12, 'PS5 Slim Azul pack 2 TB', 'used', 453000),
     offer(993, 11, 'Oferta agotada', 'new', 400000, false),
     offer(994, 13, 'PS5 Slim + Juego de deportes', 'new', 523000),
+    offer(995, 15, 'PS5 Slim 2 TB + Juego de peleas (Reacondicionado)', 'refurbished', 433000),
 ];
 const consoleModel = { id: 981, name: 'PS5 Slim', slug: 'ps5-slim', platform, image: '', is_published: published,
     description: 'Modelo de prueba para comparar capacidades y packs.' };

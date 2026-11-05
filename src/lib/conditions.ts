@@ -18,7 +18,8 @@ const DIGITAL_SET: ReadonlySet<string> = new Set(DIGITAL_CONDITIONS);
  *  las ofertas `store` y `key`. */
 export function conditionBucket(condition?: string | null): 'new' | 'used' | 'digital' {
     if (condition && DIGITAL_SET.has(condition)) return 'digital';
-    return condition === 'used' ? 'used' : 'new';
+    // A refurbished console is a second-hand unit for grouping purposes.
+    return condition === 'used' || condition === 'refurbished' ? 'used' : 'new';
 }
 
 export function isDigital(condition?: string | null): boolean {
@@ -42,6 +43,8 @@ export const CONDITION_BADGE_COLOR: Record<'new' | 'used' | 'digital', string> =
 export const CONDITION_LABEL_BY_VALUE: Record<string, string> = {
     new: 'Nuevo',
     used: 'Usado',
+    // Solo consolas (`console_models.CONSOLE_CONDITIONS` en el backend).
+    refurbished: 'Reacondicionado',
     store: 'Store',
     key: 'Código',
     new_store: 'Nuevo + Store',
@@ -57,6 +60,7 @@ export const CONDITION_LABEL_BY_VALUE: Record<string, string> = {
 export const CONDITION_BADGE_COLOR_BY_VALUE: Record<string, string> = {
     new: 'blue',
     used: 'yellow',
+    refurbished: 'cyan',
     store: 'grape',
     key: 'teal',
 };

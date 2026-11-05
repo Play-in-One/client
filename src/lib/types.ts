@@ -162,7 +162,8 @@ export interface Product {
     image: string | null;
     seller: Seller;
     /** `store` es compra en tienda oficial y `key` un código de canje. */
-    condition: 'new' | 'used' | 'store' | 'key';
+    /** `refurbished` only on console offers. */
+    condition: 'new' | 'used' | 'store' | 'key' | 'refurbished';
     game: number | null;
     /** Precio EFECTIVO: lista + envío de la tienda. Es el que se muestra, se
      *  ordena y se compara en toda la plataforma. */
