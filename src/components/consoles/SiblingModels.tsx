@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button, Text } from '@mantine/core';
 import { getConsoles } from '@/lib/api';
+import { onDark } from '@/lib/colors';
 import { consolePath, type ConsoleModel } from '@/lib/consoles';
 import { platformLongName, type Platform } from '@/lib/types';
 import { PLATFORM_COLORS, formatCLP } from '@/lib/utils';
@@ -53,9 +54,11 @@ export function SiblingModels({ current, initialModels, preview }: {
                             aria-current={active ? 'page' : undefined} title={model.name}>
                             <span className={styles.modelOption}>
                                 <span>{modelLabel(model.name, platform)}</span>
-                                {/* The current model's price is the best-price card below. */}
-                                {!active && model.min_price != null && (
-                                    <Text span fz={11} fw={500} c="dimmed" className={styles.price}>{formatCLP(model.min_price)}</Text>
+                                {/* On the filled (current) button, the light secondary text for dark backgrounds. */}
+                                {model.min_price != null && (
+                                    <Text span fz={11} fw={500} c={active ? onDark.textSecondary : 'dimmed'} className={styles.price}>
+                                        {formatCLP(model.min_price)}
+                                    </Text>
                                 )}
                             </span>
                         </Button>
