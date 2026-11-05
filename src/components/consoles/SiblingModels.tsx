@@ -44,17 +44,20 @@ export function SiblingModels({ current, initialModels, preview }: {
     return (
         <nav aria-label={`Modelos de ${platformLongName(platform)}`} data-console-models>
             <Text fz="xs" fw={700} c="dimmed" tt="uppercase" mb={6}>Modelos de {platformLongName(platform)}</Text>
-            <div className={styles.platformRow}>
+            <div className={`${styles.platformRow} ${styles.fitRow}`}>
                 {row.map(model => {
                     const active = model.id === current.id;
                     return (
-                        <Button key={model.id} component={Link} href={consolePath(model)} size="xs" radius="sm"
+                        <Button key={model.id} component={Link} href={consolePath(model)} size="xs" radius="sm" h={44} px="sm"
                             variant={active ? 'filled' : 'subtle'} color={active ? color : 'gray'}
-                            aria-current={active ? 'page' : undefined} title={model.name}
-                            rightSection={!active && model.min_price != null
-                                ? <Text span fz={11} c="dimmed" className={styles.price}>{formatCLP(model.min_price)}</Text>
-                                : undefined}>
-                            {modelLabel(model.name, platform)}
+                            aria-current={active ? 'page' : undefined} title={model.name}>
+                            <span className={styles.modelOption}>
+                                <span>{modelLabel(model.name, platform)}</span>
+                                {/* The current model's price is the best-price card below. */}
+                                {!active && model.min_price != null && (
+                                    <Text span fz={11} fw={500} c="dimmed" className={styles.price}>{formatCLP(model.min_price)}</Text>
+                                )}
+                            </span>
                         </Button>
                     );
                 })}

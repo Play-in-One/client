@@ -12,6 +12,10 @@
 }
 .platformRow::-webkit-scrollbar { display: none; }
 .platformRow > * { flex-shrink: 0; }
+/* The model switcher hugs its options instead of spanning the column; it
+   still scrolls sideways when the options outgrow it. */
+.fitRow { display: inline-flex; max-width: 100%; vertical-align: top; }
+.modelOption { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
 
 .toolbar {
     display: flex;
