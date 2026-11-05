@@ -4,9 +4,8 @@ import { CONSOLES_PUBLIC, CONSOLES_STAFF_PREVIEW, CONSOLES_VISIBILITY } from '..
 
 /* Runs with `npm run test:consoles` against `tests/fixtures/console-api.mjs`.
    Model 981 has five packs: 11 (1 TB, no game: a live and a retired offer),
-   12 (two games, a used offer), 13 (one live offer), 14 (no offers) and 15
-   (a refurbished offer, the cheapest). Only the describe for the current
-   CONSOLES_VISIBILITY runs. */
+   12 (two games, used offer, the cheapest), 13 (one live offer), 14 and 15
+   (no offers). Only the describe for the current CONSOLES_VISIBILITY runs. */
 
 test.beforeEach(async ({ context }) => {
     await context.addCookies([{ name: 'pio_consent', value: encodeURIComponent(JSON.stringify(buildConsent('reject-all'))),
@@ -27,8 +26,8 @@ async function comparePacks(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await expect(page.getByRole('heading', { name: 'PS5 Slim', exact: true })).toBeVisible();
     await expect(page.locator('[data-console-pack]')).toHaveCount(6);
-    await expect(offers(page)).toHaveCount(5);
-    await expect(page.locator('[data-console-minimum]')).toContainText('433.000');
+    await expect(offers(page)).toHaveCount(4);
+    await expect(page.locator('[data-console-minimum]')).toContainText('453.000');
     await expect(page.locator('[data-stock="false"]')).toContainText('Oferta agotada');
     await expect(page.locator('[data-stock="false"]').getByRole('link', { name: 'Ver en tienda' })).toHaveCount(0);
 
@@ -53,19 +52,6 @@ async function honestEmptyStates(page: Page) {
     await expect(page.locator('[data-console-minimum]')).toContainText('Sin precio disponible');
     // The used-only pack 12 has no new offer, so its tile says so instead of vanishing.
     await expect(page.locator('[data-console-pack]', { hasText: 'Juego de aventura' })).toContainText('Sin ofertas vigentes');
-}
-
-async function refurbishedIsItsOwnCondition(page: Page) {
-    await page.goto('/consola/ps5-slim-981');
-    await segment(page, 'Condición', 'Reacondicionado').click();
-    await expect(page).toHaveURL(/condition=refurbished/);
-    await expect(offers(page)).toHaveCount(1);
-    await expect(offers(page)).toContainText('Reacondicionado');
-    await expect(page.locator('[data-console-minimum]')).toContainText('433.000');
-    // Only pack 15 has a refurbished offer; the others say so instead of vanishing.
-    await expect(page.locator('[data-console-pack]', { hasText: 'Juego de deportes' })).toContainText('Sin ofertas vigentes');
-    await page.reload();
-    await expect(offers(page)).toHaveCount(1);
 }
 
 async function hardwareIgnoresDigitalFormat(page: Page) {
@@ -135,8 +121,8 @@ test.describe('Staff preview of the console pages', () => {
         await expect(page.locator('[data-staff-preview]')).toContainText('Solo los administradores');
         const card = page.locator('[data-console-card]', { hasText: 'PS5 Slim' });
         await expect(card).toContainText('Borrador');
-        await expect(card).toContainText('433.000');
-        await expect(card).toContainText('4 packs');
+        await expect(card).toContainText('453.000');
+        await expect(card).toContainText('3 packs');
         await expect(page.getByRole('link', { name: /^Consolas\s*staff$/i }).first()).toBeVisible();
         expect(authorized.length).toBeGreaterThan(0);
         expect(authorized.every(Boolean)).toBe(true);
@@ -158,11 +144,6 @@ test.describe('Staff preview of the console pages', () => {
     test('pack selections without offers have an honest empty state', async ({ page }) => {
         await signInAsStaff(page);
         await honestEmptyStates(page);
-    });
-
-    test('refurbished offers are a condition of their own', async ({ page }) => {
-        await signInAsStaff(page);
-        await refurbishedIsItsOwnCondition(page);
     });
 
     test('global digital format does not hide physical console offers', async ({ page }) => {
@@ -195,12 +176,10 @@ test.describe('Public console experience', () => {
         expect(html).toContain('Juego de aventura');
         expect(html).toContain('application/ld+json');
         expect(html).toContain('/go/product/991');
-        expect(html).toContain('https://schema.org/RefurbishedCondition');
     });
 
     test('packs narrow the offers and keep retired offers apart', async ({ page }) => comparePacks(page));
     test('pack selections without offers have an honest empty state', async ({ page }) => honestEmptyStates(page));
-    test('refurbished offers are a condition of their own', async ({ page }) => refurbishedIsItsOwnCondition(page));
     test('global digital format does not hide physical console offers', async ({ page }) => hardwareIgnoresDigitalFormat(page));
     test('mobile navigation and filters fit the viewport', async ({ page }) => mobileFits(page));
 

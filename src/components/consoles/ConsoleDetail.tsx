@@ -16,10 +16,7 @@ import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
 import { getConsole } from '@/lib/api';
 import { decorative, elevation, onDark } from '@/lib/colors';
-import {
-    configurationLabel, consoleConditionOptions, consolePath, consoleQueryString, isConsoleCondition, type ConsoleDetail, type ConsoleQuery,
-} from '@/lib/consoles';
-import { conditionLabelFor } from '@/lib/conditions';
+import { configurationLabel, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleQuery } from '@/lib/consoles';
 import { activeCoupon, platformLongName, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
@@ -81,7 +78,7 @@ function BestPriceCard({ model, best, packLabel, packSelected, href, onOffer }: 
                     </Group>
                     <Text fz="sm" c={onDark.textSecondary} mt="sm">
                         En <Text span fw={700} c={onDark.text}>{best.seller.name}</Text>
-                        {' · '}{conditionLabelFor(best.condition)}
+                        {' · '}{best.condition === 'used' ? 'Usado' : 'Nuevo'}
                     </Text>
                     {packLabel && <Text fz="xs" c={onDark.textSecondary} mt={2}>{packLabel}</Text>}
                 </Box>
@@ -226,9 +223,10 @@ export function ConsoleDetailView({ consoleId, initialData, initialQuery = {}, p
                                 <Text fz="sm" c="dimmed">{plural(live.length, 'oferta', 'ofertas')}{selected ? ` · ${configurationLabel(selected)}` : ''}</Text>
                                 {busy && <Loader size="xs" color="primaryRed" aria-label="Actualizando ofertas" />}
                             </Group>
-                            <Box className={styles.segmentScroll}><SegmentedControl size="xs" aria-label="Condición" value={query.condition ?? 'any'}
-                                onChange={value => update({ condition: isConsoleCondition(value) ? value : undefined })}
-                                data={consoleConditionOptions(globalCondition)} /></Box>
+                            <SegmentedControl size="xs" aria-label="Condición" value={query.condition ?? 'any'}
+                                onChange={value => update({ condition: value === 'any' ? undefined : value as 'new' | 'used' })}
+                                data={[{ value: 'any', label: globalCondition === 'all' ? 'Todas' : 'Según preferencia' },
+                                    { value: 'new', label: 'Nuevo' }, { value: 'used', label: 'Usado' }]} />
                         </div>
                         {error && (
                             <Alert color="danger" title="No pudimos actualizar las ofertas" m="lg">

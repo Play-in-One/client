@@ -51,25 +51,11 @@ export interface ConsoleQuery {
     game?: number;
     has_game?: boolean;
     seller?: number;
-    condition?: ConsoleCondition;
+    condition?: 'new' | 'used';
     seller_locations?: string;
     ordering?: string;
     page?: number;
     page_size?: number;
-}
-
-/** Twin of the backend's `console_models.CONSOLE_CONDITIONS`. */
-export const CONSOLE_CONDITIONS = ['new', 'used', 'refurbished'] as const;
-export type ConsoleCondition = (typeof CONSOLE_CONDITIONS)[number];
-
-export function isConsoleCondition(value: unknown): value is ConsoleCondition {
-    return typeof value === 'string' && (CONSOLE_CONDITIONS as readonly string[]).includes(value);
-}
-
-/** Segmented options of the condition filter; the first follows the global preference. */
-export function consoleConditionOptions(globalCondition: string) {
-    return [{ value: 'any', label: globalCondition === 'all' ? 'Todas' : 'Según preferencia' },
-        { value: 'new', label: 'Nuevo' }, { value: 'used', label: 'Usado' }, { value: 'refurbished', label: 'Reacondicionado' }];
 }
 
 export const CONSOLE_PLATFORMS = [
@@ -108,7 +94,7 @@ export function consoleQuery(params: Record<string, string | string[] | undefine
         if (typeof value === 'string' && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value))) query[field] = Number(value);
     }
     if (params.has_game === 'true' || params.has_game === 'false') query.has_game = params.has_game === 'true';
-    if (isConsoleCondition(params.condition)) query.condition = params.condition;
+    if (params.condition === 'new' || params.condition === 'used') query.condition = params.condition;
     return query;
 }
 
