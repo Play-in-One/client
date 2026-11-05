@@ -2,7 +2,7 @@
 
 import type { MouseEvent } from 'react';
 import Link from 'next/link';
-import { Anchor, Badge, Button, Group, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Group, Skeleton, Stack, Text } from '@mantine/core';
 import { IconExternalLink } from '@tabler/icons-react';
 import AffiliateMark from '@/components/AffiliateMark';
 import PriceInfo from '@/components/PriceInfo';
@@ -71,5 +71,24 @@ export function ConsoleOfferRow({ product, configuration, index, best, showPack,
                 )}
             </div>
         </article>
+    );
+}
+
+export function ConsoleOfferRowSkeleton() {
+    return (
+        <div className={styles.offer} aria-hidden data-console-offer-skeleton>
+            <Group gap="sm" wrap="nowrap" align="flex-start" className={styles.offerMain}>
+                <Skeleton w={40} h={40} radius="sm" style={{ flexShrink: 0 }} />
+                <Stack gap={8} style={{ flex: 1 }}>
+                    <Skeleton h={14} w="35%" />
+                    <Skeleton h={12} w="60%" />
+                    <Skeleton h={12} w="45%" />
+                </Stack>
+            </Group>
+            <div className={styles.offerAside}>
+                <Skeleton h={22} w={110} />
+                <Skeleton h={30} w={130} radius="sm" />
+            </div>
+        </div>
     );
 }

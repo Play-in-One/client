@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button, Text } from '@mantine/core';
+import { Button, Group, Skeleton, Text } from '@mantine/core';
 import { getConsoles } from '@/lib/api';
 import { onDark } from '@/lib/colors';
 import { consolePath, type ConsoleModel } from '@/lib/consoles';
@@ -37,6 +37,7 @@ export function SiblingModels({ current, initialModels, preview }: {
         return () => controller.abort();
     }, [platform.slug, preview, initialModels]);
 
+    if (models === undefined) return <SiblingModelsSkeleton />;
     const list = (models ?? []).filter(model => model.platform.slug === platform.slug);
     if (!list.some(model => model.id !== current.id)) return null;
     // The current model is always in the row, even if a filter hid it from the list.
@@ -66,5 +67,17 @@ export function SiblingModels({ current, initialModels, preview }: {
                 })}
             </div>
         </nav>
+    );
+}
+
+/** Same footprint as the switcher, so the price card below does not jump. */
+export function SiblingModelsSkeleton() {
+    return (
+        <div aria-hidden data-console-models-skeleton>
+            <Skeleton h={10} w={150} mb={10} />
+            <Group gap={6} wrap="nowrap">
+                {[80, 70, 92, 64, 104].map((w, i) => <Skeleton key={i} h={44} w={w} radius="sm" />)}
+            </Group>
+        </div>
     );
 }

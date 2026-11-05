@@ -76,7 +76,7 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
     const [query, setQuery] = useState(initialQuery);
     const [search, setSearch] = useState(initialQuery.search ?? '');
     const load = useCallback((q: ConsoleQuery, signal: AbortSignal) => getConsoles(q, { signal, admin: preview }), [preview]);
-    const { data, error, busy, retry } = useConsoleRequest(initialData, query, load);
+    const { data, error, busy, stale, retry } = useConsoleRequest(initialData, query, load);
 
     // The URL is written outside the state updater: Next's router listens to
     // history changes, and updating it while React renders is an error.
@@ -168,7 +168,8 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
                 </Alert>
             )}
 
-            {!data && busy ? (
+            {/* First load, or a new filter whose results are not these ones yet. */}
+            {(!data && busy) || stale ? (
                 <SimpleGrid cols={GRID_COLS} spacing="lg" aria-busy>
                     {Array.from({ length: 8 }, (_, i) => <ConsoleCardSkeleton key={i} />)}
                 </SimpleGrid>

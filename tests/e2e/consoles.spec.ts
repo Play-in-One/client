@@ -59,6 +59,18 @@ async function switchesBetweenModels(page: Page) {
     await expect(models.getByRole('link', { name: /PS5 Pro/ })).toContainText('899.990');
 }
 
+/* Another pack loads: its price and offers are skeletons, never the previous pack's. */
+async function skeletonsWhileAnotherPackLoads(page: Page) {
+    await page.goto('/consola/ps5-slim-981');
+    await expect(offers(page)).toHaveCount(4);
+    await page.route(/\/api\/consoles\/981\//, async route => { await new Promise(r => setTimeout(r, 1200)); await route.continue(); });
+    await page.locator('a[href*="configuration=11"]').click();
+    await expect(page.locator('[data-console-offer-skeleton]').first()).toBeVisible();
+    await expect(page.locator('[data-best-price-skeleton]')).toBeVisible();
+    await expect(offers(page)).toHaveCount(2);
+    await expect(page.locator('[data-console-offer-skeleton]')).toHaveCount(0);
+}
+
 async function honestEmptyStates(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await page.locator('a[href*="configuration=12"]').click();
@@ -168,6 +180,16 @@ test.describe('Staff preview of the console pages', () => {
         await switchesBetweenModels(page);
     });
 
+    test('the first load and another pack show skeletons', async ({ page }) => {
+        await signInAsStaff(page);
+        await page.route(/\/api\/consoles\/981\//, async route => { await new Promise(r => setTimeout(r, 1200)); await route.continue(); });
+        await page.goto('/consola/ps5-slim-981');
+        await expect(page.locator('[data-console-detail-skeleton]')).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'PS5 Slim', exact: true })).toBeVisible();
+        await page.unrouteAll();
+        await skeletonsWhileAnotherPackLoads(page);
+    });
+
     test('offers open the store directly, since /go cannot see drafts', async ({ page }) => {
         await signInAsStaff(page);
         await page.goto('/consola/ps5-slim-981');
@@ -217,6 +239,18 @@ test.describe('Public console experience', () => {
     test('packs narrow the offers and keep retired offers apart', async ({ page }) => comparePacks(page));
     test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
     test('a switcher leads to the other models of the console', async ({ page }) => switchesBetweenModels(page));
+    test('another pack shows skeletons', async ({ page }) => skeletonsWhileAnotherPackLoads(page));
+
+    test('the server-rendered detail does not flash skeletons while it rechecks prices', async ({ page }) => {
+        // The browser reloads the same query after hydration (the visitor's
+        // preferences): the content stays, only the small loader shows.
+        await page.route(/\/api\/consoles\/981\//, async route => { await new Promise(r => setTimeout(r, 1500)); await route.continue(); });
+        await page.goto('/consola/ps5-slim-981');
+        await expect(offers(page)).toHaveCount(4);
+        await page.waitForTimeout(600);
+        await expect(page.locator('[data-console-offer-skeleton], [data-best-price-skeleton]')).toHaveCount(0);
+        await expect(offers(page)).toHaveCount(4);
+    });
     test('pack selections without offers have an honest empty state', async ({ page }) => honestEmptyStates(page));
     test('global digital format does not hide physical console offers', async ({ page }) => hardwareIgnoresDigitalFormat(page));
     test('mobile navigation and filters fit the viewport', async ({ page }) => mobileFits(page));
