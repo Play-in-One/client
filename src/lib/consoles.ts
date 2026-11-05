@@ -14,6 +14,12 @@ export interface ConsoleConfiguration {
     storage_gb: number;
     storage_label: string;
     games: ConsoleGame[];
+    /* Pack summary: follows condition and store location, never the pack
+       filters themselves, so choosing a pack keeps the others visible. */
+    min_price?: string | null;
+    seller_count?: number;
+    offer_count?: number;
+    in_stock?: boolean;
 }
 
 export interface ConsoleModel {
@@ -25,7 +31,9 @@ export interface ConsoleModel {
     description: string;
     min_price: string | null;
     seller_count: number;
+    pack_count?: number;
     in_stock: boolean;
+    is_published?: boolean;
 }
 
 export interface ConsoleDetail extends ConsoleModel {
@@ -61,6 +69,14 @@ export const GAME_FORMATS: Record<ConsoleGame['format'], string> = {
 
 export function consolePath(console: Pick<ConsoleModel, 'id' | 'slug'>): string {
     return `/consola/${console.slug}-${console.id}`;
+}
+
+export const CONSOLE_FAMILIES = [
+    { family: 'playstation', label: 'PlayStation' }, { family: 'xbox', label: 'Xbox' }, { family: 'nintendo', label: 'Nintendo' },
+] as const;
+
+export function packGamesLabel(configuration: ConsoleConfiguration): string {
+    return configuration.games.length ? configuration.games.map(game => game.title).join(' + ') : 'Sin juego';
 }
 
 export function configurationLabel(configuration: ConsoleConfiguration): string {

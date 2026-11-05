@@ -22,6 +22,7 @@ import {
     UnstyledButton,
     Accordion,
     ScrollArea,
+    Badge,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -44,7 +45,8 @@ import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import LocationFilter from '@/components/LocationFilter';
 import InfoHint from '@/components/InfoHint';
 import StaffProductImagesSwitch from '@/components/StaffProductImagesSwitch';
-import { CONSOLES_ENABLED } from '@/lib/features';
+import { CONSOLES_PUBLIC, CONSOLES_STAFF_PREVIEW } from '@/lib/features';
+import { useAdmin } from '@/context/AdminContext';
 
 /* El neutro va al centro en los dos: es el default y el que más se elige, así
  * que ponerlo en un extremo obligaría a cruzar el control para volver a él. */
@@ -90,6 +92,11 @@ const THEME_OPTIONS = [
 export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
+    // Consoles are linked for everyone once public; during the staff preview
+    // only an admin gets the link, so the pages stay undiscoverable.
+    const { isAdmin } = useAdmin();
+    const showConsoles = CONSOLES_PUBLIC || (CONSOLES_STAFF_PREVIEW && isAdmin);
+    const consolesLabel = <>Consolas{!CONSOLES_PUBLIC && <Badge ml={6} size="xs" color="caution" variant="light">staff</Badge>}</>;
     const {
         searchQuery, setSearchQuery, condition, setCondition, format, setFormat, digital, setDigital,
     } = useApp();
@@ -127,7 +134,7 @@ export default function Navbar() {
     const handleSearch = (e: FormEvent) => {
         e.preventDefault();
         setSearchQuery(localQuery);
-        const consoleSearch = CONSOLES_ENABLED && (pathname?.startsWith('/consola') || new URLSearchParams(window.location.search).get('category') === 'console');
+        const consoleSearch = showConsoles && (pathname?.startsWith('/consola') || new URLSearchParams(window.location.search).get('category') === 'console');
         router.push(consoleSearch ? `/consolas?search=${encodeURIComponent(localQuery)}` : `/search?q=${encodeURIComponent(localQuery)}`);
     };
 
@@ -188,9 +195,9 @@ export default function Navbar() {
                     280 (abajo): el enlace a Ofertas no cabía y la barra se salía
                     53 px por la derecha en cualquier página con buscador (todas
                     menos la home), tapando el engranaje de preferencias. */}
-                <Group gap={CONSOLES_ENABLED ? 'sm' : 'md'} visibleFrom="lg" wrap="nowrap">
-                    {CONSOLES_ENABLED && <UnstyledButton component={Link} href="/consolas" fw={600} fz="sm"
-                        c={pathname?.startsWith('/consola') ? 'var(--pio-brand-text)' : 'dimmed'}>Consolas</UnstyledButton>}
+                <Group gap={showConsoles ? 'sm' : 'md'} visibleFrom="lg" wrap="nowrap">
+                    {showConsoles && <UnstyledButton component={Link} href="/consolas" fw={600} fz="sm"
+                        c={pathname?.startsWith('/consola') ? 'var(--pio-brand-text)' : 'dimmed'}>{consolesLabel}</UnstyledButton>}
                     {/* Ofertas va primero y fuera de los menús de consola: es la
                         página con más intención de compra del sitio y no
                         pertenece a ninguna marca. Enlace real (`<a href>`) para
@@ -284,13 +291,13 @@ export default function Navbar() {
                     {pathname !== '/' && (
                         <form onSubmit={handleSearch}>
                             <TextInput
-                                placeholder={CONSOLES_ENABLED && pathname?.startsWith('/consola') ? 'Buscar consolas...' : 'Buscar juegos...'}
+                                placeholder={showConsoles && pathname?.startsWith('/consola') ? 'Buscar consolas...' : 'Buscar juegos...'}
                                 leftSection={<IconSearch size={18} />}
                                 value={localQuery}
                                 onChange={(e) => setLocalQuery(e.currentTarget.value)}
                                 radius="xl"
                                 size="sm"
-                                w={{ base: 140, sm: 220, lg: CONSOLES_ENABLED ? 160 : 200 }}
+                                w={{ base: 140, sm: 220, lg: showConsoles ? 160 : 200 }}
                                 classNames={{ input: 'search-input' }}
                                 styles={{
                                     input: {
@@ -444,7 +451,7 @@ export default function Navbar() {
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
                     <StaffProductImagesSwitch />
-                    {CONSOLES_ENABLED && <Anchor component={Link} href="/consolas" onClick={close} fw={600} fz="lg" c="inherit" underline="never" px="md">Consolas</Anchor>}
+                    {showConsoles && <Anchor component={Link} href="/consolas" onClick={close} fw={600} fz="lg" c="inherit" underline="never" px="md">{consolesLabel}</Anchor>}
                     <Anchor
                         component={Link}
                         href="/ofertas"

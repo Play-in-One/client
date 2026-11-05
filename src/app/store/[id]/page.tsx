@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import { CONSOLES_ENABLED } from '@/lib/features';
+import { CONSOLES_PUBLIC } from '@/lib/features';
 import { notFound } from 'next/navigation';
 import { getConsoles, getGames, getSeller } from '@/lib/api';
-import { StoreConsoleCatalog } from '@/components/consoles/ConsoleBrowser';
+import { StoreConsoleCatalog } from '@/components/consoles/StoreConsoleCatalog';
 import type { Game, Seller } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { buildMetadata, storeJsonLd, breadcrumbJsonLd } from '@/lib/seo';
@@ -93,7 +93,7 @@ export default async function StoreDetailPage({
     if (!seller) notFound();
 
     const summary = storeSummary(seller, games, total);
-    const consoles = CONSOLES_ENABLED
+    const consoles = CONSOLES_PUBLIC
         ? await getConsoles({ seller: seller.id, page_size: 6 }, { revalidate }).catch(() => null)
         : null;
 

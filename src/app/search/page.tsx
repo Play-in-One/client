@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { CONSOLES_ENABLED } from '@/lib/features';
+import { CONSOLES_PUBLIC } from '@/lib/features';
 import { getConsoles, getGames, getPlatforms } from '@/lib/api';
 import Link from 'next/link';
 import { Anchor, Container, Group, Text } from '@mantine/core';
-import { ConsoleCatalog } from '@/components/consoles/ConsoleBrowser';
+import { ConsoleCatalog } from '@/components/consoles/ConsoleCatalog';
 import { consoleQuery } from '@/lib/consoles';
 import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
@@ -17,7 +17,7 @@ import SearchClient from './SearchClient';
 const DEFAULT_ORDERING = '-traffic_score,name';
 
 function redirectHiddenConsoleSearch(sp: Record<string, string | string[] | undefined>) {
-    if (CONSOLES_ENABLED || sp.category !== 'console') return;
+    if (CONSOLES_PUBLIC || sp.category !== 'console') return;
     const q = typeof sp.q === 'string' ? sp.q : '';
     const search = typeof sp.search === 'string' ? sp.search : '';
     const query = q || search;
@@ -117,7 +117,7 @@ export default async function SearchPage({
 
     return (
         <>
-            {CONSOLES_ENABLED && <Container size="lg" pt="lg"><Group gap="lg"><Text fw={700}>Juegos</Text><Anchor component={Link} href={`/search?category=console${typeof sp.q === 'string' ? `&q=${encodeURIComponent(sp.q)}` : ''}`}>Consolas</Anchor></Group></Container>}
+            {CONSOLES_PUBLIC && <Container size="lg" pt="lg"><Group gap="lg"><Text fw={700}>Juegos</Text><Anchor component={Link} href={`/search?category=console${typeof sp.q === 'string' ? `&q=${encodeURIComponent(sp.q)}` : ''}`}>Consolas</Anchor></Group></Container>}
             {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
             <SearchClient initialGames={games} initialTotal={total}
                 initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0} />

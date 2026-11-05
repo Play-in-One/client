@@ -57,7 +57,7 @@ import { platformLongName, activeCoupon, isAffiliateOffer } from '@/lib/types';
 import { allowedConditionsFor, isSellerVisible, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
-import { decorative, elevation, onDark, sellerAvatarColors, surfaces } from '@/lib/colors';
+import { decorative, elevation, onDark, surfaces } from '@/lib/colors';
 import { ratingLines } from '@/lib/priceSummary';
 import { genreHref } from '@/lib/routes';
 import PriceInfo from '@/components/PriceInfo';
@@ -70,6 +70,7 @@ import GameClickBadge from '@/components/GameClickBadge';
 import ProductClickBadge from '@/components/ProductClickBadge';
 import SagaLogo from '@/components/SagaLogo';
 import RemoteImage from '@/components/RemoteImage';
+import SellerLogo from '@/components/SellerLogo';
 import {
     conditionBadgeColorFor,
     conditionBucket,
@@ -546,9 +547,6 @@ export default function GameDetailClient({
             }
         }
     };
-
-    // Seller initials color map
-    const sellerColors = sellerAvatarColors;
 
     const breadcrumbPlatform = game.platforms.find((p) => p.slug === selectedPlatform) ?? game.platforms[0];
 
@@ -1029,47 +1027,7 @@ export default function GameDetailClient({
                                                                     trackEvent({ event_type: 'store_view', seller: p.seller.id });
                                                                 }}
                                                             >
-                                                                <Box
-                                                                    w={40}
-                                                                    h={40}
-                                                                    style={{
-                                                                        borderRadius: 'var(--mantine-radius-sm)',
-                                                                        /* Con logo, fondo neutro: el color se vería a través de uno transparente. */
-                                                                        background: (p.seller.favicon || p.seller.logo)
-                                                                            ? 'light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-5))'
-                                                                            : sellerColors[idx % sellerColors.length],
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        justifyContent: 'center',
-                                                                        fontWeight: 700,
-                                                                        fontSize: 'var(--mantine-font-size-xs)',
-                                                                        color: onDark.text,
-                                                                        flexShrink: 0,
-                                                                        overflow: 'hidden',
-                                                                    }}
-                                                                >
-                                                                    {(p.seller.favicon || p.seller.logo) ? (
-                                                                        <img
-                                                                            src={p.seller.favicon || p.seller.logo || ''}
-                                                                            alt={p.seller.name}
-                                                                            style={{
-                                                                                width: '100%',
-                                                                                height: '100%',
-                                                                                objectFit: 'contain',
-                                                                                padding: 4,
-                                                                            }}
-                                                                            onError={(e) => {
-                                                                                if (p.seller.logo && e.currentTarget.src !== p.seller.logo) {
-                                                                                    e.currentTarget.src = p.seller.logo;
-                                                                                } else {
-                                                                                    e.currentTarget.style.display = 'none';
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                    ) : (
-                                                                        p.seller.name.slice(0, 2).toUpperCase()
-                                                                    )}
-                                                                </Box>
+                                                                <SellerLogo seller={p.seller} index={idx} />
                                                             </Anchor>
                                                             <Anchor
                                                                 component="a"

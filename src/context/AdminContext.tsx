@@ -15,6 +15,8 @@ interface AdminState {
     token: string | null;
     username: string | null;
     isAdmin: boolean;
+    /** True once the stored token has been read: before that `isAdmin` is a guess. */
+    ready: boolean;
     showProductImages: boolean;
     setShowProductImages: (enabled: boolean) => void;
     login: (username: string, password: string) => Promise<void>;
@@ -27,6 +29,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
     const [username, setUsername] = useState<string | null>(null);
     const [productImages, setProductImages] = useState(false);
+    const [ready, setReady] = useState(false);
     const setShowProductImages = (enabled: boolean) => {
         setProductImages(enabled);
         try { window.localStorage.setItem(PRODUCT_IMAGES_KEY, String(enabled)); } catch { /* no persistence */ }
@@ -46,6 +49,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         } catch {
             // localStorage no disponible — se queda anónimo
         }
+        setReady(true);
     }, []);
 
     // Sincroniza login/logout entre pestañas: el evento 'storage' se dispara en
@@ -108,7 +112,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     return (
         <AdminContext.Provider
-            value={{ token, username, isAdmin: !!token, showProductImages: !!token && productImages, setShowProductImages, login, logout }}
+            value={{ token, username, isAdmin: !!token, ready, showProductImages: !!token && productImages, setShowProductImages, login, logout }}
         >
             {children}
         </AdminContext.Provider>
@@ -128,5 +132,5 @@ export function useAdmin() {
     // el primer render siempre coincide con el servidor.
     const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
     if (hydrated) return ctx;
-    return { ...ctx, token: null, username: null, isAdmin: false, showProductImages: false };
+    return { ...ctx, token: null, username: null, isAdmin: false, ready: false, showProductImages: false };
 }

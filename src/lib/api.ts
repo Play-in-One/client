@@ -205,16 +205,18 @@ function qs(params: Record<string, string | number | boolean | number[] | undefi
     return s ? `?${s}` : '';
 }
 
-export async function getConsoles(params: ConsoleQuery = {}, options?: { revalidate?: number; signal?: AbortSignal }) {
+export async function getConsoles(params: ConsoleQuery = {}, options?: { revalidate?: number; signal?: AbortSignal; admin?: boolean }) {
     return fetcher<PaginatedResponse<ConsoleModel>>(`/consoles/${qs({ ...params })}`, {
-        signal: options?.signal,
+        signal: options?.signal, admin: options?.admin,
+        ...(options?.admin ? { cache: 'no-store' as const } : {}),
         ...(options?.revalidate !== undefined ? { next: { revalidate: options.revalidate } } : {}),
     });
 }
 
-export async function getConsole(id: number | string, params: ConsoleQuery = {}, options?: { revalidate?: number; signal?: AbortSignal }) {
+export async function getConsole(id: number | string, params: ConsoleQuery = {}, options?: { revalidate?: number; signal?: AbortSignal; admin?: boolean }) {
     return fetcher<ConsoleDetail>(`/consoles/${id}/${qs({ ...params })}`, {
-        signal: options?.signal,
+        signal: options?.signal, admin: options?.admin,
+        ...(options?.admin ? { cache: 'no-store' as const } : {}),
         ...(options?.revalidate !== undefined ? { next: { revalidate: options.revalidate } } : {}),
     });
 }

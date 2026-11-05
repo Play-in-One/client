@@ -2,7 +2,7 @@
 
 import { type ComponentType, useState } from 'react';
 import Link from 'next/link';
-import { CONSOLES_ENABLED } from '@/lib/features';
+import { CONSOLES_PUBLIC } from '@/lib/features';
 
 import Image from 'next/image';
 import {
@@ -128,7 +128,7 @@ export default function Footer() {
                     {/* Consolas */}
                     <Stack gap="xs">
                         <Text fw={700} mb="2xs">Juegos por plataforma</Text>
-                        {CONSOLES_ENABLED && <Anchor component={Link} href="/consolas" fz="sm" c="dimmed" underline="never">Comprar consolas</Anchor>}
+                        {CONSOLES_PUBLIC && <Anchor component={Link} href="/consolas" fz="sm" c="dimmed" underline="never">Comprar consolas</Anchor>}
                         {/* A la landing por consola, no a /search?platform=: esa
                             variante va noindex y se renderiza en el cliente. Van
                             TODAS, en el orden del catálogo: el dropdown del Navbar

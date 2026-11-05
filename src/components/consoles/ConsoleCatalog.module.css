@@ -1,45 +1,149 @@
-.filters {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    align-items: end;
-    margin: 24px 0;
-    padding: 20px;
-    background: var(--mantine-color-default-hover);
-    border-radius: var(--mantine-radius-md);
-}
-.filters label { display: grid; gap: 6px; font-size: 14px; font-weight: 500; }
-.configurationFilter { grid-column: span 2; }
-.filters input, .filters select {
-    width: 100%;
-    min-width: 0;
-    height: 40px;
-    padding: 0 10px;
-    color: var(--mantine-color-text);
-    background: var(--mantine-color-body);
+/* Only theme variables here: ESLint's color rule does not read CSS files. */
+
+.platformRow {
+    display: flex;
+    gap: var(--mantine-spacing-2xs);
+    padding: var(--mantine-spacing-2xs);
+    overflow-x: auto;
+    scrollbar-width: none;
     border: 1px solid var(--mantine-color-default-border);
-    border-radius: var(--mantine-radius-sm);
-    font: inherit;
+    border-radius: var(--mantine-radius-md);
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
 }
-.picture {
+.platformRow::-webkit-scrollbar { display: none; }
+.platformRow > * { flex-shrink: 0; }
+
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mantine-spacing-sm);
+    align-items: flex-end;
+}
+.toolbarSearch { flex: 1 1 260px; min-width: 0; }
+.toolbar :global(.mantine-SegmentedControl-root) { max-width: 100%; }
+
+.card { display: flex; flex-direction: column; height: 100%; color: inherit; text-decoration: none; }
+.card:focus-visible { outline: 3px solid var(--mantine-color-primaryRed-5); outline-offset: 3px; }
+/* Store photos come on white: a white tile (also in dark mode, like a product
+   shot) hides the photo's edges instead of framing them as a box. */
+.media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--mantine-color-white);
+    border-bottom: 1px solid var(--mantine-color-default-border);
+}
+.mediaBadges { position: absolute; top: var(--mantine-spacing-sm); left: var(--mantine-spacing-sm); z-index: 1; }
+
+.price { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.heroMedia {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--mantine-radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--mantine-color-default-border);
+    background: var(--mantine-color-white);
+}
+
+.noImage {
+    position: absolute;
+    inset: 0;
     display: grid;
     place-items: center;
-    aspect-ratio: 4 / 3;
-    background: var(--mantine-color-default-hover);
-    border-radius: var(--mantine-radius-md);
-    overflow: hidden;
+    color: var(--mantine-color-gray-4);
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
 }
-.picture img { max-width: 100%; width: 100%; height: 100%; object-fit: contain; padding: 20px; }
-.model { display: block; color: inherit; text-decoration: none; }
-.model:focus-visible { outline: 3px solid var(--mantine-color-primaryRed-5); outline-offset: 6px; }
-.model:hover h2 { color: var(--mantine-color-primaryRed-5); }
-.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 36px; align-items: center; }
-.offer { padding: 20px 0; border-bottom: 1px solid var(--mantine-color-default-border); }
+
+.sectionHeader {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mantine-spacing-sm);
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--mantine-spacing-lg);
+    border-bottom: 1px solid var(--mantine-color-default-border);
+}
+
+/* Pack tile: the edition link stretches over the whole tile, so the tile is one
+   big target while the included-game links stay clickable on top of it. */
+.pack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--mantine-spacing-xs);
+    height: 100%;
+    padding: var(--mantine-spacing-md);
+    border: 1px solid var(--mantine-color-default-border);
+    border-radius: var(--mantine-radius-md);
+    background: var(--mantine-color-body);
+    transition: border-color .15s, box-shadow .15s;
+}
+.pack:hover { border-color: var(--mantine-color-primaryRed-4); box-shadow: var(--pio-shadow-hover); }
+.pack[data-selected] {
+    border-color: var(--mantine-color-primaryRed-5);
+    box-shadow: 0 0 0 1px var(--mantine-color-primaryRed-5);
+    background: light-dark(var(--mantine-color-primaryRed-0), var(--mantine-color-dark-6));
+}
+.pack[data-empty] .packPrice { color: var(--mantine-color-dimmed); }
+.packLink { color: inherit; text-decoration: none; font-weight: 700; }
+.packLink::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.packLink:focus-visible { outline: none; }
+.pack:has(.packLink:focus-visible) { outline: 3px solid var(--mantine-color-primaryRed-5); outline-offset: 2px; }
+.packGame { position: relative; z-index: 1; }
+.packPrice { margin-top: auto; }
+
+.offer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mantine-spacing-md);
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+    border-bottom: 1px solid var(--mantine-color-default-border);
+}
 .offer:last-child { border-bottom: 0; }
-.offer[data-stock='false'] { opacity: .65; }
-.price { font-variant-numeric: tabular-nums; white-space: nowrap; }
-@media (max-width: 600px) {
-    .hero { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-    .hero .picture { max-height: 240px; aspect-ratio: 3 / 2; }
-    .filters { padding: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.offerMain { flex: 1 1 280px; min-width: 0; }
+.offerAside { display: flex; flex-direction: column; align-items: flex-end; gap: var(--mantine-spacing-xs); }
+
+.soldOut > summary {
+    padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+    border-top: 1px solid var(--mantine-color-default-border);
+    color: var(--mantine-color-dimmed);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Long edition names ("The Legend of Zelda 40th Anniversary") would clip the
+   segmented filters on a phone: they scroll instead. */
+.quickFilters { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+.quickFilters > * { flex-shrink: 0; }
+
+.packGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--mantine-spacing-md);
+}
+
+@media (max-width: 62em) {
+    .packGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 48em) {
+    .offerAside { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
+    .heroMedia { aspect-ratio: 16 / 9; }
+    /* Nine stacked packs pushed the offers three screens down: on a phone the
+       packs scroll sideways and snap, and the offers stay in reach. */
+    .packGrid {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-auto-columns: 78%;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: var(--mantine-spacing-2xs);
+        margin-inline: calc(var(--mantine-spacing-lg) * -1);
+        padding-inline: var(--mantine-spacing-lg);
+        scroll-padding-inline: var(--mantine-spacing-lg);
+    }
+    .packGrid > * { scroll-snap-align: start; }
 }
