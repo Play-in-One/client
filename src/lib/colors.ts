@@ -292,3 +292,22 @@ export const pwa = {
        que se ve de la marca, y seguía en el rojo viejo. */
     themeColor: brand.primary,
 };
+
+/* Muestras de las ediciones de consola que son un color, por `ConsoleEdition.key`
+   (no por el nombre visible). Se acercan al color del hardware; «Neón» es el par
+   de Joy-Con azul y rojo. Son decorativas: la etiqueta siempre acompaña a la
+   muestra, así que no dependen del contraste para leerse. */
+export const consoleEditionSwatches: Record<string, string> = {
+    blanco: '#f4f4f1',
+    negro: '#1d1d1f',
+    gris: '#6e7073',
+    coral: '#ff7f73',
+    amarillo: '#f2d21b',
+    calipso: '#2fc3c9',
+    azul: '#2f6fd6',
+    rojo: '#e0242f',
+    morado: '#7b4fb8',
+    verde: '#3fae5a',
+    rosado: '#f29ac2',
+    neon: 'linear-gradient(90deg, #00b8e6 0 50%, #ff3c50 50% 100%)',
+};

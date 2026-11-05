@@ -1,3 +1,4 @@
+import { consoleEditionSwatches } from './colors';
 import type { Platform, Product } from './types';
 
 export interface ConsoleGame {
@@ -14,6 +15,8 @@ export interface ConsoleConfiguration {
     console: number;
     edition: number;
     edition_name: string;
+    /** Stable key of the edition ("standard", "neon", "coral"). */
+    edition_key?: string;
     storage_gb: number;
     storage_label: string;
     games: ConsoleGame[];
@@ -65,6 +68,16 @@ export const GAME_FORMATS: Record<ConsoleGame['format'], string> = {
 
 export function consolePath(console: Pick<ConsoleModel, 'id' | 'slug'>): string {
     return `/consola/${console.slug}-${console.id}`;
+}
+
+/* Colour editions are plain editions whose key is a colour. A few spellings of
+   the same colour share its swatch. */
+const SWATCH_ALIASES: Record<string, string> = { blanca: 'blanco', negra: 'negro', amarilla: 'amarillo', turquesa: 'calipso', 'neon-blue-red': 'neon' };
+
+/** The CSS background of a colour edition's swatch, or undefined for an edition that is not a colour. */
+export function editionSwatch(key?: string | null): string | undefined {
+    if (!key) return undefined;
+    return consoleEditionSwatches[SWATCH_ALIASES[key] ?? key];
 }
 
 export const CONSOLE_FAMILIES = [

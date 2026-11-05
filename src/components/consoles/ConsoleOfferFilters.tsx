@@ -2,7 +2,8 @@
 
 import { Button, Group, SegmentedControl, Select, Text } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
-import type { ConsoleConfiguration, ConsoleQuery } from '@/lib/consoles';
+import { editionSwatch, type ConsoleConfiguration, type ConsoleQuery } from '@/lib/consoles';
+import { EditionSwatch } from './EditionSwatch';
 import styles from './ConsoleCatalog.module.css';
 
 /** The query keys the offer filters own; clearing them resets the comparison. */
@@ -32,8 +33,13 @@ export function ConsoleOfferFilters({ configurations, query, globalCondition, on
     globalCondition: string;
     onChange: (patch: ConsoleQuery) => void;
 }) {
+    const editionKeys = new Map(configurations.map(c => [String(c.edition), c.edition_key]));
+    // Estándar first, then the colours, then the special editions.
+    const editionRank = (value: string) => editionKeys.get(value) === 'standard' ? 0 : editionSwatch(editionKeys.get(value)) ? 1 : 2;
     const editions: Option[] = [...new Map(configurations.map(c => [String(c.edition), c.edition_name])).entries()]
-        .map(([value, label]) => ({ value, label }));
+        .map(([value, label]) => ({ value, label }))
+        .sort((a, b) => editionRank(a.value) - editionRank(b.value) || a.label.localeCompare(b.label, 'es'));
+    const selectedEdition = query.edition ? String(query.edition) : 'all';
     const storages: Option[] = [...new Map(configurations.map(c => [String(c.storage_gb), c.storage_label])).entries()]
         .sort((a, b) => Number(a[0]) - Number(b[0])).map(([value, label]) => ({ value, label }));
     const games: Option[] = [...new Map(configurations.flatMap(c => c.games)
@@ -49,8 +55,13 @@ export function ConsoleOfferFilters({ configurations, query, globalCondition, on
     return (
         <div className={styles.offerFilters} role="group" aria-label="Filtros de ofertas" data-console-offer-filters>
             {editions.length > 1 && (
-                <Select size="xs" label="Edición" w={220} maw="100%" allowDeselect={false} checkIconPosition="right"
-                    data={[{ value: 'all', label: 'Todas las ediciones' }, ...editions]} value={query.edition ? String(query.edition) : 'all'}
+                // Colour is an edition («Neón», «Coral»): its option shows the colour.
+                <Select size="xs" label="Edición o color" w={230} maw="100%" allowDeselect={false} checkIconPosition="right"
+                    data={[{ value: 'all', label: 'Todas' }, ...editions]} value={selectedEdition}
+                    leftSection={editionSwatch(editionKeys.get(selectedEdition)) ? <EditionSwatch editionKey={editionKeys.get(selectedEdition)} /> : undefined}
+                    renderOption={({ option }) => (
+                        <Group gap={8} wrap="nowrap"><EditionSwatch editionKey={editionKeys.get(option.value)} /><span>{option.label}</span></Group>
+                    )}
                     onChange={value => onChange({ edition: value && value !== 'all' ? Number(value) : undefined })}
                     comboboxProps={{ withinPortal: true }} />
             )}

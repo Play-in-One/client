@@ -135,3 +135,12 @@
 a.cover:hover { border-color: var(--mantine-color-primaryRed-4); }
 a.cover:focus-visible { outline: 3px solid var(--mantine-color-primaryRed-5); outline-offset: 2px; }
 .coverEmpty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mantine-color-dimmed); }
+
+/* Colour editions: the dot carries a border so white reads on white and black on dark. */
+.swatch {
+    display: inline-block;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1px solid light-dark(var(--mantine-color-gray-4), var(--mantine-color-dark-3));
+    vertical-align: -1px;
+}

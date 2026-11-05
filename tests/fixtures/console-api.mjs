@@ -10,15 +10,15 @@ const platform = { id: 5, name: 'ps5', slug: 'ps5', display_name: 'PS5', long_na
 const seller = { id: 77, name: 'Tienda Consolas', url: 'https://example.com', logo: '', location: 'national',
     shipping_cost: '3000', has_agreement: false, coupon_code: '', coupon_discount_percent: null, is_international: false };
 const configurations = [
-    { id: 11, console: 981, edition: 1, edition_name: 'Estándar', storage_gb: 1000, storage_label: '1 TB', games: [] },
-    { id: 12, console: 981, edition: 2, edition_name: 'Azul', storage_gb: 2000, storage_label: '2 TB',
+    { id: 11, console: 981, edition: 1, edition_name: 'Estándar', edition_key: 'standard', storage_gb: 1000, storage_label: '1 TB', games: [] },
+    { id: 12, console: 981, edition: 2, edition_name: 'Azul', edition_key: 'azul', storage_gb: 2000, storage_label: '2 TB',
         games: [{ title: 'Juego de aventura', format: 'code', game: 501, slug: 'juego-de-aventura', cover: 'https://example.com/aventura.jpg' },
             { title: 'Juego de carreras', format: 'physical', game: null, slug: null, cover: null }] },
-    { id: 13, console: 981, edition: 1, edition_name: 'Estándar', storage_gb: 1000, storage_label: '1 TB',
+    { id: 13, console: 981, edition: 1, edition_name: 'Estándar', edition_key: 'standard', storage_gb: 1000, storage_label: '1 TB',
         games: [{ title: 'Juego de deportes', format: 'code', game: null }] },
-    { id: 14, console: 981, edition: 2, edition_name: 'Azul', storage_gb: 1000, storage_label: '1 TB',
+    { id: 14, console: 981, edition: 2, edition_name: 'Azul', edition_key: 'azul', storage_gb: 1000, storage_label: '1 TB',
         games: [{ title: 'Juego de plataformas', format: 'unknown', game: null }] },
-    { id: 15, console: 981, edition: 1, edition_name: 'Estándar', storage_gb: 2000, storage_label: '2 TB',
+    { id: 15, console: 981, edition: 1, edition_name: 'Estándar', edition_key: 'standard', storage_gb: 2000, storage_label: '2 TB',
         games: [{ title: 'Juego de peleas', format: 'physical', game: null }] },
 ];
 const offer = (id, configuration, title, condition, price, inStock = true) => ({

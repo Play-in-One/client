@@ -45,12 +45,23 @@ async function filtersNarrowTheOffers(page: Page) {
     await expect(page.getByRole('textbox', { name: 'Capacidad', exact: true })).toHaveValue('1 TB');
     await expect(offers(page)).toHaveCount(3);
 
-    await choose(page, 'Edición', 'Azul');
+    await choose(page, 'Edición o color', 'Azul');
     await expect(page.getByText('No hay ofertas para esta selección.')).toBeVisible();
     await expect(page.locator('[data-console-minimum]')).toContainText('Sin precio disponible');
     await page.getByRole('button', { name: 'Quitar filtros' }).click();
     await expect(offers(page)).toHaveCount(4);
     await expect(page).not.toHaveURL(/storage_gb|edition/);
+}
+
+/* A colour is an edition: it sorts after Estándar and shows its swatch. */
+async function colourEditionsShowTheirColour(page: Page) {
+    await page.goto('/consola/ps5-slim-981');
+    await expect(offers(page).filter({ hasText: 'PS5 Slim Azul pack 2 TB' }).locator('[data-edition-swatch="azul"]')).toHaveCount(1);
+    await expect(offers(page).filter({ hasText: 'PS5 Slim 1 TB' }).locator('[data-edition-swatch]')).toHaveCount(0);
+    await page.getByRole('group', { name: 'Filtros de ofertas' }).getByRole('textbox', { name: 'Edición o color', exact: true }).click();
+    await expect(page.getByRole('option')).toHaveText(['Todas', 'Estándar', 'Azul']);
+    await page.getByRole('option', { name: 'Azul', exact: true }).click();
+    await expect(page.getByRole('group', { name: 'Filtros de ofertas' }).locator('[data-edition-swatch="azul"]')).toHaveCount(1);
 }
 
 /* The counter is the PS5 landing's own total and leads to it. */
@@ -201,6 +212,11 @@ test.describe('Staff preview of the console pages', () => {
         await gamesCounterLinksToTheGallery(page);
     });
 
+    test('colour editions show their colour', async ({ page }) => {
+        await signInAsStaff(page);
+        await colourEditionsShowTheirColour(page);
+    });
+
     test('a switcher leads to the other models of the console', async ({ page }) => {
         await signInAsStaff(page);
         await switchesBetweenModels(page);
@@ -269,6 +285,7 @@ test.describe('Public console experience', () => {
 
     test('filters narrow the offers and keep retired offers apart', async ({ page }) => filtersNarrowTheOffers(page));
     test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
+    test('colour editions show their colour', async ({ page }) => colourEditionsShowTheirColour(page));
     test('a switcher leads to the other models of the console', async ({ page }) => switchesBetweenModels(page));
     test('other filters show skeletons', async ({ page }) => skeletonsWhileOtherFiltersLoad(page));
     test('offers show the covers of their included games', async ({ page }) => offersShowIncludedGameCovers(page));

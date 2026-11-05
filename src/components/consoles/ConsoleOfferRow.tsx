@@ -10,7 +10,8 @@ import ProductImagePreview, { PRODUCT_PREVIEW_HOVER } from '@/components/Product
 import SellerLogo from '@/components/SellerLogo';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import { conditionBadgeColorFor, conditionLabelFor } from '@/lib/conditions';
-import { includedGamesLabel, type ConsoleConfiguration } from '@/lib/consoles';
+import { editionSwatch, includedGamesLabel, type ConsoleConfiguration } from '@/lib/consoles';
+import { EditionSwatch } from './EditionSwatch';
 import { isAffiliateOffer, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { IncludedGameCovers } from './IncludedGameCovers';
@@ -50,7 +51,8 @@ export function ConsoleOfferRow({ product, configuration, index, best, href, onO
                         {isAffiliateOffer(product) && <AffiliateMark label="Oferta afiliada" size={18} />}
                     </Group>
                     <Text fz="sm" fw={500}>{configuration
-                        ? `${configuration.edition_name} · ${configuration.storage_label} · ${includedGamesLabel(configuration)}`
+                        ? <><EditionSwatch editionKey={configuration.edition_key} size={11} />{editionSwatch(configuration.edition_key) && ' '}
+                            {`${configuration.edition_name} · ${configuration.storage_label} · ${includedGamesLabel(configuration)}`}</>
                         : product.title}</Text>
                     <Group gap={6}>
                         <Badge size="sm" variant="light" color={conditionBadgeColorFor(product.condition)}>{conditionLabelFor(product.condition)}</Badge>

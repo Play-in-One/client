@@ -16,10 +16,11 @@ import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
 import { getConsole } from '@/lib/api';
 import { decorative, elevation, onDark } from '@/lib/colors';
-import { configurationLabel, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
+import { configurationLabel, consolePath, editionSwatch, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
 import { activeCoupon, platformLongName, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
+import { EditionSwatch } from './EditionSwatch';
 import { ConsoleOfferRow, ConsoleOfferRowSkeleton, hasLivePrice } from './ConsoleOfferRow';
 import { ConsoleOfferFilters, OFFER_FILTER_KEYS } from './ConsoleOfferFilters';
 import { PlatformGamesLink } from './PlatformGamesLink';
@@ -70,8 +71,9 @@ function BestPriceSkeleton() {
     return <Skeleton h={190} radius="xl" aria-hidden data-best-price-skeleton />;
 }
 
-function BestPriceCard({ model, best, description, filtered, href, onOffer, loading }: {
-    model: ConsoleDetail; best?: Product; description?: string; filtered: boolean; href?: string; onOffer: (event: MouseEvent, product: Product) => void;
+function BestPriceCard({ model, best, description, editionKey, filtered, href, onOffer, loading }: {
+    model: ConsoleDetail; best?: Product; description?: string; editionKey?: string; filtered: boolean; href?: string;
+    onOffer: (event: MouseEvent, product: Product) => void;
     /** Other filters are loading: their best price is not this one. */
     loading?: boolean;
 }) {
@@ -108,7 +110,9 @@ function BestPriceCard({ model, best, description, filtered, href, onOffer, load
                         En <Text span fw={700} c={onDark.text}>{best.seller.name}</Text>
                         {' · '}{best.condition === 'used' ? 'Usado' : 'Nuevo'}
                     </Text>
-                    {description && <Text fz="xs" c={onDark.textSecondary} mt={2}>{description}</Text>}
+                    {description && <Text fz="xs" c={onDark.textSecondary} mt={2}>
+                        <EditionSwatch editionKey={editionKey} size={10} />{editionSwatch(editionKey) && ' '}{description}
+                    </Text>}
                 </Box>
                 {href && (
                     <Button component="a" href={href} target="_blank" rel="noopener noreferrer sponsored" color="primaryRed" size="lg" radius="lg"
@@ -240,6 +244,7 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                             </Group>
                             <BestPriceCard model={model} best={best} onOffer={beginOffer} filtered={filtered} loading={stale}
                                 description={bestConfiguration ? configurationLabel(bestConfiguration) : undefined}
+                                editionKey={bestConfiguration?.edition_key}
                                 href={best ? offerHref(best) : undefined} />
                             {model.description && (
                                 <details className="pio-details">
