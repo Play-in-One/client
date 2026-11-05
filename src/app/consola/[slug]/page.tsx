@@ -38,7 +38,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     }
     const query = consoleQuery(await searchParams);
     const model = await resolve((await params).slug, JSON.stringify(query));
-    return buildMetadata({ title: `${model.name}: precios, ediciones y packs`, path: consolePath(model), image: model.image,
+    return buildMetadata({ title: `${model.name}: precios, ediciones y capacidades`, path: consolePath(model), image: model.image,
         description: `Compara ${model.name} entre tiendas por edición, almacenamiento y juego incluido.`,
         noIndex: Object.keys(query).length > 0 });
 }
@@ -61,7 +61,7 @@ export default async function ConsolePage({ params, searchParams }: Props) {
         getConsoles({ platform: model.platform.slug }, { revalidate }).then(page => page.results).catch(() => null),
     ]);
     const configurations = new Map(model.configurations.map(c => [c.id, c]));
-    // Each offer describes its exact pack. Do not advertise one configuration's price for another.
+    // Each offer describes its exact configuration. Do not advertise one configuration's price for another.
     const offers = model.products.filter(p => p.in_stock && Number(p.current_price) > 0).map(p => ({
         '@type': 'Offer', name: `${model.name} · ${configurations.has(p.configuration ?? 0) ? configurationLabel(configurations.get(p.configuration ?? 0)!) : p.title}`,
         price: p.current_price, priceCurrency: 'CLP', availability: 'https://schema.org/InStock',

@@ -33,12 +33,12 @@ const products = [
     offer(994, 13, 'PS5 Slim + Juego de deportes', 'new', 523000),
 ];
 const consoleModel = { id: 981, name: 'PS5 Slim', slug: 'ps5-slim', platform, image: '', is_published: published,
-    description: 'Modelo de prueba para comparar capacidades y packs.' };
+    description: 'Modelo de prueba para comparar ediciones y capacidades.' };
 const empty = { count: 0, next: null, previous: null, results: [] };
 // A sibling of 981 on the same platform, listed only (it has no detail), for
 // the model switcher. It has no offers that the offer filters could narrow.
 const siblingModel = { id: 982, name: 'PS5 Pro', slug: 'ps5-pro', platform, image: '', is_published: published,
-    description: '', min_price: '899990.00', seller_count: 1, pack_count: 1, in_stock: true };
+    description: '', min_price: '899990.00', seller_count: 1, in_stock: true };
 
 const live = list => list.filter(p => p.in_stock && Number(p.current_price) > 0);
 const minimum = list => live(list).length ? String(Math.min(...live(list).map(p => Number(p.current_price)))) : null;
@@ -65,22 +65,16 @@ createServer((req, res) => {
                 && (!q.get('storage_gb') || c.storage_gb === Number(q.get('storage_gb')))
                 && condition(p)
                 && (!q.has('has_game') || Boolean(c.games.length) === (q.get('has_game') === 'true'))
+                && (!q.get('game') || c.games.some(g => g.game === Number(q.get('game'))))
                 && location();
         });
         if ((q.get('platform') && q.get('platform') !== 'ps5') || (q.get('search') && !consoleModel.name.toLowerCase().includes(q.get('search').toLowerCase()))) offers = [];
         const min = minimum(offers);
         const model = { ...consoleModel, min_price: min, seller_count: min ? 1 : 0, in_stock: min !== null,
-            pack_count: new Set(live(offers).map(p => p.configuration)).size,
             image: products.find(p => p.image)?.image ?? '' };
         if (url.pathname.endsWith('/981/')) {
             if (!visible) return send({ detail: 'No encontrado.' }, 404);
-            // Pack summaries follow condition and location only, like the backend.
-            const packs = configurations.map(c => {
-                const own = products.filter(p => p.configuration === c.id && condition(p) && location());
-                const price = minimum(own);
-                return { ...c, min_price: price, seller_count: price ? 1 : 0, offer_count: live(own).length, in_stock: price !== null };
-            });
-            return send({ ...model, configurations: packs, products: offers });
+            return send({ ...model, configurations, products: offers });
         }
         const listed = visible && offers.length > 0;
         const narrowed = ['configuration', 'edition', 'storage_gb', 'condition', 'has_game', 'seller'].some(key => q.has(key));

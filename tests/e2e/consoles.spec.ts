@@ -3,9 +3,10 @@ import { buildConsent } from '../../src/lib/consent';
 import { CONSOLES_PUBLIC, CONSOLES_STAFF_PREVIEW, CONSOLES_VISIBILITY } from '../../src/lib/features';
 
 /* Runs with `npm run test:consoles` against `tests/fixtures/console-api.mjs`.
-   Model 981 has five packs: 11 (1 TB, no game: a live and a retired offer),
-   12 (two games, used offer, the cheapest), 13 (one live offer), 14 and 15
-   (no offers). Only the describe for the current CONSOLES_VISIBILITY runs. */
+   Model 981 has five configurations: 11 (Estándar, 1 TB, no game: a live and a
+   retired offer), 12 (Azul, 2 TB, a linked and an unlinked game: a used offer,
+   the cheapest), 13 (Estándar, 1 TB, one game: a live offer), 14 and 15 (no
+   offers). Only the describe for the current CONSOLES_VISIBILITY runs. */
 
 test.beforeEach(async ({ context }) => {
     await context.addCookies([{ name: 'pio_consent', value: encodeURIComponent(JSON.stringify(buildConsent('reject-all'))),
@@ -20,26 +21,36 @@ const signInAsStaff = (page: Page) => page.addInitScript(() => {
 const offers = (page: Page) => page.locator('[data-console-offer]');
 const segment = (page: Page, group: string, option: string) =>
     page.locator(`[aria-label="${group}"]`).getByText(option, { exact: true });
+/** Picks an option of one of the offer filters (Mantine Select). */
+async function choose(page: Page, filter: string, option: string) {
+    await page.getByRole('group', { name: 'Filtros de ofertas' }).getByRole('textbox', { name: filter, exact: true }).click();
+    await page.getByRole('option', { name: option, exact: true }).click();
+}
 
-/* The pack picker and the offer list are shared by both visible modes. */
-async function comparePacks(page: Page) {
+/* The filters and the offer list are shared by both visible modes. */
+async function filtersNarrowTheOffers(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await expect(page.getByRole('heading', { name: 'PS5 Slim', exact: true })).toBeVisible();
-    await expect(page.locator('[data-console-pack]')).toHaveCount(6);
     await expect(offers(page)).toHaveCount(4);
     await expect(page.locator('[data-console-minimum]')).toContainText('453.000');
     await expect(page.locator('[data-stock="false"]')).toContainText('Oferta agotada');
     await expect(page.locator('[data-stock="false"]').getByRole('link', { name: 'Ver en tienda' })).toHaveCount(0);
 
-    await page.locator('a[href*="configuration=11"]').click();
-    await expect(page).toHaveURL(/configuration=11/);
-    await expect(offers(page)).toHaveCount(2);
+    await choose(page, 'Capacidad', '1 TB');
+    await expect(page).toHaveURL(/storage_gb=1000/);
+    await expect(offers(page)).toHaveCount(3);
     await expect(page.locator('[data-console-minimum]')).toContainText('503.000');
-    // Choosing a pack keeps every other pack on screen.
-    await expect(page.locator('[data-console-pack]')).toHaveCount(6);
+    await expect(page.getByText('Mejor precio con estos filtros')).toBeVisible();
     await page.reload();
-    await expect(page.locator('a[href*="configuration=11"][aria-current="true"]')).toBeVisible();
-    await expect(offers(page)).toHaveCount(2);
+    await expect(page.getByRole('textbox', { name: 'Capacidad', exact: true })).toHaveValue('1 TB');
+    await expect(offers(page)).toHaveCount(3);
+
+    await choose(page, 'Edición', 'Azul');
+    await expect(page.getByText('No hay ofertas para esta selección.')).toBeVisible();
+    await expect(page.locator('[data-console-minimum]')).toContainText('Sin precio disponible');
+    await page.getByRole('button', { name: 'Quitar filtros' }).click();
+    await expect(offers(page)).toHaveCount(4);
+    await expect(page).not.toHaveURL(/storage_gb|edition/);
 }
 
 /* The counter is the PS5 landing's own total and leads to it. */
@@ -59,39 +70,43 @@ async function switchesBetweenModels(page: Page) {
     await expect(models.getByRole('link', { name: /PS5 Pro/ })).toContainText('899.990');
 }
 
-/* Another pack loads: its price and offers are skeletons, never the previous pack's. */
-async function skeletonsWhileAnotherPackLoads(page: Page) {
+/* Other filters load: their price and offers are skeletons, never the previous ones. */
+async function skeletonsWhileOtherFiltersLoad(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await expect(offers(page)).toHaveCount(4);
     await page.route(/\/api\/consoles\/981\//, async route => { await new Promise(r => setTimeout(r, 1200)); await route.continue(); });
-    await page.locator('a[href*="configuration=11"]').click();
+    await choose(page, 'Capacidad', '1 TB');
     await expect(page.locator('[data-console-offer-skeleton]').first()).toBeVisible();
     await expect(page.locator('[data-best-price-skeleton]')).toBeVisible();
-    await expect(offers(page)).toHaveCount(2);
+    await expect(offers(page)).toHaveCount(3);
     await expect(page.locator('[data-console-offer-skeleton]')).toHaveCount(0);
 }
 
-/* Pack 12 includes a linked game (cover, canonical link) and an unlinked one (neutral tile). */
-async function packRowsShowIncludedGameCovers(page: Page) {
+/* Configuration 12 includes a linked game (cover, canonical link) and an unlinked one (neutral tile). */
+async function offersShowIncludedGameCovers(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     const row = offers(page).filter({ hasText: 'PS5 Slim Azul pack 2 TB' });
     await expect(row.getByRole('link', { name: 'Juego de aventura · Código' })).toHaveAttribute('href', '/juego/juego-de-aventura-501');
     await expect(row.getByRole('link', { name: 'Juego de aventura · Código' }).locator('img')).toHaveCount(1);
     await expect(row.getByRole('img', { name: 'Juego de carreras · Físico' })).toBeVisible();
-    // A pack without games shows no covers.
+    // An offer without games shows no covers.
     await expect(offers(page).filter({ hasText: 'PS5 Slim 1 TB' }).locator('[data-included-games]')).toHaveCount(0);
 }
 
-async function honestEmptyStates(page: Page) {
+/* "Juego incluido" filters by one linked game or by "no game"; empty selections say so. */
+async function includedGameFilterAndEmptyStates(page: Page) {
     await page.goto('/consola/ps5-slim-981');
-    await page.locator('a[href*="configuration=12"]').click();
+    await choose(page, 'Juego incluido', 'Juego de aventura');
+    await expect(page).toHaveURL(/game=501/);
     await expect(offers(page)).toHaveCount(1);
-    await expect(page.locator('[data-console-pack][data-selected]')).toContainText('Juego de aventura + Juego de carreras');
+    await expect(offers(page)).toContainText('Juego de aventura + Juego de carreras');
     await segment(page, 'Condición', 'Nuevo').click();
     await expect(page.getByText('No hay ofertas para esta selección.')).toBeVisible();
     await expect(page.locator('[data-console-minimum]')).toContainText('Sin precio disponible');
-    // The used-only pack 12 has no new offer, so its tile says so instead of vanishing.
-    await expect(page.locator('[data-console-pack]', { hasText: 'Juego de aventura' })).toContainText('Sin ofertas vigentes');
+    await choose(page, 'Juego incluido', 'Sin juego');
+    await expect(page).toHaveURL(/has_game=false/);
+    await expect(page).not.toHaveURL(/game=501/);
+    await expect(offers(page)).toHaveCount(2);
 }
 
 async function hardwareIgnoresDigitalFormat(page: Page) {
@@ -162,7 +177,7 @@ test.describe('Staff preview of the console pages', () => {
         const card = page.locator('[data-console-card]', { hasText: 'PS5 Slim' });
         await expect(card).toContainText('Borrador');
         await expect(card).toContainText('453.000');
-        await expect(card).toContainText('3 packs');
+        await expect(card).toContainText('1 tienda');
         await expect(page.getByRole('link', { name: /^Consolas\s*staff$/i }).first()).toBeVisible();
         expect(authorized.length).toBeGreaterThan(0);
         expect(authorized.every(Boolean)).toBe(true);
@@ -176,9 +191,9 @@ test.describe('Staff preview of the console pages', () => {
         await expect(page.getByRole('heading', { name: 'Página no encontrada' })).toBeVisible();
     });
 
-    test('packs narrow the offers and keep retired offers apart', async ({ page }) => {
+    test('filters narrow the offers and keep retired offers apart', async ({ page }) => {
         await signInAsStaff(page);
-        await comparePacks(page);
+        await filtersNarrowTheOffers(page);
     });
 
     test('the games counter links to the console gallery', async ({ page }) => {
@@ -191,19 +206,19 @@ test.describe('Staff preview of the console pages', () => {
         await switchesBetweenModels(page);
     });
 
-    test('pack offers show the covers of their included games', async ({ page }) => {
+    test('offers show the covers of their included games', async ({ page }) => {
         await signInAsStaff(page);
-        await packRowsShowIncludedGameCovers(page);
+        await offersShowIncludedGameCovers(page);
     });
 
-    test('the first load and another pack show skeletons', async ({ page }) => {
+    test('the first load and other filters show skeletons', async ({ page }) => {
         await signInAsStaff(page);
         await page.route(/\/api\/consoles\/981\//, async route => { await new Promise(r => setTimeout(r, 1200)); await route.continue(); });
         await page.goto('/consola/ps5-slim-981');
         await expect(page.locator('[data-console-detail-skeleton]')).toBeVisible();
         await expect(page.getByRole('heading', { name: 'PS5 Slim', exact: true })).toBeVisible();
         await page.unrouteAll();
-        await skeletonsWhileAnotherPackLoads(page);
+        await skeletonsWhileOtherFiltersLoad(page);
     });
 
     test('offers open the store directly, since /go cannot see drafts', async ({ page }) => {
@@ -214,9 +229,9 @@ test.describe('Staff preview of the console pages', () => {
         await expect(page.locator('a[href*="/go/product/"]')).toHaveCount(0);
     });
 
-    test('pack selections without offers have an honest empty state', async ({ page }) => {
+    test('the included game filter and honest empty states', async ({ page }) => {
         await signInAsStaff(page);
-        await honestEmptyStates(page);
+        await includedGameFilterAndEmptyStates(page);
     });
 
     test('global digital format does not hide physical console offers', async ({ page }) => {
@@ -252,11 +267,11 @@ test.describe('Public console experience', () => {
         expect(html).toContain('1.234 juegos compatibles');
     });
 
-    test('packs narrow the offers and keep retired offers apart', async ({ page }) => comparePacks(page));
+    test('filters narrow the offers and keep retired offers apart', async ({ page }) => filtersNarrowTheOffers(page));
     test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
     test('a switcher leads to the other models of the console', async ({ page }) => switchesBetweenModels(page));
-    test('another pack shows skeletons', async ({ page }) => skeletonsWhileAnotherPackLoads(page));
-    test('pack offers show the covers of their included games', async ({ page }) => packRowsShowIncludedGameCovers(page));
+    test('other filters show skeletons', async ({ page }) => skeletonsWhileOtherFiltersLoad(page));
+    test('offers show the covers of their included games', async ({ page }) => offersShowIncludedGameCovers(page));
 
     test('the server-rendered detail does not flash skeletons while it rechecks prices', async ({ page }) => {
         // The browser reloads the same query after hydration (the visitor's
@@ -268,7 +283,7 @@ test.describe('Public console experience', () => {
         await expect(page.locator('[data-console-offer-skeleton], [data-best-price-skeleton]')).toHaveCount(0);
         await expect(offers(page)).toHaveCount(4);
     });
-    test('pack selections without offers have an honest empty state', async ({ page }) => honestEmptyStates(page));
+    test('the included game filter and honest empty states', async ({ page }) => includedGameFilterAndEmptyStates(page));
     test('global digital format does not hide physical console offers', async ({ page }) => hardwareIgnoresDigitalFormat(page));
     test('mobile navigation and filters fit the viewport', async ({ page }) => mobileFits(page));
 

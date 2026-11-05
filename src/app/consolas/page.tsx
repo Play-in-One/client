@@ -15,7 +15,7 @@ export async function generateMetadata({ searchParams }: { searchParams: SearchP
     if (CONSOLES_VISIBILITY === 'off') notFound();
     if (!CONSOLES_PUBLIC) return { title: 'Consolas (vista previa)', robots: { index: false, follow: false } };
     const params = await searchParams;
-    return buildMetadata({ title: 'Consolas: compara precios y packs', path: '/consolas',
+    return buildMetadata({ title: 'Consolas: compara precios y ediciones', path: '/consolas',
         description: 'Compara consolas Xbox, PlayStation y Nintendo por modelo, edición, almacenamiento y juegos incluidos.',
         noIndex: Object.keys(params).length > 0 });
 }

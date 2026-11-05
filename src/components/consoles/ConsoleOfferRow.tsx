@@ -2,14 +2,15 @@
 
 import type { MouseEvent } from 'react';
 import Link from 'next/link';
-import { Anchor, Badge, Button, Group, Skeleton, Stack, Text } from '@mantine/core';
+import { Anchor, Badge, Button, Group, HoverCard, Skeleton, Stack, Text } from '@mantine/core';
 import { IconExternalLink } from '@tabler/icons-react';
 import AffiliateMark from '@/components/AffiliateMark';
 import PriceInfo from '@/components/PriceInfo';
+import ProductImagePreview, { PRODUCT_PREVIEW_HOVER } from '@/components/ProductImagePreview';
 import SellerLogo from '@/components/SellerLogo';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
 import { conditionBadgeColorFor, conditionLabelFor } from '@/lib/conditions';
-import { packGamesLabel, type ConsoleConfiguration } from '@/lib/consoles';
+import { includedGamesLabel, type ConsoleConfiguration } from '@/lib/consoles';
 import { isAffiliateOffer, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { IncludedGameCovers } from './IncludedGameCovers';
@@ -19,19 +20,23 @@ export function hasLivePrice(product: Product) {
     return product.in_stock && product.current_price != null && Number(product.current_price) > 0;
 }
 
-export function ConsoleOfferRow({ product, configuration, index, best, showPack, href, onOffer }: {
+export function ConsoleOfferRow({ product, configuration, index, best, href, onOffer }: {
     product: Product;
     configuration?: ConsoleConfiguration;
     index: number;
     best: boolean;
-    /** With every pack listed, each row says which one it sells. */
-    showPack: boolean;
     href: string;
     onOffer: (event: MouseEvent, product: Product) => void;
 }) {
     const live = hasLivePrice(product);
     const priced = product.current_price != null && Number(product.current_price) > 0;
+    // The store's photo of this exact unit, as on the game page; desktop only.
+    // Above the row and not to its left: the offer list spans the whole
+    // container, so a left preview fell off the screen.
     return (
+        <HoverCard {...PRODUCT_PREVIEW_HOVER} position="top-start" offset={6} disabled={!product.image}
+            transitionProps={{ transition: 'pop-bottom-left', duration: 170 }}>
+        <HoverCard.Target>
         <article className={`game-offer-row ${styles.offer}`} data-console-offer data-stock={String(product.in_stock)}
             data-out-of-stock={product.in_stock ? undefined : true}>
             <Group gap="sm" wrap="nowrap" align="flex-start" className={styles.offerMain}>
@@ -44,9 +49,9 @@ export function ConsoleOfferRow({ product, configuration, index, best, showPack,
                         <SellerScopeBadge seller={product.seller} />
                         {isAffiliateOffer(product) && <AffiliateMark label="Oferta afiliada" size={18} />}
                     </Group>
-                    {showPack && <Text fz="sm" fw={500}>{configuration
-                        ? `${configuration.edition_name} · ${configuration.storage_label} · ${packGamesLabel(configuration)}`
-                        : product.title}</Text>}
+                    <Text fz="sm" fw={500}>{configuration
+                        ? `${configuration.edition_name} · ${configuration.storage_label} · ${includedGamesLabel(configuration)}`
+                        : product.title}</Text>
                     <Group gap={6}>
                         <Badge size="sm" variant="light" color={conditionBadgeColorFor(product.condition)}>{conditionLabelFor(product.condition)}</Badge>
                         {!product.in_stock && <Badge size="sm" variant="light" color="gray">Sin stock</Badge>}
@@ -73,6 +78,11 @@ export function ConsoleOfferRow({ product, configuration, index, best, showPack,
                 )}
             </div>
         </article>
+        </HoverCard.Target>
+        <HoverCard.Dropdown p={8} visibleFrom="sm">
+            <ProductImagePreview src={product.image || ''} title={product.title} />
+        </HoverCard.Dropdown>
+        </HoverCard>
     );
 }
 

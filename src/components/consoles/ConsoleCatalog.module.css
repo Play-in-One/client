@@ -59,6 +59,16 @@
     background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
 }
 
+.offerFilters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mantine-spacing-sm);
+    align-items: flex-end;
+    padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+    border-bottom: 1px solid var(--mantine-color-default-border);
+    background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+}
+
 .sectionHeader {
     display: flex;
     flex-wrap: wrap;
@@ -68,34 +78,6 @@
     padding: var(--mantine-spacing-lg);
     border-bottom: 1px solid var(--mantine-color-default-border);
 }
-
-/* Pack tile: the edition link stretches over the whole tile, so the tile is one
-   big target while the included-game links stay clickable on top of it. */
-.pack {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: var(--mantine-spacing-xs);
-    height: 100%;
-    padding: var(--mantine-spacing-md);
-    border: 1px solid var(--mantine-color-default-border);
-    border-radius: var(--mantine-radius-md);
-    background: var(--mantine-color-body);
-    transition: border-color .15s, box-shadow .15s;
-}
-.pack:hover { border-color: var(--mantine-color-primaryRed-4); box-shadow: var(--pio-shadow-hover); }
-.pack[data-selected] {
-    border-color: var(--mantine-color-primaryRed-5);
-    box-shadow: 0 0 0 1px var(--mantine-color-primaryRed-5);
-    background: light-dark(var(--mantine-color-primaryRed-0), var(--mantine-color-dark-6));
-}
-.pack[data-empty] .packPrice { color: var(--mantine-color-dimmed); }
-.packLink { color: inherit; text-decoration: none; font-weight: 700; }
-.packLink::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
-.packLink:focus-visible { outline: none; }
-.pack:has(.packLink:focus-visible) { outline: 3px solid var(--mantine-color-primaryRed-5); outline-offset: 2px; }
-.packGame { position: relative; z-index: 1; }
-.packPrice { margin-top: auto; }
 
 .offer {
     display: flex;
@@ -119,37 +101,10 @@
     cursor: pointer;
 }
 
-/* The edition is a dropdown (its names are long); on a phone the storage
-   segments drop to the next line instead of clipping. */
-.quickFilters { max-width: 100%; flex-wrap: wrap; }
-
-.packGrid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--mantine-spacing-md);
-}
-
-@media (max-width: 62em) {
-    .packGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 
 @media (max-width: 48em) {
     .offerAside { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
     .heroMedia { aspect-ratio: 16 / 9; }
-    /* Nine stacked packs pushed the offers three screens down: on a phone the
-       packs scroll sideways and snap, and the offers stay in reach. */
-    .packGrid {
-        grid-template-columns: none;
-        grid-auto-flow: column;
-        grid-auto-columns: 78%;
-        overflow-x: auto;
-        scroll-snap-type: x mandatory;
-        padding-bottom: var(--mantine-spacing-2xs);
-        margin-inline: calc(var(--mantine-spacing-lg) * -1);
-        padding-inline: var(--mantine-spacing-lg);
-        scroll-padding-inline: var(--mantine-spacing-lg);
-    }
-    .packGrid > * { scroll-snap-align: start; }
 }
 
 .gamesLink { color: inherit; text-decoration: none; }
@@ -164,7 +119,7 @@
     background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
 }
 
-/* Box art of a pack's included games, at the game card's 3:4. */
+/* Box art of the games an offer includes, at the game card's 3:4. */
 .covers { display: flex; gap: 6px; flex-shrink: 0; align-self: center; }
 .cover {
     position: relative;

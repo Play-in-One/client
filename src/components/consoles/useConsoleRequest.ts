@@ -20,7 +20,7 @@ export function useConsoleRequest<T>(initial: T | null, query: ConsoleQuery, loa
     const queryKey = JSON.stringify(query);
     // Which query the shown data answers. A reload of the same query (the
     // visitor's preferences after hydration) keeps the content on screen; a
-    // new query (another pack, condition or filter) shows skeletons instead
+    // new query (another filter) shows skeletons instead
     // of stale numbers. Without this, a server-rendered page would flash
     // skeletons on every visit.
     const [dataKey, setDataKey] = useState<string | null>(initial === null ? null : queryKey);

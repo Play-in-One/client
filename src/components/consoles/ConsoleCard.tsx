@@ -30,7 +30,6 @@ export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
     model: ConsoleModel; showDraft?: boolean; headingOrder?: 2 | 3;
 }) {
     const priced = model.min_price != null;
-    const packs = model.pack_count ?? 0;
     return (
         <Card component={Link} href={consolePath(model)} className={`pio-lift ${styles.card}`} p={0} data-console-card>
             <div className={styles.media}>
@@ -53,9 +52,7 @@ export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
                         <Badge color="gray" variant="light">Sin stock</Badge>
                     )}
                     <Text fz="sm" c="dimmed" mt={4}>
-                        {model.seller_count > 0
-                            ? [packs > 0 ? plural(packs, 'pack', 'packs') : null, plural(model.seller_count, 'tienda', 'tiendas')].filter(Boolean).join(' · ')
-                            : 'Sin ofertas con precio vigente'}
+                        {model.seller_count > 0 ? plural(model.seller_count, 'tienda', 'tiendas') : 'Sin ofertas con precio vigente'}
                     </Text>
                 </div>
             </Stack>

@@ -12,7 +12,7 @@ function label(game: ConsoleGame) {
     return game.format === 'unknown' ? game.title : `${game.title} · ${GAME_FORMATS[game.format]}`;
 }
 
-/** The box art of the games a pack includes. A game linked to the catalog
+/** The box art of the games an offer includes. A game linked to the catalog
  *  shows its cover and opens its page; an unlinked one keeps a neutral tile
  *  with its title in the tooltip, never another game's cover. */
 export function IncludedGameCovers({ games, size = 'md' }: { games: ConsoleGame[]; size?: 'sm' | 'md' }) {

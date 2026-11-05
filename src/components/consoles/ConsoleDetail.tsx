@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-    Alert, Anchor, Badge, Box, Breadcrumbs, Button, Card, Container, Grid, Group, Loader, SegmentedControl, Skeleton, Stack,
+    Alert, Anchor, Badge, Box, Breadcrumbs, Button, Card, Container, Grid, Group, Loader, Skeleton, Stack,
     Text, Title,
 } from '@mantine/core';
 import { IconBuildingStore, IconCheck, IconChevronRight, IconExternalLink, IconHome, IconTag } from '@tabler/icons-react';
@@ -21,19 +21,19 @@ import { activeCoupon, platformLongName, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
 import { ConsoleOfferRow, ConsoleOfferRowSkeleton, hasLivePrice } from './ConsoleOfferRow';
-import { ConsolePackPicker } from './ConsolePackPicker';
+import { ConsoleOfferFilters, OFFER_FILTER_KEYS } from './ConsoleOfferFilters';
 import { PlatformGamesLink } from './PlatformGamesLink';
 import { SiblingModels, SiblingModelsSkeleton } from './SiblingModels';
 import { StaffPreviewNotice } from './StaffOnly';
 import { replaceQueryInUrl, useConsoleRequest } from './useConsoleRequest';
 import styles from './ConsoleCatalog.module.css';
 
-/* With every pack listed the comparison runs to dozens of rows; the cheapest
+/* Without filters the comparison runs to dozens of rows; the cheapest
    ones answer the question and the rest stay one click away. */
 const OFFER_PREVIEW = 10;
 
 /** The detail's own layout (image and counter, title, model switcher, price
- *  card, packs and offers) so nothing jumps when the data arrives. */
+ *  card, filters and offers) so nothing jumps when the data arrives. */
 export function ConsoleDetailSkeleton() {
     return (
         <Container size="lg" py="xl" aria-busy data-console-detail-skeleton>
@@ -55,20 +55,13 @@ export function ConsoleDetailSkeleton() {
                     </Stack>
                 </Grid.Col>
             </Grid>
-            <Stack gap="xl" mt="xl">
-                <Card radius="xl" p={0}>
-                    <div className={styles.sectionHeader}><Skeleton h={22} w={200} /></div>
-                    <Box p="lg">
-                        <div className={styles.packGrid}>
-                            {[0, 1, 2].map(i => <Skeleton key={i} h={128} radius="md" />)}
-                        </div>
-                    </Box>
-                </Card>
-                <Card radius="xl" p={0}>
-                    <div className={styles.sectionHeader}><Skeleton h={22} w={220} /><Skeleton h={26} w={170} radius="sm" /></div>
-                    {[0, 1, 2].map(i => <ConsoleOfferRowSkeleton key={i} />)}
-                </Card>
-            </Stack>
+            <Card radius="xl" p={0} mt="xl">
+                <div className={styles.sectionHeader}><Skeleton h={22} w={220} /></div>
+                <div className={styles.offerFilters}>
+                    {[220, 150, 220, 170].map((w, i) => <Skeleton key={i} h={48} w={w} radius="sm" />)}
+                </div>
+                {[0, 1, 2].map(i => <ConsoleOfferRowSkeleton key={i} />)}
+            </Card>
         </Container>
     );
 }
@@ -77,9 +70,9 @@ function BestPriceSkeleton() {
     return <Skeleton h={190} radius="xl" aria-hidden data-best-price-skeleton />;
 }
 
-function BestPriceCard({ model, best, packLabel, packSelected, href, onOffer, loading }: {
-    model: ConsoleDetail; best?: Product; packLabel?: string; packSelected: boolean; href?: string; onOffer: (event: MouseEvent, product: Product) => void;
-    /** A new pack or condition is loading: its best price is not this one. */
+function BestPriceCard({ model, best, description, filtered, href, onOffer, loading }: {
+    model: ConsoleDetail; best?: Product; description?: string; filtered: boolean; href?: string; onOffer: (event: MouseEvent, product: Product) => void;
+    /** Other filters are loading: their best price is not this one. */
     loading?: boolean;
 }) {
     if (loading) return <BestPriceSkeleton />;
@@ -103,7 +96,7 @@ function BestPriceCard({ model, best, packLabel, packSelected, href, onOffer, lo
             <Group justify="space-between" align="flex-end" gap="lg" pos="relative" style={{ zIndex: 1 }}>
                 <Box style={{ minWidth: 0, flex: '1 1 240px' }}>
                     <Badge color="primaryRed.6" variant="filled" size="sm" leftSection={<IconTag size={12} />} mb="sm">
-                        {packSelected ? 'Mejor precio de este pack' : 'Mejor precio'}
+                        {filtered ? 'Mejor precio con estos filtros' : 'Mejor precio'}
                     </Badge>
                     <Text fz="3xl" fw={800} lh={1} className={styles.price} data-console-minimum>{formatCLP(model.min_price)}</Text>
                     <Group gap="2xs" c={onDark.success} fz="xs" mt="sm">
@@ -115,7 +108,7 @@ function BestPriceCard({ model, best, packLabel, packSelected, href, onOffer, lo
                         En <Text span fw={700} c={onDark.text}>{best.seller.name}</Text>
                         {' · '}{best.condition === 'used' ? 'Usado' : 'Nuevo'}
                     </Text>
-                    {packLabel && <Text fz="xs" c={onDark.textSecondary} mt={2}>{packLabel}</Text>}
+                    {description && <Text fz="xs" c={onDark.textSecondary} mt={2}>{description}</Text>}
                 </Box>
                 {href && (
                     <Button component="a" href={href} target="_blank" rel="noopener noreferrer sponsored" color="primaryRed" size="lg" radius="lg"
@@ -158,7 +151,8 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
     }, [preview, data, router]);
 
     const update = useCallback((patch: ConsoleQuery) => {
-        const next = Object.fromEntries(Object.entries({ ...query, ...patch })
+        // `configuration` only comes from older links: any filter replaces it.
+        const next = Object.fromEntries(Object.entries({ ...query, configuration: undefined, ...patch })
             .filter(([, value]) => value !== undefined)) as ConsoleQuery;
         setShowAll(false);
         setQuery(next);
@@ -176,13 +170,12 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
 
     const model = data;
     const configurations = new Map(model.configurations.map(c => [c.id, c]));
-    const selected = query.configuration !== undefined ? configurations.get(query.configuration) : undefined;
+    const filtered = OFFER_FILTER_KEYS.some(key => query[key] !== undefined);
     const live = model.products.filter(hasLivePrice);
     const retired = model.products.filter(product => !hasLivePrice(product));
     const best = live[0];
     const bestConfiguration = best ? configurations.get(best.configuration ?? 0) : undefined;
     const image = model.image || model.products.find(p => p.image)?.image || null;
-    const basePath = consolePath(model);
     // `/go/product/<id>` looks the offer up anonymously, and the API hides the
     // offers of unpublished models: in the preview every exit answered «esta
     // oferta ya no está disponible». Staff goes straight to the store, which
@@ -201,7 +194,7 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
     };
     const row = (product: Product, index: number) => (
         <ConsoleOfferRow key={product.id} product={product} configuration={configurations.get(product.configuration ?? 0)} index={index}
-            best={product.id === best?.id} showPack={!selected} href={offerHref(product)} onOffer={beginOffer} />
+            best={product.id === best?.id} href={offerHref(product)} onOffer={beginOffer} />
     );
 
     return (
@@ -243,11 +236,10 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                                 <IconBuildingStore size={16} style={{ flexShrink: 0, marginTop: 2 }} />
                                 <Text fz="sm">
                                     {plural(model.seller_count, 'tienda con precio vigente', 'tiendas con precio vigente')}
-                                    {' · '}{plural(model.configurations.length, 'configuración', 'configuraciones')}
                                 </Text>
                             </Group>
-                            <BestPriceCard model={model} best={best} onOffer={beginOffer} packSelected={!!selected} loading={stale}
-                                packLabel={selected ? configurationLabel(selected) : bestConfiguration ? configurationLabel(bestConfiguration) : undefined}
+                            <BestPriceCard model={model} best={best} onOffer={beginOffer} filtered={filtered} loading={stale}
+                                description={bestConfiguration ? configurationLabel(bestConfiguration) : undefined}
                                 href={best ? offerHref(best) : undefined} />
                             {model.description && (
                                 <details className="pio-details">
@@ -260,24 +252,17 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                 </Grid>
 
                 <Stack gap="xl" mt="xl">
-                    {model.configurations.length > 0 && (
-                        <ConsolePackPicker configurations={model.configurations} sellerCount={model.seller_count} query={query} basePath={basePath}
-                            onSelect={configuration => update({ configuration, edition: undefined, storage_gb: undefined, has_game: undefined })} />
-                    )}
-
                     <Card radius="xl" p={0} component="section" aria-labelledby="console-offers" aria-busy={busy}>
                         <div className={styles.sectionHeader}>
                             <Group gap="xs">
                                 <IconTag size={22} color="var(--mantine-color-primaryRed-5)" aria-hidden />
                                 <Title order={2} id="console-offers" fz="lg" fw={700}>Compara las ofertas</Title>
-                                {!stale && <Text fz="sm" c="dimmed">{plural(live.length, 'oferta', 'ofertas')}{selected ? ` · ${configurationLabel(selected)}` : ''}</Text>}
+                                {!stale && <Text fz="sm" c="dimmed">{plural(live.length, 'oferta', 'ofertas')}</Text>}
                                 {busy && <Loader size="xs" color="primaryRed" aria-label="Actualizando ofertas" />}
                             </Group>
-                            <SegmentedControl size="xs" aria-label="Condición" value={query.condition ?? 'any'}
-                                onChange={value => update({ condition: value === 'any' ? undefined : value as 'new' | 'used' })}
-                                data={[{ value: 'any', label: globalCondition === 'all' ? 'Todas' : 'Según preferencia' },
-                                    { value: 'new', label: 'Nuevo' }, { value: 'used', label: 'Usado' }]} />
                         </div>
+                        <ConsoleOfferFilters configurations={model.configurations} query={query} globalCondition={globalCondition}
+                            onChange={update} />
                         {error && (
                             <Alert color="danger" title="No pudimos actualizar las ofertas" m="lg">
                                 <Group gap="sm">
@@ -287,7 +272,7 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                             </Alert>
                         )}
                         {stale ? (
-                            // Another pack or condition: these rows would show the previous selection.
+                            // Other filters: these rows would show the previous selection.
                             Array.from({ length: Math.min(Math.max(live.length, 3), 5) }, (_, i) => <ConsoleOfferRowSkeleton key={i} />)
                         ) : <>
                             {(showAll ? live : live.slice(0, OFFER_PREVIEW)).map(row)}

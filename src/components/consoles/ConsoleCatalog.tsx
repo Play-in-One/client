@@ -130,11 +130,11 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
             <Stack gap={6} mb="lg">
                 <InfoHeading label="Cómo comparamos consolas" heading={<Title order={1} fz={{ base: 28, md: 36 }} fw={800}>Consolas</Title>}>
                     <Text fz="sm" c="dimmed" maw={680}>
-                        Cada modelo reúne sus ediciones, capacidades y packs con juego. El precio «desde» es la oferta más
+                        Cada modelo reúne sus ediciones, capacidades y versiones con juego incluido. El precio «desde» es la oferta más
                         barata con stock, con el envío promedio de la tienda y los cupones vigentes ya sumados.
                     </Text>
                 </InfoHeading>
-                <Text c="dimmed">Compara modelos, packs y tiendas. Precios con envío y cupones incluidos.</Text>
+                <Text c="dimmed">Compara modelos, ediciones y tiendas. Precios con envío y cupones incluidos.</Text>
             </Stack>
 
             <Stack gap="md" mb="xl">
