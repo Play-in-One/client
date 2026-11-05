@@ -50,19 +50,22 @@ function PlatformLinks({ query, onSelect }: { query: ConsoleQuery; onSelect: (pl
         onClick: (event: MouseEvent) => { event.preventDefault(); onSelect(platform); },
     });
     return (
-        <nav className={styles.platformRow} aria-label="Plataforma">
-            <Button size="xs" radius="sm" variant={!query.platform ? 'filled' : 'subtle'} color={!query.platform ? 'primaryRed' : 'gray'}
+        // Centred under the search line, as wide as its options (it scrolls on phones).
+        <div className={styles.centerRow}>
+        <nav className={`${styles.platformRow} ${styles.fitRow}`} aria-label="Plataforma">
+            <Button size="sm" radius="sm" variant={!query.platform ? 'filled' : 'subtle'} color={!query.platform ? 'primaryRed' : 'gray'}
                 aria-current={!query.platform ? 'page' : undefined} {...link(undefined)}>Todas</Button>
             {CONSOLE_PLATFORMS.map(([slug, label]) => {
                 const Icon = PLATFORM_ICONS[slug] || FALLBACK_PLATFORM_ICON;
                 const active = query.platform === slug;
                 return (
-                    <Button key={slug} size="xs" radius="sm" variant={active ? 'filled' : 'subtle'}
-                        color={active ? PLATFORM_COLORS[slug]?.mantine ?? 'gray' : 'gray'} leftSection={<Icon size={15} />}
+                    <Button key={slug} size="sm" radius="sm" variant={active ? 'filled' : 'subtle'}
+                        color={active ? PLATFORM_COLORS[slug]?.mantine ?? 'gray' : 'gray'} leftSection={<Icon size={18} />}
                         aria-current={active ? 'page' : undefined} {...link(slug)}>{label}</Button>
                 );
             })}
         </nav>
+        </div>
     );
 }
 
@@ -135,7 +138,6 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
             </Stack>
 
             <Stack gap="md" mb="xl">
-                <PlatformLinks query={query} onSelect={platform => update({ platform })} />
                 <form className={styles.toolbar} role="search" action="/consolas" onSubmit={submit} aria-label="Filtros de consolas">
                     <TextInput className={styles.toolbarSearch} name="search" type="search" label="Buscar consola"
                         placeholder="Modelo, por ejemplo «Switch OLED»" value={search} onChange={event => setSearch(event.currentTarget.value)}
@@ -157,6 +159,7 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
                     <Select label="Ordenar por" w={170} allowDeselect={false} data={ORDERINGS} value={query.ordering ?? 'name'}
                         onChange={value => update({ ordering: value && value !== 'name' ? value : undefined })} />
                 </form>
+                <PlatformLinks query={query} onSelect={platform => update({ platform })} />
             </Stack>
 
             {error && (
