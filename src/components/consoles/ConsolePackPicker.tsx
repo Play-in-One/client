@@ -2,7 +2,7 @@
 
 import { useState, type MouseEvent } from 'react';
 import Link from 'next/link';
-import { Anchor, Badge, Box, Card, Group, SegmentedControl, Text, Title } from '@mantine/core';
+import { Anchor, Badge, Box, Card, Group, SegmentedControl, Select, Text, Title } from '@mantine/core';
 import { IconCheck, IconPackage } from '@tabler/icons-react';
 import { GAME_FORMATS, consoleQueryString, type ConsoleConfiguration, type ConsoleQuery } from '@/lib/consoles';
 import { formatCLP } from '@/lib/utils';
@@ -67,8 +67,12 @@ export function ConsolePackPicker({ configurations, sellerCount, query, basePath
                 </Group>
                 {quick && (
                     <Group gap="sm" className={styles.quickFilters}>
-                        {editions.length > 1 && <SegmentedControl size="xs" value={edition} onChange={setEdition} aria-label="Edición"
-                            data={[{ value: 'all', label: 'Todas las ediciones' }, ...editions.map(([value, label]) => ({ value, label }))]} />}
+                        {/* A dropdown: edition names are long ("Ghost of Yōtei Limited Edition")
+                            and several of them overflowed a segmented row. */}
+                        {editions.length > 1 && <Select size="xs" w={240} maw="100%" value={edition} allowDeselect={false}
+                            onChange={value => setEdition(value ?? 'all')} aria-label="Edición" checkIconPosition="right"
+                            data={[{ value: 'all', label: 'Todas las ediciones' }, ...editions.map(([value, label]) => ({ value, label }))]}
+                            comboboxProps={{ withinPortal: true }} />}
                         {storages.length > 1 && <SegmentedControl size="xs" value={storage} onChange={setStorage} aria-label="Almacenamiento"
                             data={[{ value: 'all', label: 'Toda capacidad' }, ...storages.map(([value, label]) => ({ value, label }))]} />}
                     </Group>

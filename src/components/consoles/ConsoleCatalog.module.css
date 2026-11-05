@@ -114,10 +114,9 @@
     cursor: pointer;
 }
 
-/* Long edition names ("The Legend of Zelda 40th Anniversary") would clip the
-   segmented filters on a phone: they scroll instead. */
-.quickFilters { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
-.quickFilters > * { flex-shrink: 0; }
+/* The edition is a dropdown (its names are long); on a phone the storage
+   segments drop to the next line instead of clipping. */
+.quickFilters { max-width: 100%; flex-wrap: wrap; }
 
 .packGrid {
     display: grid;
