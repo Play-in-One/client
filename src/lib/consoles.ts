@@ -4,6 +4,9 @@ export interface ConsoleGame {
     title: string;
     format: 'physical' | 'code' | 'preinstalled' | 'unknown';
     game: number | null;
+    /** Slug and box art of the linked catalog game (null when unlinked). */
+    slug?: string | null;
+    cover?: string | null;
 }
 
 export interface ConsoleConfiguration {

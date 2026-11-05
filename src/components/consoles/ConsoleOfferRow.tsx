@@ -12,6 +12,7 @@ import { conditionBadgeColorFor, conditionLabelFor } from '@/lib/conditions';
 import { packGamesLabel, type ConsoleConfiguration } from '@/lib/consoles';
 import { isAffiliateOffer, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
+import { IncludedGameCovers } from './IncludedGameCovers';
 import styles from './ConsoleCatalog.module.css';
 
 export function hasLivePrice(product: Product) {
@@ -37,7 +38,7 @@ export function ConsoleOfferRow({ product, configuration, index, best, showPack,
                 <Anchor component={Link} href={`/store/${product.seller.id}`} underline="never" c="inherit" aria-hidden tabIndex={-1}>
                     <SellerLogo seller={product.seller} index={index} />
                 </Anchor>
-                <Stack gap={4} style={{ minWidth: 0 }}>
+                <Stack gap={4} style={{ minWidth: 0, flex: 1 }}>
                     <Group gap={6} wrap="nowrap">
                         <Anchor component={Link} href={`/store/${product.seller.id}`} fw={700} c="inherit">{product.seller.name}</Anchor>
                         <SellerScopeBadge seller={product.seller} />
@@ -52,6 +53,7 @@ export function ConsoleOfferRow({ product, configuration, index, best, showPack,
                         <Text fz="xs" c="dimmed" lineClamp={1} title={product.title} style={{ flex: '1 1 160px', minWidth: 0 }}>«{product.title}»</Text>
                     </Group>
                 </Stack>
+                {configuration && <IncludedGameCovers games={configuration.games} />}
             </Group>
             <div className={styles.offerAside}>
                 <Group gap="2xs" wrap="nowrap">

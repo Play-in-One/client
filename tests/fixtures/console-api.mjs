@@ -12,7 +12,8 @@ const seller = { id: 77, name: 'Tienda Consolas', url: 'https://example.com', lo
 const configurations = [
     { id: 11, console: 981, edition: 1, edition_name: 'Estándar', storage_gb: 1000, storage_label: '1 TB', games: [] },
     { id: 12, console: 981, edition: 2, edition_name: 'Azul', storage_gb: 2000, storage_label: '2 TB',
-        games: [{ title: 'Juego de aventura', format: 'code', game: null }, { title: 'Juego de carreras', format: 'physical', game: null }] },
+        games: [{ title: 'Juego de aventura', format: 'code', game: 501, slug: 'juego-de-aventura', cover: 'https://example.com/aventura.jpg' },
+            { title: 'Juego de carreras', format: 'physical', game: null, slug: null, cover: null }] },
     { id: 13, console: 981, edition: 1, edition_name: 'Estándar', storage_gb: 1000, storage_label: '1 TB',
         games: [{ title: 'Juego de deportes', format: 'code', game: null }] },
     { id: 14, console: 981, edition: 2, edition_name: 'Azul', storage_gb: 1000, storage_label: '1 TB',

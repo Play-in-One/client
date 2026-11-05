@@ -71,6 +71,17 @@ async function skeletonsWhileAnotherPackLoads(page: Page) {
     await expect(page.locator('[data-console-offer-skeleton]')).toHaveCount(0);
 }
 
+/* Pack 12 includes a linked game (cover, canonical link) and an unlinked one (neutral tile). */
+async function packRowsShowIncludedGameCovers(page: Page) {
+    await page.goto('/consola/ps5-slim-981');
+    const row = offers(page).filter({ hasText: 'PS5 Slim Azul pack 2 TB' });
+    await expect(row.getByRole('link', { name: 'Juego de aventura · Código' })).toHaveAttribute('href', '/juego/juego-de-aventura-501');
+    await expect(row.getByRole('link', { name: 'Juego de aventura · Código' }).locator('img')).toHaveCount(1);
+    await expect(row.getByRole('img', { name: 'Juego de carreras · Físico' })).toBeVisible();
+    // A pack without games shows no covers.
+    await expect(offers(page).filter({ hasText: 'PS5 Slim 1 TB' }).locator('[data-included-games]')).toHaveCount(0);
+}
+
 async function honestEmptyStates(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await page.locator('a[href*="configuration=12"]').click();
@@ -180,6 +191,11 @@ test.describe('Staff preview of the console pages', () => {
         await switchesBetweenModels(page);
     });
 
+    test('pack offers show the covers of their included games', async ({ page }) => {
+        await signInAsStaff(page);
+        await packRowsShowIncludedGameCovers(page);
+    });
+
     test('the first load and another pack show skeletons', async ({ page }) => {
         await signInAsStaff(page);
         await page.route(/\/api\/consoles\/981\//, async route => { await new Promise(r => setTimeout(r, 1200)); await route.continue(); });
@@ -240,6 +256,7 @@ test.describe('Public console experience', () => {
     test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
     test('a switcher leads to the other models of the console', async ({ page }) => switchesBetweenModels(page));
     test('another pack shows skeletons', async ({ page }) => skeletonsWhileAnotherPackLoads(page));
+    test('pack offers show the covers of their included games', async ({ page }) => packRowsShowIncludedGameCovers(page));
 
     test('the server-rendered detail does not flash skeletons while it rechecks prices', async ({ page }) => {
         // The browser reloads the same query after hydration (the visitor's

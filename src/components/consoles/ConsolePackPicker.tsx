@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Anchor, Badge, Box, Card, Group, SegmentedControl, Select, Text, Title } from '@mantine/core';
 import { IconCheck, IconPackage } from '@tabler/icons-react';
 import { GAME_FORMATS, consoleQueryString, type ConsoleConfiguration, type ConsoleQuery } from '@/lib/consoles';
+import { gamePath } from '@/lib/seo';
 import { formatCLP } from '@/lib/utils';
 import { plural } from './ConsoleCard';
 import styles from './ConsoleCatalog.module.css';
@@ -102,7 +103,7 @@ export function ConsolePackPicker({ configurations, sellerCount, query, basePath
                                 {c.games.some(game => game.game) && (
                                     <Group gap={8} className={styles.packGame}>
                                         {c.games.filter(game => game.game).map((game, i) => (
-                                            <Anchor key={i} component={Link} href={`/juego/${game.game}`} fz="xs">Ver {game.title}</Anchor>
+                                            <Anchor key={i} component={Link} href={gamePath({ id: game.game!, slug: game.slug })} fz="xs">Ver {game.title}</Anchor>
                                         ))}
                                     </Group>
                                 )}
