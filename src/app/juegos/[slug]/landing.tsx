@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
-import { Container, SimpleGrid, Text, Title } from '@mantine/core';
-import { ApiError, getGames, getPlatforms } from '@/lib/api';
+import { Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
+import { ApiError, getConsoles, getGames, getPlatforms } from '@/lib/api';
+import { CONSOLE_PLATFORMS } from '@/lib/consoles';
+import { CONSOLES_PUBLIC } from '@/lib/features';
 import { LANDING_ORDERING } from '@/lib/platformGames';
 import type { Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
@@ -12,6 +14,7 @@ import FaqSection from '@/components/FaqSection';
 import { JsonLd } from '@/components/JsonLd';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
 import InfoHeading from '@/components/InfoHeading';
+import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
 import {
     buildMetadata,
     breadcrumbJsonLd,
@@ -178,6 +181,13 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
         ? platformSummary(platform, games, total)
         : pageSummary(platform, page, totalPages, total);
     const faq = buildFaq(platform, total);
+    // «Encuentra tu próxima consola»: once the console pages are public, only
+    // when this platform has a published model (an anonymous request sees no
+    // drafts, so the staff preview decides in the browser). A failure only
+    // hides the button.
+    const consolesAvailable = CONSOLES_PUBLIC && CONSOLE_PLATFORMS.some(([slug]) => slug === platform.slug)
+        ? await getConsoles({ platform: platform.slug }, { revalidate: 300 }).then(res => res.count > 0).catch(() => false)
+        : false;
 
     const jsonLd = [
         collectionPageJsonLd({
@@ -215,6 +225,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                 {/* El resumen va tras la (i) del título: sigue en el HTML
                     inicial (crawlers y meta description dicen lo mismo), pero
                     no empuja la galería hacia abajo. */}
+                <Group justify="space-between" align="flex-start" gap="md">
                 <InfoHeading
                     label="Resumen de la consola"
                     heading={
@@ -233,6 +244,8 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         {summary}
                     </Text>
                 </InfoHeading>
+                <FindConsoleButton platform={platform} available={consolesAvailable} />
+                </Group>
 
                 {games.length > 0 ? (
                     <GameExplorer

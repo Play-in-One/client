@@ -186,7 +186,7 @@ test.describe('Staff preview of the console pages', () => {
             await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
             await expect(page.getByText('PS5 Slim')).toHaveCount(0);
         }
-        for (const path of ['/', '/search', '/store/77']) {
+        for (const path of ['/', '/search', '/store/77', '/juegos/ps5']) {
             await page.goto(path);
             await expect(page.locator('a[href^="/consola"]')).toHaveCount(0);
             await expect(page.getByRole('heading', { name: 'Consolas en esta tienda' })).toHaveCount(0);
@@ -213,6 +213,16 @@ test.describe('Staff preview of the console pages', () => {
         await expect(page.getByRole('link', { name: /^Consolas\s*staff$/i }).first()).toBeVisible();
         expect(authorized.length).toBeGreaterThan(0);
         expect(authorized.every(Boolean)).toBe(true);
+    });
+
+    test("a console's game gallery leads an admin to that console's catalog", async ({ page }) => {
+        await signInAsStaff(page);
+        await page.goto('/juegos/ps5');
+        const button = page.getByRole('link', { name: /Encuentra tu próxima consola/ });
+        await expect(button).toHaveAttribute('href', '/consolas?platform=ps5');
+        await button.click();
+        await expect(page).toHaveURL(/\/consolas\?platform=ps5/);
+        await expect(page.locator('[data-console-card]', { hasText: 'PS5 Slim' })).toBeVisible();
     });
 
     test('an outdated slug is corrected and an unknown model reads as not found', async ({ page }) => {
@@ -308,6 +318,8 @@ test.describe('Public console experience', () => {
         expect(html).toContain('application/ld+json');
         expect(html).toContain('/go/product/991');
         expect(html).toContain('1.234 juegos compatibles');
+        // The console's game gallery links its hardware catalog for everyone, in the server HTML.
+        expect(await (await request.get('/juegos/ps5')).text()).toContain('href="/consolas?platform=ps5"');
     });
 
     test('filters narrow the offers and keep retired offers apart', async ({ page }) => filtersNarrowTheOffers(page));
