@@ -283,11 +283,6 @@ export const social = {
     telegram: '#26A5E4',
 };
 
-export const og = {
-    gradient: { from: '#0f172a', via: '#1e293b', to: '#7f1d1d' },
-    subtitle: '#cbd5e1',
-};
-
 export const pwa = {
     backgroundColor: '#ffffff',
     /* Tiñe la barra del navegador en móvil al instalar la PWA: es lo primero
