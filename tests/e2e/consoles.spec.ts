@@ -64,6 +64,24 @@ async function colourEditionsShowTheirColour(page: Page) {
     await expect(page.getByRole('group', { name: 'Filtros de ofertas' }).locator('[data-edition-swatch="azul"]')).toHaveCount(1);
 }
 
+/* As on the game page: on a phone the whole offer opens the store; on desktop only its button does. */
+async function phoneRowsOpenTheStore(page: Page, storeUrl: RegExp) {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/consola/ps5-slim-981');
+    const row = offers(page).filter({ hasText: 'PS5 Slim Azul pack 2 TB' });
+    const popup = page.waitForEvent('popup');
+    await row.getByText('«PS5 Slim Azul pack 2 TB»').click();
+    expect((await popup).url()).toMatch(storeUrl);
+    // A retired offer goes nowhere.
+    let opened = false;
+    page.on('popup', () => { opened = true; });
+    await page.locator('[data-stock="false"]').getByText('«Oferta agotada»').click({ force: true });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await row.getByText('«PS5 Slim Azul pack 2 TB»').click();
+    await page.waitForTimeout(500);
+    expect(opened).toBe(false);
+}
+
 /* The counter is the PS5 landing's own total and leads to it. */
 async function gamesCounterLinksToTheGallery(page: Page) {
     await page.goto('/consola/ps5-slim-981');
@@ -217,6 +235,12 @@ test.describe('Staff preview of the console pages', () => {
         await colourEditionsShowTheirColour(page);
     });
 
+    test('on a phone the whole offer opens the store', async ({ page }) => {
+        await signInAsStaff(page);
+        // The preview links the store directly (`/go` cannot see drafts).
+        await phoneRowsOpenTheStore(page, /^https:\/\/example\.com\/992$/);
+    });
+
     test('a switcher leads to the other models of the console', async ({ page }) => {
         await signInAsStaff(page);
         await switchesBetweenModels(page);
@@ -286,6 +310,7 @@ test.describe('Public console experience', () => {
     test('filters narrow the offers and keep retired offers apart', async ({ page }) => filtersNarrowTheOffers(page));
     test('the games counter links to the console gallery', async ({ page }) => gamesCounterLinksToTheGallery(page));
     test('colour editions show their colour', async ({ page }) => colourEditionsShowTheirColour(page));
+    test('on a phone the whole offer opens the store', async ({ page }) => phoneRowsOpenTheStore(page, /\/go\/product\/992/));
     test('a switcher leads to the other models of the console', async ({ page }) => switchesBetweenModels(page));
     test('other filters show skeletons', async ({ page }) => skeletonsWhileOtherFiltersLoad(page));
     test('offers show the covers of their included games', async ({ page }) => offersShowIncludedGameCovers(page));

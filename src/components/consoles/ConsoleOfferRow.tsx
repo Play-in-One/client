@@ -21,16 +21,28 @@ export function hasLivePrice(product: Product) {
     return product.in_stock && product.current_price != null && Number(product.current_price) > 0;
 }
 
-export function ConsoleOfferRow({ product, configuration, index, best, href, onOffer }: {
+/* Same breakpoint as the game page's tappable rows (`globals.css`). */
+const TAPPABLE_ROW_QUERY = '(max-width: 47.99em)';
+
+export function ConsoleOfferRow({ product, configuration, index, best, href, onOffer, onOpen }: {
     product: Product;
     configuration?: ConsoleConfiguration;
     index: number;
     best: boolean;
     href: string;
     onOffer: (event: MouseEvent, product: Product) => void;
+    /** Opens the store from a tap anywhere on the row (phones, like the game page). */
+    onOpen: (product: Product) => void;
 }) {
     const live = hasLivePrice(product);
     const priced = product.current_price != null && Number(product.current_price) > 0;
+    // On a phone the whole row opens the store; its links (store page, game
+    // covers) and buttons keep their own action. A retired offer goes nowhere.
+    const openFromRow = (event: MouseEvent<HTMLElement>) => {
+        if (!live || !window.matchMedia(TAPPABLE_ROW_QUERY).matches) return;
+        if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return;
+        onOpen(product);
+    };
     // The store's photo of this exact unit, as on the game page; desktop only.
     // Above the row and not to its left: the offer list spans the whole
     // container, so a left preview fell off the screen.
@@ -39,7 +51,7 @@ export function ConsoleOfferRow({ product, configuration, index, best, href, onO
             transitionProps={{ transition: 'pop-bottom-left', duration: 170 }}>
         <HoverCard.Target>
         <article className={`game-offer-row ${styles.offer}`} data-console-offer data-stock={String(product.in_stock)}
-            data-out-of-stock={product.in_stock ? undefined : true}>
+            data-out-of-stock={product.in_stock ? undefined : true} data-live={live || undefined} onClick={openFromRow}>
             <Group gap="sm" wrap="nowrap" align="flex-start" className={styles.offerMain}>
                 <Anchor component={Link} href={`/store/${product.seller.id}`} underline="never" c="inherit" aria-hidden tabIndex={-1}>
                     <SellerLogo seller={product.seller} index={index} />

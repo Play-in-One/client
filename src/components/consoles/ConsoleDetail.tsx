@@ -187,18 +187,25 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
     const offerHref = (product: Product) => preview
         ? product.affiliate_url || product.url
         : outgoingHref('product', product.id);
-    const beginOffer = (event: MouseEvent, product: Product) => {
-        const coupon = activeCoupon(product.seller);
-        if (!coupon) return;
-        event.preventDefault();
+    /** A store with a partner coupon shows it before leaving: returns true when the modal took over. */
+    const showCoupon = (product: Product) => {
+        if (!activeCoupon(product.seller)) return false;
         setPendingOffer({
             url: offerHref(product), productId: product.id, platformId: product.platform?.id, seller: product.seller,
             basePrice: product.base_price, reportContext: { displayed_price: product.current_price, platform: product.platform.name },
         });
+        return true;
+    };
+    const beginOffer = (event: MouseEvent, product: Product) => {
+        if (showCoupon(product)) event.preventDefault();
+    };
+    // A tap on the row, as on the game page: the same exit as its button.
+    const openOffer = (product: Product) => {
+        if (!showCoupon(product)) window.open(offerHref(product), '_blank', 'noopener');
     };
     const row = (product: Product, index: number) => (
         <ConsoleOfferRow key={product.id} product={product} configuration={configurations.get(product.configuration ?? 0)} index={index}
-            best={product.id === best?.id} href={offerHref(product)} onOffer={beginOffer} />
+            best={product.id === best?.id} href={offerHref(product)} onOffer={beginOffer} onOpen={openOffer} />
     );
 
     return (

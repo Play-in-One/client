@@ -102,6 +102,14 @@
 }
 
 
+/* The game page's tappable rows, for the console offers (an article, not a row). */
+@media (max-width: 47.99em) {
+    .offer[data-live] { transition: background-color .15s; }
+    .offer[data-live]:hover, .offer[data-live]:active {
+        background: light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6));
+    }
+}
+
 @media (max-width: 48em) {
     .offerAside { flex-direction: row; align-items: center; justify-content: space-between; width: 100%; }
     .heroMedia { aspect-ratio: 16 / 9; }
