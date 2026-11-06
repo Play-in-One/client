@@ -1,0 +1,77 @@
+/* "Encuentra tu próxima consola": a pill in the console's colour that draws
+   the eye without shouting: a light sweep every few seconds and a soft halo,
+   both off for people who ask for reduced motion. Colours come from the
+   platform (`--find-accent`) and theme variables only. */
+
+.root {
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    padding-inline: var(--mantine-spacing-lg);
+    font-weight: 700;
+    letter-spacing: .01em;
+    box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--find-accent) 70%, transparent);
+    transition: transform .22s cubic-bezier(.2, .8, .2, 1), box-shadow .22s ease, filter .22s ease;
+    animation: halo 2.8s ease-in-out infinite;
+}
+
+/* The sweep: a thin band of light that crosses the pill now and then. */
+.root::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%,
+        color-mix(in srgb, var(--mantine-color-white) 45%, transparent) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: sweep 4.5s ease-in-out 1.2s infinite;
+}
+
+.root:hover {
+    transform: translateY(-2px) scale(1.04);
+    filter: brightness(1.08) saturate(1.1);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--find-accent) 28%, transparent),
+        0 14px 28px -10px color-mix(in srgb, var(--find-accent) 85%, transparent);
+    /* The pulsing halo would win over this shadow: on hover it stops. */
+    animation: none;
+}
+.root:hover::after { animation-duration: 1.1s; animation-delay: 0s; }
+.root:active { transform: translateY(0) scale(.98); }
+.root:focus-visible { outline: 3px solid var(--find-accent); outline-offset: 3px; }
+
+.section { transition: transform .22s cubic-bezier(.2, .8, .2, 1); }
+.root:hover .section[data-position='left'] { transform: rotate(-12deg) scale(1.15); }
+.root:hover .section[data-position='right'] { transform: translateX(4px); }
+
+/* On a phone it takes the column under the title, a touch smaller, with room
+   before the gallery's toolbar. */
+@media (max-width: 36em) {
+    .root {
+        width: 100%;
+        max-width: 100%;
+        padding-inline: var(--mantine-spacing-sm);
+        font-size: var(--mantine-font-size-sm);
+        margin-bottom: var(--mantine-spacing-sm);
+    }
+}
+
+@keyframes halo {
+    0%, 100% { box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--find-accent) 70%, transparent); }
+    50% {
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--find-accent) 18%, transparent),
+            0 8px 22px -6px color-mix(in srgb, var(--find-accent) 80%, transparent);
+    }
+}
+
+@keyframes sweep {
+    0% { transform: translateX(-120%); }
+    35%, 100% { transform: translateX(120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .root, .root::after { animation: none; }
+    .root, .section { transition: none; }
+    .root:hover, .root:hover .section[data-position] { transform: none; }
+}
