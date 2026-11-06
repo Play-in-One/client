@@ -18,7 +18,7 @@ const configurations = [
         games: [{ title: 'Juego de deportes', format: 'code', game: null }] },
     { id: 14, console: 981, edition: 2, edition_name: 'Azul', edition_key: 'azul', storage_gb: 1000, storage_label: '1 TB',
         games: [{ title: 'Juego de plataformas', format: 'unknown', game: null }] },
-    { id: 15, console: 981, edition: 1, edition_name: 'Estándar', edition_key: 'standard', storage_gb: 2000, storage_label: '2 TB',
+    { id: 15, console: 981, edition: 3, edition_name: 'Splatoon 3', edition_key: 'splatoon-3', storage_gb: 2000, storage_label: '2 TB',
         games: [{ title: 'Juego de peleas', format: 'physical', game: null }] },
 ];
 const offer = (id, configuration, title, condition, price, inStock = true) => ({

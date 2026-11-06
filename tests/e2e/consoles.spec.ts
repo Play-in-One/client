@@ -6,7 +6,8 @@ import { CONSOLES_PUBLIC, CONSOLES_STAFF_PREVIEW, CONSOLES_VISIBILITY } from '..
    Model 981 has five configurations: 11 (Estándar, 1 TB, no game: a live and a
    retired offer), 12 (Azul, 2 TB, a linked and an unlinked game: a used offer,
    the cheapest), 13 (Estándar, 1 TB, one game: a live offer), 14 and 15 (no
-   offers). Only the describe for the current CONSOLES_VISIBILITY runs. */
+   offers; 15 is the special edition Splatoon 3). Only the describe for the
+   current CONSOLES_VISIBILITY runs. */
 
 test.beforeEach(async ({ context }) => {
     await context.addCookies([{ name: 'pio_consent', value: encodeURIComponent(JSON.stringify(buildConsent('reject-all'))),
@@ -53,13 +54,15 @@ async function filtersNarrowTheOffers(page: Page) {
     await expect(page).not.toHaveURL(/storage_gb|edition/);
 }
 
-/* A colour is an edition: it sorts after Estándar and shows its swatch. */
+/* Estándar, then colours (a swatch), then special editions (an icon); Estándar has no mark. */
 async function colourEditionsShowTheirColour(page: Page) {
     await page.goto('/consola/ps5-slim-981');
     await expect(offers(page).filter({ hasText: 'PS5 Slim Azul pack 2 TB' }).locator('[data-edition-swatch="azul"]')).toHaveCount(1);
     await expect(offers(page).filter({ hasText: 'PS5 Slim 1 TB' }).locator('[data-edition-swatch]')).toHaveCount(0);
     await page.getByRole('group', { name: 'Filtros de ofertas' }).getByRole('textbox', { name: 'Edición o color', exact: true }).click();
-    await expect(page.getByRole('option')).toHaveText(['Todas', 'Estándar', 'Azul']);
+    await expect(page.getByRole('option')).toHaveText(['Todas', 'Estándar', 'Azul', 'Splatoon 3']);
+    await expect(page.getByRole('option', { name: 'Splatoon 3' }).locator('[data-edition-icon="splatoon-3"]')).toHaveCount(1);
+    await expect(page.getByRole('option', { name: 'Estándar' }).locator('[data-edition-icon], [data-edition-swatch]')).toHaveCount(0);
     await page.getByRole('option', { name: 'Azul', exact: true }).click();
     await expect(page.getByRole('group', { name: 'Filtros de ofertas' }).locator('[data-edition-swatch="azul"]')).toHaveCount(1);
 }

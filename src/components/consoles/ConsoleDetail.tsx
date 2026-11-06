@@ -16,11 +16,11 @@ import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
 import { getConsole } from '@/lib/api';
 import { decorative, elevation, onDark } from '@/lib/colors';
-import { configurationLabel, consolePath, editionSwatch, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
+import { configurationLabel, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
 import { activeCoupon, platformLongName, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
-import { EditionSwatch } from './EditionSwatch';
+import { EditionMark, hasEditionMark } from './EditionMark';
 import { ConsoleOfferRow, ConsoleOfferRowSkeleton, hasLivePrice } from './ConsoleOfferRow';
 import { ConsoleOfferFilters, OFFER_FILTER_KEYS } from './ConsoleOfferFilters';
 import { PlatformGamesLink } from './PlatformGamesLink';
@@ -111,7 +111,7 @@ function BestPriceCard({ model, best, description, editionKey, filtered, href, o
                         {' · '}{best.condition === 'used' ? 'Usado' : 'Nuevo'}
                     </Text>
                     {description && <Text fz="xs" c={onDark.textSecondary} mt={2}>
-                        <EditionSwatch editionKey={editionKey} size={10} />{editionSwatch(editionKey) && ' '}{description}
+                        <EditionMark editionKey={editionKey} size={10} />{hasEditionMark(editionKey) && ' '}{description}
                     </Text>}
                 </Box>
                 {href && (

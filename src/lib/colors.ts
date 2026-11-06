@@ -311,3 +311,16 @@ export const consoleEditionSwatches: Record<string, string> = {
     rosado: '#f29ac2',
     neon: 'linear-gradient(90deg, #00b8e6 0 50%, #ff3c50 50% 100%)',
 };
+
+/* Marcas de las ediciones especiales de consola, por `ConsoleEdition.key`: un
+   círculo del tono de la edición con un pictograma (ver `EditionMark`). Son
+   motivos evocativos, no logotipos. Una edición sin entrada no muestra marca. */
+export const consoleEditionMarks: Record<string, { background: string; foreground: string }> = {
+    'mario-red-blue-edition': { background: 'linear-gradient(90deg, #e52521 0 50%, #2c5ec9 50% 100%)', foreground: '#ffffff' },
+    'the-legend-of-zelda-40th-anniversary': { background: '#c9a227', foreground: '#2b2108' },
+    'the-legend-of-zelda-tears-of-the-kingdom': { background: '#2f8f5b', foreground: '#ffffff' },
+    'splatoon-3': { background: 'linear-gradient(135deg, #e8f42c 0 50%, #6b2bd8 50% 100%)', foreground: '#ffffff' },
+    'fortnite-flowering-chaos': { background: '#e0559b', foreground: '#ffffff' },
+    'ghost-of-yotei-limited-edition': { background: '#9e1b24', foreground: '#ffffff' },
+    'marvels-wolverine-battle-yellow': { background: '#f5c400', foreground: '#1f2a5c' },
+};

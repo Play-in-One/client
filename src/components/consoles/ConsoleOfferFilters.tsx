@@ -3,7 +3,7 @@
 import { Button, Group, SegmentedControl, Select, Text } from '@mantine/core';
 import { IconX } from '@tabler/icons-react';
 import { editionSwatch, type ConsoleConfiguration, type ConsoleQuery } from '@/lib/consoles';
-import { EditionSwatch } from './EditionSwatch';
+import { EditionMark, hasEditionMark } from './EditionMark';
 import styles from './ConsoleCatalog.module.css';
 
 /** The query keys the offer filters own; clearing them resets the comparison. */
@@ -55,12 +55,12 @@ export function ConsoleOfferFilters({ configurations, query, globalCondition, on
     return (
         <div className={styles.offerFilters} role="group" aria-label="Filtros de ofertas" data-console-offer-filters>
             {editions.length > 1 && (
-                // Colour is an edition («Neón», «Coral»): its option shows the colour.
+                // Colour is an edition («Neón», «Coral»): its option shows the colour; a special edition, its icon.
                 <Select size="xs" label="Edición o color" w={230} maw="100%" allowDeselect={false} checkIconPosition="right"
                     data={[{ value: 'all', label: 'Todas' }, ...editions]} value={selectedEdition}
-                    leftSection={editionSwatch(editionKeys.get(selectedEdition)) ? <EditionSwatch editionKey={editionKeys.get(selectedEdition)} /> : undefined}
+                    leftSection={hasEditionMark(editionKeys.get(selectedEdition)) ? <EditionMark editionKey={editionKeys.get(selectedEdition)} /> : undefined}
                     renderOption={({ option }) => (
-                        <Group gap={8} wrap="nowrap"><EditionSwatch editionKey={editionKeys.get(option.value)} /><span>{option.label}</span></Group>
+                        <Group gap={8} wrap="nowrap"><EditionMark editionKey={editionKeys.get(option.value)} /><span>{option.label}</span></Group>
                     )}
                     onChange={value => onChange({ edition: value && value !== 'all' ? Number(value) : undefined })}
                     comboboxProps={{ withinPortal: true }} />
