@@ -30,6 +30,8 @@ export const siteConfig = {
         'Play in One',
     ],
     social: {
+        mastodon: 'https://mastodon.social/@playinone',
+        bluesky: 'https://bsky.app/profile/playinone.bsky.social',
         instagram: 'https://www.instagram.com/playinone.cl/',
         linkedin: 'https://www.linkedin.com/company/playinonecl/',
         facebook: 'https://www.facebook.com/people/Play-in-One/61586254222483/',
@@ -191,6 +193,8 @@ export function organizationJsonLd(): JsonLdObject {
         logo: absoluteUrl('/PIO-punto-negro.svg'),
         description: siteConfig.description,
         sameAs: [
+            siteConfig.social.mastodon,
+            siteConfig.social.bluesky,
             siteConfig.social.instagram,
             siteConfig.social.linkedin,
             siteConfig.social.facebook,

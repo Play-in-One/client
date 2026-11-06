@@ -32,6 +32,8 @@ import {
     IconBrandThreads,
     IconBrandTumblr,
     IconBrandTelegram,
+    IconBrandMastodon,
+    IconBrandBluesky,
 } from '@tabler/icons-react';
 import { onDark, social } from '@/lib/colors';
 import { siteConfig } from '@/lib/seo';
@@ -44,7 +46,7 @@ const YEAR = new Date().getFullYear();
  * Un enlace de red social del footer.
  *
  * El `network` no es decorativo: viaja en el evento y es lo que permite saber
- * cuál de los quince enlaces se gana el rincón que ocupa. El track vive aquí
+ * cuál de los enlaces se gana el rincón que ocupa. El track vive aquí
  * dentro y no en cada llamada, que es lo que garantiza que ninguna red se
  * quede sin medir por olvido — el mismo patrón que `GameCard`.
  */
@@ -62,6 +64,7 @@ function SocialIcon({ icon: Icon, brandColor, href, network }: {
         <ActionIcon
             component="a"
             href={href}
+            aria-label={network === 'twitter' ? 'X' : network}
             target="_blank"
             rel="noopener noreferrer"
             variant="subtle"
@@ -190,6 +193,8 @@ export default function Footer() {
                             <SocialIcon icon={IconBrandThreads} brandColor={social.threads} href={siteConfig.social.threads} network="threads" />
                             <SocialIcon icon={IconBrandTumblr} brandColor={social.tumblr} href={siteConfig.social.tumblr} network="tumblr" />
                             <SocialIcon icon={IconBrandTelegram} brandColor={social.telegram} href={siteConfig.social.telegram} network="telegram" />
+                            <SocialIcon icon={IconBrandMastodon} brandColor={social.mastodon} href={siteConfig.social.mastodon} network="mastodon" />
+                            <SocialIcon icon={IconBrandBluesky} brandColor={social.bluesky} href={siteConfig.social.bluesky} network="bluesky" />
                         </Group>
                     </Stack>
                 </SimpleGrid>

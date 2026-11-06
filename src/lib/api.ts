@@ -239,7 +239,8 @@ export type EventType =
 export type SocialNetwork =
     | 'instagram' | 'linkedin' | 'facebook' | 'twitter' | 'youtube'
     | 'reddit' | 'tiktok' | 'pinterest' | 'gmail' | 'discord'
-    | 'spotify' | 'whatsapp' | 'threads' | 'tumblr' | 'telegram';
+    | 'spotify' | 'whatsapp' | 'threads' | 'tumblr' | 'telegram'
+    | 'mastodon' | 'bluesky';
 
 interface EventPayload {
     event_type: EventType;

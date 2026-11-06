@@ -349,7 +349,7 @@ export function AnalyticsClient() {
 
                     <Panel
                         title="Salidas a redes sociales"
-                        subtitle="Quince enlaces compiten por el mismo rincón del footer. Esto dice cuáles se ganan el sitio."
+                        subtitle="Los enlaces compiten por el mismo rincón del footer. Esto dice cuáles se ganan el sitio."
                     >
                         {reports.funnel.socials.length === 0 ? (
                             <Text c="dimmed" fz="sm">Nadie ha salido a una red en este periodo.</Text>
@@ -398,7 +398,7 @@ const SOCIAL_LABELS: Record<string, string> = {
     twitter: 'X', youtube: 'YouTube', reddit: 'Reddit', tiktok: 'TikTok',
     pinterest: 'Pinterest', gmail: 'Correo', discord: 'Discord',
     spotify: 'Spotify', whatsapp: 'WhatsApp', threads: 'Threads',
-    tumblr: 'Tumblr', telegram: 'Telegram',
+    tumblr: 'Tumblr', telegram: 'Telegram', mastodon: 'Mastodon', bluesky: 'Bluesky',
 };
 
 function SocialTable({ rows }: { rows: FunnelReport['socials'] }) {

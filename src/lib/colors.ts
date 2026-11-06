@@ -265,6 +265,8 @@ export function ratingColor(value: number): SemanticColor | 'gray' {
 }
 
 export const social = {
+    mastodon: '#6364FF',
+    bluesky: '#0085FF',
     instagram: '#E1306C',
     facebook: '#1877F2',
     tiktok: '#ff0050',
