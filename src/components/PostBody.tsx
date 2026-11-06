@@ -4,6 +4,7 @@ import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { Anchor, Text, Title } from '@mantine/core';
+import { GAME_LINK_PREFETCH } from '@/lib/seo';
 
 /**
  * Cuerpo Markdown de un post del blog.
@@ -55,9 +56,11 @@ const components: Components = {
 function PostLink({ href, children }: { href?: string; children: ReactNode }) {
     // Interno (`/juego/...`): navegación del router sin recargar. `//host` y
     // `/\host` son enlaces externos con protocolo implícito (el navegador
-    // normaliza `\` a `/`), no rutas del sitio.
+    // normaliza `\` a `/`), no rutas del sitio. Una ficha de juego (también la
+    // ruta vieja `/game/`, que redirige) no se precarga: ver GAME_LINK_PREFETCH.
     if (href && /^\/(?![\/\\])/.test(href)) {
-        return <Anchor component={Link} href={href}>{children}</Anchor>;
+        const prefetch = /^\/(?:juego|game)\//.test(href) ? GAME_LINK_PREFETCH : undefined;
+        return <Anchor component={Link} href={href} prefetch={prefetch}>{children}</Anchor>;
     }
     return <Anchor href={href} target="_blank" rel="noopener">{children}</Anchor>;
 }

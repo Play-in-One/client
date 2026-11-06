@@ -68,6 +68,24 @@ export function gamePath(
 }
 
 /**
+ * `prefetch` de todo `<Link>` a una ficha de juego: la ficha no se precarga.
+ *
+ * Next 15.5 renderiza la metadata en toda respuesta RSC, prefetch incluido, y
+ * `generateMetadata` pide el detalle del juego. Cada tarjeta que entraba en
+ * pantalla era una consulta al backend (hasta 24 por página de galería), y un
+ * clic durante esa precarga la esperaba entera: 2-10 s medidos en producción
+ * sin que cambiara ni la URL. Sin precarga, el clic hace una sola petición, el
+ * esqueleto (`loading.tsx`) llega en un viaje de ida y vuelta y
+ * `LinkPendingOverlay` cubre ese viaje.
+ *
+ * Lo que cuesta: la precarga dejaba el detalle en la caché del backend, y una
+ * ficha ya precargada abría completa en ~0,9 s. Ahora el clic paga esa consulta
+ * (~0,4 s más en frío con poco tráfico). Precargar solo al pasar el mouse no es
+ * un término medio: un clic poco después volvería a esperar esa precarga.
+ */
+export const GAME_LINK_PREFETCH = false;
+
+/**
  * Ruta de un post: `/blog/<slug>-<id>`. Mismo esquema que `gamePath`: resuelve
  * el id, el slug (derivado del título en el backend) solo describe, y uno que
  * no cuadra responde 308 a la canónica. Sin slug (backend anterior al campo)

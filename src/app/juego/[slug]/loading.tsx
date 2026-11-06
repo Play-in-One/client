@@ -3,9 +3,11 @@ import { Box, Container, Flex, Group, Skeleton, Stack } from '@mantine/core';
 /* Skeleton del detalle de juego, mostrado mientras el server component
    (page.tsx) resuelve `getGame`.
 
-   No es solo cosmético: sin un boundary de carga, el App Router no puede
-   PREFETCHEAR una ruta dinámica —el prefetch de /juego/[slug] devolvía una
-   respuesta vacía— y bloqueaba la navegación entera esperando el RSC, entre 1 y
+   No es solo cosmético: es lo que deja al router pintar la ficha antes de que
+   el backend responda. Los enlaces a una ficha no se precargan
+   (`GAME_LINK_PREFETCH` en `lib/seo.ts`), así que al hacer clic la respuesta
+   RSC trae este esqueleto en cuanto sale el layout y el page llega después, en
+   streaming. Sin el boundary, la navegación esperaba el RSC entero, entre 1 y
    4 s contra el backend de producción, sin pintar nada. La tarjeta clicada
    parecía simplemente muerta.
 

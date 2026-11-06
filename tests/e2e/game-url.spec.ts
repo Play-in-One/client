@@ -118,6 +118,27 @@ test('la tarjeta avisa al instante que está abriendo la ficha', async ({ page }
     await expect(page).toHaveURL(new RegExp(`-${SEEDED.gameId}\\?platform=`), { timeout: 15_000 });
 });
 
+test('la tarjeta no precarga la ficha', async ({ page }) => {
+    test.skip(process.env.PLAYWRIGHT_PRODUCTION !== '1', 'Next solo precarga en un build de producción');
+    // Cada precarga de una ficha le pedía el detalle al backend, y un clic
+    // durante ella la esperaba entera (ver GAME_LINK_PREFETCH).
+    const gamePrefetches: string[] = [];
+    page.on('request', (req) => {
+        if (/\/juego\/[^?]*\?.*_rsc=/.test(req.url())) gamePrefetches.push(req.url());
+    });
+    // Control: los demás enlaces sí se precargan. Sin él, el test pasaría igual
+    // con la precarga apagada en todo el sitio o con un build que no precarga.
+    const otherPrefetch = page.waitForRequest((req) => req.url().includes('_rsc=') && !req.url().includes('/juego/'));
+    await page.goto(`/search?q=${encodeURIComponent(SEEDED.game)}`);
+    const card = page.locator(`a[href*="-${SEEDED.gameId}"]`).first();
+    await expect(card).toBeVisible();
+    await otherPrefetch;
+    // El mouse encima tampoco: `next/link` precarga también al hacer hover.
+    await card.hover();
+    await page.waitForLoadState('networkidle');
+    expect(gamePrefetches).toEqual([]);
+});
+
 test('la tarjeta abre la ficha en la consola del precio que muestra', async ({ page }) => {
     // Sin filtro de consola: antes la tarjeta enlazaba la ficha a secas.
     await page.goto(`/search?q=${encodeURIComponent(SEEDED.game)}`);

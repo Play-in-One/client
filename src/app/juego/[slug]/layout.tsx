@@ -8,25 +8,22 @@ import { fetchGame, parseGameSegment } from './resolve';
 /**
  * Decide el STATUS de la ficha antes de que salga el primer byte.
  *
- * `loading.tsx` (necesario para que el prefetch de esta ruta dinámica pinte
- * algo al hacer clic) abre un boundary de streaming alrededor del page: la
- * respuesta ya viajó como 200 cuando el page llama a `notFound()` o
- * `permanentRedirect()`, y Google recibía un "soft 404" con noindex o una
- * redirección por meta refresh. El layout se renderiza FUERA de ese boundary,
- * así que lo que se lanza aquí es un 404 o un 308 de verdad.
+ * `loading.tsx` (necesario para que el clic pinte el esqueleto sin esperar al
+ * backend) abre un boundary de streaming alrededor del page: la respuesta ya
+ * viajó como 200 cuando el page llama a `notFound()` o `permanentRedirect()`,
+ * y Google recibía un "soft 404" con noindex o una redirección por meta
+ * refresh. El layout se renderiza FUERA de ese boundary, así que lo que se
+ * lanza aquí es un 404 o un 308 de verdad.
  *
- * Solo hace falta en un DOCUMENTO. En una petición RSC —el prefetch de una
- * tarjeta o la navegación del cliente— el status no lo mira nadie: el router
- * resuelve el `notFound()` y el `permanentRedirect()` del page dentro del
- * stream. Esperar aquí al backend en RSC bloqueaba el esqueleto hasta tener el
- * detalle del juego (0,5-7 s en frío en producción), incluso para una tarjeta
- * ya prefetcheada: el clic no cambiaba ni la URL hasta entonces.
+ * Solo hace falta en un DOCUMENTO. En una petición RSC —la navegación del
+ * cliente o un prefetch— el status no lo mira nadie: el router resuelve el
+ * `notFound()` y el `permanentRedirect()` del page dentro del stream. Esperar
+ * aquí al backend en RSC bloqueaba el esqueleto hasta tener el detalle del
+ * juego (0,5-7 s en frío en producción): el clic no cambiaba ni la URL.
  *
- * Lo que este layout NO evita: Next 15.5 renderiza la metadata en toda
- * respuesta RSC, también en el prefetch, así que `generateMetadata` sigue
- * pidiendo el detalle por cada tarjeta que entra al viewport. Va en streaming,
- * pero el prefetch no termina hasta que llega, y un clic mientras tanto espera
- * a ese prefetch (por eso la tarjeta muestra `LinkPendingOverlay`).
+ * La metadata no pasa por aquí: Next 15.5 la renderiza en toda respuesta RSC,
+ * prefetch incluido, y `generateMetadata` pide el detalle. Por eso los enlaces
+ * a una ficha no se precargan (`GAME_LINK_PREFETCH` en `lib/seo.ts`).
  *
  * La marca la pone el middleware (`lib/rscRequest.ts`): `headers()` no ve
  * `rsc` ni `next-router-prefetch`, y por eso la comprobación anterior, que

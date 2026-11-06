@@ -12,7 +12,7 @@ import DealPriceLabel from './DealPriceLabel';
 import DealConsoleTag from './DealConsoleTag';
 import { formatCLP } from '@/lib/utils';
 import { cardDeal } from '@/lib/deals';
-import { gamePath } from '@/lib/seo';
+import { GAME_LINK_PREFETCH, gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import { decorative, ratingStar } from '@/lib/colors';
 import type { Game } from '@/lib/types';
@@ -95,6 +95,7 @@ function FeaturedGameCard({
             ref={anchorRef}
             component={Link}
             href={gamePath(game, game.min_price_platform)}
+            prefetch={GAME_LINK_PREFETCH}
             underline="never"
             /* `fit-content` acota el enlace a la tarjeta que se ve. Por defecto
                el <a> se estiraba al ancho COMPLETO del slide (~575px con

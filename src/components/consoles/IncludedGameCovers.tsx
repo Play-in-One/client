@@ -5,7 +5,7 @@ import { Tooltip } from '@mantine/core';
 import { IconDeviceGamepad2 } from '@tabler/icons-react';
 import RemoteImage from '@/components/RemoteImage';
 import { GAME_FORMATS, type ConsoleGame } from '@/lib/consoles';
-import { gamePath } from '@/lib/seo';
+import { GAME_LINK_PREFETCH, gamePath } from '@/lib/seo';
 import styles from './ConsoleCatalog.module.css';
 
 function label(game: ConsoleGame) {
@@ -26,8 +26,8 @@ export function IncludedGameCovers({ games, size = 'md' }: { games: ConsoleGame[
                 return (
                     <Tooltip key={`${game.title}-${i}`} label={label(game)} withinPortal>
                         {game.game
-                            ? <Link href={gamePath({ id: game.game, slug: game.slug })} className={styles.cover} aria-label={label(game)}
-                                data-included-game>{tile}</Link>
+                            ? <Link href={gamePath({ id: game.game, slug: game.slug })} prefetch={GAME_LINK_PREFETCH}
+                                className={styles.cover} aria-label={label(game)} data-included-game>{tile}</Link>
                             : <span className={styles.cover} role="img" aria-label={label(game)} data-included-game>{tile}</span>}
                     </Tooltip>
                 );

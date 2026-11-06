@@ -15,7 +15,7 @@ import DealPriceLabel from './DealPriceLabel';
 import DealConsoleTag from './DealConsoleTag';
 import { formatCLP } from '@/lib/utils';
 import { cardDeal } from '@/lib/deals';
-import { gamePath } from '@/lib/seo';
+import { GAME_LINK_PREFETCH, gamePath } from '@/lib/seo';
 import { trackEvent } from '@/lib/api';
 import CoverChip from './CoverChip';
 import RatingPill from './RatingPill';
@@ -163,6 +163,7 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
         <Anchor
             component={Link}
             href={selectable ? '#' : gameHref}
+            prefetch={GAME_LINK_PREFETCH}
             underline="never"
             style={{ textDecoration: 'none' }}
             onClick={(e) => {
