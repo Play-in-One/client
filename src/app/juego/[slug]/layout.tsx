@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { gamePath } from '@/lib/seo';
+import { RSC_REQUEST_HEADER } from '@/lib/rscRequest';
 import { fetchGame, parseGameSegment } from './resolve';
 
 /**
@@ -14,11 +15,24 @@ import { fetchGame, parseGameSegment } from './resolve';
  * redirección por meta refresh. El layout se renderiza FUERA de ese boundary,
  * así que lo que se lanza aquí es un 404 o un 308 de verdad.
  *
- * En una petición de prefetch (`next-router-prefetch: 1`) Next solo pide el
- * cascarón hasta `loading.tsx`; se salta la consulta para no pagar una llamada
- * a la API por cada tarjeta que entra en el viewport de la galería. La
- * navegación real vuelve a pasar por aquí. El page repite el mismo `getGame`:
- * Next memoiza el fetch dentro de la petición, así que solo se hace una vez.
+ * Solo hace falta en un DOCUMENTO. En una petición RSC —el prefetch de una
+ * tarjeta o la navegación del cliente— el status no lo mira nadie: el router
+ * resuelve el `notFound()` y el `permanentRedirect()` del page dentro del
+ * stream. Esperar aquí al backend en RSC bloqueaba el esqueleto hasta tener el
+ * detalle del juego (0,5-7 s en frío en producción), incluso para una tarjeta
+ * ya prefetcheada: el clic no cambiaba ni la URL hasta entonces.
+ *
+ * Lo que este layout NO evita: Next 15.5 renderiza la metadata en toda
+ * respuesta RSC, también en el prefetch, así que `generateMetadata` sigue
+ * pidiendo el detalle por cada tarjeta que entra al viewport. Va en streaming,
+ * pero el prefetch no termina hasta que llega, y un clic mientras tanto espera
+ * a ese prefetch (por eso la tarjeta muestra `LinkPendingOverlay`).
+ *
+ * La marca la pone el middleware (`lib/rscRequest.ts`): `headers()` no ve
+ * `rsc` ni `next-router-prefetch`, y por eso la comprobación anterior, que
+ * miraba `next-router-prefetch`, nunca se cumplía. Falsificar la marca en un
+ * documento solo le sirve a quien la manda su propia respuesta en streaming:
+ * la ficha es `no-store`, nadie la cachea.
  *
  * Un layout no ve `searchParams`: la redirección por slug desactualizado
  * pierde el `?platform=`. Es el caso raro (nombre corregido tras indexarse);
@@ -34,8 +48,8 @@ export default async function GameSegmentLayout({
     const parsed = parseGameSegment((await params).slug);
     if (!parsed) notFound();
 
-    const isPrefetch = (await headers()).get('next-router-prefetch') === '1';
-    if (!isPrefetch) {
+    const isRsc = (await headers()).get(RSC_REQUEST_HEADER) === '1';
+    if (!isRsc) {
         const game = await fetchGame(parsed.id);
         if (!game) notFound();
         if (parsed.slug !== game.slug) permanentRedirect(gamePath(game));

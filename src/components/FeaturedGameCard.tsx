@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
 import GameCardImage from './GameCardImage';
+import LinkPendingOverlay from './LinkPendingOverlay';
 import Link from 'next/link';
 import PlatformBadge from './PlatformBadge';
 import PriceInfo from './PriceInfo';
@@ -148,6 +149,7 @@ function FeaturedGameCard({
                     {/* Carátula: siempre visible, ancho fijo */}
                     <Box pos="relative" style={{ width: compact ? IMAGE_WIDTH_COMPACT : IMAGE_WIDTH, flexShrink: 0, height: '100%' }}>
                         <GameCardImage game={game} sizes={compact ? '45vw' : `${IMAGE_WIDTH}px`} priority={priority} />
+                        <LinkPendingOverlay />
                     </Box>
 
                     {/* Info: solo la tarjeta activa (centrada) la muestra; las

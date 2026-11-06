@@ -586,6 +586,39 @@ html[data-prefs='pending'] [data-prefs-dependent] {
   }
 }
 
+/* Velo de `LinkPendingOverlay` sobre la portada de una tarjeta que está
+   abriendo su ficha. Entra a los 150 ms: una navegación prefetcheada pinta el
+   esqueleto antes y así no parpadea. Por encima de los chips de la portada
+   (z-index 2) y sin capturar clics. */
+@keyframes link-pending-in {
+  to {
+    opacity: 1;
+  }
+}
+
+.link-pending {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  animation: link-pending-in 0.2s ease-out 0.15s forwards;
+}
+
+/* Sin movimiento: el velo aparece de golpe, sin fundido y sin el giro del
+   spinner. La portada atenuada basta como señal. */
+@media (prefers-reduced-motion: reduce) {
+  .link-pending {
+    animation-duration: 0s;
+  }
+  .link-pending .mantine-Loader-root {
+    display: none;
+  }
+}
+
 /* Título "Explora tus sagas favoritas" del home: es el link a /sagas. En
    reposo hereda el aspecto del título (color atenuado del <Text>); solo el
    hover y el foco de teclado lo delatan como clickeable. */

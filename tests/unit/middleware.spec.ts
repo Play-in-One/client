@@ -27,3 +27,24 @@ test('RSC navigation without a deployment ID receives the reload response', () =
     // Next has already removed the RSC header when this function runs.
     expect(middleware(new NextRequest('https://pio.test/about')).status).toBe(409);
 });
+
+/* `headers()` de un Server Component nunca ve `rsc` ni `next-router-*`: Next
+ * las borra antes del render. La marca la pone el middleware —su matcher sí
+ * las ve— para que el layout de la ficha sepa que no hace falta esperar al
+ * backend para decidir el status. */
+test('current RSC navigation is marked for the server render', () => {
+    const response = middleware(new NextRequest('https://pio.test/juego/zelda-1', {
+        headers: { 'x-deployment-id': 'current-release' },
+    }));
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-middleware-request-x-pio-rsc')).toBe('1');
+    expect(response.headers.get('x-middleware-override-headers')?.split(',')).toContain('x-pio-rsc');
+});
+
+test('the reload response is not marked', () => {
+    const response = middleware(new NextRequest('https://pio.test/juego/zelda-1', {
+        headers: { 'x-deployment-id': 'previous-release' },
+    }));
+    expect(response.status).toBe(409);
+    expect(response.headers.get('x-middleware-request-x-pio-rsc')).toBeNull();
+});

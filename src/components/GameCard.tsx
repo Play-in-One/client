@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, memo } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
 import GameCardImage from './GameCardImage';
+import LinkPendingOverlay from './LinkPendingOverlay';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
@@ -249,6 +250,10 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                     {game.rating && (
                         <RatingPill value={Number(game.rating)} pos="absolute" bottom={8} right={8} style={{ zIndex: 2 }} />
                     )}
+
+                    {/* Mientras abre la ficha: el clic se registró aunque la
+                        respuesta tarde (ver LinkPendingOverlay). */}
+                    <LinkPendingOverlay />
                 </Box>
 
                 {/* Info */}

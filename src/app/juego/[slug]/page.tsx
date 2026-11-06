@@ -147,9 +147,11 @@ async function fetchRelated(game: Game, platform: Platform | undefined): Promise
  * secas) se responde 308 a la canónica en vez de servir dos URLs con la misma
  * ficha. `/game/<id>`, la ruta anterior, vive solo como redirección.
  *
- * El 404 y ese 308 los decide `layout.tsx` (ver ahí por qué); las
- * comprobaciones de este archivo son la red de seguridad y cuestan cero
- * porque el `getGame` está memoizado dentro de la petición.
+ * En un documento, el 404 y ese 308 los decide `layout.tsx` (ver ahí por qué)
+ * y lo de aquí cuesta cero porque `getGame` está memoizado dentro de la
+ * petición. En una petición RSC (navegación del cliente) el layout no consulta,
+ * así que las comprobaciones de este archivo son las que actúan: el router
+ * resuelve el `notFound()` y el `permanentRedirect()` dentro del stream.
  */
 
 type Params = Promise<{ slug: string }>;
