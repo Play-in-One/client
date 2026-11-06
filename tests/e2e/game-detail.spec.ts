@@ -195,6 +195,20 @@ test('el botón de ir a la tienda apunta a la URL del producto', async ({ page }
     expect(href).toBeTruthy();
 });
 
+test('la fila completa de una oferta abre la tienda, también en escritorio', async ({ page, context }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto(gamePath);
+    const row = offersTable(page).locator('tbody tr.game-offer-row').first();
+    const exits: string[] = [];
+    context.on('request', req => { if (new URL(req.url()).pathname.startsWith('/go/product/')) exits.push(req.url()); });
+    // La insignia de condición no es un enlace: el clic cae en la fila.
+    const popup = context.waitForEvent('page');
+    await row.locator('.mantine-Badge-root:visible').first().click();
+    // El dominio de la tienda sembrada no resuelve: lo que importa es la salida por /go.
+    await popup;
+    await expect.poll(() => exits.length).toBe(1);
+});
+
 test('el historial de precio mínimo se muestra entre el mejor precio y la comparativa', async ({ page }) => {
     await page.goto(gamePath);
     const minHistory = page.getByRole('heading', { name: /historial de precio mínimo/i });

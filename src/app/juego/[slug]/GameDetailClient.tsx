@@ -69,6 +69,7 @@ import ProductClickBadge from '@/components/ProductClickBadge';
 import SagaLogo from '@/components/SagaLogo';
 import RemoteImage from '@/components/RemoteImage';
 import SellerLogo from '@/components/SellerLogo';
+import { isRowOpenClick } from '@/lib/offerRow';
 import ProductImagePreview, { PRODUCT_PREVIEW_HOVER } from '@/components/ProductImagePreview';
 import {
     conditionBadgeColorFor,
@@ -365,9 +366,9 @@ export default function GameDetailClient({
     const handleOfferClick = (e: React.MouseEvent, product: Product) => {
         if (!beginOffer(product)) e.preventDefault();
     };
-    const handleMobileOfferRowClick = (e: React.MouseEvent<HTMLTableRowElement>, product: Product) => {
-        if (!window.matchMedia('(max-width: 47.99em)').matches) return;
-        if ((e.target as HTMLElement).closest('a, [role="button"]')) return;
+    // The whole row opens the store at every size, like its button.
+    const handleOfferRowClick = (e: React.MouseEvent<HTMLTableRowElement>, product: Product) => {
+        if (!isRowOpenClick(e.target)) return;
         if (beginOffer(product)) {
             window.open(outgoingHref('product', product.id), '_blank', 'noopener');
         }
@@ -942,7 +943,7 @@ export default function GameDetailClient({
                                                             className="game-offer-row"
                                                             data-out-of-stock={p.in_stock ? undefined : true}
                                                             style={{ transition: 'background 0.15s' }}
-                                                            onClick={(e) => handleMobileOfferRowClick(e, p)}
+                                                            onClick={(e) => handleOfferRowClick(e, p)}
                                                         >
                                                     <Table.Td style={{ width: '100%' }}>
                                                         <Group gap="sm" wrap="nowrap">

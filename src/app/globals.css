@@ -161,25 +161,24 @@ body {
   background-color: var(--mantine-color-dark-6) !important;
 }
 
-/* En móvil una oferta completa abre la tienda; el logo conserva su propio
-   enlace a la ficha del vendedor. El cursor y el realce hacen explícita esa
-   acción en dispositivos compactos con mouse o trackpad. */
-@media (max-width: 47.99em) {
-  .game-offer-row {
-    cursor: pointer;
-  }
+/* Una oferta completa abre la tienda, en cualquier tamaño; el logo conserva su
+   propio enlace a la ficha del vendedor. El cursor y el realce hacen explícita
+   esa acción. Las ofertas de consola son <article> y llevan su propio realce
+   (`ConsoleCatalog.module.css`). */
+.game-offer-row {
+  cursor: pointer;
+}
 
-  .game-offer-row > td {
-    transition: background-color 0.15s;
-  }
+.game-offer-row > td {
+  transition: background-color 0.15s;
+}
 
-  .game-offer-row:hover > td {
-    background-color: var(--mantine-color-gray-0);
-  }
+.game-offer-row:hover > td {
+  background-color: var(--mantine-color-gray-0);
+}
 
-  [data-mantine-color-scheme='dark'] .game-offer-row:hover > td {
-    background-color: var(--mantine-color-dark-6);
-  }
+[data-mantine-color-scheme='dark'] .game-offer-row:hover > td {
+  background-color: var(--mantine-color-dark-6);
 }
 
 /* Condition filter switch — adapts to site theme, keeps the neon cyan indicator */

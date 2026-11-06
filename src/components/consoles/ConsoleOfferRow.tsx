@@ -14,15 +14,13 @@ import { editionSwatch, includedGamesLabel, type ConsoleConfiguration } from '@/
 import { EditionSwatch } from './EditionSwatch';
 import { isAffiliateOffer, type Product } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
+import { isRowOpenClick } from '@/lib/offerRow';
 import { IncludedGameCovers } from './IncludedGameCovers';
 import styles from './ConsoleCatalog.module.css';
 
 export function hasLivePrice(product: Product) {
     return product.in_stock && product.current_price != null && Number(product.current_price) > 0;
 }
-
-/* Same breakpoint as the game page's tappable rows (`globals.css`). */
-const TAPPABLE_ROW_QUERY = '(max-width: 47.99em)';
 
 export function ConsoleOfferRow({ product, configuration, index, best, href, onOffer, onOpen }: {
     product: Product;
@@ -31,17 +29,14 @@ export function ConsoleOfferRow({ product, configuration, index, best, href, onO
     best: boolean;
     href: string;
     onOffer: (event: MouseEvent, product: Product) => void;
-    /** Opens the store from a tap anywhere on the row (phones, like the game page). */
+    /** Opens the store from a click anywhere on the row, like the game page. */
     onOpen: (product: Product) => void;
 }) {
     const live = hasLivePrice(product);
     const priced = product.current_price != null && Number(product.current_price) > 0;
-    // On a phone the whole row opens the store; its links (store page, game
-    // covers) and buttons keep their own action. A retired offer goes nowhere.
+    // The whole row opens the store; a retired offer goes nowhere.
     const openFromRow = (event: MouseEvent<HTMLElement>) => {
-        if (!live || !window.matchMedia(TAPPABLE_ROW_QUERY).matches) return;
-        if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return;
-        onOpen(product);
+        if (live && isRowOpenClick(event.target)) onOpen(product);
     };
     // The store's photo of this exact unit, as on the game page; desktop only.
     // Above the row and not to its left: the offer list spans the whole
