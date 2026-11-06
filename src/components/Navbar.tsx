@@ -22,7 +22,6 @@ import {
     UnstyledButton,
     Accordion,
     ScrollArea,
-    Badge,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
@@ -92,11 +91,11 @@ const THEME_OPTIONS = [
 export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
-    // Consoles are linked for everyone once public; during the staff preview
-    // only an admin gets the link, so the pages stay undiscoverable.
+    // The console catalog is reached from the home hero and the game galleries
+    // («Encuentra tu próxima consola»), not from the header. On the console
+    // pages themselves the search box still searches consoles.
     const { isAdmin } = useAdmin();
     const showConsoles = CONSOLES_PUBLIC || (CONSOLES_STAFF_PREVIEW && isAdmin);
-    const consolesLabel = <>Consolas{!CONSOLES_PUBLIC && <Badge ml={6} size="xs" color="caution" variant="light">staff</Badge>}</>;
     const {
         searchQuery, setSearchQuery, condition, setCondition, format, setFormat, digital, setDigital,
     } = useApp();
@@ -195,9 +194,7 @@ export default function Navbar() {
                     280 (abajo): el enlace a Ofertas no cabía y la barra se salía
                     53 px por la derecha en cualquier página con buscador (todas
                     menos la home), tapando el engranaje de preferencias. */}
-                <Group gap={showConsoles ? 'sm' : 'md'} visibleFrom="lg" wrap="nowrap">
-                    {showConsoles && <UnstyledButton component={Link} href="/consolas" fw={600} fz="sm"
-                        c={pathname?.startsWith('/consola') ? 'var(--pio-brand-text)' : 'dimmed'}>{consolesLabel}</UnstyledButton>}
+                <Group gap="md" visibleFrom="lg" wrap="nowrap">
                     {/* Ofertas va primero y fuera de los menús de consola: es la
                         página con más intención de compra del sitio y no
                         pertenece a ninguna marca. Enlace real (`<a href>`) para
@@ -228,7 +225,13 @@ export default function Navbar() {
                             <Menu
                                 key={group.label}
                                 opened={openedMenu === group.label}
-                                onChange={(isOpen) => setOpenedMenu(isOpen ? group.label : null)}
+                                // A menu only closes ITSELF. The hover close is delayed
+                                // (`closeDelay`): moving from PlayStation to Xbox opened Xbox at
+                                // once, and 150 ms later PlayStation's late close set the shared
+                                // state to null and shut Xbox too.
+                                onChange={(isOpen) => setOpenedMenu((current) => (isOpen
+                                    ? group.label
+                                    : current === group.label ? null : current))}
                                 trigger="hover"
                                 position="bottom"
                                 openDelay={0}
@@ -297,7 +300,7 @@ export default function Navbar() {
                                 onChange={(e) => setLocalQuery(e.currentTarget.value)}
                                 radius="xl"
                                 size="sm"
-                                w={{ base: 140, sm: 220, lg: showConsoles ? 160 : 200 }}
+                                w={{ base: 140, sm: 220, lg: 200 }}
                                 classNames={{ input: 'search-input' }}
                                 styles={{
                                     input: {
@@ -451,7 +454,6 @@ export default function Navbar() {
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
                     <StaffProductImagesSwitch />
-                    {showConsoles && <Anchor component={Link} href="/consolas" onClick={close} fw={600} fz="lg" c="inherit" underline="never" px="md">{consolesLabel}</Anchor>}
                     <Anchor
                         component={Link}
                         href="/ofertas"
