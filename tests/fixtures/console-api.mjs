@@ -85,6 +85,8 @@ createServer((req, res) => {
     }
     if (url.pathname.startsWith('/api/consoles/')) return send({ detail: 'Not found' }, 404);
     if (url.pathname === '/api/platforms/') return send({ ...empty, count: 1, results: [platform] });
+    // /ofertas renders its header (and «Encuentra tu próxima consola») even with no deals today.
+    if (url.pathname === '/api/deals/') return send({ date: null, last_scrape_at: null, count: 0, platforms: [], results: [] });
     // The PS5 landing's first page: the console detail shows its total as the games counter.
     if (url.pathname === '/api/games/' && url.searchParams.get('platforms') === '5') return send({ ...empty, count: 1234 });
     if (url.pathname === '/api/products/991/') return send(products[0]);

@@ -157,8 +157,9 @@ async function hardwareIgnoresDigitalFormat(page: Page) {
 async function mobileFits(page: Page) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/consolas');
+    // The header no longer links the console catalog, on phones either.
     await page.getByRole('button', { name: 'Abrir menú' }).click();
-    await expect(page.getByRole('dialog').getByRole('link', { name: /^Consolas/ })).toBeVisible();
+    await expect(page.getByRole('dialog').getByRole('link', { name: /^Consolas/ })).toHaveCount(0);
     await page.keyboard.press('Escape');
     await page.getByRole('navigation', { name: 'Plataforma' }).getByRole('link', { name: 'Nintendo Switch', exact: true }).click();
     await expect(page.getByText('No hay consolas que coincidan con estos filtros.')).toBeVisible();
@@ -186,7 +187,7 @@ test.describe('Staff preview of the console pages', () => {
             await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
             await expect(page.getByText('PS5 Slim')).toHaveCount(0);
         }
-        for (const path of ['/', '/search', '/store/77', '/juegos/ps5']) {
+        for (const path of ['/', '/search', '/store/77', '/juegos/ps5', '/ofertas', '/ofertas/ps5']) {
             await page.goto(path);
             await expect(page.locator('a[href^="/consola"]')).toHaveCount(0);
             await expect(page.getByRole('heading', { name: 'Consolas en esta tienda' })).toHaveCount(0);
@@ -210,9 +211,26 @@ test.describe('Staff preview of the console pages', () => {
         await expect(card).toContainText('Borrador');
         await expect(card).toContainText('453.000');
         await expect(card).toContainText('1 tienda');
-        await expect(page.getByRole('link', { name: /^Consolas\s*staff$/i }).first()).toBeVisible();
+        // The header no longer links it: the hero and the game galleries do.
+        await expect(page.locator('nav.navbar-bg a[href^="/consolas"]')).toHaveCount(0);
         expect(authorized.length).toBeGreaterThan(0);
         expect(authorized.every(Boolean)).toBe(true);
+    });
+
+    test('the home hero and every game gallery lead an admin to the console catalog', async ({ page }) => {
+        await signInAsStaff(page);
+        for (const [path, target] of [
+            ['/', '/consolas'],
+            ['/search', '/consolas'],
+            ['/search?platform=ps5', '/consolas?platform=ps5'],
+            ['/ofertas', '/consolas'],
+            ['/ofertas/ps5', '/consolas?platform=ps5'],
+        ]) {
+            await page.goto(path);
+            // The dev server compiles each page on its first visit: give it room.
+            await expect(page.getByRole('link', { name: /Encuentra tu próxima consola/ }), path)
+                .toHaveAttribute('href', target, { timeout: 45_000 });
+        }
     });
 
     test("a console's game gallery leads an admin to that console's catalog", async ({ page }) => {
@@ -320,6 +338,10 @@ test.describe('Public console experience', () => {
         expect(html).toContain('1.234 juegos compatibles');
         // The console's game gallery links its hardware catalog for everyone, in the server HTML.
         expect(await (await request.get('/juegos/ps5')).text()).toContain('href="/consolas?platform=ps5"');
+        // So do the home hero and the deals gallery, in the server HTML.
+        for (const path of ['/', '/ofertas']) {
+            expect(await (await request.get(path)).text(), path).toContain('href="/consolas"');
+        }
     });
 
     test('filters narrow the offers and keep retired offers apart', async ({ page }) => filtersNarrowTheOffers(page));

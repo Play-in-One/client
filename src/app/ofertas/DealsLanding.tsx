@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
-import { Anchor, Container, SimpleGrid, Text, Title } from '@mantine/core';
+import { Anchor, Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { ApiError, getDeals, getGames, getPlatforms } from '@/lib/api';
 import type { DealsResponse, Game, Platform } from '@/lib/types';
@@ -10,6 +10,8 @@ import { platformLongName } from '@/lib/types';
 import DealCard from '@/components/DealCard';
 import CrawlablePagination from '@/components/CrawlablePagination';
 import InfoHeading from '@/components/InfoHeading';
+import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
+import { consolesAvailable } from '@/lib/consoleAvailability';
 import { JsonLd } from '@/components/JsonLd';
 import {
     DEALS_METHOD_LINE,
@@ -149,8 +151,10 @@ export default async function DealsLanding({ slug, page = 1 }: { slug?: string; 
     // Página propia (sin `loading.tsx`): el 404 es un status real.
     if (platform === null) notFound();
 
-    const [{ res, failed: summaryFailed }, { games, total, failed: gamesFailed }] = await Promise.all([
+    const [{ res, failed: summaryFailed }, { games, total, failed: gamesFailed }, findConsole] = await Promise.all([
         fetchDeals(platform), fetchDealGames(platform, page),
+        // «Encuentra tu próxima consola»: that console's catalog, or every console on /ofertas.
+        consolesAvailable(platform?.slug),
     ]);
     const failed = summaryFailed || gamesFailed;
     if (page > 1 && games.length === 0 && !failed) notFound();
@@ -194,6 +198,7 @@ export default async function DealsLanding({ slug, page = 1 }: { slug?: string; 
                     resumen de las landings de consola: sigue en el HTML
                     inicial (y en la meta description) sin empujar las ofertas
                     hacia abajo. */}
+                <Group justify="space-between" align="flex-start" gap="md">
                 <InfoHeading
                     label="Resumen de las ofertas"
                     heading={
@@ -247,6 +252,8 @@ export default async function DealsLanding({ slug, page = 1 }: { slug?: string; 
                         {DEALS_SCOPE_NOTE}
                     </Text>
                 </InfoHeading>
+                <FindConsoleButton platform={platform} available={findConsole} />
+                </Group>
                 <Text fz="sm" c="dimmed" mb="sm">
                     {DEALS_TYPICAL_NOTE}
                 </Text>

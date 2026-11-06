@@ -8,6 +8,7 @@ import { ConsoleCatalog } from '@/components/consoles/ConsoleCatalog';
 import { consoleQuery } from '@/lib/consoles';
 import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
+import { consolesAvailable } from '@/lib/consoleAvailability';
 import { buildMetadata, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
 import SearchClient from './SearchClient';
 
@@ -101,6 +102,8 @@ export default async function SearchPage({
         getPlatforms({ revalidate }).then((result) => result.results).catch(() => [] as Platform[]),
     ]);
     const { games, total } = firstPage;
+    // «Encuentra tu próxima consola» in the gallery header: a public link only when a model is published.
+    const consolesPublicLink = await consolesAvailable();
 
     const description = `Comparamos ${total > 0 ? `${total.toLocaleString('es-CL')} ` : ''}videojuegos entre tiendas chilenas; precios con envío incluido, actualizados a diario.`;
 
@@ -120,7 +123,8 @@ export default async function SearchPage({
             {CONSOLES_PUBLIC && <Container size="lg" pt="lg"><Group gap="lg"><Text fw={700}>Juegos</Text><Anchor component={Link} href={`/search?category=console${typeof sp.q === 'string' ? `&q=${encodeURIComponent(sp.q)}` : ''}`}>Consolas</Anchor></Group></Container>}
             {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
             <SearchClient initialGames={games} initialTotal={total}
-                initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0} />
+                initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0}
+                consolesAvailable={consolesPublicLink} />
         </>
     );
 }

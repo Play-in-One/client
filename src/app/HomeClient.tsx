@@ -39,6 +39,7 @@ import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
 import { postPath } from '@/lib/seo';
 import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
 import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
+import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
 
 export default function HomeClient({
     initialPosts,
@@ -48,6 +49,7 @@ export default function HomeClient({
     deals: initialDeals,
     dealsTitle,
     dealsAreToday,
+    consolesAvailable = false,
 }: {
     initialPosts: Post[];
     initialTrending: Game[];
@@ -59,6 +61,8 @@ export default function HomeClient({
     dealsTitle: string;
     /** Si la tanda es la de hoy (para «Nueva hoy»), resuelto en el servidor. */
     dealsAreToday: boolean;
+    /** El servidor vio una consola publicada: el botón del hero es un enlace público. */
+    consolesAvailable?: boolean;
 }) {
     const router = useRouter();
     const [query, setQuery] = useState('');
@@ -307,6 +311,10 @@ export default function HomeClient({
                             </Group>
                         </form>
                     </Box>
+
+                    {/* Hardware: from the hero to the console catalog (staff preview: admins only).
+                        No wrapper: a visitor who does not get the button gets no gap either. */}
+                    <FindConsoleButton available={consolesAvailable} align="center" />
 
                 </Container>
             </Box>

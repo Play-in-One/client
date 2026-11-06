@@ -2,11 +2,13 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Container, SimpleGrid, Text, Title, Loader } from '@mantine/core';
+import { Container, Group, SimpleGrid, Text, Title, Loader } from '@mantine/core';
 import { getPlatforms } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
 import GameCard from '@/components/GameCard';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
+import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
+import { isConsolePlatform } from '@/lib/consoles';
 
 /* Debe coincidir con API_PAGE_SIZE del backend (default 24). El backend no
    expone page_size como query param, así que el frontend fija el mismo valor. */
@@ -22,11 +24,13 @@ function SearchContent({
     initialTotal,
     initialPlatforms,
     initialResultsMatchFilters,
+    consolesAvailable,
 }: {
     initialGames: Game[];
     initialTotal: number;
     initialPlatforms: Platform[];
     initialResultsMatchFilters: boolean;
+    consolesAvailable: boolean;
 }) {
     const router = useRouter();
     const params = useSearchParams();
@@ -145,6 +149,9 @@ function SearchContent({
             onQueryChange={onQueryChange}
             onClearFilters={onClearFilters}
             showHeader
+            // With exactly one console filtered, its own catalog; otherwise every console.
+            headerAction={<FindConsoleButton available={consolesAvailable}
+                platform={isConsolePlatform(platformSlug) ? { slug: platformSlug } : null} />}
             withContainer
         />
     );
@@ -155,6 +162,7 @@ export default function SearchClient({
     initialTotal = 0,
     initialPlatforms = [],
     initialResultsMatchFilters = false,
+    consolesAvailable = false,
 }: {
     /** Primera página resuelta en el servidor, solo para la entrada limpia a
      *  /search (sin filtros ni búsqueda). Es lo que hace que la galería exista
@@ -163,6 +171,8 @@ export default function SearchClient({
     initialTotal?: number;
     initialPlatforms?: Platform[];
     initialResultsMatchFilters?: boolean;
+    /** The server saw a published console: «Encuentra tu próxima consola» is a public link. */
+    consolesAvailable?: boolean;
 }) {
     return (
         // El fallback NO es un spinner: es la galería que resolvió el servidor.
@@ -179,7 +189,7 @@ export default function SearchClient({
         <Suspense
             fallback={
                 initialGames.length > 0 ? (
-                    <StaticResults games={initialGames} total={initialTotal} />
+                    <StaticResults games={initialGames} total={initialTotal} consolesAvailable={consolesAvailable} />
                 ) : (
                     <Container py="xl"><Loader color="primaryRed" /></Container>
                 )
@@ -187,7 +197,7 @@ export default function SearchClient({
         >
             <SearchContent initialGames={initialGames} initialTotal={initialTotal}
                 initialPlatforms={initialPlatforms}
-                initialResultsMatchFilters={initialResultsMatchFilters} />
+                initialResultsMatchFilters={initialResultsMatchFilters} consolesAvailable={consolesAvailable} />
         </Suspense>
     );
 }
@@ -195,12 +205,15 @@ export default function SearchClient({
 /** La galería tal como la deja el servidor: sin filtros, sin paginación y sin
  *  nada que dependa de la URL. Solo se usa como fallback del Suspense de
  *  arriba, así que su única misión es existir en el HTML. */
-function StaticResults({ games, total }: { games: Game[]; total: number }) {
+function StaticResults({ games, total, consolesAvailable }: { games: Game[]; total: number; consolesAvailable: boolean }) {
     return (
         <Container size="xl" py="xl">
-            <Title order={1} fz={{ base: 24, md: 32 }} fw={800} mb="xs">
-                Explorar juegos
-            </Title>
+            <Group justify="space-between" align="flex-start" gap="md">
+                <Title order={1} fz={{ base: 24, md: 32 }} fw={800} mb="xs">
+                    Explorar juegos
+                </Title>
+                <FindConsoleButton available={consolesAvailable} />
+            </Group>
             <Text c="dimmed" fz="sm" mb="lg">
                 {total.toLocaleString('es-CL')} juegos comparados entre tiendas chilenas.
             </Text>

@@ -110,6 +110,8 @@ interface Props {
     staticFallback?: React.ReactNode;
 
     showHeader?: boolean;
+    /** Shown at the end of the header row (with `showHeader`), e.g. the link to the console catalog. */
+    headerAction?: React.ReactNode;
     withContainer?: boolean;
 }
 
@@ -146,6 +148,7 @@ export default function GameExplorer({
     onClearFilters,
     staticFallback,
     showHeader = false,
+    headerAction,
     withContainer = false,
 }: Props) {
     const { conditionParam, sellerLocationsParam, ready } = useApp();
@@ -560,14 +563,17 @@ export default function GameExplorer({
     const content = (
         <>
             {showHeader && (
-                <Box mb="xl">
-                    <Title order={1} fz={{ base: 28, md: 36 }} fw={700} mb="xs">
-                        {activeQuery ? `Resultados para "${activeQuery}"` : 'Explorar Juegos'}
-                    </Title>
-                    <Text c="dimmed">
-                        {total} juego{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}
-                    </Text>
-                </Box>
+                <Group justify="space-between" align="flex-start" gap="md" mb="xl">
+                    <Box>
+                        <Title order={1} fz={{ base: 28, md: 36 }} fw={700} mb="xs">
+                            {activeQuery ? `Resultados para "${activeQuery}"` : 'Explorar Juegos'}
+                        </Title>
+                        <Text c="dimmed">
+                            {total} juego{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}
+                        </Text>
+                    </Box>
+                    {headerAction}
+                </Group>
             )}
 
             <FilterToolbar

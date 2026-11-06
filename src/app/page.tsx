@@ -4,6 +4,7 @@ import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { itemListJsonLd } from '@/lib/seo';
 import { dealsSectionTitle, isTodayDeals } from '@/lib/deals';
+import { consolesAvailable } from '@/lib/consoleAvailability';
 import HomeClient from './HomeClient';
 
 // Refresh server-rendered news periodically instead of freezing at build time.
@@ -22,6 +23,9 @@ export default async function HomePage() {
         // «Ofertas de hoy». NO entra en la regla de abajo (ver `failed`).
         getDeals({ homepage: 1 }),
     ]);
+    // «Encuentra tu próxima consola» in the hero: a public link only when a model is published.
+    // Outside the rule above too: it never fails, it only hides the button.
+    const findConsole = await consolesAvailable();
 
     /* Una regeneración ISR con una sección caída NO debe llegar a la caché:
        con `stale-while-revalidate` esa portada incompleta se servía hasta la
@@ -78,6 +82,7 @@ export default async function HomePage() {
                 initialFeatured={featured}
                 initialSagas={sagas}
                 deals={deals}
+                consolesAvailable={findConsole}
                 dealsTitle={dealsTitle}
                 dealsAreToday={dealsAreToday}
             />

@@ -2,9 +2,8 @@ import type { Metadata } from 'next';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
 import { Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
-import { ApiError, getConsoles, getGames, getPlatforms } from '@/lib/api';
-import { CONSOLE_PLATFORMS } from '@/lib/consoles';
-import { CONSOLES_PUBLIC } from '@/lib/features';
+import { ApiError, getGames, getPlatforms } from '@/lib/api';
+import { consolesAvailable } from '@/lib/consoleAvailability';
 import { LANDING_ORDERING } from '@/lib/platformGames';
 import type { Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
@@ -181,13 +180,8 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
         ? platformSummary(platform, games, total)
         : pageSummary(platform, page, totalPages, total);
     const faq = buildFaq(platform, total);
-    // «Encuentra tu próxima consola»: once the console pages are public, only
-    // when this platform has a published model (an anonymous request sees no
-    // drafts, so the staff preview decides in the browser). A failure only
-    // hides the button.
-    const consolesAvailable = CONSOLES_PUBLIC && CONSOLE_PLATFORMS.some(([slug]) => slug === platform.slug)
-        ? await getConsoles({ platform: platform.slug }, { revalidate: 300 }).then(res => res.count > 0).catch(() => false)
-        : false;
+    // «Encuentra tu próxima consola»: a public link only when this platform has a published model.
+    const findConsole = await consolesAvailable(platform.slug);
 
     const jsonLd = [
         collectionPageJsonLd({
@@ -244,7 +238,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         {summary}
                     </Text>
                 </InfoHeading>
-                <FindConsoleButton platform={platform} available={consolesAvailable} />
+                <FindConsoleButton platform={platform} available={findConsole} />
                 </Group>
 
                 {games.length > 0 ? (

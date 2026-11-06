@@ -62,6 +62,13 @@ export const CONSOLE_PLATFORMS = [
     ['ps5', 'PlayStation 5'], ['switch', 'Nintendo Switch'], ['switch2', 'Nintendo Switch 2'],
 ] as const;
 
+const CONSOLE_SLUGS: ReadonlySet<string> = new Set(CONSOLE_PLATFORMS.map(([slug]) => slug));
+
+/** Whether PIO sells hardware for this platform (PC, PS3… are games only). */
+export function isConsolePlatform(slug?: string | null): boolean {
+    return !!slug && CONSOLE_SLUGS.has(slug);
+}
+
 export const GAME_FORMATS: Record<ConsoleGame['format'], string> = {
     physical: 'Físico', code: 'Código', preinstalled: 'Preinstalado', unknown: 'Formato sin especificar',
 };
