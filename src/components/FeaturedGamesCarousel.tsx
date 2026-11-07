@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { EmblaCarouselType } from 'embla-carousel';
-import { Box, Group, Skeleton } from '@mantine/core';
-import { useMediaQuery } from '@mantine/hooks';
+import { ActionIcon, Box, Group, Skeleton, UnstyledButton } from '@mantine/core';
+import { useMediaQuery, useReducedMotion } from '@mantine/hooks';
+import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import { Carousel } from '@mantine/carousel';
 import type { Game } from '@/lib/types';
 import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
@@ -34,12 +35,11 @@ function FeaturedCarouselSkeleton({ compact }: { compact: boolean }) {
    imperceptible. Intentar animar el salto interno que hace `loop` por su
    cuenta (probado en una versión anterior) se veía como si el carrusel entero
    "se devolviera" hasta el principio.
-   Se clonan 2 juegos de cada lado (no solo 1): con un click rápido y
-   sucesivo, un solo clon de colchón no alcanza a corregirse antes de que el
-   siguiente click intente cruzar OTRA VEZ el límite — con `loop={false}` eso
-   deja al carrusel sin más adónde ir (atascado). Dos clones dan margen para
-   un par de clicks rápidos seguidos. */
+   Dos clones a cada lado dejan margen para avanzar de nuevo mientras se
+   completa el movimiento anterior. La corrección espera al evento `settle`
+   de Embla, sin interrumpir el arrastre ni la inercia. */
 const CLONE_COUNT = 2;
+const AUTOPLAY_DELAY = 5000;
 
 /**
  * Carrusel "coverflow" de juegos destacados: la tarjeta centrada se ve
@@ -57,14 +57,15 @@ export default function FeaturedGamesCarousel({ games, loading = false }: { game
        layout compacto: una tarjeta por pantalla, siempre expandida y sin
        animaciones de ancho ni translateX. Es una decisión de layout que vive
        en JS (no alcanza con visibleFrom/hiddenFrom), de ahí el media query.
-       `undefined` en SSR y en el primer render → desktop; ese frame queda
-       tapado por el skeleton (`ready`). */
+       `undefined` en SSR y en el primer render → desktop; el viewport
+       limita el ancho hasta que se resuelve el media query. */
     const isDesktop = useMediaQuery('(min-width: 62em)');
     const compact = isDesktop === false;
+    const reducedMotion = useReducedMotion();
+    const [autoplayPaused, setAutoplayPaused] = useState(false);
 
-    /* Embla mide su contenedor y recién ahí centra la tarjeta activa; hasta
-       entonces se ve alineada a la izquierda. Se oculta con un fade breve para
-       no mostrar ese salto. */
+    /* Las tarjetas originales son visibles en SSR. Los clones se agregan
+       después de hidratar y medir el contenedor de Embla. */
     const [ready, setReady] = useState(false);
     useEffect(() => {
         let idInner: number | null = null;
@@ -72,8 +73,7 @@ export default function FeaturedGamesCarousel({ games, loading = false }: { game
             idInner = requestAnimationFrame(() => setReady(true));
         });
         /* requestAnimationFrame NO corre en una pestaña en segundo plano:
-           abrir la página con "abrir en pestaña nueva" dejaba el carrusel
-           oculto hasta que la pestaña se mostraba. El timer sí corre ahí, así
+           el timer permite preparar los clones también en segundo plano, así
            que actúa de red de seguridad; en la pestaña visible siempre gana el
            doble rAF, que es más rápido. */
         const idFallback = setTimeout(() => setReady(true), 300);
@@ -88,99 +88,227 @@ export default function FeaturedGamesCarousel({ games, loading = false }: { game
        Embla, que incluye los clones). */
     const [activeIndex, setActiveIndex] = useState(0);
 
-    /* @mantine/carousel expone una prop `speed`, pero es un remanente de la
-       API de Embla v7 (donde era un multiplicador de fricción); el paquete
-       instalado es embla-carousel v8, que renombró esa opción a `duration`
-       — `speed` llega a Embla como una key que no reconoce y no hace nada.
-       Aun corrigiéndolo con `duration` real, Embla converge en ~100-150ms
-       para saltar a la tarjeta adyacente sin importar el valor (afecta más a
-       distancias largas), mucho más rápido que la animación de expandir la
-       tarjeta (~0.7s) — por eso se sentía "sin transición".
-       Solución: una transición CSS sobre el transform del track, mostrando
-       recién ahí el movimiento a la misma velocidad que la tarjeta. Debe
-       activarse SOLO al usar las flechas, nunca durante el arrastre (si el
-       track tuviera esta transición todo el tiempo, el drag se vería con lag,
-       siguiendo al mouse con retraso, en vez de responder en vivo). */
-    const [transitioning, setTransitioning] = useState(false);
-    const transitionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const triggerTransition = () => {
-        setTransitioning(true);
-        if (transitionTimeout.current) clearTimeout(transitionTimeout.current);
-        transitionTimeout.current = setTimeout(() => setTransitioning(false), 800);
-    };
-
+    /* Embla es el único encargado del desplazamiento. Una transición CSS
+       sobre su transform retrasaba cada frame y cortaba el arrastre. Mantine
+       7 todavía expone `speed`; Embla 8 requiere configurar `duration`. */
     const emblaApi = useRef<EmblaCarouselType | null>(null);
-    const correctionTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const handleEmblaApi = (api: EmblaCarouselType) => {
-        /* Mientras el track hace la transición CSS de arriba, la tarjeta
-           activa también está cambiando de ancho (comprimida ↔ expandida) —
-           Embla observa el tamaño de las tarjetas por defecto (`watchResize`)
-           y recalcula la geometría del carrusel en pleno vuelo, lo que se veía
-           como un freno a mitad de camino seguido de un salto. El carrusel
-           tiene un número fijo de tarjetas con `slideSize` fijo por
-           breakpoint, así que no necesita ese watcher. */
-        api.reInit({ watchResize: false });
+    const carouselRef = useRef<HTMLDivElement>(null);
+    const wheelAvailableAt = useRef(0);
+    const handleEmblaApi = useCallback((api: EmblaCarouselType) => {
+        // Mantine vuelve a invocar este callback al seleccionar una tarjeta.
+        // Reinicializar ahí detendría la animación que acaba de comenzar.
+        if (emblaApi.current === api) return;
         emblaApi.current = api;
-    };
+        api.reInit({ watchResize: false, duration: 25 });
+    }, []);
 
     const n = games.length;
+    const cloneCount = ready && n > 1 ? CLONE_COUNT : 0;
+    useEffect(() => {
+        const api = emblaApi.current;
+        if (!api) return;
+        api.reInit({ startIndex: cloneCount, watchResize: false, duration: 25 });
+        api.scrollTo(cloneCount, true);
+    }, [cloneCount, n]);
+
+    useEffect(() => {
+        const api = emblaApi.current;
+        if (!api || !ready) return;
+        const viewport = api.rootNode();
+        let width = viewport.clientWidth;
+        // Recalcular al girar el teléfono, sin observar el ancho animado de
+        // las tarjetas (eso volvería a cortar la transición del coverflow).
+        const observer = new ResizeObserver(() => {
+            if (viewport.clientWidth === width) return;
+            width = viewport.clientWidth;
+            const index = api.selectedScrollSnap();
+            api.reInit({ startIndex: index, watchResize: false, duration: 25 });
+            api.scrollTo(index, true);
+        });
+        observer.observe(viewport);
+        return () => observer.disconnect();
+    }, [ready]);
+
+    useEffect(() => {
+        const api = emblaApi.current;
+        if (!api || !ready || compact) return;
+        let slides = api.slideNodes();
+        let snaps = api.scrollSnapList();
+        const syncCards = () => {
+            const progress = api.scrollProgress();
+            slides.forEach((slide, index) => {
+                const delta = snaps[index] - progress;
+                const gap = delta >= 0
+                    ? snaps[index] - (snaps[index - 1] ?? snaps[index] - 1)
+                    : (snaps[index + 1] ?? snaps[index] + 1) - snaps[index];
+                const distance = Math.max(-1, Math.min(1, delta / (gap || 1)));
+                // La expansión, la opacidad y el corrimiento usan la posición
+                // real del track, también durante drag, inversión y autoplay.
+                // Sin timers, transiciones CSS ni renders React por frame.
+                slide.style.setProperty('--featured-open', String(1 - Math.abs(distance)));
+                slide.style.setProperty('--featured-distance', String(distance));
+            });
+        };
+        const reInit = () => {
+            slides = api.slideNodes();
+            snaps = api.scrollSnapList();
+            syncCards();
+        };
+        syncCards();
+        api.on('scroll', syncCards).on('settle', syncCards).on('reInit', reInit);
+        return () => {
+            api.off('scroll', syncCards).off('settle', syncCards).off('reInit', reInit);
+            slides.forEach((slide) => {
+                slide.style.removeProperty('--featured-open');
+                slide.style.removeProperty('--featured-distance');
+            });
+        };
+    }, [ready, compact, cloneCount, n]);
+
     /* Traduce el índice de Embla (que recorre también los clones de los
        bordes) al índice REAL dentro de `games`: un clon "hereda" el estado
        del juego que representa. */
     const realIndexOf = (paddedIndex: number) =>
-        paddedIndex < CLONE_COUNT
-            ? (n - CLONE_COUNT + paddedIndex) % n
-            : paddedIndex >= CLONE_COUNT + n
-                ? paddedIndex - (CLONE_COUNT + n)
-                : paddedIndex - CLONE_COUNT;
+        paddedIndex < cloneCount
+            ? (n - cloneCount + paddedIndex) % n
+            : paddedIndex >= cloneCount + n
+                ? paddedIndex - (cloneCount + n)
+                : paddedIndex - cloneCount;
 
     const handleSlideChange = (paddedIndex: number) => {
         /* Con 0 o 1 juego no hay clones (`padded` es `games` tal cual): el
            índice de Embla ya es el real, sin traducción ni corrección. */
-        if (n <= 1) {
+        if (n <= 1 || !cloneCount) {
             setActiveIndex(paddedIndex);
             return;
         }
         const realIndex = realIndexOf(paddedIndex);
         setActiveIndex(realIndex);
-
-        /* Cancela cualquier corrección pendiente de un click anterior: si el
-           usuario hizo varios clicks rápidos seguidos, solo debe sobrevivir la
-           corrección hacia la posición donde terminó asentado, no una vieja
-           apuntando a una posición ya superada. */
-        if (correctionTimeout.current) clearTimeout(correctionTimeout.current);
-        if (paddedIndex < CLONE_COUNT || paddedIndex >= CLONE_COUNT + n) {
-            /* Espera un poco más que el apagado de la transición CSS (800ms)
-               para no arriesgarse a que el salto silencioso ocurra mientras
-               esa transición sigue activa, lo que lo animaría. */
-            correctionTimeout.current = setTimeout(() => {
-                emblaApi.current?.scrollTo(CLONE_COUNT + realIndex, true);
-            }, 850);
-        }
     };
-    useEffect(() => () => {
-        if (transitionTimeout.current) clearTimeout(transitionTimeout.current);
-        if (correctionTimeout.current) clearTimeout(correctionTimeout.current);
-    }, []);
+
+    useEffect(() => {
+        const api = emblaApi.current;
+        if (!api) return;
+        const settle = () => {
+            const index = api.selectedScrollSnap();
+            if (cloneCount && (index < cloneCount || index >= cloneCount + n)) {
+                // Corregir solo cuando el movimiento terminó, nunca por un
+                // temporizador que pueda interrumpir la inercia del mouse.
+                api.scrollTo(cloneCount + ((index - cloneCount + n) % n), true);
+            }
+        };
+        api.on('settle', settle);
+        return () => { api.off('settle', settle); };
+    }, [cloneCount, n]);
+
+    useEffect(() => {
+        const element = carouselRef.current;
+        if (!element || !ready || loading || n <= 1) return;
+        let accumulated = 0;
+        let lastWheelAt = 0;
+        const onWheel = (event: WheelEvent) => {
+            const api = emblaApi.current;
+            if (!api || event.ctrlKey) return;
+            const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+            if (!delta) return;
+            event.preventDefault();
+            const now = performance.now();
+            if (now - lastWheelAt > 180 || Math.sign(accumulated) !== Math.sign(delta)) accumulated = 0;
+            lastWheelAt = now;
+            // Un gesto avanza una tarjeta; la inercia del trackpad no debe
+            // encadenar selecciones mientras la anterior sigue moviéndose.
+            if (now < wheelAvailableAt.current) return;
+            accumulated += delta * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? element.clientHeight : 1);
+            if (Math.abs(accumulated) < 36) return;
+            wheelAvailableAt.current = now + 900;
+            if (accumulated > 0) api.scrollNext();
+            else api.scrollPrev();
+            accumulated = 0;
+        };
+        element.addEventListener('wheel', onWheel, { passive: false });
+        return () => {
+            element.removeEventListener('wheel', onWheel);
+            wheelAvailableAt.current = 0;
+        };
+    }, [loading, n, ready]);
+
+    useEffect(() => {
+        const element = carouselRef.current;
+        const api = emblaApi.current;
+        if (!element || !api || !ready || loading || n <= 1 || reducedMotion || autoplayPaused) return;
+
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let inView = false;
+        let hovered = element.matches(':hover') && window.matchMedia('(hover: hover)').matches;
+        let focused = element.contains(document.activeElement);
+        let dragging = false;
+        const schedule = () => {
+            clearTimeout(timer);
+            if (!inView || document.hidden || hovered || focused || dragging) return;
+            timer = setTimeout(() => {
+                api.scrollNext();
+                schedule();
+            }, AUTOPLAY_DELAY);
+        };
+        const enter = (event: PointerEvent) => {
+            if (event.pointerType === 'mouse') { hovered = true; schedule(); }
+        };
+        const leave = () => { hovered = false; schedule(); };
+        const focusIn = () => { focused = true; schedule(); };
+        const focusOut = (event: FocusEvent) => {
+            focused = event.relatedTarget instanceof Node && element.contains(event.relatedTarget);
+            schedule();
+        };
+        const down = () => { dragging = true; schedule(); };
+        const up = () => { dragging = false; schedule(); };
+        const observer = new IntersectionObserver(([entry]) => {
+            inView = entry.isIntersecting && entry.intersectionRatio >= 0.5;
+            schedule();
+        }, { threshold: [0, 0.5] });
+        observer.observe(element);
+        element.addEventListener('pointerenter', enter);
+        element.addEventListener('pointerleave', leave);
+        element.addEventListener('focusin', focusIn);
+        element.addEventListener('focusout', focusOut);
+        element.addEventListener('pointerdown', down);
+        element.addEventListener('wheel', schedule, { passive: true });
+        window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', up);
+        document.addEventListener('visibilitychange', schedule);
+        api.on('select', schedule);
+        return () => {
+            clearTimeout(timer);
+            observer.disconnect();
+            element.removeEventListener('pointerenter', enter);
+            element.removeEventListener('pointerleave', leave);
+            element.removeEventListener('focusin', focusIn);
+            element.removeEventListener('focusout', focusOut);
+            element.removeEventListener('pointerdown', down);
+            element.removeEventListener('wheel', schedule);
+            window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', up);
+            document.removeEventListener('visibilitychange', schedule);
+            api.off('select', schedule);
+        };
+    }, [ready, loading, n, reducedMotion, autoplayPaused]);
 
     /* Clones a mano en los bordes para el loop manual. Usa módulo para no
        romperse si hay menos juegos que clones deseados. */
     const padded =
-        n > 1
+        cloneCount > 0
             ? [
-                ...Array.from({ length: CLONE_COUNT }, (_, i) => games[(n - CLONE_COUNT + i + n) % n]),
+                ...Array.from({ length: cloneCount }, (_, i) => games[(n - cloneCount + i + n) % n]),
                 ...games,
-                ...Array.from({ length: CLONE_COUNT }, (_, i) => games[i % n]),
+                ...Array.from({ length: cloneCount }, (_, i) => games[i % n]),
             ]
             : games;
 
     return (
-        <Box pos="relative">
+        <Box pos="relative" ref={carouselRef}>
             {/* Skeleton superpuesto (no reemplaza al carrusel en el árbol:
                 desmontarlo re-inicializaría Embla y volvería el salto de
-                centrado que este gating evita). Cubre la espera de hidratación
-                inicial y el refetch del padre. */}
-            {(!ready || loading) && (
+                centrado). Cubre el refetch del padre. */}
+            {loading && (
                 /* `pointerEvents: none` no es decorativo: este Box cubre el
                    carrusel entero con `inset: 0`, así que mientras esté montado
                    se come TODOS los clics de las tarjetas. Sin él, cualquier
@@ -190,37 +318,31 @@ export default function FeaturedGamesCarousel({ games, loading = false }: { game
                     <FeaturedCarouselSkeleton compact={compact} />
                 </Box>
             )}
-            <Box style={{ opacity: ready && !loading ? 1 : 0, transition: 'opacity 0.25s ease' }}>
+            <Box style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.25s ease' }}>
                 <Carousel
-                    /* En mobile: una tarjeta completa por pantalla y un gap
-                       normal — 70px era ~20% del ancho de un teléfono. */
-                    slideSize={{ base: '100%', md: '58%' }}
-                    slideGap={{ base: 'md', md: '70px' }}
-                    align="center"
+                    /* En mobile asoma la siguiente tarjeta para invitar al swipe. */
+                    slideSize={{ base: n > 1 ? '90%' : '100%', md: '58%' }}
+                    slideGap={{ base: 12, md: '70px' }}
+                    align={compact ? 'start' : 'center'}
                     loop={false}
-                    initialSlide={n > 1 ? CLONE_COUNT : 0}
+                    initialSlide={n > 1 ? cloneCount : 0}
                     withIndicators={false}
-                    /* Sin flechas en mobile: se navega con swipe, y así tampoco
-                       se activa la transición CSS del track (ver
-                       `triggerTransition`), cuyo apagado por timer se veía como
-                       un salto seco en pantallas chicas. */
+                    /* En mobile se navega con swipe. */
                     withControls={!compact}
                     controlsOffset="-20px"
                     getEmblaApi={handleEmblaApi}
                     onSlideChange={handleSlideChange}
-                    previousControlProps={{ onClick: triggerTransition }}
-                    nextControlProps={{ onClick: triggerTransition }}
                     styles={{
                         container: {
                             paddingTop: 12,
                             paddingBottom: 8,
-                            transition: !compact && transitioning ? 'transform 0.7s ease' : 'none',
+                            transition: 'none',
                         },
                         controls: { zIndex: 3 },
                     }}
                 >
                     {padded.map((g, paddedIndex) => {
-                        const realIndex = n > 1 ? realIndexOf(paddedIndex) : paddedIndex;
+                        const realIndex = cloneCount ? realIndexOf(paddedIndex) : paddedIndex;
                         return (
                             <Carousel.Slide key={`${g.id}-${paddedIndex}`}>
                                 <FeaturedGameCard
@@ -247,6 +369,36 @@ export default function FeaturedGamesCarousel({ games, loading = false }: { game
                         );
                     })}
                 </Carousel>
+                {n > 1 && (
+                    <Group justify="center" gap={8} mt={4} aria-label="Navegación de juegos destacados">
+                        <Group gap={0}>
+                            {games.map((game, index) => (
+                                <UnstyledButton
+                                    key={game.id}
+                                    className="featured-carousel-indicator"
+                                    aria-label={`Ver juego ${index + 1} de ${n}: ${game.name}`}
+                                    aria-current={index === activeIndex ? 'true' : undefined}
+                                    disabled={loading}
+                                    onClick={() => emblaApi.current?.scrollTo(cloneCount + index)}
+                                >
+                                    <span className="featured-carousel-dot" data-active={index === activeIndex || undefined} />
+                                </UnstyledButton>
+                            ))}
+                        </Group>
+                        {!reducedMotion && (
+                            <ActionIcon
+                                variant="subtle"
+                                color="gray"
+                                size={32}
+                                radius="xl"
+                                aria-label={autoplayPaused ? 'Reanudar avance automático' : 'Pausar avance automático'}
+                                onClick={() => setAutoplayPaused((paused) => !paused)}
+                            >
+                                {autoplayPaused ? <IconPlayerPlay size={15} aria-hidden /> : <IconPlayerPause size={15} aria-hidden />}
+                            </ActionIcon>
+                        )}
+                    </Group>
+                )}
             </Box>
         </Box>
     );

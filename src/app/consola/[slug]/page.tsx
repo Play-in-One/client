@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { cache } from 'react';
+import { cache, Suspense } from 'react';
+import { headers } from 'next/headers';
+import { RSC_REQUEST_HEADER } from '@/lib/rscRequest';
 import { CONSOLES_PUBLIC, CONSOLES_VISIBILITY } from '@/lib/features';
 import { ApiError, getConsole, getConsoles } from '@/lib/api';
 import { ConsoleDetailSkeleton, ConsoleDetailView } from '@/components/consoles/ConsoleDetail';
@@ -43,7 +45,18 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
         noIndex: Object.keys(query).length > 0 });
 }
 
-export default async function ConsolePage({ params, searchParams }: Props) {
+export default async function ConsolePage(props: Props) {
+    // Stream client navigations immediately. Documents keep resolving outside
+    // Suspense so unknown models return HTTP 404 and old slugs return HTTP 308
+    // with their filters intact. No extra detail request is needed in a layout.
+    const isRsc = (await headers()).get(RSC_REQUEST_HEADER) === '1';
+    if (isRsc) return <Suspense fallback={<ConsoleDetailSkeleton />}>
+        <ResolvedConsolePage {...props} />
+    </Suspense>;
+    return ResolvedConsolePage(props);
+}
+
+async function ResolvedConsolePage({ params, searchParams }: Props) {
     const { slug } = await params;
     const query = consoleQuery(await searchParams);
     if (!CONSOLES_PUBLIC) {

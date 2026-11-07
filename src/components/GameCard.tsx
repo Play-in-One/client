@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef, memo } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
+import SellerLogo from './SellerLogo';
 import GameCardImage from './GameCardImage';
 import LinkPendingOverlay from './LinkPendingOverlay';
 import Link from 'next/link';
@@ -178,13 +179,8 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
             <Card
                 shadow="sm"
                 padding={0}
-                className="pio-lift"
+                className="pio-lift pio-game-card"
                 style={{
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    height: '100%',
-                    cursor: 'pointer',
                     borderColor: selected ? 'var(--mantine-color-primaryRed-5)' : undefined,
                     boxShadow: selected ? '0 0 0 2px var(--mantine-color-primaryRed-5)' : undefined,
                 }}
@@ -258,14 +254,14 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                 </Box>
 
                 {/* Info */}
-                <Box p={{ base: 'xs', sm: 'sm' }} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Box className="pio-card-info">
                     <Group gap="2xs" mb="xs" wrap="wrap">
                         {game.platforms.map((p) => (
                             <PlatformBadge key={p.id} platform={p} />
                         ))}
                     </Group>
 
-                    <Text fw={700} fz={{ base: 'sm', sm: 'md' }} lineClamp={2} mb={2}>
+                    <Text className="pio-card-title" lineClamp={2}>
                         {game.name}
                     </Text>
                     <Text fz="xs" c="dimmed" mb="sm">
@@ -292,7 +288,7 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                                 React si cae en la lista de hijos de un `Group`. */}
                             <Group ref={priceRowRef} gap="2xs" wrap="wrap" align="center" style={{ rowGap: 2 }}>
                                 <Group gap={2} wrap="nowrap" align="center">
-                                    <Text fz={{ base: 18, sm: 26 }} fw={800} c="var(--pio-brand-text)">
+                                    <Text className="pio-card-price">
                                         {formatCLP(price)}
                                     </Text>
                                     <PriceInfo
@@ -328,12 +324,7 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                                         }}
                                     >
                                         {(seller.favicon || seller.logo) && (
-                                            <img
-                                                src={seller.favicon || seller.logo || ''}
-                                                alt={seller.name}
-                                                style={{ width: 14, height: 14, objectFit: 'contain', flexShrink: 0 }}
-                                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                            />
+                                            <SellerLogo seller={seller} size={14} />
                                         )}
                                         <Text fz="xs" fw={700}>
                                             {seller.name}

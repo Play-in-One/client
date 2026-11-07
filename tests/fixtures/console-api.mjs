@@ -43,16 +43,37 @@ const siblingModel = { id: 982, name: 'PS5 Pro', slug: 'ps5-pro', platform, imag
 const live = list => list.filter(p => p.in_stock && Number(p.current_price) > 0);
 const minimum = list => live(list).length ? String(Math.min(...live(list).map(p => Number(p.current_price)))) : null;
 
+// Deterministic slow-API control, exposed only by this loopback test fixture.
+let holdDetail = false;
+let waitingDetails = [];
 createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', '*');
     res.setHeader('Content-Type', 'application/json');
     if (req.method === 'OPTIONS') { res.end(); return; }
     const url = new URL(req.url, 'http://localhost');
-    const send = (data, status = 200) => { res.statusCode = status; res.end(JSON.stringify(data)); };
+    const sendNow = (data, status = 200) => { res.statusCode = status; res.end(JSON.stringify(data)); };
+    if (url.pathname === '/__test/detail') {
+        if (req.method === 'POST') {
+            holdDetail = url.searchParams.get('hold') === '1';
+            if (!holdDetail) {
+                const pending = waitingDetails;
+                waitingDetails = [];
+                for (const release of pending) release();
+            }
+        }
+        return sendNow({ pending: waitingDetails.length, held: holdDetail });
+    }
+    const send = (data, status = 200) => {
+        if (holdDetail && url.pathname === '/api/consoles/981/') {
+            waitingDetails.push(() => sendNow(data, status));
+        } else sendNow(data, status);
+    };
     const staff = req.headers.authorization === STAFF_TOKEN;
     if (req.headers.authorization && !staff) return send({ detail: 'Token inválido.' }, 401);
     if (url.pathname === '/api/health/') return send({ ok: true });
+    // Production builds also prerender the public survey index.
+    if (url.pathname === '/api/surveys/') return send([]);
     if (url.pathname === '/api/consoles/' || url.pathname === '/api/consoles/981/') {
         const visible = published || staff;
         const q = url.searchParams;

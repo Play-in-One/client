@@ -1,6 +1,6 @@
 'use client';
 
-import { startTransition, useEffect, useRef, useState, type FormEvent } from 'react';
+import { startTransition, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -23,6 +23,7 @@ import {
     IconArrowRight,
     IconDeviceGamepad,
 } from '@tabler/icons-react';
+import { unpackGames, type GamesPayload } from '@/lib/gamePayload';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { decorative, elevation, surfaces } from '@/lib/colors';
@@ -43,8 +44,8 @@ import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
 
 export default function HomeClient({
     initialPosts,
-    initialTrending,
-    initialFeatured,
+    initialTrending: trendingPayload,
+    initialFeatured: featuredPayload,
     initialSagas,
     deals: initialDeals,
     dealsTitle,
@@ -52,8 +53,8 @@ export default function HomeClient({
     consolesAvailable = false,
 }: {
     initialPosts: Post[];
-    initialTrending: Game[];
-    initialFeatured: Game[];
+    initialTrending: Game[] | GamesPayload;
+    initialFeatured: Game[] | GamesPayload;
     initialSagas: Saga[];
     /** Primeras 8 ofertas sin filtros, para el HTML inicial. */
     deals: Deal[];
@@ -64,6 +65,8 @@ export default function HomeClient({
     /** El servidor vio una consola publicada: el botón del hero es un enlace público. */
     consolesAvailable?: boolean;
 }) {
+    const initialTrending = useMemo(() => unpackGames(trendingPayload), [trendingPayload]);
+    const initialFeatured = useMemo(() => unpackGames(featuredPayload), [featuredPayload]);
     const router = useRouter();
     const [query, setQuery] = useState('');
     const posts = initialPosts;

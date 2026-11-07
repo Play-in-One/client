@@ -52,9 +52,9 @@ export default function DealPriceLabel({ deal, isToday = true }: { deal: Deal; i
                     <IconArrowDown className="pio-deal-arrow" size={13} stroke={3} aria-hidden />
                     {pct}%
                     <IconInfoCircle size={14} aria-hidden />
-                    <VisuallyHidden component="span" data-deal-line>{dealBadgeLine(deal)}</VisuallyHidden>
-                    {age && <VisuallyHidden component="span" data-deal-age>{age}</VisuallyHidden>}
-                    {deal.is_all_time_low && <VisuallyHidden component="span">Mínimo registrado</VisuallyHidden>}
+                    <VisuallyHidden component="span" data-deal-line>{' · '}{dealBadgeLine(deal)}</VisuallyHidden>
+                    {age && <VisuallyHidden component="span" data-deal-age>{' · '}{age}</VisuallyHidden>}
+                    {deal.is_all_time_low && <VisuallyHidden component="span"> · Mínimo registrado</VisuallyHidden>}
                 </span>
             </Popover.Target>
             <Popover.Dropdown onClick={(event) => event.preventDefault()}>

@@ -322,6 +322,53 @@ test.describe('Staff preview of the console pages', () => {
 });
 
 test.describe('Public console experience', () => {
+    test('console cards do not prefetch details on visibility or hover', async ({ page }) => {
+        test.skip(process.env.PLAYWRIGHT_PRODUCTION !== '1', 'Prefetch is enabled only in production builds.');
+        const requests: string[] = [];
+        page.on('request', request => {
+            if (new URL(request.url()).pathname.startsWith('/consola/') && request.headers().rsc === '1') requests.push(request.url());
+        });
+        await page.goto('/consolas');
+        const card = page.locator('[data-console-card]').filter({ hasText: 'PS5 Slim' });
+        await card.hover();
+        await page.waitForTimeout(1200);
+        expect(requests).toEqual([]);
+    });
+
+    test('console card shows pending feedback while the navigation response is delayed', async ({ page }) => {
+        await page.goto('/consolas');
+        let release!: () => void;
+        const held = new Promise<void>(resolve => { release = resolve; });
+        await page.route('**/consola/ps5-slim-981?*', async route => {
+            await held;
+            await route.continue();
+        });
+        const card = page.locator('[data-console-card]').filter({ hasText: 'PS5 Slim' });
+        try {
+            await card.click({ noWaitAfter: true });
+            await expect(card.locator('[data-link-pending]')).toBeVisible({ timeout: 1500 });
+        } finally { release(); }
+        await expect(page).toHaveURL(/\/consola\/ps5-slim-981$/);
+        await expect(offers(page)).toHaveCount(4);
+    });
+
+    test('console navigation renders its skeleton before the backend completes', async ({ page, request }) => {
+        await page.goto('/consolas');
+        await request.post('/api/revalidate', { headers: { 'x-revalidate-token': 'console-test-token' },
+            data: { paths: ['/consola/ps5-slim-981'] } });
+        const control = 'http://127.0.0.1:43210/__test/detail';
+        await request.post(`${control}?hold=1`);
+        try {
+            await page.locator('[data-console-card]').filter({ hasText: 'PS5 Slim' }).click({ noWaitAfter: true });
+            await expect.poll(async () => (await (await request.get(control)).json()).pending).toBeGreaterThan(0);
+            await expect(page.locator('[data-console-detail-skeleton]')).toBeVisible({ timeout: 1500 });
+            await expect(page).toHaveURL(/\/consola\/ps5-slim-981$/);
+            await expect(offers(page)).toHaveCount(0);
+        } finally { await request.post(`${control}?hold=0`); }
+        await expect(page.getByRole('heading', { name: 'PS5 Slim', exact: true })).toBeVisible();
+        await expect(offers(page)).toHaveCount(4);
+    });
+
     test.skip(!CONSOLES_PUBLIC, `Las consolas están en modo ${CONSOLES_VISIBILITY}.`);
 
     test('catalog and detail expose console content in the initial HTML', async ({ request }) => {

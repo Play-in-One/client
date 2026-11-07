@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button, Group, Skeleton, Text } from '@mantine/core';
 import { getConsoles } from '@/lib/api';
 import { onDark } from '@/lib/colors';
-import { consolePath, type ConsoleModel } from '@/lib/consoles';
+import { CONSOLE_LINK_PREFETCH, consolePath, type ConsoleModel } from '@/lib/consoles';
 import { platformLongName, type Platform } from '@/lib/types';
 import { PLATFORM_COLORS, formatCLP } from '@/lib/utils';
 import styles from './ConsoleCatalog.module.css';
@@ -50,7 +50,7 @@ export function SiblingModels({ current, initialModels, preview }: {
                 {row.map(model => {
                     const active = model.id === current.id;
                     return (
-                        <Button key={model.id} component={Link} href={consolePath(model)} size="xs" radius="sm" h={44} px="sm"
+                        <Button key={model.id} component={Link} href={consolePath(model)} prefetch={CONSOLE_LINK_PREFETCH} size="xs" radius="sm" h={44} px="sm"
                             variant={active ? 'filled' : 'subtle'} color={active ? color : 'gray'}
                             aria-current={active ? 'page' : undefined} title={model.name}>
                             <span className={styles.modelOption}>

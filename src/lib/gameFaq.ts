@@ -25,8 +25,8 @@ const conditionWord = (bucket: ConditionBucket): string => CONDITION_LABEL[bucke
 
 const MAX_ENTRIES = 6;
 
-const price = (value: string | null | undefined): number | null => {
-    if (value == null) return null;
+const price = (value: string | number | null | undefined): number | null => {
+    if (value == null || (typeof value === 'string' && value.trim() === '')) return null;
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
 };
@@ -86,7 +86,10 @@ export function buildGameFaq(game: Game): FaqEntry[] {
     const entries: FaqEntry[] = [];
     // Sin stock (delisted) no es una oferta real: publicarla aqui afirmaria
     // que el juego "esta disponible" en una tienda con un precio caducado.
-    const products = (game.products ?? []).filter((p) => p.current_price != null && p.in_stock);
+    const products = (game.products ?? []).filter((p) => {
+        const value = price(p.current_price);
+        return p.in_stock && value != null && value >= 0;
+    });
 
     const best = bestPriceSentence(game);
     if (best) {
@@ -100,11 +103,14 @@ export function buildGameFaq(game: Game): FaqEntry[] {
         const sorted = [...products].sort(
             (a, b) => (price(a.current_price) ?? Infinity) - (price(b.current_price) ?? Infinity),
         );
-        const listed = sorted
+        const uniqueStores = [...new Map(sorted.slice().reverse().map((p) => [p.seller.id, p])).values()]
+            .sort((a, b) => Number(a.current_price) - Number(b.current_price) || a.seller.id - b.seller.id);
+        const listed = uniqueStores
             .slice(0, 5)
             .map((p) => `${p.seller.name} (${formatCLP(p.current_price!)})`)
             .join(', ');
-        const rest = sorted.length > 5 ? ` y ${sorted.length - 5} tiendas más` : '';
+        const remaining = Math.max(0, uniqueStores.length - 5);
+        const rest = remaining ? ` y ${remaining} ${remaining === 1 ? 'tienda más' : 'tiendas más'}` : '';
         entries.push({
             question: `¿Dónde comprar ${game.name} barato en Chile?`,
             answer:

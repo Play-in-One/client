@@ -436,19 +436,19 @@ const historyResponse = (page: Page, locations: string) =>
         return url.pathname.endsWith('/min-price-history/') && url.searchParams.get('seller_locations') === locations;
     });
 
-test('sin filtros el historial usa la fuente configurada y conserva la serie', async ({ page }) => {
+test('sin filtros el historial diferido pide solo la serie visible publicada', async ({ page }) => {
     const calls: string[] = [];
     page.on('response', (r) => { if (r.ok() && r.url().includes('/min-price-history/')) calls.push(r.url()); });
     await page.goto(await seededGamePath(page));
     await expect(page.getByText('Historial de Precio Mínimo')).toBeVisible();
     await page.waitForLoadState('networkidle');
-    if (process.env.CATALOG_LIGHT_DETAIL_ENABLED === '1') {
-        await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
-        expect(calls).toHaveLength(1);
-        expect(new URL(calls[0]).searchParams.get('source')).toBe('published');
-    } else {
-        expect(calls).toEqual([]);
-    }
+    // El transporte compacto difiere el historial incluso con la API legacy.
+    await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
+    expect(calls).toHaveLength(1);
+    const params = new URL(calls[0]).searchParams;
+    expect(params.get('source')).toBe('published');
+    expect(params.get('platform')).toBe('ps5');
+    expect(params.get('condition')).toBe('');
 });
 
 test('con una región elegida el historial se calcula solo con las tiendas visibles', async ({ page, context }) => {

@@ -42,7 +42,7 @@ test('la ficha canónica responde 200 con canonical y título de precio', async 
     const res = await request.get(`/juego/${game.slug}-${game.id}`, { maxRedirects: 0 });
     expect(res.status()).toBe(200);
     const html = await res.text();
-    expect(html).toContain(`<link rel="canonical" href="http://localhost:3001/juego/${game.slug}-${game.id}"/>`);
+    expect(html).toContain(`<link rel="canonical" href="${process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3001'}/juego/${game.slug}-${game.id}"/>`);
     expect(html).toMatch(new RegExp(`<title>${game.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}: precios? en Chile`));
     expect(html).not.toContain('aggregateRating');
     // El JSON-LD publica la URL nueva, no la vieja.

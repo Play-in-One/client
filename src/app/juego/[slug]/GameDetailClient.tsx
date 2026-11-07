@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -20,7 +20,6 @@ import {
     Breadcrumbs,
     Stack,
     ActionIcon,
-    Grid,
     SimpleGrid,
     Select,
     HoverCard,
@@ -46,7 +45,9 @@ import {
     IconSparkles,
 } from '@tabler/icons-react';
 
+import { unpackGame, type GamePayload } from '@/lib/gamePayload';
 import { trackEvent, getGameClickStats } from '@/lib/api';
+import { useNearViewport } from '@/hooks/useNearViewport';
 import { useMinPriceHistory } from '@/hooks/useMinPriceHistory';
 import { useGamePlatform } from './GamePlatformContext';
 import { useConsent } from '@/context/ConsentContext';
@@ -228,7 +229,7 @@ function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: Rea
                    siguen en el HTML inicial —lo único que lee un crawler sin
                    JS— sin alargar la tarjeta para quien solo quiere el precio.
                    El chevron gira por CSS (`.pio-details[open]`), sin estado:
-                   esta tarjeta se renderiza dos veces (desktop y mobile). */
+                   esta tarjeta se comparte entre desktop y mobile. */
                 <details className="pio-details">
                     <summary>
                         <Text component="span" fz="lg" fw={700}>Resumen de precios</Text>
@@ -259,15 +260,16 @@ function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: Rea
 }
 
 export default function GameDetailClient({
-    initialGame,
+    initialGame: initialPayload,
     initialPrefs,
     summarySlot,
 }: {
-    initialGame: Game;
+    initialGame: Game | GamePayload;
     initialPrefs: Prefs;
     /** Resumen de precios, ya renderizado en el servidor (`PriceSummarySection`). */
     summarySlot?: ReactNode;
 }) {
+    const initialGame = useMemo(() => unpackGame(initialPayload), [initialPayload]);
     const { condition, format, digital, includeInternational, includeNational, region, ready, isSaved, toggleSaved } = useApp();
     const { isAdmin } = useAdmin();
     const router = useRouter();
@@ -437,15 +439,9 @@ export default function GameDetailClient({
         : null;
     const bestShipping = bestProduct ? parseFloat(bestProduct.shipping_cost ?? '0') : 0;
 
-    // Serie histórica del mínimo de la consola/condición activas. Viene toda
-    // embebida en el detalle, así que cambiar de tab no dispara un request.
-    // La clave "" del backend es la serie agregada (todas las condiciones).
-    //
-    // La serie sigue al filtro de ubicación activo: las dos que trae el detalle
-    // (todas las tiendas y «sin importadoras») cuando coinciden exacto, y la que
-    // calcula el backend para cualquier otra combinación (ver el hook). Un objeto
-    // vacío en la nacional significa «usa la agregada», no «no hay datos».
-    const { source: historySource, loading: historyLoading } = useMinPriceHistory(game, effectivePrefs);
+    // El historial se carga cerca del viewport y sigue la selección activa.
+    // La clave "" es la serie agregada de todas las condiciones.
+    const chartViewport = useNearViewport();
     /* La serie del mínimo llega indexada por `Platform.name`, no por `slug`
        (contrato del backend, `GameDetailSerializer`). El backend mantiene los
        dos campos idénticos por catálogo, así que el slug entra tal cual; es la
@@ -460,6 +456,9 @@ export default function GameDetailClient({
             : effectivePrefs.format === 'digital' ? 'digital'
                 : ''
     );
+    const { source: historySource, loading: historyLoading, error: historyError } = useMinPriceHistory(game, effectivePrefs, {
+        enabled: chartViewport.visible, platform: selectedPlatform ?? undefined, condition: historyConditionKey,
+    });
     const minPriceSeries =
         historySource?.[selectedPlatform ?? '']?.[historyConditionKey] ?? [];
 
@@ -525,11 +524,11 @@ export default function GameDetailClient({
             </Breadcrumbs>
 
             {/* Main layout: sidebar + content */}
-            <Grid gutter="xl">
+            <div className="pio-game-layout">
                 {/* ── Sidebar: Cover + info ── */}
-                <Grid.Col span={{ base: 12, lg: 4 }}>
+                <div className="pio-game-sidebar">
                     {/* Cover art */}
-                    <Box>
+                    <Box className="pio-game-cover">
                         <Box
                             pos="relative"
                             maw={{ base: '85%', lg: '100%' }}
@@ -550,20 +549,22 @@ export default function GameDetailClient({
                         </Box>
                     </Box>
 
-                    {/* Info card (con «Acerca del juego» dentro): en mobile
-                        se movió bajo el nombre y el selector de consola, como
-                        tarjeta desplegable (ver más abajo, `hiddenFrom="lg"`).
-                        Acá solo desktop. */}
-                    <Card p="lg" mt="md" visibleFrom="lg">
-                        <GameInfoCardBody game={game} summarySlot={summarySlot} />
+                    <Card p="lg" className="pio-game-info" data-open={mobileInfoOpen}>
+                        <button type="button" className="pio-game-info-toggle" aria-expanded={mobileInfoOpen}
+                            aria-controls="game-info-body" onClick={() => setMobileInfoOpen((open) => !open)}>
+                            Información del juego <IconChevronDown size={16} aria-hidden />
+                        </button>
+                        <div id="game-info-body" className="pio-game-info-body">
+                            <GameInfoCardBody game={game} summarySlot={summarySlot} />
+                        </div>
                     </Card>
-                </Grid.Col>
+                </div>
 
                 {/* ── Main content ── */}
-                <Grid.Col span={{ base: 12, lg: 8 }}>
-                    <Stack gap="xl">
+                <div className="pio-game-content">
+                    <Stack gap="xl" className="pio-game-stack">
                         {/* Title + platform tabs */}
-                        <Box
+                        <Box className="pio-game-title"
                             style={{
                                 position: 'sticky',
                                 top: 73,
@@ -673,38 +674,6 @@ export default function GameDetailClient({
                                 </Group>
                             )}
                         </Box>
-
-                        {/* Info card en mobile: tarjeta desplegable justo bajo
-                            el nombre y el selector de consola (en desktop va
-                            fija en la columna lateral, ver más arriba). Nativo
-                            (`<details>`, vía `component`): funciona sin JS. */}
-                        <Card
-                            component="details"
-                            p="lg"
-                            hiddenFrom="lg"
-                            onToggle={(e) => setMobileInfoOpen((e.target as HTMLDetailsElement).open)}
-                        >
-                            <Group
-                                component="summary"
-                                justify="space-between"
-                                align="center"
-                                style={{ cursor: 'pointer', listStyle: 'none' }}
-                            >
-                                <Text fz="sm" fw={600}>Información del juego</Text>
-                                <IconChevronDown
-                                    size={16}
-                                    color="var(--mantine-color-dimmed)"
-                                    style={{
-                                        transform: mobileInfoOpen ? 'rotate(180deg)' : 'rotate(0)',
-                                        transition: 'transform 0.2s',
-                                        flexShrink: 0,
-                                    }}
-                                />
-                            </Group>
-                            <Box mt="md">
-                                <GameInfoCardBody game={game} summarySlot={summarySlot} />
-                            </Box>
-                        </Card>
 
                         {/* El resumen de precios va dentro de la tarjeta de
                             información; esta línea solo queda cuando no hay
@@ -856,7 +825,8 @@ export default function GameDetailClient({
 
                         {/* ══════ Historial del precio mínimo de la consola ══════ */}
                         {selectedPlatform && (
-                            <MinPriceChartCard
+                            <div ref={chartViewport.ref} style={{ minHeight: 300 }}>
+                            {chartViewport.visible ? <MinPriceChartCard
                                 series={minPriceSeries}
                                 platformLabel={
                                     PLATFORM_SHORT_LABELS[selectedPlatform] ??
@@ -865,7 +835,9 @@ export default function GameDetailClient({
                                 }
                                 conditionLabel={conditionFilter ? conditionLabelFor(conditionFilter) : null}
                                 loading={historyLoading}
-                            />
+                                error={historyError}
+                            /> : <Text c="dimmed">Historial de precios</Text>}
+                            </div>
                         )}
 
                         {/* ══════ Price comparison table ══════ */}
@@ -986,28 +958,12 @@ export default function GameDetailClient({
                                                                             No actualizado · Sin stock
                                                                         </Badge>
                                                                     )}
-                                                                    <Group gap={2} wrap="nowrap" align="center" hiddenFrom="sm">
-                                                                        <Text
-                                                                            fw={700}
-                                                                            fz="xl"
-                                                                            c={isBest ? 'var(--pio-brand-text)' : undefined}
-                                                                        >
-                                                                            {p.current_price ? formatCLP(p.current_price) : '—'}
-                                                                        </Text>
-                                                                        <PriceInfo
-                                                                            basePrice={p.base_price}
-                                                                            shippingCost={p.shipping_cost}
-                                                                            seller={p.seller}
-                                                                        />
-                                                                        {isAffiliateOffer(p) && (
-                                                                            <AffiliateMark label="Tienda afiliada (solo admin)" size={18} ml="2xs" />
-                                                                        )}
-                                                                    </Group>
+
                                                                 </Box>
                                                             </Anchor>
                                                         </Group>
                                                     </Table.Td>
-                                                    <Table.Td hiddenFrom="sm" ta="right" style={{ whiteSpace: 'nowrap' }}>
+                                                    <Table.Td className="pio-offer-mobile-condition" hiddenFrom="sm" ta="right" style={{ whiteSpace: 'nowrap' }}>
                                                         <Stack gap="2xs" align="flex-end">
                                                             <Badge
                                                                 color={conditionBadgeColorFor(p.condition)}
@@ -1025,7 +981,7 @@ export default function GameDetailClient({
                                                                 context={{ displayed_price: p.current_price, platform: p.platform.name }} />
                                                         </Stack>
                                                     </Table.Td>
-                                                    <Table.Td visibleFrom="sm">
+                                                    <Table.Td className="pio-offer-price">
                                                         <Group gap={2} wrap="nowrap" align="center">
                                                             <Text
                                                                 fw={700}
@@ -1125,8 +1081,8 @@ export default function GameDetailClient({
                             </Table.ScrollContainer>
                         </Card>
                     </Stack>
-                </Grid.Col>
-            </Grid>
+                </div>
+            </div>
         </Container>
         <CouponModal offer={pendingOffer} onClose={() => setPendingOffer(null)} onConfirm={handleConfirmOffer} />
         </>

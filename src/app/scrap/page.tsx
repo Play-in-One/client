@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
@@ -82,7 +83,13 @@ function formatRunDate(iso: string): string {
     return `${day} - ${time}`;
 }
 
-export default async function ScrapStatsPage() {
+export default function ScrapStatsPage() {
+    return <Suspense fallback={<Container size="md" py="section"><Title order={1}>Estadísticas de PlayinOne</Title><Text role="status">Cargando estadísticas…</Text></Container>}>
+        <StatsContent />
+    </Suspense>;
+}
+
+async function StatsContent() {
     let stats: Stats | null = null;
     try {
         stats = await getStats();
@@ -90,6 +97,10 @@ export default async function ScrapStatsPage() {
         // La página igual se sirve; cada sección chequea `stats` por separado.
     }
 
+    if (!stats) return <Container size="md" py="section">
+        <Title order={1}>Estadísticas de PlayinOne</Title>
+        <Text role="status">Las estadísticas no están disponibles en este momento. Inténtalo de nuevo en unos minutos.</Text>
+    </Container>;
     return (
         <Container size="md" py="section">
             <Group justify="center" gap="xs" mb="xs">
@@ -112,6 +123,7 @@ export default async function ScrapStatsPage() {
                 <Title order={1} ta="center">Estadísticas de PlayinOne</Title>
             </Group>
 
+            {stats.generated_at && <Text size="sm" c="dimmed" ta="center" mb="md">Actualizadas: {formatRunDate(stats.generated_at)}</Text>}
             {stats && (
                 <StatsCounterClient
                     sellers={stats.sellers}

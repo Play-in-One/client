@@ -221,6 +221,7 @@ export function FilterToolbar({
                 size="lg"
                 radius="md"
                 hiddenFrom="md"
+                aria-expanded={filtersOpen}
                 onClick={onToggleFiltersOpen}
                 aria-label="Filtros"
             >
@@ -434,7 +435,7 @@ export default function GameFilterBar({
                             input: { cursor: 'pointer' },
                         }}
                     />
-                    {genres.map((g) => (
+                    {genres.filter((g) => selectedGenre === g.id || facetStatus !== 'ready' || (facets.genres[g.id] ?? 0) > 0).map((g) => (
                         <Checkbox
                             key={g.id}
                             label={<CheckboxLabel text={g.name} count={facetStatus === 'ready' ? facets.genres[g.id] ?? 0 : undefined} />}

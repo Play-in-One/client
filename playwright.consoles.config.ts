@@ -7,8 +7,8 @@ export default defineConfig({
     workers: 1,
     timeout: 60_000,
     reporter: 'list',
-    use: { baseURL: 'http://localhost:3217', ...devices['Desktop Chrome'] },
-    webServer: [
+    use: { baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3217', ...devices['Desktop Chrome'] },
+    webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : [
         // Public mode serves a published model; the staff preview, a draft.
         { command: 'node tests/fixtures/console-api.mjs', url: 'http://127.0.0.1:43210/api/health/', reuseExistingServer: false,
             env: { CONSOLE_FIXTURE_PUBLISHED: CONSOLES_PUBLIC ? '1' : '0' } },

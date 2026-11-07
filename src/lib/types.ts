@@ -91,8 +91,8 @@ export function activeCoupon(
  *  su tienda da un cupón de convenio activo. Misma regla que
  *  `recommendations.AFFILIATE_OFFER_Q` del backend (la que decide
  *  `min_price_is_affiliate` y los Destacados): si una cambia, la otra también. */
-export function isAffiliateOffer(p: Pick<Product, 'affiliate_url' | 'seller'>): boolean {
-    return Boolean(p.affiliate_url) || activeCoupon(p.seller) !== null;
+export function isAffiliateOffer(p: Pick<Product, 'affiliate_url' | 'seller' | 'is_affiliate'>): boolean {
+    return Boolean(p.is_affiliate ?? p.affiliate_url) || activeCoupon(p.seller) !== null;
 }
 
 export interface PriceHistory {
@@ -159,6 +159,8 @@ export interface Product {
     /** Link de afiliado (opcional). Cuando existe, reemplaza a `url` como
      *  destino de los botones "Ir a la Tienda" / "Ver en Tienda". */
     affiliate_url: string;
+    /** Public SSR payload preserves affiliation without exposing the URL. */
+    is_affiliate?: boolean;
     image: string | null;
     seller: Seller;
     /** `store` es compra en tienda oficial y `key` un código de canje. */
@@ -746,6 +748,7 @@ export interface LastScrapeRun {
 }
 
 export interface Stats {
+    generated_at?: string;
     sellers: number;
     games: number;
     products: number;

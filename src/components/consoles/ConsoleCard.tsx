@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { Badge, Card, Group, Skeleton, Stack, Text, Title } from '@mantine/core';
 import PlatformBadge from '@/components/PlatformBadge';
 import RemoteImage from '@/components/RemoteImage';
-import { consolePath, type ConsoleModel } from '@/lib/consoles';
+import LinkPendingOverlay from '@/components/LinkPendingOverlay';
+import { CONSOLE_LINK_PREFETCH, consolePath, type ConsoleModel } from '@/lib/consoles';
 import { FALLBACK_PLATFORM_ICON, PLATFORM_ICONS } from '@/lib/platformIcons';
 import { formatCLP } from '@/lib/utils';
 import styles from './ConsoleCatalog.module.css';
@@ -31,8 +32,9 @@ export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
 }) {
     const priced = model.min_price != null;
     return (
-        <Card component={Link} href={consolePath(model)} className={`pio-lift ${styles.card}`} p={0} data-console-card>
+        <Card component={Link} href={consolePath(model)} prefetch={CONSOLE_LINK_PREFETCH} className={`pio-lift ${styles.card}`} p={0} data-console-card>
             <div className={styles.media}>
+                <LinkPendingOverlay />
                 <ConsoleImage image={model.image} name={model.name} platform={model.platform.slug}
                     sizes="(max-width: 36em) 100vw, (max-width: 62em) 50vw, 320px" />
                 <Group gap="2xs" className={styles.mediaBadges}>

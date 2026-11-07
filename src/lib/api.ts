@@ -505,9 +505,10 @@ export async function getMinPriceHistory(
     sellerLocations: string | undefined,
     signal?: AbortSignal,
     published = false,
+    dimensions?: { platform?: string; condition?: string },
 ) {
     return fetcher<{ min_price_history: MinPriceHistory }>(
-        `/games/${gameId}/min-price-history/${qs({ seller_locations: sellerLocations, source: published ? 'published' : undefined })}`,
+        `/games/${gameId}/min-price-history/${qs({ seller_locations: sellerLocations, source: published ? 'published' : undefined, ...dimensions })}`,
         { signal },
     );
 }
@@ -600,7 +601,12 @@ export async function getSellers(params?: { page?: number }) {
 
 /** Estadísticas públicas (contador, matriz plataforma×formato, último scrapeo) para `/scrap`. */
 export async function getStats() {
-    return fetcher<Stats>('/stats/');
+    return fetcher<Stats>('/stats/', { signal: AbortSignal.timeout(3000) });
+}
+
+/** Complete commercial fields only when a staff member opens the editor. */
+export async function getStaffProduct(id: number, signal?: AbortSignal) {
+    return fetcher<Product>(`/products/${id}/`, { admin: true, cache: 'no-store', signal });
 }
 
 /** Ofertas del día (`/ofertas`, la home, el sitemap y `llms.txt`). Sin

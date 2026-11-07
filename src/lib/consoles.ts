@@ -1,6 +1,9 @@
 import { consoleEditionSwatches } from './colors';
 import type { Platform, Product } from './types';
 
+/** As with game details, metadata fetches make an in-flight prefetch block a click. */
+export const CONSOLE_LINK_PREFETCH = false;
+
 export interface ConsoleGame {
     title: string;
     format: 'physical' | 'code' | 'preinstalled' | 'unknown';

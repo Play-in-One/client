@@ -38,10 +38,7 @@ test('la página de detalle carga con el título del juego', async ({ page }) =>
 test('muestra las calificaciones como gauges por fuente', async ({ page }) => {
     await page.goto(gamePath);
 
-    // La tarjeta de información se duplica en el DOM (copia desktop fija +
-    // copia mobile desplegable, una de las dos oculta por CSS según el
-    // viewport): `.first()` toma la visible, mismo criterio que ya usaba el
-    // "8.5/10" de abajo por repetirse entre el promedio y una fuente.
+    await expect(page.locator('#game-info-body')).toHaveCount(1);
     await expect(page.getByText('Calificaciones', { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId('ratings-gauges').first()).toBeVisible();
     await expect(page.getByTestId('rating-gauge-average').first()).toBeVisible();
@@ -58,8 +55,7 @@ test('muestra las calificaciones como gauges por fuente', async ({ page }) => {
 test('«Acerca del juego» va dentro de la tarjeta de información, sin tarjeta aparte', async ({ page }) => {
     await page.goto(gamePath);
 
-    // Desktop: la copia visible de la tarjeta de información (la fija de la
-    // columna lateral) trae a la vez los datos del juego y la descripción.
+    // La única tarjeta informativa contiene los datos y la descripción.
     const about = page.getByText('Acerca del juego', { exact: true }).locator('visible=true');
     await expect(about).toHaveCount(1);
     const infoCard = page.locator('.mantine-Card-root', { has: about });
@@ -74,15 +70,15 @@ test.describe('vista mobile', () => {
         await page.goto(gamePath);
         await expect(page.getByRole('heading', { name: SEEDED.game })).toBeVisible();
 
-        // La tarjeta anida otro <details> (el resumen de precios), así que el
-        // summary y la descripción se buscan en el nivel propio de la tarjeta.
-        const details = page.locator('details').filter({ has: page.locator('> summary', { hasText: 'Información del juego' }) });
+        // A single responsive card shares its accessible toggle and body.
+        const details = page.locator('.pio-game-info');
+        const toggle = details.getByRole('button', { name: 'Información del juego' });
         const description = details.getByText(SEEDED.gameDescription);
         await expect(description).toBeHidden();
         // Un clic antes de hidratar puede perderse: se reintenta hasta que abra.
         await expect(async () => {
-            if (!(await details.evaluate((el) => (el as HTMLDetailsElement).open))) {
-                await details.locator('> summary').click();
+            if (await toggle.getAttribute('aria-expanded') !== 'true') {
+                await toggle.click();
             }
             await expect(description).toBeVisible({ timeout: 1000 });
         }).toPass();
@@ -233,21 +229,23 @@ test('el historial sigue al filtro de condición sin recargar', async ({ page })
     // Wait for the complete series, whether embedded or fetched separately.
     await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
 
-    // El Select de condición vive en la comparativa; el card del historial
-    // debe reaccionar sin pedir datos nuevos (la serie viaja embebida).
-    let apiCalls = 0;
-    // El lookahead deja fuera `facets/`: sin él este contador tapa el mock de
-    // facetas del beforeEach —Playwright evalúa las rutas en orden inverso al
-    // registro— y el sidebar recibe la forma equivocada.
-    await page.route(/\/api\/games\/(?!facets)/, (route) => {
-        apiCalls += 1;
-        route.continue();
-    });
+    // Only the selected series is fetched; the game document is not reloaded.
+    const response = page.waitForResponse((r) => r.url().includes('/min-price-history/') &&
+        new URL(r.url()).searchParams.get('condition') === 'used');
     await page.getByPlaceholder('Filtrar por estado').click();
     await page.getByRole('option', { name: 'Usado' }).click();
-
+    const historyResponse = await response;
+    expect(historyResponse.ok()).toBe(true);
+    const body = await historyResponse.json();
+    const series = body.min_price_history.ps5?.used ?? [];
+    expect(Object.keys(body.min_price_history).every((key) => key === 'ps5')).toBe(true);
     await expect(heading).toBeVisible();
-    expect(apiCalls).toBe(0);
+    if (series.some((point: { price: string | null }) => point.price !== null)) {
+        await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
+    } else {
+        await expect(page.getByText(/aún no hay suficiente historial/i)).toBeVisible();
+        await expect(page.getByRole('radio', { name: '30d' })).toHaveCount(0);
+    }
 });
 
 test('la tabla ya no tiene la columna de tendencia por producto', async ({ page }) => {

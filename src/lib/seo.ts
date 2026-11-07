@@ -376,7 +376,6 @@ export function gameJsonLd(game: Game): JsonLdObject {
             lowPrice: Math.min(...listPrices).toFixed(2),
             highPrice: Math.max(...listPrices).toFixed(2),
             offerCount: offers.length,
-            offers: offers.map((p) => offerJsonLd(p, game)),
         };
     }
 

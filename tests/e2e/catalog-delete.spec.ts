@@ -29,6 +29,13 @@ async function openGame(page: Page, staff = true) {
     }
     const path = await seededGamePath(page);
     const game: Game = await (await page.request.get(`${API_URL}/games/${SEEDED.gameId}/`)).json();
+    if (staff) await page.route(/\/api\/products\/\d+\/$/, async (route) => {
+        if (route.request().method() !== 'GET') return route.fallback();
+        const id = Number(new URL(route.request().url()).pathname.split('/').filter(Boolean).at(-1));
+        const product = game.products?.find((item) => item.id === id);
+        expect(route.request().headers().authorization).toBe('Token delete-test-token');
+        return route.fulfill({ status: product ? 200 : 404, json: product ?? {} });
+    });
     await page.goto(path);
     return game;
 }
@@ -51,7 +58,7 @@ test('staff cancela el borrado sin enviar DELETE', async ({ page }) => {
     await openGame(page);
     let writes = 0;
     await page.route('**/api/games/*/', (route) => {
-        if (route.request().method() !== 'DELETE') return route.continue();
+        if (route.request().method() !== 'DELETE') return route.fallback();
         writes++;
         return route.fulfill({ status: 204 });
     });
@@ -70,7 +77,7 @@ test('staff elimina un juego con respuesta vacía 204 y vuelve al catálogo', as
     await openGame(page);
     let writes = 0;
     await page.route(`**/api/games/${SEEDED.gameId}/`, (route) => {
-        if (route.request().method() !== 'DELETE') return route.continue();
+        if (route.request().method() !== 'DELETE') return route.fallback();
         expect(route.request().headers().authorization).toBe('Token delete-test-token');
         writes++;
         return route.fulfill({ status: 204 });
@@ -88,7 +95,7 @@ test('staff elimina un producto y la fila desaparece inmediatamente', async ({ p
     const product = game.products!.find((p) => p.seller.name === SEEDED.nationalSeller)!;
     let writes = 0;
     await page.route(`**/api/products/${product.id}/`, (route) => {
-        if (route.request().method() !== 'DELETE') return route.continue();
+        if (route.request().method() !== 'DELETE') return route.fallback();
         expect(route.request().headers().authorization).toBe('Token delete-test-token');
         writes++;
         return route.fulfill({ status: 204 });
@@ -106,7 +113,7 @@ test('un error de borrado conserva el producto y permite reintentar', async ({ p
     const game = await openGame(page);
     const product = game.products!.find((p) => p.seller.name === SEEDED.nationalSeller)!;
     await page.route(`**/api/products/${product.id}/`, (route) => {
-        if (route.request().method() !== 'DELETE') return route.continue();
+        if (route.request().method() !== 'DELETE') return route.fallback();
         return route.fulfill({ status: 500, json: { detail: 'Internal server error' } });
     });
     const dialog = await openProductEditor(page);
@@ -121,7 +128,7 @@ test('si el producto ya fue borrado, se retira la fila ante un 404', async ({ pa
     const game = await openGame(page);
     const product = game.products!.find((p) => p.seller.name === SEEDED.nationalSeller)!;
     await page.route(`**/api/products/${product.id}/`, (route) => {
-        if (route.request().method() !== 'DELETE') return route.continue();
+        if (route.request().method() !== 'DELETE') return route.fallback();
         return route.fulfill({ status: 404, json: { detail: 'Not found' } });
     });
     const dialog = await openProductEditor(page);
@@ -137,7 +144,7 @@ test('la confirmación cabe en móvil y bloquea envíos repetidos', async ({ pag
     let finish!: () => void;
     const pending = new Promise<void>((resolve) => { finish = resolve; });
     await page.route(`**/api/games/${SEEDED.gameId}/`, async (route) => {
-        if (route.request().method() !== 'DELETE') return route.continue();
+        if (route.request().method() !== 'DELETE') return route.fallback();
         writes++;
         await pending;
         await route.fulfill({ status: 204 });

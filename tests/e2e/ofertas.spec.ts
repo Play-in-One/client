@@ -349,7 +349,7 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
         // es la primera de la respuesta, con la línea de rebaja de SU oferta.
         const card = page.locator('[data-deal-card]').first();
         await expect(card).toContainText(first!.game.name);
-        await expect(card.locator('[data-deal-line]')).toHaveText(dealBadgeLine(first!));
+        await expect(card.locator('[data-deal-line]')).toHaveText(` · ${dealBadgeLine(first!)}`);
         await expect(page.locator('[data-deal-card]')).toHaveCount(body.results.length);
         await expect(page.locator('[data-deal-line]')).toHaveCount(body.results.length);
     });

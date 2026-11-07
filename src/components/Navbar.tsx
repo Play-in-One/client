@@ -36,13 +36,13 @@ import {
     IconKey,
     IconRecycle,
     IconSparkles,
-    IconRosetteDiscount,
 } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import type { ConditionFilter, FormatFilter } from '@/context/AppContext';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import LocationFilter from '@/components/LocationFilter';
 import InfoHint from '@/components/InfoHint';
+import OffersNavButton from '@/components/OffersNavButton';
 import StaffProductImagesSwitch from '@/components/StaffProductImagesSwitch';
 import { CONSOLES_PUBLIC, CONSOLES_STAFF_PREVIEW } from '@/lib/features';
 import { useAdmin } from '@/context/AdminContext';
@@ -91,6 +91,7 @@ const THEME_OPTIONS = [
 export default function Navbar() {
     const router = useRouter();
     const pathname = usePathname();
+    const isDealsPage = pathname === '/ofertas' || pathname?.startsWith('/ofertas/');
     // The console catalog is reached from the home hero and the game galleries
     // («Encuentra tu próxima consola»), not from the header. On the console
     // pages themselves the search box still searches consoles.
@@ -158,11 +159,12 @@ export default function Navbar() {
                 wrap="nowrap"
             >
                 {/* Logo */}
-                <Anchor component={Link} href="/" underline="never" style={{ textDecoration: 'none' }}>
+                <Anchor component={Link} href="/" aria-label="Play in One — Inicio" underline="never" style={{ textDecoration: 'none' }}>
                     <Group gap={8} wrap="nowrap">
                         <Image
                             src="/PIO-punto-negro.svg"
-                            alt="Play in One Logo"
+                            alt=""
+                            loading="eager"
                             width={36}
                             height={36}
                             unoptimized
@@ -171,7 +173,8 @@ export default function Navbar() {
                         />
                         <Image
                             src="/PIO.svg"
-                            alt="Play in One Logo"
+                            alt=""
+                            loading="eager"
                             width={36}
                             height={36}
                             unoptimized
@@ -194,24 +197,13 @@ export default function Navbar() {
                     280 (abajo): el enlace a Ofertas no cabía y la barra se salía
                     53 px por la derecha en cualquier página con buscador (todas
                     menos la home), tapando el engranaje de preferencias. */}
-                <Group gap="md" visibleFrom="lg" wrap="nowrap">
+                <Group gap="md" visibleFrom="lg" wrap="nowrap" className="navbar-desktop-links">
                     {/* Ofertas va primero y fuera de los menús de consola: es la
                         página con más intención de compra del sitio y no
                         pertenece a ninguna marca. Enlace real (`<a href>`) para
                         que también reparta autoridad a `/ofertas`. */}
-                    <UnstyledButton
-                        component={Link}
-                        href="/ofertas"
-                        fw={600}
-                        fz="sm"
-                        c={pathname?.startsWith('/ofertas') ? 'var(--pio-brand-text)' : 'dimmed'}
-                        style={{ transition: 'color 0.15s' }}
-                    >
-                        <Group gap="2xs" wrap="nowrap">
-                            <IconRosetteDiscount size={18} />
-                            <Box component="span">Ofertas</Box>
-                        </Group>
-                    </UnstyledButton>
+                    <OffersNavButton active={isDealsPage} />
+                    <Box w={1} h={24} bg="var(--mantine-color-default-border)" style={{ flexShrink: 0 }} aria-hidden />
 
                     {PLATFORM_GROUPS.map((group) => {
                         const Icon = group.icon;
@@ -454,21 +446,7 @@ export default function Navbar() {
             <Drawer opened={opened} onClose={close} size="xs" title="Menu" position="right">
                 <Stack gap="md" mt="md">
                     <StaffProductImagesSwitch />
-                    <Anchor
-                        component={Link}
-                        href="/ofertas"
-                        onClick={close}
-                        fw={600}
-                        fz="lg"
-                        c="inherit"
-                        underline="never"
-                        px="md"
-                    >
-                        <Group gap={12} wrap="nowrap">
-                            <IconRosetteDiscount size={24} color="var(--mantine-color-primaryRed-5)" />
-                            Ofertas
-                        </Group>
-                    </Anchor>
+                    <OffersNavButton active={isDealsPage} onClick={close} expanded />
 
                     <Accordion variant="filled">
                         {PLATFORM_GROUPS.map((group) => {

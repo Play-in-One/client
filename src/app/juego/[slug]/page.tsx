@@ -17,6 +17,7 @@ import { AD_SLOT_GAME_FOOTER, adsAllowedForCountry } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
 import FaqSection from '@/components/FaqSection';
 import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
+import { packGame } from '@/lib/gamePayload';
 import GameDetailClient from './GameDetailClient';
 import { GamePlatformProvider } from './GamePlatformContext';
 import PriceSummarySection from './PriceSummarySection';
@@ -256,7 +257,7 @@ export default async function GameDetailPage({
             <GamePlatformProvider initialPlatform={crumbPlatform?.slug ?? null}>
                 <Suspense fallback={null}>
                     <GameDetailClient
-                        initialGame={game}
+                        initialGame={packGame(game)}
                         initialPrefs={prefs}
                         /* Server Components como slots: su texto sale en el HTML
                            del servidor y no viaja en el bundle de la ficha. */

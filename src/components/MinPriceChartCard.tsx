@@ -14,6 +14,7 @@ interface MinPriceChartCardProps {
     conditionLabel?: string | null;
     /** La serie exacta para el filtro de ubicación todavía está en camino. */
     loading?: boolean;
+    error?: boolean;
 }
 
 const RANGE_OPTIONS = [
@@ -36,7 +37,7 @@ export default function MinPriceChartCard({
     series,
     platformLabel,
     conditionLabel,
-    loading = false,
+    error = false, loading = false,
 }: MinPriceChartCardProps) {
     const [range, setRange] = useState(DEFAULT_RANGE);
     // `now` congelado por montaje: recalcularlo en cada render movería el borde
@@ -84,7 +85,7 @@ export default function MinPriceChartCard({
             </Box>
 
             <Box p="lg">
-                {loading ? (
+                {error ? <Text role="alert" c="dimmed">No pudimos cargar el historial. Cambia el filtro o vuelve a intentarlo más tarde.</Text> : loading ? (
                     <Center py="xl" mih={160}>
                         <Loader size="sm" color="primaryRed" aria-label="Cargando historial" />
                     </Center>

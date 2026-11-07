@@ -35,7 +35,10 @@ test('la ficha de saga muestra descripción al centro y el gauge sin banner', as
     await expect(page.getByTestId('rating-gauge-saga-average')).toBeVisible();
     await expect(page.getByText(`${SEEDED.sagaAvgRating.toFixed(1)}/10`)).toBeVisible();
     // Sin banner: no debe quedar ninguna imagen de fondo de la cabecera.
-    await expect(page.locator('img[alt=""]')).toHaveCount(0);
+    const hero = page.locator('.mantine-Container-root').filter({
+        has: page.getByRole('heading', { name: SEEDED.sagaName, level: 1 }),
+    }).last();
+    await expect(hero.locator('img[alt=""]')).toHaveCount(0);
 });
 
 test('la ficha de saga permite filtrar sus juegos por consola', async ({ page }) => {
@@ -123,14 +126,17 @@ test.describe('vista mobile', () => {
         const nameHeading = page.getByRole('heading', { name: SEEDED.sagaGameA });
         await expect(nameHeading).toBeVisible();
 
-        const details = page.locator('details').filter({ hasText: 'Información del juego' });
+        const details = page.locator('.pio-game-info');
         await expect(details).toBeVisible();
 
-        // Cerrada por defecto: el contenido existe en el HTML (un `<details>`
-        // nativo nunca lo esconde de un crawler) pero no se pinta hasta abrir.
+        // Un solo cuerpo responsive conserva el contenido SSR, cerrado en móvil.
         const sagaLogo = details.getByAltText(`Logo de ${SEEDED.sagaName}`);
+        const toggle = details.getByRole('button', { name: 'Información del juego' });
         await expect(sagaLogo).toBeHidden();
-        await details.locator(':scope > summary').click();
+        await expect(async () => {
+            if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+            await expect(sagaLogo).toBeVisible({ timeout: 1000 });
+        }).toPass();
         await expect(sagaLogo).toBeVisible();
 
         // Bajo el nombre y el selector de consola, no arriba (donde vivía

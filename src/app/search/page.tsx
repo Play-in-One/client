@@ -10,6 +10,7 @@ import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { consolesAvailable } from '@/lib/consoleAvailability';
 import { buildMetadata, collectionPageJsonLd, itemListJsonLd } from '@/lib/seo';
+import { packGames } from '@/lib/gamePayload';
 import SearchClient from './SearchClient';
 
 // Debe coincidir con el DEFAULT_ORDERING de SearchClient: si el servidor
@@ -122,7 +123,7 @@ export default async function SearchPage({
         <>
             {CONSOLES_PUBLIC && <Container size="lg" pt="lg"><Group gap="lg"><Text fw={700}>Juegos</Text><Anchor component={Link} href={`/search?category=console${typeof sp.q === 'string' ? `&q=${encodeURIComponent(sp.q)}` : ''}`}>Consolas</Anchor></Group></Container>}
             {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
-            <SearchClient initialGames={games} initialTotal={total}
+            <SearchClient initialGames={packGames(games)} initialTotal={total}
                 initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0}
                 consolesAvailable={consolesPublicLink} />
         </>

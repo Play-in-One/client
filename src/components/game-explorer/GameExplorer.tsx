@@ -7,7 +7,6 @@ import {
     Alert,
     Box,
     Button,
-    Collapse,
     Container,
     Group,
     Paper,
@@ -592,63 +591,16 @@ export default function GameExplorer({
                 onToggleFiltersOpen={() => setFiltersOpen((o) => !o)}
             />
 
-            {/* Mobile filters collapse */}
-            <Box hiddenFrom="md" mb="lg">
-                <Collapse in={filtersOpen}>
-                    <Paper
-                        withBorder
-                        radius="lg"
-                        p="lg"
-                        style={{
-                            borderColor: hasActiveFilters ? 'var(--mantine-color-primaryRed-5)' : undefined,
-                        }}
-                    >
-                        <GameFilterBar
-                            priceMinInput={priceMinInput}
-                            priceMaxInput={priceMaxInput}
-                            onPriceMinInputChange={setPriceMinInput}
-                            onPriceMaxInputChange={setPriceMaxInput}
-                            onApplyPriceMin={applyPriceMin}
-                            onApplyPriceMax={applyPriceMax}
-                            showPlatformSection={!lockedPlatform}
-                            platforms={platforms}
-                            selectedPlatforms={effectivePlatformIds}
-                            onTogglePlatform={togglePlatform}
-                            onClearPlatforms={clearPlatforms}
-                            genres={genres}
-                            selectedGenre={selectedGenre}
-                            onSelectGenre={handleSelectGenre}
-                            onSale={onSale}
-                            onToggleOnSale={handleToggleOnSale}
-                            showOnSaleSection={!lockedDeals}
-                            ratingMin={ratingMin ?? 0}
-                            onRatingMinChange={applyRatingMin}
-                            facets={facets}
-                            facetStatus={facetStatus}
-                            hasActiveFilters={hasActiveFilters}
-                            onClearFilters={handleClearFilters}
-                        />
-                    </Paper>
-                </Collapse>
-            </Box>
-
             {/* Two-column layout: sidebar + results */}
-            <Box style={{ display: 'flex', gap: 'var(--mantine-spacing-xl)', alignItems: 'flex-start' }}>
+            <Box className="pio-explorer-layout">
                 <Paper
                     withBorder
                     radius="lg"
                     p="lg"
-                    w={240}
-                    visibleFrom="md"
+                    className="pio-explorer-filters"
+                    data-open={filtersOpen}
                     data-explorer-sidebar
                     style={{
-                        flexShrink: 0,
-                        position: 'sticky',
-                        top: 'calc(var(--mantine-spacing-xl) + 60px)',
-                        maxHeight: 'calc(100vh - var(--mantine-spacing-xl) - 60px - var(--mantine-spacing-xl))',
-                        display: 'grid',
-                        gridTemplateRows: 'auto 1fr',
-                        overflow: 'hidden',
                         borderColor: hasActiveFilters ? 'var(--mantine-color-primaryRed-5)' : undefined,
                         transition: 'border-color 0.3s',
                     }}

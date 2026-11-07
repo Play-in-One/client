@@ -42,6 +42,7 @@ const nextConfig = {
     },
     async redirects() {
         return [
+            { source: '/estadisticas', destination: '/scrap', permanent: true },
             // Resolver la primera página antes de renderizar evita cachear
             // una respuesta de ISR con encabezados Location duplicados.
             { source: '/ofertas/pagina/1', destination: '/ofertas', permanent: true },

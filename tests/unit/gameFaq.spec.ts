@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { buildGameFaq } from '../../src/lib/gameFaq';
 import { change30Sentence, averageSentence } from '../../src/lib/priceSummary';
+import { gameJsonLd } from '../../src/lib/seo';
 import type { Game, PriceStats } from '../../src/lib/types';
 
 const platform = (slug: string, long: string) => ({ id: 1, slug, name: slug, display_name: slug, long_name: long });
-const product = (id: number, price: string, condition: string, seller: string, slug = 'ps5') => ({
+const product = (id: number, price: string | number, condition: string, seller: string, slug = 'ps5') => ({
     id,
     current_price: price,
     condition,
@@ -40,6 +41,35 @@ const game = (over: Partial<Game> = {}): Game =>
 
 const q = (entries: { question: string; answer: string }[], text: string) =>
     entries.find((e) => e.question.includes(text));
+
+test('where to buy counts distinct sellers and keeps their cheapest valid offer', () => {
+    const products = Array.from({ length: 6 }, (_, i) => product(i + 1, String(1000 + i), 'new', `Tienda ${i + 1}`));
+    products.push({ ...product(20, '9999', 'new', 'Tienda 1'), seller: products[0].seller });
+    products.push(product(21, 'NaN', 'new', 'Inválida'));
+    products.push({ ...product(22, '1', 'new', 'Agotada'), in_stock: false });
+    const answer = q(buildGameFaq(game({ products: products as Game['products'] })), 'Dónde comprar')!.answer;
+    expect(answer.match(/Tienda 1/g)).toHaveLength(1);
+    expect(answer).toContain('Tienda 1 ($1.000)');
+    expect(answer).toContain('y 1 tienda más');
+    expect(answer).not.toContain('Inválida');
+});
+
+test('FAQ accepts numeric API prices and rejects blank, negative and non-finite prices', () => {
+    const products = [product(1, 1234, 'new', 'Numérica'), product(2, '', 'new', 'Vacía'),
+        product(3, -5, 'new', 'Negativa'), product(4, Infinity, 'new', 'Infinita')];
+    const answer = q(buildGameFaq(game({ products: products as unknown as Game['products'] })), 'Dónde comprar')!.answer;
+    expect(answer).toContain('Numérica ($1.234)');
+    expect(answer).not.toMatch(/Vacía|Negativa|Infinita/);
+});
+
+test('compact structured offers retain base prices and counts without listing each offer', () => {
+    const products = [
+        { ...product(1, '1200', 'new', 'A'), base_price: '1000' },
+        { ...product(2, '2500', 'new', 'B'), base_price: '2000' },
+    ];
+    const data = gameJsonLd(game({ products: products as Game['products'], platforms: [] }));
+    expect(data.offers).toEqual({ '@type': 'AggregateOffer', priceCurrency: 'CLP', lowPrice: '1000.00', highPrice: '2000.00', offerCount: 2 });
+});
 
 test('historicLow prefers price_stats.all_time_min with date and seller', () => {
     const g = game({

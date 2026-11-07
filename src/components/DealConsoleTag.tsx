@@ -1,4 +1,5 @@
 import { FALLBACK_PLATFORM_ICON, PLATFORMS_BY_SLUG } from '@/lib/platforms';
+import { PLATFORM_ICONS } from '@/lib/platformIcons';
 
 /**
  * La consola del precio de una tarjeta: logo y nombre corto, junto al precio
@@ -15,7 +16,7 @@ import { FALLBACK_PLATFORM_ICON, PLATFORMS_BY_SLUG } from '@/lib/platforms';
 export default function DealConsoleTag({ platform }: { platform: string }) {
     const console_ = PLATFORMS_BY_SLUG[platform];
     if (!console_) return null;
-    const Icon = console_.icon ?? FALLBACK_PLATFORM_ICON;
+    const Icon = PLATFORM_ICONS[platform] ?? FALLBACK_PLATFORM_ICON;
     return (
         <span className="pio-deal-console" title={`Precio en ${console_.long}`} data-deal-console={platform}>
             <Icon size={12} aria-hidden />

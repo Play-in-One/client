@@ -2,10 +2,10 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Container, Group, SimpleGrid, Text, Title, Loader } from '@mantine/core';
+import { Container, Loader } from '@mantine/core';
 import { getPlatforms } from '@/lib/api';
 import type { Game, Platform } from '@/lib/types';
-import GameCard from '@/components/GameCard';
+import { unpackGames, type GamesPayload } from '@/lib/gamePayload';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
 import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
 import { isConsolePlatform } from '@/lib/consoles';
@@ -158,7 +158,7 @@ function SearchContent({
 }
 
 export default function SearchClient({
-    initialGames = [],
+    initialGames: payload = [],
     initialTotal = 0,
     initialPlatforms = [],
     initialResultsMatchFilters = false,
@@ -167,61 +167,19 @@ export default function SearchClient({
     /** Primera página resuelta en el servidor, solo para la entrada limpia a
      *  /search (sin filtros ni búsqueda). Es lo que hace que la galería exista
      *  en el HTML: los crawlers de IA no ejecutan el useEffect que la llenaba. */
-    initialGames?: Game[];
+    initialGames?: Game[] | GamesPayload;
     initialTotal?: number;
     initialPlatforms?: Platform[];
     initialResultsMatchFilters?: boolean;
     /** The server saw a published console: «Encuentra tu próxima consola» is a public link. */
     consolesAvailable?: boolean;
 }) {
+    const initialGames = useMemo(() => unpackGames(payload), [payload]);
     return (
-        // El fallback NO es un spinner: es la galería que resolvió el servidor.
-        //
-        // `SearchContent` usa useSearchParams(), y eso deja a todo el subárbol
-        // fuera del render del servidor — el HTML solo traía el fallback. Con un
-        // Loader ahí, un crawler que no ejecuta JavaScript veía una página vacía
-        // por mucho que la primera página estuviera resuelta arriba.
-        //
-        // Poniendo la grilla real como fallback, el HTML inicial trae los juegos
-        // y React la reemplaza por la versión interactiva al hidratar. De paso
-        // quien entra ve portadas en vez de un spinner. Sin resultados del
-        // servidor (entrada con filtros) se cae al Loader de siempre.
-        <Suspense
-            fallback={
-                initialGames.length > 0 ? (
-                    <StaticResults games={initialGames} total={initialTotal} consolesAvailable={consolesAvailable} />
-                ) : (
-                    <Container py="xl"><Loader color="primaryRed" /></Container>
-                )
-            }
-        >
+        <Suspense fallback={<Container py="xl"><Loader aria-label="Cargando juegos" color="primaryRed" /></Container>}>
             <SearchContent initialGames={initialGames} initialTotal={initialTotal}
                 initialPlatforms={initialPlatforms}
                 initialResultsMatchFilters={initialResultsMatchFilters} consolesAvailable={consolesAvailable} />
         </Suspense>
-    );
-}
-
-/** La galería tal como la deja el servidor: sin filtros, sin paginación y sin
- *  nada que dependa de la URL. Solo se usa como fallback del Suspense de
- *  arriba, así que su única misión es existir en el HTML. */
-function StaticResults({ games, total, consolesAvailable }: { games: Game[]; total: number; consolesAvailable: boolean }) {
-    return (
-        <Container size="xl" py="xl">
-            <Group justify="space-between" align="flex-start" gap="md">
-                <Title order={1} fz={{ base: 24, md: 32 }} fw={800} mb="xs">
-                    Explorar juegos
-                </Title>
-                <FindConsoleButton available={consolesAvailable} />
-            </Group>
-            <Text c="dimmed" fz="sm" mb="lg">
-                {total.toLocaleString('es-CL')} juegos comparados entre tiendas chilenas.
-            </Text>
-            <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                {games.map((g, i) => (
-                    <GameCard key={g.id} game={g} priority={i < 4} />
-                ))}
-            </SimpleGrid>
-        </Container>
     );
 }

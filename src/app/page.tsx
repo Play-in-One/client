@@ -5,6 +5,7 @@ import { JsonLd } from '@/components/JsonLd';
 import { itemListJsonLd } from '@/lib/seo';
 import { dealsSectionTitle, isTodayDeals } from '@/lib/deals';
 import { consolesAvailable } from '@/lib/consoleAvailability';
+import { packGames } from '@/lib/gamePayload';
 import HomeClient from './HomeClient';
 
 // Refresh server-rendered news periodically instead of freezing at build time.
@@ -78,8 +79,8 @@ export default async function HomePage() {
         <>
             <HomeClient
                 initialPosts={posts}
-                initialTrending={trending}
-                initialFeatured={featured}
+                initialTrending={packGames(trending)}
+                initialFeatured={packGames(featured)}
                 initialSagas={sagas}
                 deals={deals}
                 consolesAvailable={findConsole}

@@ -1,5 +1,6 @@
 'use client';
 
+import { getStaffProduct } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebouncedValue } from '@mantine/hooks';
@@ -304,6 +305,15 @@ export function AdminGameControls({ game }: { game: Game }) {
 let platformCache: Platform[] | null = null;
 
 export function AdminProductEditor({ product, onDeleted }: { product: Product; onDeleted: () => void }) {
+    const [complete, setComplete] = useState<Product | null>(null);
+    const [loadError, setLoadError] = useState(false);
+    useEffect(() => {
+        const controller = new AbortController();
+        getStaffProduct(product.id, controller.signal).then(setComplete).catch(() => {
+            if (!controller.signal.aborted) setLoadError(true);
+        });
+        return () => controller.abort();
+    }, [product.id]);
     const [platforms, setPlatforms] = useState<Platform[]>(platformCache ?? []);
     useEffect(() => {
         if (platformCache) return;
@@ -315,7 +325,9 @@ export function AdminProductEditor({ product, onDeleted }: { product: Product; o
             .catch(() => {});
     }, []);
 
-    return <ProductRow product={product} platforms={platforms} onDeleted={onDeleted} />;
+    if (loadError) return <Text c="red" role="alert">No pudimos cargar el producto. Cierra el editor e inténtalo de nuevo.</Text>;
+    if (!complete || complete.id !== product.id) return <Text role="status">Cargando producto…</Text>;
+    return <ProductRow product={complete} platforms={platforms} onDeleted={onDeleted} />;
 }
 
 function ProductRow({ product, platforms, onDeleted }: { product: Product; platforms: Platform[]; onDeleted: () => void }) {

@@ -79,15 +79,11 @@ function FeaturedGameCard({
         return () => observer.disconnect();
     }, [compact]);
 
-    const shiftPx =
-        compact || side === 'active' || !slotWidth
-            ? 0
-            : side === 'before'
-                ? (slotWidth - IMAGE_WIDTH) / 2
-                : (IMAGE_WIDTH - slotWidth) / 2;
+    const shiftRange = slotWidth ? (IMAGE_WIDTH - slotWidth) / 2 : 0;
+    const restingDistance = side === 'before' ? -1 : side === 'after' ? 1 : 0;
 
-    /* En compacto la info nunca se comprime: la tarjeta ya ocupa el slot
-       completo y es la única visible (slideSize 100%). */
+    /* En compacto el panel siempre ocupa el espacio disponible. En desktop
+       Embla proporciona el progreso real mediante variables CSS del slide. */
     const infoOpen = compact || isActive;
 
     return (
@@ -112,8 +108,7 @@ function FeaturedGameCard({
                 justifyContent: 'center',
                 width: compact ? '100%' : 'fit-content',
                 marginInline: compact ? undefined : 'auto',
-                transform: compact ? undefined : `translateX(${shiftPx}px)`,
-                transition: compact ? undefined : 'transform 0.7s ease',
+                transform: compact ? undefined : `translateX(calc(var(--featured-distance, ${restingDistance}) * ${shiftRange}px))`,
             }}
             onClick={() => trackEvent({ event_type: 'game_click', game: game.id })}
         >
@@ -158,79 +153,84 @@ function FeaturedGameCard({
                         carátula. Anima al pasar de una a otra. */}
                     <Box
                         style={{
-                            width: compact ? 'auto' : infoOpen ? INFO_WIDTH : 0,
+                            width: compact ? 'auto' : `calc(${INFO_WIDTH}px * var(--featured-open, ${infoOpen ? 1 : 0}))`,
                             flex: compact ? 1 : undefined,
-                            padding: compact
-                                ? 'var(--mantine-spacing-md)'
-                                : infoOpen ? 'var(--mantine-spacing-lg)' : 0,
-                            opacity: infoOpen ? 1 : 0,
+                            opacity: compact ? 1 : `var(--featured-open, ${infoOpen ? 1 : 0})`,
                             overflow: 'hidden',
                             flexShrink: compact ? 1 : 0,
-                            display: 'flex',
-                            flexDirection: 'column',
                             minWidth: 0,
-                            /* Sin transición en compacto: no hay estado comprimido del
-                               que animar, y animar anchos acá era justo lo que dejaba
-                               la tarjeta corriéndose fuera de lugar en mobile. */
-                            transition: compact
-                                ? undefined
-                                : 'width 0.7s ease, padding 0.7s ease, opacity 0.5s ease',
+
                         }}
                     >
-                        <Group gap="2xs" mb={10} justify="space-between" align="flex-start">
-                            <Group gap="2xs" wrap="wrap" style={{ flex: 1 }}>
-                                {game.platforms.map((p) => (
-                                    <PlatformBadge key={p.id} platform={p} />
-                                ))}
+                        {/* El contenedor exterior revela el panel; su contenido
+                            conserva el ancho final para no redistribuir el texto
+                            en cada frame de la apertura o el cierre. */}
+                        <Box
+                            style={{
+                                width: compact ? '100%' : INFO_WIDTH,
+                                height: '100%',
+                                padding: compact ? 'var(--mantine-spacing-md)' : 'var(--mantine-spacing-lg)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                boxSizing: 'border-box',
+                                minWidth: 0,
+                            }}
+                        >
+                            <Group gap="2xs" mb={10} justify="space-between" align="flex-start">
+                                <Group gap="2xs" wrap="wrap" style={{ flex: 1 }}>
+                                    {game.platforms.map((p) => (
+                                        <PlatformBadge key={p.id} platform={p} />
+                                    ))}
+                                </Group>
+                                {game.rating && (
+                                    <Group gap="2xs" wrap="nowrap" style={{ flexShrink: 0 }}>
+                                        <IconStarFilled size={14} style={{ color: `light-dark(${ratingStar.light}, ${ratingStar.dark})`, flexShrink: 0 }} />
+                                        <Text fz="sm" fw={700}>{game.rating}</Text>
+                                    </Group>
+                                )}
                             </Group>
-                            {game.rating && (
-                                <Group gap="2xs" wrap="nowrap" style={{ flexShrink: 0 }}>
-                                    <IconStarFilled size={14} style={{ color: `light-dark(${ratingStar.light}, ${ratingStar.dark})`, flexShrink: 0 }} />
-                                    <Text fz="sm" fw={700}>{game.rating}</Text>
+
+                            <Text fw={700} fz={compact ? 'lg' : 'xl'} lineClamp={2} style={{ whiteSpace: 'normal' }}>
+                                {game.name}
+                            </Text>
+                            <Text fz="sm" c="dimmed" mb={10} lineClamp={1} style={{ whiteSpace: 'nowrap' }}>
+                                {game.developer || 'Desarrollador desconocido'}
+                            </Text>
+                            <Text fz="sm" c="dimmed" lineClamp={compact ? 2 : 3} style={{ flex: 1, whiteSpace: 'normal' }}>
+                                {game.featured_description}
+                            </Text>
+
+                            {hasPrice ? (
+                                <Box mt="auto">
+                                    {/* Igual que GameCard: precio, consola de ese
+                                        precio y rebaja en la misma fila. */}
+                                    <Group gap="2xs" wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
+                                        <Group gap={2} wrap="nowrap" align="center">
+                                            <Text fz={compact ? 20 : 24} fw={800} c="var(--pio-brand-text)" style={{ whiteSpace: 'nowrap' }}>
+                                                {formatCLP(game.min_price as string)}
+                                            </Text>
+                                            <PriceInfo
+                                                basePrice={game.min_price_base}
+                                                shippingCost={game.min_price_shipping}
+                                                seller={game.min_price_seller}
+                                            />
+                                        </Group>
+                                        {(deal?.platform ?? game.min_price_platform) && (
+                                            <DealConsoleTag platform={(deal?.platform ?? game.min_price_platform) as string} />
+                                        )}
+                                        {deal && (
+                                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                <DealPriceLabel deal={deal} isToday={false} />
+                                            </span>
+                                        )}
+                                    </Group>
+                                </Box>
+                            ) : (
+                                <Group mt="auto">
+                                    <Badge color="gray" variant="light" size="sm">Sin stock</Badge>
                                 </Group>
                             )}
-                        </Group>
-
-                        <Text fw={700} fz={compact ? 'lg' : 'xl'} lineClamp={2} style={{ whiteSpace: 'normal' }}>
-                            {game.name}
-                        </Text>
-                        <Text fz="sm" c="dimmed" mb={10} lineClamp={1} style={{ whiteSpace: 'nowrap' }}>
-                            {game.developer || 'Desarrollador desconocido'}
-                        </Text>
-                        <Text fz="sm" c="dimmed" lineClamp={compact ? 2 : 3} style={{ flex: 1, whiteSpace: 'normal' }}>
-                            {game.featured_description}
-                        </Text>
-
-                        {hasPrice ? (
-                            <Box mt="auto">
-                                {/* Igual que GameCard: precio, consola de ese
-                                    precio y rebaja en la misma fila. */}
-                                <Group gap="2xs" wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
-                                    <Group gap={2} wrap="nowrap" align="center">
-                                        <Text fz={compact ? 20 : 24} fw={800} c="var(--pio-brand-text)" style={{ whiteSpace: 'nowrap' }}>
-                                            {formatCLP(game.min_price as string)}
-                                        </Text>
-                                        <PriceInfo
-                                            basePrice={game.min_price_base}
-                                            shippingCost={game.min_price_shipping}
-                                            seller={game.min_price_seller}
-                                        />
-                                    </Group>
-                                    {(deal?.platform ?? game.min_price_platform) && (
-                                        <DealConsoleTag platform={(deal?.platform ?? game.min_price_platform) as string} />
-                                    )}
-                                    {deal && (
-                                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                                            <DealPriceLabel deal={deal} isToday={false} />
-                                        </span>
-                                    )}
-                                </Group>
-                            </Box>
-                        ) : (
-                            <Group mt="auto">
-                                <Badge color="gray" variant="light" size="sm">Sin stock</Badge>
-                            </Group>
-                        )}
+                        </Box>
                     </Box>
                 </Box>
             </Card>
