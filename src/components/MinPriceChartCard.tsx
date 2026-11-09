@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Badge, Box, Card, Center, Group, Loader, SegmentedControl, Text, Title } from '@mantine/core';
-import { IconChartLine } from '@tabler/icons-react';
+import { SegmentedControl, Text } from '@mantine/core';
+import { MinPriceChartFrame, MinPriceChartSpinner } from '@/components/MinPriceChartFrame';
 import type { MinPricePoint } from '@/lib/types';
 import { buildPriceSeries } from '@/lib/priceSeries';
 import PriceHistoryChart from '@/components/PriceHistoryChart';
@@ -56,69 +56,50 @@ export default function MinPriceChartCard({
     const canPlot = built.plotCount >= 2;
 
     return (
-        <Card radius="xl" p={0} style={{ overflow: 'hidden' }}>
-            <Box p="lg" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
-                <Group justify="space-between" wrap="wrap" gap="md">
-                    <Title order={3} fz="lg" fw={700}>
-                        <Group gap={8}>
-                            <IconChartLine size={20} color="var(--mantine-color-primaryRed-5)" />
-                            Historial de Precio Mínimo
-                        </Group>
-                    </Title>
-                    <Group gap="xs">
-                        <Badge variant="light" size="sm">{platformLabel}</Badge>
-                        {conditionLabel && (
-                            <Badge variant="outline" size="sm" color="gray">{conditionLabel}</Badge>
-                        )}
-                        {hasAnyHistory && (
-                            <SegmentedControl
-                                size="xs"
-                                radius="md"
-                                value={range}
-                                onChange={setRange}
-                                data={RANGE_OPTIONS}
-                                aria-label="Rango del historial"
-                            />
-                        )}
-                    </Group>
-                </Group>
-            </Box>
-
-            <Box p="lg">
-                {error ? <Text role="alert" c="dimmed">No pudimos cargar el historial. Cambia el filtro o vuelve a intentarlo más tarde.</Text> : loading ? (
-                    /* El alto del gráfico (220): con 160 la tarjeta crecía al llegar. */
-                    <Center mih={220}>
-                        <Loader size="sm" color="primaryRed" aria-label="Cargando historial" />
-                    </Center>
-                ) : !hasAnyHistory ? (
-                    <Text fz="sm" c="dimmed" ta="center" py="xl">
-                        Aún no hay suficiente historial para esta consola. Se registra un punto
-                        cada vez que cambia el precio más barato.
-                    </Text>
-                ) : !canPlot ? (
-                    // Hay historial, pero no alcanza a esta ventana: decirlo así
-                    // en vez de "no hay datos", que sería falso.
-                    <Text fz="sm" c="dimmed" ta="center" py="xl">
-                        Sin stock ni cambios registrados en los últimos {rangeDays} días.
-                        Prueba con un rango más amplio.
-                    </Text>
-                ) : (
-                    <>
-                        <PriceHistoryChart
-                            points={built.points}
-                            domain={built.domain}
-                            lastRealTimestamp={built.lastRealTimestamp}
-                        />
-                        {built.realCount === 0 && (
-                            // Línea plana de borde a borde: sin esta nota parece
-                            // que el gráfico está roto.
-                            <Text fz="xs" c="dimmed" ta="center" mt="xs">
-                                El precio no ha cambiado en los últimos {rangeDays} días.
-                            </Text>
-                        )}
-                    </>
-                )}
-            </Box>
-        </Card>
+        <MinPriceChartFrame
+            platformLabel={platformLabel}
+            conditionLabel={conditionLabel}
+            controls={hasAnyHistory && (
+                <SegmentedControl
+                    size="xs"
+                    radius="md"
+                    value={range}
+                    onChange={setRange}
+                    data={RANGE_OPTIONS}
+                    aria-label="Rango del historial"
+                />
+            )}
+        >
+            {error ? <Text role="alert" c="dimmed">No pudimos cargar el historial. Cambia el filtro o vuelve a intentarlo más tarde.</Text> : loading ? (
+                <MinPriceChartSpinner />
+            ) : !hasAnyHistory ? (
+                <Text fz="sm" c="dimmed" ta="center" py="xl">
+                    Aún no hay suficiente historial para esta consola. Se registra un punto
+                    cada vez que cambia el precio más barato.
+                </Text>
+            ) : !canPlot ? (
+                // Hay historial, pero no alcanza a esta ventana: decirlo así
+                // en vez de "no hay datos", que sería falso.
+                <Text fz="sm" c="dimmed" ta="center" py="xl">
+                    Sin stock ni cambios registrados en los últimos {rangeDays} días.
+                    Prueba con un rango más amplio.
+                </Text>
+            ) : (
+                <>
+                    <PriceHistoryChart
+                        points={built.points}
+                        domain={built.domain}
+                        lastRealTimestamp={built.lastRealTimestamp}
+                    />
+                    {built.realCount === 0 && (
+                        // Línea plana de borde a borde: sin esta nota parece
+                        // que el gráfico está roto.
+                        <Text fz="xs" c="dimmed" ta="center" mt="xs">
+                            El precio no ha cambiado en los últimos {rangeDays} días.
+                        </Text>
+                    )}
+                </>
+            )}
+        </MinPriceChartFrame>
     );
 }

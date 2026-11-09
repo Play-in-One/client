@@ -596,6 +596,33 @@ html[data-prefs='pending'] [data-prefs-dependent] {
   }
 }
 
+/* Historial de precios (PriceHistoryChart): la primera vez que aparece, la
+   línea y su área se dibujan de izquierda a derecha —el tiempo avanza en esa
+   dirección— y la marca de la última actualización entra al final. Los ejes no
+   se animan: el marco ya está quieto y solo el dato "llega". `backwards` y no
+   `both`: al terminar no queda ningún clip-path aplicado, que recortaría el
+   tooltip o los puntos del borde. */
+@keyframes pio-chart-draw {
+  from { clip-path: inset(-10px 100% -10px -10px); }
+  to { clip-path: inset(-10px -10px -10px -10px); }
+}
+@keyframes pio-chart-mark-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.pio-chart-reveal .recharts-area {
+  animation: pio-chart-draw 0.9s cubic-bezier(0.22, 0.8, 0.3, 1) backwards;
+}
+.pio-chart-reveal .recharts-reference-line {
+  animation: pio-chart-mark-in 0.35s ease-out 0.75s backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pio-chart-reveal .recharts-area,
+  .pio-chart-reveal .recharts-reference-line {
+    animation: none;
+  }
+}
+
 /* Velo de `LinkPendingOverlay` sobre la portada de una tarjeta que está
    abriendo su ficha. Entra a los 150 ms: una navegación prefetcheada pinta el
    esqueleto antes y así no parpadea. Por encima de los chips de la portada

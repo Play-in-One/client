@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Box } from '@mantine/core';
 import { useMantineColorScheme } from '@mantine/core';
 import {
@@ -72,8 +72,18 @@ export default function PriceHistoryChart({ points, domain, lastRealTimestamp }:
     const ticks = useMemo(() => buildTimeTicks(domain), [domain]);
     const formatTick = useMemo(() => timeTickFormatter(domain), [domain]);
 
+    /* Aparición: solo la PRIMERA vez que el gráfico entra (ver
+       `.pio-chart-reveal` en globals.css). La animación propia de Recharts
+       sigue apagada porque se repetía con cada cambio de rango; esta clase se
+       retira al terminar, así que cambiar de 30 a 90 días no vuelve a
+       animar nada. */
+    const [revealing, setRevealing] = useState(true);
+
     return (
-        <Box h={220}>
+        <Box h={220} className={revealing ? 'pio-chart-reveal' : undefined}
+            onAnimationEnd={(event) => {
+                if (event.animationName === 'pio-chart-draw') setRevealing(false);
+            }}>
             <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={points}>
                     <defs>

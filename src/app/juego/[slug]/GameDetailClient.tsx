@@ -46,6 +46,7 @@ import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useNearViewport } from '@/hooks/useNearViewport';
 import { useMinPriceHistory } from '@/hooks/useMinPriceHistory';
 import { useGamePlatform } from './GamePlatformContext';
+import { MinPriceChartLoading } from '@/components/MinPriceChartFrame';
 import {
     BestPriceFrame, GAME_COVER_SIZES, GameBreadcrumbs, GameCoverFrame, GameInfoCardFrame, GameTitleFrame,
     PlatformOption, PlatformSelectorFrame,
@@ -81,7 +82,11 @@ import {
 } from '@/lib/conditions';
 // recharts es pesado y el gráfico va bajo el pliegue: se carga por separado
 // (fuera del bundle inicial del detalle) y solo en el cliente.
-const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), { ssr: false });
+// Mientras baja recharts se ve la tarjeta con su icono de carga, no un hueco.
+const MinPriceChartCard = dynamic(() => import('@/components/MinPriceChartCard'), {
+    ssr: false,
+    loading: () => <MinPriceChartLoading />,
+});
 // Sin indicador de carga: las mismas cifras ya están en texto encima del
 // gráfico (`ratingLines`, en el HTML del servidor), y un loader ahí las
 // duplicaría visualmente mientras llega recharts.
@@ -467,6 +472,12 @@ export default function GameDetailClient({
     });
     const minPriceSeries =
         historySource?.[selectedPlatform ?? '']?.[historyConditionKey] ?? [];
+    const chartPlatformLabel = selectedPlatform
+        ? PLATFORM_SHORT_LABELS[selectedPlatform]
+            ?? platformOptions.find((pl) => pl.slug === selectedPlatform)?.display_name
+            ?? selectedPlatform
+        : null;
+    const chartConditionLabel = conditionFilter ? conditionLabelFor(conditionFilter) : null;
 
     // Portada: la fija (puesta a mano) manda; si no, sale del producto más
     // barato de los que pasan los filtros ACTIVOS de esta pantalla, así que
@@ -695,17 +706,16 @@ export default function GameDetailClient({
                                (cabecera + gráfico de 220), para que no crezca
                                al entrar en pantalla. */
                             <div ref={chartViewport.ref} style={{ minHeight: 330 }}>
+                            {/* Antes de acercarse a la pantalla la tarjeta ya está,
+                                con su icono de carga: el gráfico y sus datos se
+                                piden recién ahí, y pueden tardar. */}
                             {chartViewport.visible ? <MinPriceChartCard
                                 series={minPriceSeries}
-                                platformLabel={
-                                    PLATFORM_SHORT_LABELS[selectedPlatform] ??
-                                    platformOptions.find((pl) => pl.slug === selectedPlatform)?.display_name ??
-                                    selectedPlatform
-                                }
-                                conditionLabel={conditionFilter ? conditionLabelFor(conditionFilter) : null}
+                                platformLabel={chartPlatformLabel ?? selectedPlatform}
+                                conditionLabel={chartConditionLabel}
                                 loading={historyLoading}
                                 error={historyError}
-                            /> : <Text c="dimmed">Historial de precios</Text>}
+                            /> : <MinPriceChartLoading platformLabel={chartPlatformLabel} conditionLabel={chartConditionLabel} />}
                             </div>
                         )}
 

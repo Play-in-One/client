@@ -1,6 +1,7 @@
 import { Anchor, Box, Text, VisuallyHidden } from '@mantine/core';
 import type { GamePreview } from '@/lib/api';
 import { gamePath } from '@/lib/seo';
+import { PLATFORM_SHORT_LABELS } from '@/lib/platformIcons';
 import { GameHeroFrame, GameOffersSkeleton } from './hero/GameHero';
 
 /**
@@ -35,7 +36,7 @@ export default function GamePreviewShell({ game, failed = false }: { game: GameP
                 fila que la ficha completa no tiene. Va en posición absoluta,
                 así que tampoco abre un hueco en el Stack. */}
             <VisuallyHidden role="status">Cargando ofertas y detalles…</VisuallyHidden>
-            <GameOffersSkeleton />
+            <GameOffersSkeleton platformLabel={game.selected_platform ? PLATFORM_SHORT_LABELS[game.selected_platform] ?? null : null} />
         </>}
     />;
 }

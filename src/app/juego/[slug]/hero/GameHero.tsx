@@ -9,6 +9,7 @@ import { IconCheck, IconChevronDown, IconChevronRight, IconHome, IconTag } from 
 import RemoteImage from '@/components/RemoteImage';
 import ConditionIcon from '@/components/ConditionIcon';
 import SeedImage from '@/components/skeleton/SeedImage';
+import { MinPriceChartLoading } from '@/components/MinPriceChartFrame';
 import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import { decorative, elevation, onDark, surfaces } from '@/lib/colors';
 import { conditionBucket } from '@/lib/conditions';
@@ -229,7 +230,7 @@ export function BestPriceFrame({ badge, price, delivery, seller, title, cta, dat
 
 /** El esqueleto de lo que va bajo el precio: la tarjeta del historial (con su
  *  alto real, ~330 px) y la de la comparativa con tres filas. */
-export function GameOffersSkeleton() {
+export function GameOffersSkeleton({ platformLabel }: { platformLabel?: string | null } = {}) {
     const header = (width: number) => (
         <Box p="lg" style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
             <Group justify="space-between" wrap="wrap" gap="md" mih={30}>
@@ -239,10 +240,8 @@ export function GameOffersSkeleton() {
         </Box>
     );
     return <>
-        <Card radius="xl" p={0} style={{ overflow: 'hidden' }} aria-hidden data-skeleton="price-history">
-            {header(230)}
-            <Box p="lg"><Skeleton h={220} radius="md" /></Box>
-        </Card>
+        {/* El historial se ve ya como tarjeta, con su icono de carga. */}
+        <MinPriceChartLoading platformLabel={platformLabel} />
         <Card radius="xl" p={0} style={{ overflow: 'hidden' }} aria-hidden data-skeleton="offers">
             {header(210)}
             {[0, 1, 2].map((row) => (
@@ -345,7 +344,7 @@ export function GameHeroFrame({ data, status }: { data: GameHeroData; status?: R
                             cta={<Skeleton h={50} radius="lg" style={{ flex: 1 }} />}
                             date={<SkeletonLine width={190} />}
                         />
-                        {status ?? <GameOffersSkeleton />}
+                        {status ?? <GameOffersSkeleton platformLabel={data.selectedPlatform ? PLATFORM_SHORT_LABELS[data.selectedPlatform] ?? null : null} />}
                     </Stack>
                 </div>
             </div>
