@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
 
 /**
  * Datos sembrados por `manage.py seed_e2e` en el backend de desarrollo.
@@ -155,4 +155,17 @@ export async function serverHtml(
 export function robotsOf(html: string): string | null {
     const tag = html.match(/<meta\b[^>]*\bname="robots"[^>]*>/i)?.[0];
     return tag?.match(/\bcontent="([^"]*)"/i)?.[1] ?? null;
+}
+
+/**
+ * Espera a que la ficha de juego esté COMPLETA. La ficha llega por partes: el
+ * preview (`[data-game-preview]`) se pinta primero y la ficha completa viaja en
+ * un bloque oculto (`<div hidden id="S:…">`) hasta que React los intercambia.
+ * Mientras tanto el nombre, la tarjeta de información o el precio existen dos o
+ * tres veces en el DOM, y un selector estricto falla. Con la máquina cargada
+ * (los tests del backend en paralelo, o CI) esa ventana se alarga.
+ */
+export async function waitForCompleteGame(page: Page): Promise<void> {
+    await expect(page.locator('[data-game-preview]')).toHaveCount(0, { timeout: 15_000 });
+    await expect(page.locator('div[hidden][id^="S:"]')).toHaveCount(0, { timeout: 15_000 });
 }

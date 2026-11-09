@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { SEEDED, seededGamePath } from './helpers';
+import { SEEDED, seededGamePath, waitForCompleteGame } from './helpers';
 
 /**
  * `/sagas` y `/saga/[slug]` se resuelven en el SERVIDOR: `page.route` no
@@ -122,6 +122,7 @@ test.describe('vista mobile', () => {
     test('la tarjeta de información es desplegable y aparece bajo el nombre y las consolas', async ({ page }) => {
         const gamePath = await seededGamePath(page, SEEDED.sagaGameAId);
         await page.goto(gamePath);
+        await waitForCompleteGame(page);
 
         const nameHeading = page.getByRole('heading', { name: SEEDED.sagaGameA });
         await expect(nameHeading).toBeVisible();

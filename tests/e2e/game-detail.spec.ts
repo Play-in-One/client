@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { SEEDED, COOKIE_DOMAIN, seededGamePath, serverHtml, robotsOf } from './helpers';
+import { SEEDED, COOKIE_DOMAIN, seededGamePath, serverHtml, robotsOf, waitForCompleteGame } from './helpers';
 
 /**
  * La ficha se resuelve en el SERVIDOR (`app/juego/[slug]/page.tsx`) y
@@ -295,6 +295,7 @@ test('el historial muestra estado vacío sin datos suficientes', async ({ page }
 
 test('se muestra estado vacío cuando no hay productos', async ({ page }) => {
     await page.goto(emptyGamePath);
+    await waitForCompleteGame(page);
     await expect(page.getByRole('heading', { name: SEEDED.emptyGame })).toBeVisible();
     // La tabla se pinta vacía, con su propio aviso.
     await expect(
