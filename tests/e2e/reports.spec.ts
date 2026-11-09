@@ -215,7 +215,7 @@ test('el panel filtra reportes y permite marcar y desmarcar revisados', async ({
     await expect(page.getByRole('checkbox', { name: 'Revisado: Producto de prueba' })).toBeChecked();
     await page.getByRole('checkbox', { name: 'Revisado: Producto de prueba' }).click();
     await expect(page.getByRole('checkbox', { name: 'Revisado: Producto de prueba' })).not.toBeChecked();
-    await page.getByLabel('Buscar').fill('prueba');
+    await page.locator('main').getByRole('textbox', { name: 'Buscar', exact: true }).fill('prueba');
     await expect.poll(() => queries.some(q => q.includes('search=prueba'))).toBe(true);
     await page.getByRole('button', { name: 'Actualizar', exact: true }).click();
     expect(queries.length).toBeGreaterThanOrEqual(2);
