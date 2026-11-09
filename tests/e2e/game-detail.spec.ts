@@ -213,13 +213,18 @@ test('el historial de precio mínimo se muestra entre el mejor precio y la compa
     await expect(comparison).toBeVisible();
 
     const bestPrice = page.getByText(/mejor precio/i).first();
-    const [historyBox, comparisonBox, bestPriceBox] = await Promise.all([
-        minHistory.boundingBox(),
-        comparison.boundingBox(),
-        bestPrice.boundingBox(),
-    ]);
-    expect(historyBox!.y).toBeGreaterThan(bestPriceBox!.y);
-    expect(historyBox!.y).toBeLessThan(comparisonBox!.y);
+    // La tarjeta del historial se pinta primero con su icono de carga y se
+    // reemplaza cuando llegan el gráfico y los datos: se mide ya estable.
+    await expect(page.locator('[data-price-history] [role="status"]')).toHaveCount(0, { timeout: 15_000 });
+    await expect(async () => {
+        const [historyBox, comparisonBox, bestPriceBox] = await Promise.all([
+            minHistory.boundingBox(),
+            comparison.boundingBox(),
+            bestPrice.boundingBox(),
+        ]);
+        expect(historyBox!.y).toBeGreaterThan(bestPriceBox!.y);
+        expect(historyBox!.y).toBeLessThan(comparisonBox!.y);
+    }).toPass();
 });
 
 test('el historial sigue al filtro de condición sin recargar', async ({ page }) => {
