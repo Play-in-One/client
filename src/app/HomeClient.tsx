@@ -14,26 +14,22 @@ import {
     Anchor,
     Stack,
 } from '@mantine/core';
-import {
-    IconArrowRight,
-    IconDeviceGamepad,
-} from '@tabler/icons-react';
+import { IconArrowRight } from '@tabler/icons-react';
 import { unpackGames, type GamesPayload } from '@/lib/gamePayload';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces } from '@/lib/colors';
-import { getHomeGames, getDeals, trackEvent } from '@/lib/api';
+import { getHomeGames, getDeals } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
-import RemoteImage from '@/components/RemoteImage';
 import { DEALS_TYPICAL_NOTE, dealsSectionTitle, isTodayDeals } from '@/lib/deals';
+import PostCard from '@/components/PostCard';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
+import { SHELF_DEALS_GRID, SHELF_GRID } from '@/lib/gridLayout';
 import SagaLogo from '@/components/SagaLogo';
 import AdSlot from '@/components/AdSlot';
 import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
-import { postPath } from '@/lib/seo';
-import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
 import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
 
 export default function HomeClient({
@@ -235,8 +231,8 @@ export default function HomeClient({
                         </Group>
 
                         <Box data-prefs-dependent aria-busy={dealsLoading}>
-                            {dealsLoading ? <GameGridSkeleton count={8} testId="home-deals-loading" /> : offers.results.length > 0 ? (
-                                <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }} verticalSpacing="xl">
+                            {dealsLoading ? <GameGridSkeleton count={8} testId="home-deals-loading" grid={SHELF_DEALS_GRID} /> : offers.results.length > 0 ? (
+                                <SimpleGrid {...SHELF_DEALS_GRID}>
                                     {offers.results.map((deal) => (
                                         <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={offers.isToday} />
                                     ))}
@@ -331,7 +327,7 @@ export default function HomeClient({
                             {filtering ? (
                                 <GameGridSkeleton />
                             ) : (
-                                <SimpleGrid cols={{ base: 2, xs: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                                <SimpleGrid {...SHELF_GRID}>
                                     {/* Sin `priority`: la sección queda bajo destacados y
                                         ofertas (~4.000 px en un móvil), y precargarla le
                                         quitaba ancho de banda a lo visible. */}
@@ -370,45 +366,7 @@ export default function HomeClient({
                     </Group>
 
                     <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-                        {posts.slice(0, 3).map((n) => (
-                            <Card
-                                key={n.id}
-                                component="a"
-                                href={postPath(n)}
-                                shadow="sm"
-                                p={0}
-                                className="pio-lift"
-                                style={{ overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}
-                                onClick={() => trackEvent({ event_type: 'post_click', post: n.id })}
-                            >
-                                {/* Placeholder image area */}
-                                <Box
-                                    h={{ base: 130, md: 180 }}
-                                    style={{
-                                        background: 'light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-5))',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        overflow: 'hidden',
-                                        position: 'relative'
-                                    }}
-                                >
-                                    {n.image ? (
-                                        <RemoteImage src={n.image} alt={n.title} sizes="(max-width: 992px) 100vw, 380px"
-                                            style={{ objectFit: 'cover' }} />
-                                    ) : (
-                                        <IconDeviceGamepad size={48} color="var(--mantine-color-dimmed)" />
-                                    )}
-                                </Box>
-                                <Box p={{ base: 'md', md: 'lg' }}>
-                                    <Text fz={{ base: 10, md: 'xs' }} fw={700} c="var(--pio-brand-text)" tt="uppercase" mb={{ base: 4, md: 6 }} style={{ letterSpacing: 1 }}>
-                                        {CATEGORY_LABEL[n.category] ?? n.category}
-                                    </Text>
-                                    <Text fw={700} fz={{ base: 'sm', md: 'lg' }} mb={{ base: 4, md: 6 }} lineClamp={2}>{n.title}</Text>
-                                    <Text fz={{ base: 'xs', md: 'sm' }} c="dimmed" lineClamp={3}>{postExcerpt(n.description)}</Text>
-                                </Box>
-                            </Card>
-                        ))}
+                        {posts.slice(0, 3).map((n) => <PostCard key={n.id} post={n} variant="compact" />)}
                     </SimpleGrid>
                 </Container>
             </Box>

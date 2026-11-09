@@ -173,6 +173,11 @@ async function mobileFits(page: Page) {
 async function failureOffersRetry(page: Page) {
     await page.route('**/api/consoles/981/**', route => route.abort());
     await page.goto('/consola/ps5-slim-981');
+    // The page no longer asks the API again for what the server just served
+    // (default preferences): a filter change is what reaches the browser API.
+    if (await page.locator('[data-console-offer-filters]').count()) {
+        await page.locator('[data-console-offer-filters]').getByText('Nuevo', { exact: true }).click();
+    }
     await expect(page.getByText('No pudimos actualizar las ofertas')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
 }
@@ -322,6 +327,27 @@ test.describe('Staff preview of the console pages', () => {
 });
 
 test.describe('Public console experience', () => {
+    test('a console card paints its detail on click, before the server answers', async ({ page }) => {
+        test.skip(!CONSOLES_PUBLIC, `Las consolas están en modo ${CONSOLES_VISIBILITY}.`);
+        await page.goto('/consolas');
+        const card = page.locator('[data-console-card]').filter({ hasText: 'PS5 Slim' }).first();
+        await card.hover();
+        await page.waitForLoadState('networkidle');
+        // A slow network: the detail's RSC response takes 3 s.
+        await page.route(/\/consola\/[^?]*\?.*_rsc=/, async route => {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            await route.continue();
+        });
+        await card.click();
+        const overlay = page.locator('[data-instant-detail="console"]');
+        await expect(overlay).toBeVisible({ timeout: 2500 });
+        await expect(page).toHaveURL(/\/consolas$/);
+        await expect(overlay.getByRole('heading', { level: 1, name: 'PS5 Slim' })).toBeVisible();
+        await expect(page).toHaveURL(/\/consola\/ps5-slim-981/, { timeout: 15_000 });
+        await expect(overlay).toHaveCount(0);
+        await expect(page.getByRole('heading', { level: 1, name: 'PS5 Slim', exact: true })).toBeVisible();
+    });
+
     test('console cards do not prefetch details on visibility or hover', async ({ page }) => {
         test.skip(process.env.PLAYWRIGHT_PRODUCTION !== '1', 'Prefetch is enabled only in production builds.');
         const requests: string[] = [];

@@ -9,19 +9,28 @@ import { Carousel } from '@mantine/carousel';
 import type { Game } from '@/lib/types';
 import FeaturedGameCard, { CARD_HEIGHT, CARD_HEIGHT_COMPACT } from '@/components/FeaturedGameCard';
 
-/* Skeleton con la silueta del carrusel de Destacados: tarjeta activa
-   expandida (carátula 200px + panel de info) al centro y carátulas
-   comprimidas a los lados. Mismas alturas que FeaturedGameCard y mismo
-   padding vertical que el track del carrusel, para que el reemplazo
-   skeleton ↔ carrusel no mueva el layout — de ahí el `compact`, que en
-   mobile baja el alto al de la tarjeta compacta. */
+/* Skeleton con la silueta del carrusel de Destacados, con las MISMAS medidas
+   que el carrusel en cada ancho:
+   - escritorio: la tarjeta activa expandida (carátula 200px + panel de info,
+     520px) al centro y carátulas comprimidas a los lados, separadas 70px;
+   - móvil: una tarjeta del 90% alineada a la izquierda y el borde de la
+     siguiente asomando a 12px, como el slide real (no una tarjeta centrada).
+   Mismo padding vertical que el track del carrusel, para que el reemplazo
+   skeleton ↔ carrusel no mueva el layout. */
 function FeaturedCarouselSkeleton({ compact }: { compact: boolean }) {
-    const height = compact ? CARD_HEIGHT_COMPACT : CARD_HEIGHT;
+    if (compact) {
+        return (
+            <Group gap={12} wrap="nowrap" pt={12} pb={8} style={{ overflow: 'hidden' }}>
+                <Skeleton radius="lg" height={CARD_HEIGHT_COMPACT} style={{ width: '90%', flexShrink: 0 }} />
+                <Skeleton radius="lg" height={CARD_HEIGHT_COMPACT} style={{ width: '90%', flexShrink: 0 }} />
+            </Group>
+        );
+    }
     return (
         <Group justify="center" align="center" gap={70} wrap="nowrap" pt={12} pb={8} style={{ overflow: 'hidden' }}>
-            <Skeleton radius="lg" height={height} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
-            <Skeleton radius="lg" height={height} style={{ width: 'min(520px, 100%)', flexShrink: 0 }} />
-            <Skeleton radius="lg" height={height} width={200} style={{ flexShrink: 0 }} visibleFrom="md" />
+            <Skeleton radius="lg" height={CARD_HEIGHT} width={200} style={{ flexShrink: 0 }} />
+            <Skeleton radius="lg" height={CARD_HEIGHT} style={{ width: 'min(520px, 100%)', flexShrink: 0 }} />
+            <Skeleton radius="lg" height={CARD_HEIGHT} width={200} style={{ flexShrink: 0 }} />
         </Group>
     );
 }

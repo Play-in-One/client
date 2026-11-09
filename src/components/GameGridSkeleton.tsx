@@ -1,28 +1,20 @@
-import { Box, SimpleGrid, Skeleton, Stack } from '@mantine/core';
+import { SimpleGrid } from '@mantine/core';
+import GameCardSkeleton from '@/components/GameCardSkeleton';
+import { SHELF_GRID, type GridLayout } from '@/lib/gridLayout';
 
-/* Skeleton de una grilla de GameCard — mismas proporciones que la tarjeta,
-   mismo patrón visual que search/loading.tsx. Lo comparten «Populares» de la
-   home y los relacionados de la ficha: los dos tapan con él la grilla sin
-   filtrar mientras el refetch con los filtros globales está en vuelo, y dos
-   esqueletos distintos para la misma tarjeta acabarían divergiendo. */
-export default function GameGridSkeleton({ count = 8, testId }: { count?: number; testId?: string }) {
+/* Grilla de `GameCardSkeleton`. Recibe la MISMA constante de grilla
+   (`lib/gridLayout.ts`) que la grilla real a la que reemplaza: con columnas o
+   huecos distintos, el relevo movía la página aunque cada tarjeta midiera lo
+   mismo. Lo comparten la home, los relacionados de la ficha, `/search` y los
+   `loading.tsx` de las galerías. */
+export default function GameGridSkeleton({ count = 8, testId, grid = SHELF_GRID }: {
+    count?: number;
+    testId?: string;
+    grid?: GridLayout;
+}) {
     return (
-        <SimpleGrid
-            cols={{ base: 2, xs: 2, md: 4 }}
-            spacing={{ base: 'xs', xs: 'lg' }}
-            aria-busy="true"
-            data-testid={testId}
-        >
-            {Array.from({ length: count }).map((_, i) => (
-                <Box key={i}>
-                    <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
-                    <Stack gap="2xs" mt="sm">
-                        <Skeleton height={10} width="40%" radius="sm" />
-                        <Skeleton height={14} width="80%" radius="sm" />
-                        <Skeleton height={22} width="55%" radius="sm" mt="2xs" />
-                    </Stack>
-                </Box>
-            ))}
+        <SimpleGrid {...grid} aria-busy="true" data-testid={testId}>
+            {Array.from({ length: count }).map((_, i) => <GameCardSkeleton key={i} />)}
         </SimpleGrid>
     );
 }

@@ -1,7 +1,7 @@
 import { platformLongName } from '@/lib/types';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { cookies, headers } from 'next/headers';
+import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { JsonLd } from '@/components/JsonLd';
 import {
@@ -16,15 +16,15 @@ import type { Game, Platform } from '@/lib/types';
 import { AD_SLOT_GAME_FOOTER, adsAllowedForCountry } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
 import FaqSection from '@/components/FaqSection';
-import { PREFS_COOKIE, parsePrefs, conditionParamFor, sellerLocationsFor, type Prefs } from '@/lib/prefs';
+import type { Prefs } from '@/lib/prefs';
 import { packGame } from '@/lib/gamePayload';
 import GameDetailClient from './GameDetailClient';
 import { GamePlatformProvider } from './GamePlatformContext';
 import PriceSummarySection from './PriceSummarySection';
-import RelatedGamesSection from './RelatedGamesSection';
+import RelatedGamesSection, { RelatedGamesSkeleton } from './RelatedGamesSection';
 import type { RelatedQuery } from './RelatedGamesGrid';
 import GamePreviewShell from './GamePreviewShell';
-import { fetchGame, fetchGamePreview, parseGameSegment } from './resolve';
+import { fetchGame, parseGameSegment, readGamePreview, startGameFetch } from './resolve';
 
 const RELATED_LIMIT = 8;
 /* Por debajo de esto un criterio no merece sección propia: se prueba el
@@ -159,13 +159,8 @@ async function fetchRelated(game: Game, platform: Platform | undefined): Promise
 type Params = Promise<{ slug: string }>;
 type SearchParams = Promise<{ platform?: string | string[] }>;
 
-function firstParam(value: string | string[] | undefined): string | undefined {
-    return Array.isArray(value) ? value[0] : value;
-}
-
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
-    const parsed = parseGameSegment((await params).slug);
-    const game = parsed && (await fetchGamePreview(parsed.id));
+export async function generateMetadata({ params, searchParams }: { params: Params; searchParams: SearchParams }): Promise<Metadata> {
+    const game = (await readGamePreview((await params).slug, searchParams))?.preview;
     if (!game) notFound();
 
     const platforms = game.platforms.map(platformLongName).join(', ');
@@ -203,13 +198,13 @@ export default async function GameDetailPage({
     params: Params;
     searchParams: SearchParams;
 }) {
-    const parsed = parseGameSegment((await params).slug);
-    if (!parsed) notFound();
-    const platform = firstParam((await searchParams).platform);
-    const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
-    const preview = await fetchGamePreview(parsed.id, platform,
-        conditionParamFor(prefs.format, prefs.condition, prefs.digital), sellerLocationsFor(prefs));
-    if (!preview) notFound();
+    const segment = (await params).slug;
+    const id = parseGameSegment(segment)?.id;
+    if (!id) notFound();
+    startGameFetch(id);
+    const request = await readGamePreview(segment, searchParams);
+    if (!request?.preview) notFound();
+    const { parsed, platform, prefs, preview } = request;
     if (parsed.slug !== preview.slug) permanentRedirect(gamePath(preview, platform));
 
     return <Suspense fallback={<GamePreviewShell game={preview} />}>
@@ -226,9 +221,18 @@ async function CompleteGame({ id, platform, prefs, preview }: {
         game = await fetchGame(id);
     } catch (error) {
         console.error('Failed to load the complete game:', error);
-        return <GamePreviewShell game={preview} failed />;
+        game = null;
     }
-    if (!game) notFound();
+    /* Aquí ya no hay `notFound()`: este componente corre DENTRO del boundary
+       de streaming, cuando el 200 y la metadata indexable ya salieron. Un
+       `notFound()` tardío era un soft 404. Si el detalle falta (el juego
+       desapareció entre el preview y el detalle, o el backend falló) se queda
+       el shell con su "Reintentar" y la página se marca `noindex`: React 19
+       sube el `<meta>` al <head>. */
+    if (!game) return <>
+        <meta name="robots" content="noindex" />
+        <GamePreviewShell game={preview} failed />
+    </>;
     const crumbPlatform = game.platforms.find(p => p.slug === platform) ?? game.platforms[0];
 
     /* El geo-bloqueo de la publicidad se resuelve AQUÍ y no en el layout raíz:
@@ -279,7 +283,7 @@ async function CompleteGame({ id, platform, prefs, preview }: {
                     size="lg"
                 />
                 {/* Al fondo del todo, en el servidor (ver RelatedGamesSection). */}
-                <Suspense fallback={null}>
+                <Suspense fallback={<RelatedGamesSkeleton count={RELATED_LIMIT} />}>
                     <RelatedContent game={game} platform={crumbPlatform} />
                 </Suspense>
             </GamePlatformProvider>

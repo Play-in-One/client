@@ -1,10 +1,11 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { CONSOLES_PUBLIC } from '@/lib/features';
 import { getConsoles, getGames, getPlatforms } from '@/lib/api';
 import Link from 'next/link';
 import { Anchor, Container, Group, Text } from '@mantine/core';
-import { ConsoleCatalog } from '@/components/consoles/ConsoleCatalog';
+import { ConsoleCatalog, ConsoleCatalogSkeleton } from '@/components/consoles/ConsoleCatalog';
 import { consoleQuery } from '@/lib/consoles';
 import type { Game, Platform } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
@@ -85,6 +86,11 @@ export async function generateMetadata({
     return buildMetadata({ title, description, path: canonicalPath, noIndex });
 }
 
+async function ConsoleResults({ query }: { query: ReturnType<typeof consoleQuery> }) {
+    const data = await getConsoles(query, { revalidate }).catch(() => null);
+    return <ConsoleCatalog initialData={data} initialQuery={query} />;
+}
+
 export default async function SearchPage({
     searchParams,
 }: {
@@ -94,8 +100,12 @@ export default async function SearchPage({
     redirectHiddenConsoleSearch(sp);
     if (sp.category === 'console') {
         const query = consoleQuery({ ...sp, search: sp.search ?? sp.q });
-        const data = await getConsoles(query, { revalidate }).catch(() => null);
-        return <ConsoleCatalog key={JSON.stringify(query)} initialData={data} initialQuery={query} />;
+        /* `loading.tsx` es el esqueleto de la galería de JUEGOS: esta rama
+           responde sin esperar a la API y abre su propio boundary con el de
+           consolas, que reemplaza al otro en el primer bloque del stream. */
+        return <Suspense key={JSON.stringify(query)} fallback={<ConsoleCatalogSkeleton />}>
+            <ConsoleResults query={query} />
+        </Suspense>;
     }
     const isCleanEntry = Object.keys(sp).length === 0;
     const [firstPage, platformList] = await Promise.all([

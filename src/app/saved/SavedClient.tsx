@@ -11,12 +11,12 @@ import {
     Stack,
     Button,
     ActionIcon,
-    Center,
-    Loader,
     Group,
 } from '@mantine/core';
 import { IconBookmark, IconX } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
+import GameGridSkeleton from '@/components/GameGridSkeleton';
+import { CATALOG_GRID } from '@/lib/gridLayout';
 import { useApp } from '@/context/AppContext';
 import { allowedConditionsFor, isSellerVisible, sellerLocationsFor, type Prefs } from '@/lib/prefs';
 import { getGame } from '@/lib/api';
@@ -145,9 +145,9 @@ export default function SavedClient() {
             </Text>
 
             {loading ? (
-                <Center py="section">
-                    <Loader />
-                </Center>
+                /* Tantas tarjetas como juegos guardados (el id ya está en
+                   localStorage): la grilla llega con su alto final. */
+                <GameGridSkeleton count={savedGames.length} grid={CATALOG_GRID} />
             ) : games.length === 0 ? (
                 <Stack align="center" py="section" gap="sm">
                     <IconBookmark size={48} color="var(--mantine-color-dimmed)" />
@@ -202,7 +202,7 @@ export default function SavedClient() {
                         </Group>
                     )}
 
-                    <SimpleGrid data-prefs-dependent cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                    <SimpleGrid data-prefs-dependent {...CATALOG_GRID}>
                         {visibleGames.map((game) => (
                             <Box key={game.id} pos="relative">
                                 <ActionIcon

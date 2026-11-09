@@ -1,13 +1,14 @@
 import { cache } from 'react';
+import { cookies } from 'next/headers';
 import { ApiError, getGame, getGamePreview } from '@/lib/api';
+import { PREFS_COOKIE, conditionParamFor, parsePrefs, sellerLocationsFor, type Prefs } from '@/lib/prefs';
 import type { Game } from '@/lib/types';
 
-/** `"dragon-ball-fighterz-13728"` → `{ slug: "dragon-ball-fighterz", id: "13728" }`.
- *  `"13728"` → `{ slug: "", id: "13728" }`. Sin id numérico al final → null. */
-export function parseGameSegment(segment: string): { slug: string; id: string } | null {
-    const m = /^(?:(.+)-)?(\d+)$/.exec(segment);
-    return m ? { slug: m[1] ?? '', id: m[2] } : null;
-}
+import { parseGameSegment } from '@/lib/seo';
+
+/* Vive en `lib/seo.ts`, junto a `gamePath`, para que lo lea también el
+   `loading.tsx` de cliente; se re-exporta para los imports del servidor. */
+export { parseGameSegment };
 
 /** `null` solo ante un 404 de la API. Un fallo de red o un 5xx NO es "el juego
  *  no existe": se relanza en vez de convertirlo en silencio en un notFound(). */
@@ -30,3 +31,38 @@ export const fetchGamePreview = cache(async (id: string, platform?: string, cond
         throw error;
     }
 });
+
+/**
+ * La lectura del preview que comparten `generateMetadata` y el page.
+ *
+ * `fetchGamePreview` está memoizado por sus argumentos EXACTOS: la metadata
+ * pedía `(id)` y el page `(id, platform, condition, seller_locations)`, dos
+ * entradas distintas y dos viajes al backend por cada ficha. Construyendo los
+ * argumentos solo aquí, la metadata (que corre en paralelo al layout) arranca
+ * la petición y el page recibe la misma promesa. El layout de un documento
+ * sigue leyendo `(id)`: no ve `searchParams`, y solo decide el status.
+ */
+export async function readGamePreview(
+    segment: string,
+    searchParams: Promise<{ platform?: string | string[] }>,
+) {
+    const parsed = parseGameSegment(segment);
+    if (!parsed) return null;
+    const raw = (await searchParams).platform;
+    const platform = Array.isArray(raw) ? raw[0] : raw;
+    const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
+    const preview = await fetchGamePreview(parsed.id, platform,
+        conditionParamFor(prefs.format, prefs.condition, prefs.digital), sellerLocationsFor(prefs));
+    return { parsed, platform, prefs, preview } satisfies {
+        parsed: { slug: string; id: string }; platform?: string; prefs: Prefs; preview: unknown;
+    };
+}
+
+/** Arranca la ficha completa sin esperarla. `fetchGame` está memoizado en la
+ *  petición: quien la espere después recibe esta misma promesa, y el detalle
+ *  (la lectura lenta) deja de empezar recién cuando el preview termina. El
+ *  `catch` vacío solo evita un rechazo sin manejar si nadie llega a esperarla
+ *  (un 404 o un 308 cortan el render antes); el error lo ve `CompleteGame`. */
+export function startGameFetch(id: string): void {
+    fetchGame(id).catch(() => {});
+}

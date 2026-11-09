@@ -6,6 +6,7 @@ import { Card, Text, Group, Box, Anchor, Checkbox, Badge } from '@mantine/core';
 import SellerLogo from './SellerLogo';
 import GameCardImage from './GameCardImage';
 import LinkPendingOverlay from './LinkPendingOverlay';
+import { seedFromClick } from '@/lib/navigationSeed';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import PlatformBadge from './PlatformBadge';
@@ -174,6 +175,22 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                     return;
                 }
                 trackGameClick();
+                // Ficha instantánea: lo que esta tarjeta ya muestra pinta la
+                // ficha en el mismo clic (ver `lib/navigationSeed.ts`).
+                seedFromClick(e, {
+                    kind: 'game',
+                    id: game.id,
+                    name: game.name,
+                    image: game.image ?? null,
+                    platforms: game.platforms,
+                    selectedPlatform: targetPlatform ?? game.platforms[0]?.slug ?? null,
+                    price: hasPrice ? {
+                        amount: String(price),
+                        shipping: shippingCost ?? null,
+                        condition: game.min_price_condition ?? null,
+                        seller: game.min_price_seller ?? (seller ? { id: seller.id, name: seller.name } : null),
+                    } : null,
+                }, gameHref);
             }}
         >
             <Card
@@ -264,7 +281,10 @@ function GameCard({ game, previewFilters, bestProduct, platformSlug, selectable,
                     <Text className="pio-card-title" lineClamp={2}>
                         {game.name}
                     </Text>
-                    <Text fz="xs" c="dimmed" mb="sm">
+                    {/* Una línea, como el título tiene dos: sin tope, un
+                        desarrollador largo envolvía en la tarjeta de 159 px de un
+                        teléfono y cada fila medía distinto de su esqueleto. */}
+                    <Text fz="xs" c="dimmed" mb="sm" lineClamp={1}>
                         {game.developer || 'Desarrollador desconocido'}
                     </Text>
 

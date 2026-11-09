@@ -1,56 +1,40 @@
-import { Box, Container, Flex, Group, Skeleton, Stack } from '@mantine/core';
+'use client';
 
-/* Skeleton del detalle de juego, mostrado mientras el server component
-   (page.tsx) resuelve `getGame`.
+import { useParams } from 'next/navigation';
+import { useSeed } from '@/lib/navigationSeed';
+import { parseGameSegment } from '@/lib/seo';
+import { GameHeroFrame } from './hero/GameHero';
+
+/* Lo que pinta la ficha mientras el page resuelve el preview.
 
    No es solo cosmético: es lo que deja al router pintar la ficha antes de que
    el backend responda. Los enlaces a una ficha no se precargan
    (`GAME_LINK_PREFETCH` en `lib/seo.ts`), así que al hacer clic la respuesta
-   RSC trae este esqueleto en cuanto sale el layout y el page llega después, en
-   streaming. Sin el boundary, la navegación esperaba el RSC entero, entre 1 y
-   4 s contra el backend de producción, sin pintar nada. La tarjeta clicada
-   parecía simplemente muerta.
+   RSC trae este boundary en cuanto sale el layout y el page llega después, en
+   streaming.
 
-   Server Component a propósito, como `search/loading.tsx`: por eso no usa
-   `Grid`/`Grid.Col` ni ningún otro compuesto de Mantine (llegan como
-   `undefined` fuera del cliente, ver CLAUDE.md), sino un Flex con wrap. */
+   Usa el MISMO marco que el preview y la ficha completa (`hero/GameHero.tsx`):
+   el esqueleto anterior era un Flex de dos columnas que no coincidía con
+   `.pio-game-layout` en ningún ancho, y la página se reacomodaba dos veces.
+
+   Cliente a propósito: si se llegó desde una tarjeta, lee su semilla
+   (`lib/navigationSeed.ts`) y muestra ya la portada, el nombre, las consolas y
+   el precio, los mismos que el overlay instantáneo pintó en el clic. En un
+   documento no hay semilla y sale el marco entero en esqueleto. */
 export default function GameDetailLoading() {
-    return (
-        <Container size="lg" py="xl">
-            {/* Breadcrumbs */}
-            <Skeleton height={14} width={260} radius="sm" mb="xl" />
-
-            <Flex gap="xl" wrap="wrap" align="flex-start">
-                {/* ── Sidebar: portada + fichas ── */}
-                <Box style={{ flex: '1 1 300px', minWidth: 0 }}>
-                    <Box maw={{ base: '85%', lg: '100%' }} mx={{ base: 'auto', lg: 0 }}>
-                        <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
-                    </Box>
-
-                    {/* Ficha de datos, con «Acerca del juego» dentro */}
-                    <Skeleton height={296} radius="lg" mt="md" />
-                </Box>
-
-                {/* ── Contenido: título, tabs de consola y ofertas ── */}
-                <Box style={{ flex: '2 1 480px', minWidth: 0 }}>
-                    <Stack gap="xl">
-                        <Box>
-                            <Group gap="sm" mb="2xs">
-                                <Skeleton height={20} width={70} radius="xl" />
-                                <Skeleton height={20} width={90} radius="xl" />
-                            </Group>
-                            <Skeleton height={38} width="75%" radius="md" mb="sm" />
-                            <Skeleton height={40} width={220} radius="md" />
-                        </Box>
-
-                        <Stack gap="md">
-                            {Array.from({ length: 4 }).map((_, i) => (
-                                <Skeleton key={i} height={104} radius="lg" />
-                            ))}
-                        </Stack>
-                    </Stack>
-                </Box>
-            </Flex>
-        </Container>
-    );
+    const params = useParams<{ slug: string }>();
+    const id = params?.slug ? parseGameSegment(params.slug)?.id : undefined;
+    const seed = useSeed('game', id);
+    return <GameHeroFrame data={seed ? {
+        id: seed.id,
+        name: seed.name,
+        image: seed.image,
+        placeholderSrc: seed.placeholderSrc,
+        platforms: seed.platforms,
+        selectedPlatform: seed.selectedPlatform,
+        price: seed.price?.amount ?? null,
+        shipping: seed.price?.shipping ?? null,
+        condition: seed.price?.condition ?? null,
+        seller: seed.price?.seller?.name ?? null,
+    } : {}} />;
 }

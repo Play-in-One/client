@@ -5,6 +5,7 @@ import { Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
 import { ApiError, getGames, getPlatforms } from '@/lib/api';
 import { consolesAvailable } from '@/lib/consoleAvailability';
 import { LANDING_ORDERING } from '@/lib/platformGames';
+import { CATALOG_GRID } from '@/lib/gridLayout';
 import type { Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
 import GameCard from '@/components/GameCard';
@@ -252,7 +253,7 @@ export default async function PlatformLanding({ slug, page }: { slug: string; pa
                         withContainer={false}
                         staticFallback={
                             <>
-                                <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing="md">
+                                <SimpleGrid {...CATALOG_GRID}>
                                     {games.map((game, i) => (
                                         <GameCard
                                             key={game.id}

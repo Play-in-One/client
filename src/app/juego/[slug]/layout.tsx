@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { gamePath } from '@/lib/seo';
 import { RSC_REQUEST_HEADER } from '@/lib/rscRequest';
-import { fetchGamePreview, parseGameSegment } from './resolve';
+import { fetchGamePreview, parseGameSegment, startGameFetch } from './resolve';
 
 /**
  * Decide el STATUS de la ficha antes de que salga el primer byte.
@@ -44,6 +44,8 @@ export default async function GameSegmentLayout({
 }) {
     const parsed = parseGameSegment((await params).slug);
     if (!parsed) notFound();
+    // La lectura lenta arranca ya, en paralelo al preview (ver `startGameFetch`).
+    startGameFetch(parsed.id);
 
     const isRsc = (await headers()).get(RSC_REQUEST_HEADER) === '1';
     if (!isRsc) {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
     Alert, Anchor, Badge, Box, Breadcrumbs, Button, Card, Container, Grid, Group, Loader, Skeleton, Stack,
     Text, Title,
@@ -16,9 +16,13 @@ import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
 import { getConsole } from '@/lib/api';
 import { decorative, elevation, onDark } from '@/lib/colors';
-import { configurationLabel, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
+import { configurationLabel, consoleIdFromSlug, consolePath, consoleQueryString, type ConsoleDetail, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
+import { useSeed, type ConsoleSeed } from '@/lib/navigationSeed';
+import { FALLBACK_PLATFORM_ICON, PLATFORM_ICONS } from '@/lib/platformIcons';
+import { PLATFORM_COLORS, formatCLP } from '@/lib/utils';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
+import SeedImage from '@/components/skeleton/SeedImage';
 import { activeCoupon, platformLongName, type Product } from '@/lib/types';
-import { formatCLP } from '@/lib/utils';
 import { ConsoleImage, plural } from './ConsoleCard';
 import { EditionMark, hasEditionMark } from './EditionMark';
 import { ConsoleOfferRow, ConsoleOfferRowSkeleton, hasLivePrice } from './ConsoleOfferRow';
@@ -33,42 +37,124 @@ import styles from './ConsoleCatalog.module.css';
    ones answer the question and the rest stay one click away. */
 const OFFER_PREVIEW = 10;
 
-/** The detail's own layout (image and counter, title, model switcher, price
- *  card, filters and offers) so nothing jumps when the data arrives. */
-export function ConsoleDetailSkeleton() {
+/** The client fallback of the route: the skeleton, filled with the clicked
+ *  card's seed when there is one (see `lib/navigationSeed.ts`). */
+export function ConsoleDetailFallback() {
+    const params = useParams<{ slug: string }>();
+    const seed = useSeed('console', params?.slug ? consoleIdFromSlug(params.slug) : null);
+    return <ConsoleDetailSkeleton seed={seed} />;
+}
+
+/** The detail's own layout, block for block (breadcrumb, image and games
+ *  counter, platform line, title, model switcher, stores line, price card,
+ *  then the offers card), so nothing jumps when the data arrives. With a
+ *  `seed` (the card that was clicked) the blocks it can fill show real data:
+ *  photo, name, platform, "desde" price and store count. */
+export function ConsoleDetailSkeleton({ seed }: { seed?: ConsoleSeed | null }) {
+    const Icon = seed ? PLATFORM_ICONS[seed.platform.slug] || FALLBACK_PLATFORM_ICON : null;
     return (
-        <Container size="lg" py="xl" aria-busy data-console-detail-skeleton>
-            <Skeleton h={14} w={260} mb="xl" />
+        <Container size="lg" py="xl" aria-busy data-console-detail-skeleton data-seeded={seed ? true : undefined}>
+            <Breadcrumbs separator={<IconChevronRight size={14} color="var(--mantine-color-dimmed)" />} mb="xl" fz="sm">
+                <Group gap="2xs" c="dimmed"><IconHome size={14} /> Inicio</Group>
+                <Text fz="sm" c="dimmed">Consolas</Text>
+                {seed ? <Text fw={500} fz="sm">{seed.name}</Text> : <Text component="div" fz="sm"><SkeletonLine width={120} /></Text>}
+            </Breadcrumbs>
             <Grid gutter="xl" align="flex-start">
                 <Grid.Col span={{ base: 12, md: 5 }}>
                     <Stack gap="md">
-                        <Skeleton className={styles.heroMedia} radius="lg" />
-                        <Skeleton h={62} radius="md" />
+                        <div className={styles.heroMedia} style={{ boxShadow: elevation.cover }}>
+                            {seed ? <>
+                                <SeedImage src={seed.placeholderSrc} fit="contain" padding="var(--mantine-spacing-lg)" />
+                                <ConsoleImage image={seed.image} name={seed.name} platform={seed.platform.slug} priority
+                                    sizes="(max-width: 62em) 90vw, 420px" />
+                            </> : <Skeleton radius={0} style={{ position: 'absolute', inset: 0, height: 'auto' }} />}
+                        </div>
+                        <Card p="sm" radius="md" aria-hidden>
+                            <Group gap="sm" wrap="nowrap">
+                                <div className={styles.gamesIcon} style={{ color: seed ? PLATFORM_COLORS[seed.platform.slug]?.cssVar : undefined }}>
+                                    {Icon ? <Icon size={22} /> : <Skeleton h={22} w={22} radius="sm" />}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <Text component="div" fw={800} lh={1.2}><SkeletonLine width={160} /></Text>
+                                    <Text component="div" fz="xs"><SkeletonLine width="70%" /></Text>
+                                </div>
+                                <IconChevronRight size={18} color="var(--mantine-color-dimmed)" aria-hidden />
+                            </Group>
+                        </Card>
                     </Stack>
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 7 }}>
                     <Stack gap="md">
-                        <Skeleton h={18} w={140} />
-                        <Skeleton h={38} w="65%" />
+                        <Group gap="xs">
+                            {seed ? <>
+                                <PlatformBadge platform={seed.platform} size="sm" />
+                                <Text fz="sm" c="dimmed">{platformLongName(seed.platform)}</Text>
+                            </> : <Text component="div" fz="sm"><SkeletonLine width={150} /></Text>}
+                        </Group>
+                        <Title order={1} fz={{ base: 28, md: 36 }} fw={800} lh={1.15} component={seed ? 'h1' : 'div'}>
+                            {seed ? seed.name : <SkeletonLine width="65%" />}
+                        </Title>
                         <SiblingModelsSkeleton />
-                        <Skeleton h={14} w="50%" />
-                        <BestPriceSkeleton />
+                        <Group gap="xs" c="dimmed" fz="sm" wrap="nowrap" align="flex-start">
+                            <IconBuildingStore size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                            <Text fz="sm" component="div">
+                                {seed ? plural(seed.sellerCount, 'tienda con precio vigente', 'tiendas con precio vigente') : <SkeletonLine width={170} />}
+                            </Text>
+                        </Group>
+                        <BestPriceFrame price={seed?.minPrice ?? null} />
                     </Stack>
                 </Grid.Col>
             </Grid>
-            <Card radius="xl" p={0} mt="xl">
-                <div className={styles.sectionHeader}><Skeleton h={22} w={220} /></div>
-                <div className={styles.offerFilters}>
-                    {[220, 150, 220, 170].map((w, i) => <Skeleton key={i} h={48} w={w} radius="sm" />)}
-                </div>
-                {[0, 1, 2].map(i => <ConsoleOfferRowSkeleton key={i} />)}
-            </Card>
+            <Stack gap="xl" mt="xl">
+                <Card radius="xl" p={0}>
+                    <div className={styles.sectionHeader}>
+                        <Group gap="xs">
+                            <IconTag size={22} color="var(--mantine-color-primaryRed-5)" aria-hidden />
+                            <Title order={2} component="div" fz="lg" fw={700}><SkeletonLine width={190} /></Title>
+                        </Group>
+                    </div>
+                    {/* Only the condition control is always there; the other
+                        filters depend on the model's configurations. */}
+                    <div className={styles.offerFilters}>
+                        <div>
+                            <Text component="div" fz="xs" fw={500} mb={2}><SkeletonLine width={60} /></Text>
+                            <Skeleton h={30} w={230} maw="100%" radius="md" />
+                        </div>
+                    </div>
+                    {[0, 1, 2].map(i => <ConsoleOfferRowSkeleton key={i} />)}
+                </Card>
+            </Stack>
         </Container>
     );
 }
 
+/** The best-price card's frame (gradient, padding, the price column and the
+ *  50 px button that wraps under it on phones), with skeletons for what is
+ *  still loading. `price` is the card's "desde" when a seed has it. */
+function BestPriceFrame({ price }: { price: string | null }) {
+    const gradient = decorative.bestPriceCardGradient;
+    return (
+        <Box p={{ base: 'lg', md: 'xl' }} pos="relative" aria-hidden data-best-price-skeleton style={{
+            borderRadius: 'var(--mantine-radius-xl)', overflow: 'hidden', color: onDark.text,
+            background: `linear-gradient(135deg, light-dark(${gradient.light.from}, ${gradient.dark.from}), light-dark(${gradient.light.to}, ${gradient.dark.to}))`,
+        }}>
+            <Group justify="space-between" align="flex-end" gap="lg" pos="relative" style={{ zIndex: 1 }}>
+                <Box style={{ minWidth: 0, flex: '1 1 240px' }}>
+                    <Skeleton h={18} w={120} radius="xl" mb="sm" />
+                    <Text component="div" fz="3xl" fw={800} lh={1} className={styles.price}>
+                        {price != null ? formatCLP(price) : <SkeletonLine width="50%" />}
+                    </Text>
+                    <Text component="div" fz="xs" mt="sm"><SkeletonLine width={150} /></Text>
+                    <Text component="div" fz="sm" mt="sm"><SkeletonLine width={190} /></Text>
+                </Box>
+                <Skeleton h={50} w={170} radius="lg" />
+            </Group>
+        </Box>
+    );
+}
+
 function BestPriceSkeleton() {
-    return <Skeleton h={190} radius="xl" aria-hidden data-best-price-skeleton />;
+    return <BestPriceFrame price={null} />;
 }
 
 function BestPriceCard({ model, best, description, editionKey, filtered, href, onOffer, loading }: {

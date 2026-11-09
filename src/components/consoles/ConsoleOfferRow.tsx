@@ -9,6 +9,7 @@ import PriceInfo from '@/components/PriceInfo';
 import ProductImagePreview, { PRODUCT_PREVIEW_HOVER } from '@/components/ProductImagePreview';
 import SellerLogo from '@/components/SellerLogo';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import { conditionBadgeColorFor, conditionLabelFor } from '@/lib/conditions';
 import { includedGamesLabel, type ConsoleConfiguration } from '@/lib/consoles';
 import { EditionMark, hasEditionMark } from './EditionMark';
@@ -95,20 +96,26 @@ export function ConsoleOfferRow({ product, configuration, index, best, href, onO
     );
 }
 
+/** Same blocks as `ConsoleOfferRow`, each line inside the same `Text` as the
+ *  real one: seller (bold), configuration (sm), the badge row, then the price
+ *  (xl) over a `Button sm` (36 px). */
 export function ConsoleOfferRowSkeleton() {
     return (
         <div className={styles.offer} aria-hidden data-console-offer-skeleton>
             <Group gap="sm" wrap="nowrap" align="flex-start" className={styles.offerMain}>
                 <Skeleton w={40} h={40} radius="sm" style={{ flexShrink: 0 }} />
-                <Stack gap={8} style={{ flex: 1 }}>
-                    <Skeleton h={14} w="35%" />
-                    <Skeleton h={12} w="60%" />
-                    <Skeleton h={12} w="45%" />
+                <Stack gap={4} style={{ minWidth: 0, flex: 1 }}>
+                    <Text component="div" fw={700}><SkeletonLine width="35%" /></Text>
+                    <Text component="div" fz="sm" fw={500}><SkeletonLine width="60%" /></Text>
+                    <Group gap={6} wrap="nowrap">
+                        <Skeleton h={18} w={56} radius="xl" />
+                        <Text component="div" fz="xs" style={{ flex: '1 1 160px', minWidth: 0 }}><SkeletonLine width="70%" /></Text>
+                    </Group>
                 </Stack>
             </Group>
             <div className={styles.offerAside}>
-                <Skeleton h={22} w={110} />
-                <Skeleton h={30} w={130} radius="sm" />
+                <Text component="div" fw={800} fz="xl"><SkeletonLine width={110} /></Text>
+                <Skeleton h={36} w={140} radius="sm" />
             </div>
         </div>
     );

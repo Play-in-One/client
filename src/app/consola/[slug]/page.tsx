@@ -5,20 +5,20 @@ import { headers } from 'next/headers';
 import { RSC_REQUEST_HEADER } from '@/lib/rscRequest';
 import { CONSOLES_PUBLIC, CONSOLES_VISIBILITY } from '@/lib/features';
 import { ApiError, getConsole, getConsoles } from '@/lib/api';
-import { ConsoleDetailSkeleton, ConsoleDetailView } from '@/components/consoles/ConsoleDetail';
+import { ConsoleDetailFallback, ConsoleDetailSkeleton, ConsoleDetailView } from '@/components/consoles/ConsoleDetail';
 import { StaffOnly } from '@/components/consoles/StaffOnly';
 import { JsonLd } from '@/components/JsonLd';
 import { platformGameCount } from '@/lib/platformGames';
-import { configurationLabel, consolePath, consoleQuery, consoleQueryString, type ConsoleQuery } from '@/lib/consoles';
+import { configurationLabel, consoleIdFromSlug, consolePath, consoleQuery, consoleQueryString, type ConsoleQuery } from '@/lib/consoles';
 import { absoluteUrl, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 
 export const revalidate = 300;
 
 function consoleId(slug: string): number {
     if (CONSOLES_VISIBILITY === 'off') notFound();
-    const id = /(?:^|-)([1-9]\d*)$/.exec(slug)?.[1];
-    if (!id || !Number.isSafeInteger(Number(id))) notFound();
-    return Number(id);
+    const id = consoleIdFromSlug(slug);
+    if (id === null) notFound();
+    return id;
 }
 
 const resolve = cache(async (slug: string, encodedQuery: string) => {
@@ -50,7 +50,9 @@ export default async function ConsolePage(props: Props) {
     // Suspense so unknown models return HTTP 404 and old slugs return HTTP 308
     // with their filters intact. No extra detail request is needed in a layout.
     const isRsc = (await headers()).get(RSC_REQUEST_HEADER) === '1';
-    if (isRsc) return <Suspense fallback={<ConsoleDetailSkeleton />}>
+    // The fallback reads the card's seed (see `lib/navigationSeed.ts`): a
+    // click on a console card shows its photo, name and price at once.
+    if (isRsc) return <Suspense fallback={<ConsoleDetailFallback />}>
         <ResolvedConsolePage {...props} />
     </Suspense>;
     return ResolvedConsolePage(props);

@@ -1,5 +1,7 @@
 import Link from 'next/link';
-import { Anchor, Box, Container, Group, Title } from '@mantine/core';
+import { Anchor, Box, Container, Group, Text, Title } from '@mantine/core';
+import GameGridSkeleton from '@/components/GameGridSkeleton';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import type { Game } from '@/lib/types';
 import RelatedGamesGrid, { type RelatedQuery } from './RelatedGamesGrid';
 
@@ -69,6 +71,23 @@ export default function RelatedGamesSection({
                     limit={limit}
                     platformSlug={platformSlug}
                 />
+            </Container>
+        </Box>
+    );
+}
+
+/** Mientras el servidor elige los relacionados: la misma sección con su
+ *  cabecera y la grilla en esqueleto. Con `fallback={null}` la sección
+ *  aparecía de golpe al pie y empujaba el anuncio y el footer. */
+export function RelatedGamesSkeleton({ count }: { count: number }) {
+    return (
+        <Box component="section" pb="section" aria-busy="true">
+            <Container size="lg">
+                <Group justify="space-between" align="flex-end" mb="xl">
+                    <Title order={2} component="div" fz="lg" fw={700}><SkeletonLine width={260} /></Title>
+                    <Text component="div" fz="sm" fw={600}><SkeletonLine width={110} /></Text>
+                </Group>
+                <GameGridSkeleton count={count} />
             </Container>
         </Box>
     );

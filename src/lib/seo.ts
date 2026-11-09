@@ -61,6 +61,14 @@ export const siteConfig = {
  * Único constructor de esta URL en el cliente: la ruta antigua `/game/<id>`
  * solo existe ya como redirección permanente.
  */
+/** `"dragon-ball-fighterz-13728"` → `{ slug: "dragon-ball-fighterz", id: "13728" }`.
+ *  `"13728"` → `{ slug: "", id: "13728" }`. Sin id numérico al final → null.
+ *  El inverso de `gamePath`; lo usan el page, el layout y el `loading.tsx`. */
+export function parseGameSegment(segment: string): { slug: string; id: string } | null {
+    const m = /^(?:(.+)-)?(\d+)$/.exec(segment);
+    return m ? { slug: m[1] ?? '', id: m[2] } : null;
+}
+
 export function gamePath(
     game: { id: number; slug?: string | null },
     platformSlug?: string | null,

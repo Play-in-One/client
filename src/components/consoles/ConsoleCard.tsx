@@ -1,9 +1,12 @@
 'use client';
 
+import type { MouseEvent } from 'react';
 import Link from 'next/link';
+import { seedFromClick } from '@/lib/navigationSeed';
 import { Badge, Card, Group, Skeleton, Stack, Text, Title } from '@mantine/core';
 import PlatformBadge from '@/components/PlatformBadge';
 import RemoteImage from '@/components/RemoteImage';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import LinkPendingOverlay from '@/components/LinkPendingOverlay';
 import { CONSOLE_LINK_PREFETCH, consolePath, type ConsoleModel } from '@/lib/consoles';
 import { FALLBACK_PLATFORM_ICON, PLATFORM_ICONS } from '@/lib/platformIcons';
@@ -32,7 +35,13 @@ export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
 }) {
     const priced = model.min_price != null;
     return (
-        <Card component={Link} href={consolePath(model)} prefetch={CONSOLE_LINK_PREFETCH} className={`pio-lift ${styles.card}`} p={0} data-console-card>
+        <Card component={Link} href={consolePath(model)} prefetch={CONSOLE_LINK_PREFETCH} className={`pio-lift ${styles.card}`} p={0} data-console-card
+            // Instant detail: the card's photo, name and price paint the
+            // console page on click (see `lib/navigationSeed.ts`).
+            onClick={(event: MouseEvent<HTMLElement>) => seedFromClick(event, {
+                kind: 'console', id: model.id, name: model.name, image: model.image ?? null, platform: model.platform,
+                minPrice: model.min_price ?? null, sellerCount: model.seller_count,
+            }, consolePath(model))}>
             <div className={styles.media}>
                 <LinkPendingOverlay />
                 <ConsoleImage image={model.image} name={model.name} platform={model.platform.slug}
@@ -62,14 +71,21 @@ export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
     );
 }
 
+/** Same frame as `ConsoleCard`: the `.card`/`.media` classes (border and
+ *  white tile included) and each line inside the same `Title`/`Text` as the
+ *  real one, so line heights come from the component (see `SkeletonLine`). */
 export function ConsoleCardSkeleton() {
     return (
-        <Card p={0} aria-hidden>
-            <Skeleton style={{ aspectRatio: '4 / 3' }} radius={0} />
-            <Stack gap="xs" p="md">
-                <Skeleton h={16} w="70%" />
-                <Skeleton h={22} w="45%" mt="sm" />
-                <Skeleton h={12} w="55%" />
+        <Card className={styles.card} p={0} aria-hidden data-skeleton="console-card">
+            <div className={styles.media}>
+                <Skeleton radius={0} style={{ position: 'absolute', inset: 0, height: 'auto' }} />
+            </div>
+            <Stack gap={6} p="md" style={{ flex: 1 }}>
+                <Title order={3} component="div" fz="md" fw={700} lh={1.3}><SkeletonLine width="70%" /></Title>
+                <div style={{ marginTop: 'auto' }}>
+                    <Text component="div" fz="xl" lh={1.2}><SkeletonLine width="50%" /></Text>
+                    <Text component="div" fz="sm" mt={4}><SkeletonLine width="35%" /></Text>
+                </div>
             </Stack>
         </Card>
     );

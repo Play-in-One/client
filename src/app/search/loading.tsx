@@ -1,23 +1,29 @@
-import { Container, SimpleGrid, Skeleton, Stack, Box } from '@mantine/core';
+import { Container, Group, Text } from '@mantine/core';
+import ExplorerSkeleton from '@/components/game-explorer/ExplorerSkeleton';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
+import { CONSOLES_PUBLIC } from '@/lib/features';
 
-/* Skeleton de la galería mostrado mientras el server component (page.tsx)
-   resuelve el fetch inicial de juegos y opciones de filtro. */
+/* Esqueleto de `/search` mientras el servidor resuelve la primera página. Es
+   la MISMA estructura que pinta la página: la barra Juegos | Consolas y
+   `GameExplorer` con cabecera, buscador y panel de filtros (ver
+   `ExplorerSkeleton`).
+
+   Reserva el título de una BÚSQUEDA («Resultados para "…"», dos líneas en un
+   teléfono): la entrada limpia a `/search` es estática y se precarga, así que
+   este esqueleto se ve casi solo al buscar. Servidor a propósito: un
+   `useSearchParams` aquí rompe el prerender de `/search` en el build. */
 export default function SearchLoading() {
     return (
-        <Container size="xl" py="xl">
-            <Skeleton height={36} width={260} radius="md" mb="xl" />
-            <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
-                {Array.from({ length: 12 }).map((_, i) => (
-                    <Box key={i}>
-                        <Skeleton radius="lg" style={{ aspectRatio: '3/4', width: '100%' }} />
-                        <Stack gap="2xs" mt="sm">
-                            <Skeleton height={10} width="40%" radius="sm" />
-                            <Skeleton height={14} width="80%" radius="sm" />
-                            <Skeleton height={22} width="55%" radius="sm" mt="2xs" />
-                        </Stack>
-                    </Box>
-                ))}
-            </SimpleGrid>
-        </Container>
+        <>
+            {CONSOLES_PUBLIC && (
+                <Container size="lg" pt="lg">
+                    <Group gap="lg">
+                        <Text component="div" fw={700}><SkeletonLine width={56} /></Text>
+                        <Text component="div"><SkeletonLine width={64} /></Text>
+                    </Group>
+                </Container>
+            )}
+            <ExplorerSkeleton longTitle />
+        </>
     );
 }

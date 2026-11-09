@@ -4,6 +4,7 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { notFound } from 'next/navigation';
 import { Anchor, Container, Group, SimpleGrid, Text, Title } from '@mantine/core';
 import GameExplorer from '@/components/game-explorer/GameExplorer';
+import { CATALOG_DEALS_GRID } from '@/lib/gridLayout';
 import { ApiError, getDeals, getGames, getPlatforms } from '@/lib/api';
 import type { DealsResponse, Game, Platform } from '@/lib/types';
 import { platformLongName } from '@/lib/types';
@@ -283,7 +284,7 @@ export default async function DealsLanding({ slug, page = 1 }: { slug?: string; 
                             <Text size="sm" c="dimmed" mb="md" data-deals-range>
                                 {dealsRangeLabel(page, total)}
                             </Text>
-                            <SimpleGrid cols={{ base: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', sm: 'lg' }} verticalSpacing="xl">
+                            <SimpleGrid {...CATALOG_DEALS_GRID}>
                                 {deals.map((deal, i) => (
                                     <DealCard
                                         key={`${deal.game.id}-${deal.platform}`}

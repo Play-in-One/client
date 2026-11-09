@@ -1,5 +1,6 @@
 'use client';
 
+import { gameSeedFrom, seedFromClick } from '@/lib/navigationSeed';
 import { useLayoutEffect, useRef, useState, memo } from 'react';
 import { Card, Text, Group, Box, Anchor, Badge } from '@mantine/core';
 import { IconStarFilled } from '@tabler/icons-react';
@@ -22,11 +23,9 @@ export const CARD_HEIGHT = 300;
  *  menos alto para no quedar desproporcionada (y para que la carátula fluida
  *  no se recorte de más). */
 export const CARD_HEIGHT_COMPACT = 260;
+/* Las medidas viven en `.pio-featured-*` (globals.css); estas son las que
+   además necesita JS: el desplazamiento de la carátula y el `sizes`. */
 const IMAGE_WIDTH = 200;
-/** En mobile la carátula es fluida (% del ancho del slot), no un fijo de 200px
- *  que en una pantalla de ~360px se comería la tarjeta entera. */
-const IMAGE_WIDTH_COMPACT = '40%';
-const INFO_WIDTH = 320;
 
 function FeaturedGameCard({
     game,
@@ -102,15 +101,22 @@ function FeaturedGameCard({
                tarjeta central abría el juego de al lado y el borde opuesto caía
                en zona muerta. `marginInline: auto` conserva el centrado que
                antes daba el ancho completo + justifyContent. */
+            /* La GEOMETRÍA (anchos, alto, paddings, tipografía) va en CSS con
+               media query (`.pio-featured-*` en globals.css), no en `compact`:
+               `useMediaQuery` vale `undefined` en el servidor, y el HTML salía
+               con la tarjeta de escritorio en los teléfonos —520 px de ancho en
+               un slot de ~295— hasta hidratar. `compact` solo decide ya el
+               comportamiento (desplazamiento y hover). */
+            className="pio-featured-link"
             style={{
-                textDecoration: 'none',
-                display: 'flex',
-                justifyContent: 'center',
-                width: compact ? '100%' : 'fit-content',
-                marginInline: compact ? undefined : 'auto',
-                transform: compact ? undefined : `translateX(calc(var(--featured-distance, ${restingDistance}) * ${shiftRange}px))`,
+                ['--featured-open-default' as string]: infoOpen ? 1 : 0,
+                transform: compact === false ? `translateX(calc(var(--featured-distance, ${restingDistance}) * ${shiftRange}px))` : undefined,
             }}
-            onClick={() => trackEvent({ event_type: 'game_click', game: game.id })}
+            onClick={(e) => {
+                trackEvent({ event_type: 'game_click', game: game.id });
+                // Ficha instantánea (ver `lib/navigationSeed.ts`).
+                seedFromClick(e, gameSeedFrom(game), gamePath(game, game.min_price_platform));
+            }}
         >
             <Card
                 shadow="sm"
@@ -118,13 +124,7 @@ function FeaturedGameCard({
                 pos="relative"
                 /* En compacto la tarjeta es la diapositiva del carrusel móvil y
                    no se eleva; en escritorio, el mismo hover que toda tarjeta. */
-                className={compact ? undefined : 'pio-lift'}
-                style={{
-                    overflow: 'hidden',
-                    width: compact ? '100%' : undefined,
-                    height: compact ? CARD_HEIGHT_COMPACT : CARD_HEIGHT,
-                    cursor: 'pointer',
-                }}
+                className={compact ? 'pio-featured-card' : 'pio-featured-card pio-lift'}
             >
                 {/* Blob de acento, igual al del hero (decorative.heroBlobRed) */}
                 <Box
@@ -143,39 +143,19 @@ function FeaturedGameCard({
 
                 <Box pos="relative" style={{ zIndex: 1, display: 'flex', flexDirection: 'row', height: '100%' }}>
                     {/* Carátula: siempre visible, ancho fijo */}
-                    <Box pos="relative" style={{ width: compact ? IMAGE_WIDTH_COMPACT : IMAGE_WIDTH, flexShrink: 0, height: '100%' }}>
-                        <GameCardImage game={game} sizes={compact ? '45vw' : `${IMAGE_WIDTH}px`} priority={priority} />
+                    <Box className="pio-featured-cover">
+                        <GameCardImage game={game} sizes={`(max-width: 61.99em) 45vw, ${IMAGE_WIDTH}px`} priority={priority} />
                         <LinkPendingOverlay />
                     </Box>
 
                     {/* Info: solo la tarjeta activa (centrada) la muestra; las
                         laterales la comprimen a 0 y quedan reducidas a la
                         carátula. Anima al pasar de una a otra. */}
-                    <Box
-                        style={{
-                            width: compact ? 'auto' : `calc(${INFO_WIDTH}px * var(--featured-open, ${infoOpen ? 1 : 0}))`,
-                            flex: compact ? 1 : undefined,
-                            opacity: compact ? 1 : `var(--featured-open, ${infoOpen ? 1 : 0})`,
-                            overflow: 'hidden',
-                            flexShrink: compact ? 1 : 0,
-                            minWidth: 0,
-
-                        }}
-                    >
+                    <Box className="pio-featured-info">
                         {/* El contenedor exterior revela el panel; su contenido
                             conserva el ancho final para no redistribuir el texto
                             en cada frame de la apertura o el cierre. */}
-                        <Box
-                            style={{
-                                width: compact ? '100%' : INFO_WIDTH,
-                                height: '100%',
-                                padding: compact ? 'var(--mantine-spacing-md)' : 'var(--mantine-spacing-lg)',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                boxSizing: 'border-box',
-                                minWidth: 0,
-                            }}
-                        >
+                        <Box className="pio-featured-info-inner">
                             <Group gap="2xs" mb={10} justify="space-between" align="flex-start">
                                 <Group gap="2xs" wrap="wrap" style={{ flex: 1 }}>
                                     {game.platforms.map((p) => (
@@ -190,13 +170,13 @@ function FeaturedGameCard({
                                 )}
                             </Group>
 
-                            <Text fw={700} fz={compact ? 'lg' : 'xl'} lineClamp={2} style={{ whiteSpace: 'normal' }}>
+                            <Text fw={700} className="pio-featured-title" lineClamp={2} style={{ whiteSpace: 'normal' }}>
                                 {game.name}
                             </Text>
                             <Text fz="sm" c="dimmed" mb={10} lineClamp={1} style={{ whiteSpace: 'nowrap' }}>
                                 {game.developer || 'Desarrollador desconocido'}
                             </Text>
-                            <Text fz="sm" c="dimmed" lineClamp={compact ? 2 : 3} style={{ flex: 1, whiteSpace: 'normal' }}>
+                            <Text fz="sm" c="dimmed" lineClamp={3} className="pio-featured-desc" style={{ flex: 1, whiteSpace: 'normal' }}>
                                 {game.featured_description}
                             </Text>
 
@@ -206,7 +186,7 @@ function FeaturedGameCard({
                                         precio y rebaja en la misma fila. */}
                                     <Group gap="2xs" wrap={deal ? 'wrap' : 'nowrap'} align="center" style={{ rowGap: 2 }}>
                                         <Group gap={2} wrap="nowrap" align="center">
-                                            <Text fz={compact ? 20 : 24} fw={800} c="var(--pio-brand-text)" style={{ whiteSpace: 'nowrap' }}>
+                                            <Text fw={800} c="var(--pio-brand-text)" className="pio-featured-price" style={{ whiteSpace: 'nowrap' }}>
                                                 {formatCLP(game.min_price as string)}
                                             </Text>
                                             <PriceInfo

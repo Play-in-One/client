@@ -1,14 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent, type MouseEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-    Alert, Anchor, Box, Breadcrumbs, Button, Container, Group, Loader, SegmentedControl, Select, SimpleGrid, Stack, Text,
+    Alert, Anchor, Box, Breadcrumbs, Button, Container, Group, Loader, SegmentedControl, Select, SimpleGrid, Skeleton, Stack, Text,
     TextInput, Title,
 } from '@mantine/core';
 import { IconChevronRight, IconHome, IconSearch } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import InfoHeading from '@/components/InfoHeading';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import { getConsoles } from '@/lib/api';
 import { CONSOLE_FAMILIES, CONSOLE_PLATFORMS, consoleQueryString, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
 import { FALLBACK_PLATFORM_ICON, PLATFORM_ICONS } from '@/lib/platformIcons';
@@ -31,15 +32,60 @@ function clean(query: ConsoleQuery): ConsoleQuery {
     return Object.fromEntries(Object.entries(query).filter(([, value]) => value !== undefined && value !== '')) as ConsoleQuery;
 }
 
-export function ConsoleCatalogSkeleton() {
+/** The results area while a filter is loading: the count line, and in the
+ *  grouped view one family heading, so the grid does not jump when they come
+ *  back with the data. */
+function ConsoleResultsSkeleton({ grouped }: { grouped: boolean }) {
     return (
-        <Container size="xl" py="xl" aria-busy>
-            <Stack gap="lg">
-                <Box h={40} />
-                <SimpleGrid cols={GRID_COLS} spacing="lg">
-                    {Array.from({ length: 8 }, (_, i) => <ConsoleCardSkeleton key={i} />)}
-                </SimpleGrid>
+        <Box aria-busy data-skeleton="console-results">
+            <Text component="div" fz="sm" mb="md"><SkeletonLine width={90} /></Text>
+            {grouped && <Title order={2} component="div" fz="lg" fw={700} mb="md"><SkeletonLine width={140} /></Title>}
+            <SimpleGrid cols={GRID_COLS} spacing="lg">
+                {Array.from({ length: 8 }, (_, i) => <ConsoleCardSkeleton key={i} />)}
+            </SimpleGrid>
+        </Box>
+    );
+}
+
+/** The whole catalog page while it loads, with the same blocks as
+ *  `ConsoleCatalog`: breadcrumb, title and subtitle, the toolbar (search with
+ *  its label, two labelled segmented controls, ordering) and the platform row.
+ *  The previous skeleton was a 40 px box over the grid, so the grid dropped
+ *  ~290 px (~500 px on a phone) when the page arrived. */
+export function ConsoleCatalogSkeleton() {
+    const labelled = (width: number, control: ReactNode) => (
+        <Box>
+            <Text component="div" fz="sm" fw={500} mb={4}><SkeletonLine width={width * 0.45} /></Text>
+            {control}
+        </Box>
+    );
+    return (
+        <Container size="xl" py="xl" aria-busy data-skeleton="console-catalog">
+            <Text component="div" fz="sm" mb="lg"><SkeletonLine width={130} /></Text>
+            <Stack gap={6} mb="lg">
+                <Title order={1} component="div" fz={{ base: 28, md: 36 }} fw={800}><SkeletonLine width={180} /></Title>
+                <Text component="div"><SkeletonLine width="min(520px, 90%)" /></Text>
             </Stack>
+            <Stack gap="md" mb="xl">
+                <div className={styles.toolbar}>
+                    <Box className={styles.toolbarSearch}>
+                        <Text component="div" fz="sm" fw={500}><SkeletonLine width={110} /></Text>
+                        <Skeleton height={36} radius="sm" />
+                    </Box>
+                    {labelled(230, <Skeleton height={36} width={230} radius="md" maw="100%" />)}
+                    {labelled(250, <Skeleton height={36} width={250} radius="md" maw="100%" />)}
+                    <Box w={170}>
+                        <Text component="div" fz="sm" fw={500}><SkeletonLine width={90} /></Text>
+                        <Skeleton height={36} radius="sm" />
+                    </Box>
+                </div>
+                <div className={styles.centerRow}>
+                    <div className={`${styles.platformRow} ${styles.fitRow}`}>
+                        {[64, 96, 96, 110, 96, 104].map((width, i) => <Skeleton key={i} height={30} width={width} radius="sm" />)}
+                    </div>
+                </div>
+            </Stack>
+            <ConsoleResultsSkeleton grouped />
         </Container>
     );
 }
@@ -173,9 +219,7 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
 
             {/* First load, or a new filter whose results are not these ones yet. */}
             {(!data && busy) || stale ? (
-                <SimpleGrid cols={GRID_COLS} spacing="lg" aria-busy>
-                    {Array.from({ length: 8 }, (_, i) => <ConsoleCardSkeleton key={i} />)}
-                </SimpleGrid>
+                <ConsoleResultsSkeleton grouped={grouped} />
             ) : results.length > 0 && data ? (
                 <Box aria-busy={busy}>
                     <Group gap="xs" mb="md">

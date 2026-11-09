@@ -105,7 +105,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <Navbar />
                             {/* Keep the footer below the viewport while streamed
                                 pages are still showing their short fallback. */}
-                            <main style={{ flex: 1, minHeight: 'calc(100vh - 72px)' }}>
+                            <main style={{ flex: 1, minHeight: 'calc(100dvh - var(--pio-navbar-h))' }}>
                                 <ViewTransition>{children}</ViewTransition>
                             </main>
                             <Footer />

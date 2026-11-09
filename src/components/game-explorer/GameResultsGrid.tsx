@@ -6,6 +6,8 @@ import { Box, Group, Loader, Pagination, SimpleGrid, Stack, Text } from '@mantin
 import { IconSearch } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
+import GameGridSkeleton from '@/components/GameGridSkeleton';
+import { CATALOG_DEALS_GRID, CATALOG_GRID } from '@/lib/gridLayout';
 import { dealFromGame, dealsRangeLabel } from '@/lib/deals';
 import type { Game, ProductPreviewFilters } from '@/lib/types';
 
@@ -49,12 +51,16 @@ function GameResultsGrid({
     dealsIsToday = false,
     dealCards = false,
 }: Props) {
+    const grid = dealCards ? CATALOG_DEALS_GRID : CATALOG_GRID;
+
+    /* Sin resultados todavía: la grilla en esqueleto, no un spinner. El
+       spinner ocupaba ~220 px y al llegar las 24 tarjetas la página crecía
+       de golpe; el esqueleto ya tiene su alto. */
     if (loading && games.length === 0) {
         return (
-            <Stack align="center" py={80}>
-                <Loader color="primaryRed" size="lg" />
-                <Text c="dimmed">Buscando...</Text>
-            </Stack>
+            <Box role="status" aria-label="Buscando juegos">
+                <GameGridSkeleton count={12} grid={grid} />
+            </Box>
         );
     }
 
@@ -75,14 +81,34 @@ function GameResultsGrid({
                     {dealsRangeLabel(page, dealsTotal)}
                 </Text>
             )}
+            <Box pos="relative">
+            {/* Flota sobre la grilla en vez de abrir una fila encima: como fila
+                empujaba las tarjetas ~38 px en cada cambio de filtro. */}
             {loading && (
-                <Group justify="center" mb="md" role="status">
+                <Group
+                    role="status"
+                    gap="xs"
+                    wrap="nowrap"
+                    px="md"
+                    py={6}
+                    pos="absolute"
+                    top={8}
+                    left="50%"
+                    style={{
+                        transform: 'translateX(-50%)',
+                        zIndex: 3,
+                        background: 'var(--mantine-color-body)',
+                        border: '1px solid var(--mantine-color-default-border)',
+                        borderRadius: 'var(--mantine-radius-xl)',
+                        boxShadow: 'var(--mantine-shadow-sm)',
+                    }}
+                >
                     <Loader color="primaryRed" size="sm" />
                     <Text c="dimmed" size="sm">Actualizando resultados...</Text>
                 </Group>
             )}
             <Box style={{ opacity: loading ? 0.55 : 1, transition: 'opacity 150ms' }}>
-            <SimpleGrid cols={{ base: 2, xs: 2, sm: 2, md: 3 }} spacing={{ base: 'xs', xs: 'lg' }}>
+            <SimpleGrid {...grid}>
                 {games.map((g, i) => {
                     // Con `deals=1` u `on_sale=1` («En oferta», el mismo
                     // filtro) cada juego trae su oferta: se pinta con la
@@ -120,6 +146,7 @@ function GameResultsGrid({
                     />
                 </Group>
             )}
+            </Box>
             </Box>
         </Box>
     );

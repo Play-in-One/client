@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { ApiError } from '@/lib/api';
 import type { ConsoleQuery } from '@/lib/consoles';
@@ -24,8 +24,17 @@ export function useConsoleRequest<T>(initial: T | null, query: ConsoleQuery, loa
     // of stale numbers. Without this, a server-rendered page would flash
     // skeletons on every visit.
     const [dataKey, setDataKey] = useState<string | null>(initial === null ? null : queryKey);
+    // What the server already answered: its query, with the default
+    // preferences it renders with (it cannot read localStorage).
+    const served = useRef(initial === null ? null : queryKey);
     useEffect(() => {
         if (!ready || !enabled) return;
+        // The server's data answers this exact request: with the default
+        // condition and store locations there is nothing to reload. Before,
+        // every visit asked the API again for the same page it had just got.
+        const servedKey = served.current;
+        served.current = null;
+        if (servedKey === queryKey && condition === 'all' && sellerLocationsParam === undefined) return;
         const controller = new AbortController();
         setBusy(true);
         setError(false);

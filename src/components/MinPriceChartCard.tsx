@@ -86,7 +86,8 @@ export default function MinPriceChartCard({
 
             <Box p="lg">
                 {error ? <Text role="alert" c="dimmed">No pudimos cargar el historial. Cambia el filtro o vuelve a intentarlo más tarde.</Text> : loading ? (
-                    <Center py="xl" mih={160}>
+                    /* El alto del gráfico (220): con 160 la tarjeta crecía al llegar. */
+                    <Center mih={220}>
                         <Loader size="sm" color="primaryRed" aria-label="Cargando historial" />
                     </Center>
                 ) : !hasAnyHistory ? (

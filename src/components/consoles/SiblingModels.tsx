@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Button, Group, Skeleton, Text } from '@mantine/core';
+import { Button, Skeleton, Text } from '@mantine/core';
+import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import { getConsoles } from '@/lib/api';
 import { onDark } from '@/lib/colors';
 import { CONSOLE_LINK_PREFETCH, consolePath, type ConsoleModel } from '@/lib/consoles';
@@ -70,14 +71,15 @@ export function SiblingModels({ current, initialModels, preview }: {
     );
 }
 
-/** Same footprint as the switcher, so the price card below does not jump. */
+/** Same footprint as the switcher: the uppercase label and the bordered,
+ *  sideways-scrolling row of 44 px buttons (it never overflows a phone). */
 export function SiblingModelsSkeleton() {
     return (
         <div aria-hidden data-console-models-skeleton>
-            <Skeleton h={10} w={150} mb={10} />
-            <Group gap={6} wrap="nowrap">
+            <Text component="div" fz="xs" fw={700} mb={6}><SkeletonLine width={170} /></Text>
+            <div className={`${styles.platformRow} ${styles.fitRow}`}>
                 {[80, 70, 92, 64, 104].map((w, i) => <Skeleton key={i} h={44} w={w} radius="sm" />)}
-            </Group>
+            </div>
         </div>
     );
 }

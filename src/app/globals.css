@@ -16,6 +16,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Alto total del Navbar: los 72px de su Group más el borde inferior de 1px.
+   Lo leen el `main` del layout raíz y el overlay de la ficha instantánea. */
+:root {
+  --pio-navbar-h: 73px;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -1043,6 +1049,36 @@ a.saga-banner-link:focus-visible {
   .pio-card-info { padding: var(--mantine-spacing-sm); }
   .pio-card-title { font-size: var(--mantine-font-size-md); }
   .pio-card-price { font-size: 26px; }
+}
+
+/* Destacados (FeaturedGameCard). La geometría va aquí y no en JS: el HTML del
+   servidor no sabe el ancho de la pantalla, y con `useMediaQuery` los teléfonos
+   recibían la tarjeta de escritorio hasta hidratar. Por debajo de 62em, una
+   tarjeta compacta a todo el slot; desde 62em, el coverflow (carátula de 200
+   + panel de 320 que se abre con `--featured-open`, que pone Embla). Las
+   alturas son CARD_HEIGHT_COMPACT y CARD_HEIGHT de FeaturedGameCard.tsx. */
+.pio-featured-link { text-decoration: none; display: flex; justify-content: center; width: 100%; }
+.pio-featured-card { overflow: hidden; width: 100%; height: 260px; cursor: pointer; }
+.pio-featured-cover { position: relative; width: 40%; flex-shrink: 0; height: 100%; }
+.pio-featured-info { flex: 1; width: auto; opacity: 1; overflow: hidden; flex-shrink: 1; min-width: 0; }
+.pio-featured-info-inner { width: 100%; height: 100%; padding: var(--mantine-spacing-md); display: flex; flex-direction: column; box-sizing: border-box; min-width: 0; }
+.pio-featured-title.mantine-Text-root { font-size: var(--mantine-font-size-lg); }
+.pio-featured-desc.mantine-Text-root { --text-line-clamp: 2 !important; }
+.pio-featured-price.mantine-Text-root { font-size: 20px; }
+@media (min-width: 62em) {
+  .pio-featured-link { width: fit-content; margin-inline: auto; }
+  .pio-featured-card { width: auto; height: 300px; }
+  .pio-featured-cover { width: 200px; }
+  .pio-featured-info {
+    flex: none;
+    flex-shrink: 0;
+    width: calc(320px * var(--featured-open, var(--featured-open-default, 0)));
+    opacity: var(--featured-open, var(--featured-open-default, 0));
+  }
+  .pio-featured-info-inner { width: 320px; padding: var(--mantine-spacing-lg); }
+  .pio-featured-title.mantine-Text-root { font-size: var(--mantine-font-size-xl); }
+  .pio-featured-desc.mantine-Text-root { --text-line-clamp: 3 !important; }
+  .pio-featured-price.mantine-Text-root { font-size: 24px; }
 }
 
 /* Featured carousel navigation */

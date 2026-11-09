@@ -80,6 +80,13 @@ export function consolePath(console: Pick<ConsoleModel, 'id' | 'slug'>): string 
     return `/consola/${console.slug}-${console.id}`;
 }
 
+/** The model id at the end of a `/consola/<slug>-<id>` segment, or null. The
+ *  same rule as the page's `consoleId`, shared with the client fallback. */
+export function consoleIdFromSlug(segment: string): number | null {
+    const id = /(?:^|-)([1-9]\d*)$/.exec(segment)?.[1];
+    return id && Number.isSafeInteger(Number(id)) ? Number(id) : null;
+}
+
 /* Colour editions are plain editions whose key is a colour. A few spellings of
    the same colour share its swatch. */
 const SWATCH_ALIASES: Record<string, string> = { blanca: 'blanco', negra: 'negro', amarilla: 'amarillo', turquesa: 'calipso', 'neon-blue-red': 'neon' };

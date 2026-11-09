@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Box, SimpleGrid } from '@mantine/core';
 import GameCard from '@/components/GameCard';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
+import { SHELF_GRID } from '@/lib/gridLayout';
 import { useApp } from '@/context/AppContext';
 import { getGames, getPopularGames } from '@/lib/api';
 import type { Game } from '@/lib/types';
@@ -107,9 +108,12 @@ export default function RelatedGamesGrid({
     return (
         <Box data-prefs-dependent>
             {showSkeleton ? (
-                <GameGridSkeleton count={limit} testId="related-games-skeleton" />
+                /* Tantas como las del servidor: el filtro puede dejar menos,
+                   nunca más, y 8 esqueletos sobre 4 tarjetas eran una fila
+                   de más que desaparecía. */
+                <GameGridSkeleton count={Math.min(limit, initialGames.length || limit)} testId="related-games-skeleton" />
             ) : (
-                <SimpleGrid cols={{ base: 2, md: 4 }} spacing={{ base: 'xs', xs: 'lg' }}>
+                <SimpleGrid {...SHELF_GRID}>
                     {games.map((g) => (
                         <GameCard key={g.id} game={g} platformSlug={platformSlug} previewFilters={
                             query.kind === 'genre' && query.platform ? { platforms: [query.platform] }

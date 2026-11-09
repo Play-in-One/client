@@ -30,10 +30,12 @@ for (const prefs of [undefined, { format: 'physical', condition: 'new', internat
         await expect(shell).toBeVisible();
         await expect(shell.getByRole('heading', { name: preview.name })).toBeVisible();
         await expect(shell.getByRole('img', { name: preview.name })).toBeVisible();
-        const price = shell.locator('[data-game-preview-price]');
-        const expected = preview.min_price == null ? 'Sin ofertas disponibles'
+        // The preview paints the same best-price frame as the complete page
+        // (`hero/GameHero.tsx`); without an offer its price stays a skeleton.
+        const price = shell.locator('[data-best-price]');
+        const expected = preview.min_price == null ? null
             : new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(preview.min_price));
-        await expect(price).toContainText(expected);
+        if (expected) await expect(price).toContainText(expected);
         await expect(price).toBeVisible();
         await expect.poll(async () => (await price.boundingBox())?.y ?? Infinity).toBeLessThan(700);
         await expect(page.getByRole('table', { name: 'Comparativa de precios' })).toHaveCount(0);
@@ -44,7 +46,7 @@ for (const prefs of [undefined, { format: 'physical', condition: 'new', internat
             await expect(page.locator('.pio-game-best-price')).toHaveCount(0);
             await expect(page.getByText('No hay productos disponibles con estos filtros')).toBeVisible();
         } else {
-            await expect(page.locator('.pio-game-best-price')).toContainText(expected);
+            await expect(page.locator('.pio-game-best-price')).toContainText(expected!);
         }
         await page.screenshot({ path: test.info().outputPath('complete-mobile.png') });
         expect(await page.evaluate(() => (window as unknown as { streamLayoutShift: number }).streamLayoutShift)).toBeLessThanOrEqual(.1);
@@ -59,6 +61,6 @@ test('a failed full read preserves the preview and offers retry', async ({ page,
         await expect(page.locator('[data-game-preview]')).toBeVisible();
         await expect(page.getByText('No pudimos cargar el resto de la ficha.')).toBeVisible({ timeout: 15000 });
         await expect(page.getByRole('link', { name: 'Reintentar' })).toBeVisible();
-        await expect(page.locator('[data-game-preview-price]')).toBeVisible();
+        await expect(page.locator('[data-game-preview] [data-best-price]')).toBeVisible();
     } finally { await request.post(`${fixture}/__fixture/error`, { data: 'false' }); }
 });

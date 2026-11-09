@@ -17,10 +17,8 @@ import {
     Table,
     Card,
     Anchor,
-    Breadcrumbs,
     Stack,
     ActionIcon,
-    SimpleGrid,
     Select,
     HoverCard,
     Tooltip as MantineTooltip,
@@ -35,8 +33,6 @@ import {
     IconTableColumn,
     IconChevronDown,
     IconInfoCircle,
-    IconChevronRight,
-    IconHome,
     IconCheck,
     IconPencil,
     IconCloudDownload,
@@ -50,13 +46,19 @@ import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useNearViewport } from '@/hooks/useNearViewport';
 import { useMinPriceHistory } from '@/hooks/useMinPriceHistory';
 import { useGamePlatform } from './GamePlatformContext';
+import {
+    BestPriceFrame, GAME_COVER_SIZES, GameBreadcrumbs, GameCoverFrame, GameInfoCardFrame, GameTitleFrame,
+    PlatformOption, PlatformSelectorFrame,
+} from './hero/GameHero';
+import SeedImage from '@/components/skeleton/SeedImage';
+import { useSeed } from '@/lib/navigationSeed';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
-import { platformLongName, activeCoupon, isAffiliateOffer } from '@/lib/types';
+import { activeCoupon, isAffiliateOffer } from '@/lib/types';
 import { allowedConditionsFor, isSellerVisible, type ConditionFilter, type DigitalFilter, type FormatFilter, type Prefs } from '@/lib/prefs';
-import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
-import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@/lib/platformIcons';
-import { decorative, elevation, onDark, surfaces } from '@/lib/colors';
+import { formatCLP } from '@/lib/utils';
+import { PLATFORM_SHORT_LABELS } from '@/lib/platformIcons';
+import { decorative, onDark } from '@/lib/colors';
 import { ratingLines } from '@/lib/priceSummary';
 import { genreHref } from '@/lib/routes';
 import PriceInfo from '@/components/PriceInfo';
@@ -289,6 +291,9 @@ export default function GameDetailClient({
         platforms: initialGame.platforms.filter((platform) => remainingProducts.some((product) => product.platform.id === platform.id)),
     } : initialGame;
     const priceUpdatedDate = formatDate(game.price_updated_at);
+    // La portada que la tarjeta clicada ya tenía (ver `lib/navigationSeed.ts`):
+    // queda debajo de la definitiva mientras esta baja. `null` en un documento.
+    const seed = useSeed('game', game.id);
 
     /* Un solo fetch para el badge del juego Y el de cada oferta: el backend ya
        devuelve el desglose por producto en la misma respuesta, así que pedirlo
@@ -507,159 +512,81 @@ export default function GameDetailClient({
     return (
         <>
         <Container size="lg" py="xl">
-            {/* Breadcrumbs */}
-            <Breadcrumbs
-                separator={<IconChevronRight size={14} color="var(--mantine-color-dimmed)" />}
-                mb="xl"
-                fz="sm"
-            >
-                <Anchor component={Link} href="/" c="dimmed" underline="never">
-                    <Group gap="2xs"><IconHome size={14} /> Inicio</Group>
-                </Anchor>
-                {breadcrumbPlatform && (
-                    <Anchor component={Link} href={`/juegos/${breadcrumbPlatform.slug}`} c="dimmed" underline="never">
-                        {platformLongName(breadcrumbPlatform)}
-                    </Anchor>
-                )}
-                <Text fw={500}>{game.name}</Text>
-            </Breadcrumbs>
+            <GameBreadcrumbs platform={breadcrumbPlatform} name={game.name} />
 
             {/* Main layout: sidebar + content */}
             <div className="pio-game-layout">
                 {/* ── Sidebar: Cover + info ── */}
                 <div className="pio-game-sidebar">
                     {/* Cover art */}
-                    <Box className="pio-game-cover">
-                        <Box
-                            pos="relative"
-                            maw={{ base: '85%', lg: '100%' }}
-                            mx={{ base: 'auto', lg: 0 }}
-                            style={{
-                                borderRadius: 'var(--mantine-radius-lg)',
-                                overflow: 'hidden',
-                                boxShadow: elevation.cover,
-                                border: '1px solid var(--mantine-color-default-border)',
-                                aspectRatio: '3/4',
-                            }}
-                        >
-                            {/* Game image (base layer) */}
-                            <RemoteImage src={coverImage || null} alt={game.name} priority
-                                sizes="(max-width: 768px) 30vw, (max-width: 1200px) 85vw, 380px" style={{ objectFit: 'cover' }} />
-                            <IssueReportButton targetType="game" targetId={game.id} cover
-                                context={{ image_url: coverImage, platform: selectedPlatform ?? '' }} />
-                        </Box>
-                    </Box>
+                    <GameCoverFrame>
+                        {/* Game image (base layer); under it, while it loads, the
+                            cover the clicked card had already decoded. */}
+                        <SeedImage src={seed?.placeholderSrc} />
+                        <RemoteImage src={coverImage || null} alt={game.name} priority
+                            sizes={GAME_COVER_SIZES} style={{ objectFit: 'cover' }} />
+                        <IssueReportButton targetType="game" targetId={game.id} cover
+                            context={{ image_url: coverImage, platform: selectedPlatform ?? '' }} />
+                    </GameCoverFrame>
 
-                    <Card p="lg" className="pio-game-info" data-open={mobileInfoOpen}>
-                        <button type="button" className="pio-game-info-toggle" aria-expanded={mobileInfoOpen}
-                            aria-controls="game-info-body" onClick={() => setMobileInfoOpen((open) => !open)}>
-                            Información del juego <IconChevronDown size={16} aria-hidden />
-                        </button>
-                        <div id="game-info-body" className="pio-game-info-body">
-                            <GameInfoCardBody game={game} summarySlot={summarySlot} />
-                        </div>
-                    </Card>
+                    <GameInfoCardFrame open={mobileInfoOpen} onToggle={() => setMobileInfoOpen((open) => !open)}>
+                        <GameInfoCardBody game={game} summarySlot={summarySlot} />
+                    </GameInfoCardFrame>
                 </div>
 
                 {/* ── Main content ── */}
                 <div className="pio-game-content">
                     <Stack gap="xl" className="pio-game-stack">
                         {/* Title + platform tabs */}
-                        <Box className="pio-game-title"
-                            style={{
-                                position: 'sticky',
-                                top: 73,
-                                zIndex: 5,
-                                background: 'var(--mantine-color-body)',
-                                paddingTop: 15,
-                                marginTop: -15,
-                                paddingBottom: 0,
-                                marginBottom: -16,
-                            }}
-                        >
-                            <Group gap="sm" mb="2xs" wrap="wrap">
-                                <Group gap="xs" wrap="nowrap">
+                        <GameTitleFrame
+                            actions={<>
+                                <ActionIcon
+                                    variant={isSaved(game.id) ? 'filled' : 'default'}
+                                    color={isSaved(game.id) ? 'primaryRed' : undefined}
+                                    size="lg"
+                                    radius="xl"
+                                    onClick={handleToggleSave}
+                                    aria-label={isSaved(game.id) ? 'Quitar de guardados' : 'Guardar juego'}
+                                >
+                                    {isSaved(game.id) ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
+                                </ActionIcon>
+                                <MantineTooltip
+                                    label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
+                                >
                                     <ActionIcon
-                                        variant={isSaved(game.id) ? 'filled' : 'default'}
-                                        color={isSaved(game.id) ? 'primaryRed' : undefined}
+                                        variant="default"
                                         size="lg"
                                         radius="xl"
-                                        onClick={handleToggleSave}
-                                        aria-label={isSaved(game.id) ? 'Quitar de guardados' : 'Guardar juego'}
+                                        onClick={handleShare}
+                                        aria-label={copied ? 'Enlace copiado' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
                                     >
-                                        {isSaved(game.id) ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
+                                        {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
                                     </ActionIcon>
-                                    <MantineTooltip
-                                        label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                    >
-                                        <ActionIcon
-                                            variant="default"
-                                            size="lg"
-                                            radius="xl"
-                                            onClick={handleShare}
-                                            aria-label={copied ? 'Enlace copiado' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                        >
-                                            {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
-                                        </ActionIcon>
-                                    </MantineTooltip>
-                                </Group>
-                                {game.genres && game.genres.length > 0 && (
-                                    game.genres.map((genre) => (
-                                        <Badge
-                                            key={genre.id}
-                                            component={Link}
-                                            href={genreHref(genre)}
-                                            variant="light"
-                                            color="gray"
-                                            size="sm"
-                                        >
-                                            {genre.name}
-                                        </Badge>
-                                    ))
-                                )}
-                            </Group>
-
-                            <Title order={1} fz={{ base: 28, md: 36 }} fw={800} mb="sm">
-                                {game.name}
-                            </Title>
-
-                            {/* Selector de consola: game.platforms ya viene podado por el backend */}
-                            {platformOptions.length > 0 && (
-                                <Group gap="2xs" mb="sm">
-                                    <Box
-                                        p="2xs"
-                                        style={{
-                                            display: 'flex',
-                                            flexWrap: 'wrap',
-                                            borderRadius: 'var(--mantine-radius-md)',
-                                            border: '1px solid var(--mantine-color-default-border)',
-                                            background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTintStrong})`,
-                                        }}
-                                    >
-                                        {platformOptions.map((pl) => {
-                                            const Icon = PLATFORM_ICONS[pl.slug] || FALLBACK_PLATFORM_ICON;
-                                            const pColor = PLATFORM_COLORS[pl.slug]?.mantine || 'gray';
-                                            return (
-                                                <Button
-                                                    key={pl.id}
-                                                    size="xs"
-                                                    radius="sm"
-                                                    variant={selectedPlatform === pl.slug ? 'filled' : 'subtle'}
-                                                    color={selectedPlatform === pl.slug ? pColor : 'gray'}
-                                                    leftSection={<Icon size={pl.name === 'switch' || pl.name === 'switch2' ? 15 : pl.name === 'xbox360' || pl.name === 'xboxone' || pl.name === 'xboxseries' ? 16 : 18} />}
-                                                    onClick={() => setSelectedPlatform(pl.slug)}
-                                                    style={{ transition: 'all 0.2s' }}
-                                                >
-                                                    {PLATFORM_SHORT_LABELS[pl.slug] || pl.display_name}
-                                                </Button>
-                                            );
-                                        })}
-                                    </Box>
-                                </Group>
+                                </MantineTooltip>
+                            </>}
+                            genres={game.genres?.map((genre) => (
+                                <Badge
+                                    key={genre.id}
+                                    component={Link}
+                                    href={genreHref(genre)}
+                                    variant="light"
+                                    color="gray"
+                                    size="sm"
+                                >
+                                    {genre.name}
+                                </Badge>
+                            ))}
+                            name={game.name}
+                            /* Selector de consola: game.platforms ya viene podado por el backend */
+                            selector={platformOptions.length > 0 && (
+                                <PlatformSelectorFrame>
+                                    {platformOptions.map((pl) => (
+                                        <PlatformOption key={pl.id} platform={pl} selected={selectedPlatform === pl.slug}
+                                            onSelect={() => setSelectedPlatform(pl.slug)} />
+                                    ))}
+                                </PlatformSelectorFrame>
                             )}
-
-                            {/* Action buttons */}
-                            {showAdminControls && (
+                            extra={showAdminControls && (
                                 <Group gap="xs" mt="sm">
                                     <GameClickBadge stats={clickStats} />
                                     <Button
@@ -674,159 +601,100 @@ export default function GameDetailClient({
                                     </Button>
                                 </Group>
                             )}
-                        </Box>
+                        />
+
+                        {/* ══════ Panel admin: nombre, imagen, fusión (tras "Editar juego") ══════ */}
+                        {showAdminControls && editingGame && <AdminGameControls game={game} />}
+
+                        {/* ══════ Best price hero card ══════ */}
+                        {bestProduct && (() => {
+                            const priceInfo = (
+                                <PriceInfo
+                                    basePrice={bestProduct.base_price}
+                                    shippingCost={bestProduct.shipping_cost}
+                                    seller={bestProduct.seller}
+                                    color="success"
+                                />
+                            );
+                            return (
+                                <BestPriceFrame
+                                    /* El 💾 va junto al rótulo de la oferta y no pegado
+                                       a la cifra: dice qué es lo que se compra, no cuánto
+                                       vale. `bestProduct` ya sale del listado filtrado. */
+                                    badge={<>
+                                        <Badge color="primaryRed.6" variant="filled" size="sm" leftSection={<IconTag size={12} />}>
+                                            Mejor Precio {selectedPlatform?.toUpperCase()}
+                                        </Badge>
+                                        <ConditionIcon condition={bestProduct?.condition} size={16} />
+                                    </>}
+                                    price={bestPrice !== null ? formatCLP(bestPrice) : '—'}
+                                    delivery={<>
+                                        <IconCheck size={14} />{' '}
+                                        {conditionBucket(bestProduct.condition) === 'digital' ? 'Entrega inmediata'
+                                            : bestShipping > 0 ? 'Incluye envío promedio' : 'No incluye gastos de envío'}
+                                        {priceInfo}
+                                    </>}
+                                    seller={<>
+                                        <Text>Vendido por <Anchor
+                                            component="a"
+                                            href={outgoingHref('product', bestProduct.id)}
+                                            target="_blank"
+                                            rel="noopener"
+                                            onClick={(e) => handleOfferClick(e, bestProduct)}
+                                            fw={700}
+                                            c={onDark.text}
+                                            underline="hover"
+                                        >{bestProduct.seller.name}</Anchor></Text>
+                                        <Text c={onDark.separator}>•</Text>
+                                    </>}
+                                    title={<>&quot;{bestProduct.title}&quot;</>}
+                                    cta={<>
+                                        <Button
+                                            component="a"
+                                            href={outgoingHref('product', bestProduct.id)}
+                                            target="_blank"
+                                            rel="noopener"
+                                            onClick={(e) => handleOfferClick(e, bestProduct)}
+                                            color="primaryRed"
+                                            size="lg"
+                                            radius="lg"
+                                            rightSection={<IconExternalLink size={18} />}
+                                            style={{ boxShadow: decorative.primaryButtonShadowStrong, flex: 1 }}
+                                        >
+                                            Ir a la Tienda
+                                        </Button>
+                                        <IssueReportButton targetType="product" targetId={bestProduct.id}
+                                            context={{ displayed_price: bestProduct.current_price, platform: bestProduct.platform.name }} />
+                                    </>}
+                                    /* La fecha del último CAMBIO, no de la última revisión
+                                       (diaria): `PriceHistory` solo escribe cuando el
+                                       precio se mueve. */
+                                    date={priceUpdatedDate
+                                        ? `Último cambio de precio: ${priceUpdatedDate}`
+                                        : 'Sin cambios de precio registrados'}
+                                />
+                            );
+                        })()}
 
                         {/* El resumen de precios va dentro de la tarjeta de
                             información; esta línea solo queda cuando no hay
-                            datos para armarlo. */}
+                            datos para armarlo. Va DEBAJO del precio: encima, su
+                            aparición al llegar la ficha empujaba la caja que las
+                            fases previas ya habían pintado. */}
                         {!summarySlot && (
-                            <Box mb={-16}>
+                            <Box mt={-16} mb={-16}>
                                 <Text fz="sm" c="dimmed" maw={600} lh={1.6}>
                                     Compara precios entre distintas tiendas y encuentra la mejor oferta.
                                 </Text>
                             </Box>
                         )}
 
-                        {/* ══════ Panel admin: nombre, imagen, fusión (tras "Editar juego") ══════ */}
-                        {showAdminControls && editingGame && <AdminGameControls game={game} />}
-
-                        {/* ══════ Best price hero card ══════ */}
-                        {bestProduct && (
-                            <Box className="pio-game-best-price"
-                                p={{ base: 'lg', md: 'xl' }}
-                                style={{
-                                    borderRadius: 'var(--mantine-radius-xl)',
-                                    background: `linear-gradient(135deg, light-dark(${decorative.bestPriceCardGradient.light.from}, ${decorative.bestPriceCardGradient.dark.from}), light-dark(${decorative.bestPriceCardGradient.light.to}, ${decorative.bestPriceCardGradient.dark.to}))`,
-                                    color: onDark.text,
-                                    position: 'relative',
-                                    overflow: 'hidden',
-                                }}
-                            >
-                                {/* Decorative circle */}
-                                <Box
-                                    pos="absolute"
-                                    top={-60}
-                                    right={-60}
-                                    w={240}
-                                    h={240}
-                                    style={{
-                                        borderRadius: '50%',
-                                        background: 'var(--mantine-color-primaryRed-5)',
-                                        filter: 'blur(80px)',
-                                        opacity: 0.2,
-                                        pointerEvents: 'none',
-                                    }}
-                                />
-
-                                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" style={{ position: 'relative', zIndex: 1 }}>
-                                    <Box>
-                                        {/* El 💾 va junto al rótulo de la oferta y
-                                            no pegado a la cifra: dice qué es lo
-                                            que se compra, no cuánto vale.
-                                            `bestProduct` ya sale del listado
-                                            filtrado, así que respeta los filtros
-                                            activos sin pedir nada más. */}
-                                        <Group gap={8} align="center" mb="sm">
-                                            <Badge
-                                                color="primaryRed.6"
-                                                variant="filled"
-                                                size="sm"
-                                                leftSection={<IconTag size={12} />}
-                                            >
-                                                Mejor Precio {selectedPlatform?.toUpperCase()}
-                                            </Badge>
-                                            <ConditionIcon condition={bestProduct?.condition} size={16} />
-                                        </Group>
-
-                                        <Group gap="sm" align="baseline" mb="sm">
-                                            <Text fz="3xl" fw={800} lh={1}>{bestPrice !== null ? formatCLP(bestPrice) : '—'}</Text>
-                                        </Group>
-                                        {conditionBucket(bestProduct.condition) === 'digital' ? (
-                                            <Group gap="2xs" c={onDark.success} fz="xs" align="center">
-                                                <IconCheck size={14} /> Entrega inmediata
-                                                <PriceInfo
-                                                    basePrice={bestProduct.base_price}
-                                                    shippingCost={bestProduct.shipping_cost}
-                                                    seller={bestProduct.seller}
-                                                    color="success"
-                                                />
-                                            </Group>
-                                        ) : bestShipping > 0 ? (
-                                            <Group gap="2xs" c={onDark.success} fz="xs" align="center">
-                                                <IconCheck size={14} /> Incluye envío promedio
-                                                <PriceInfo
-                                                    basePrice={bestProduct.base_price}
-                                                    shippingCost={bestProduct.shipping_cost}
-                                                    seller={bestProduct.seller}
-                                                    color="success"
-                                                />
-                                            </Group>
-                                        ) : (
-                                            <Group gap="2xs" c={onDark.success} fz="xs" align="center">
-                                                <IconCheck size={14} /> No incluye gastos de envío
-                                                <PriceInfo
-                                                    basePrice={bestProduct.base_price}
-                                                    shippingCost={bestProduct.shipping_cost}
-                                                    seller={bestProduct.seller}
-                                                    color="success"
-                                                />
-                                            </Group>
-                                        )}
-
-                                        <Group gap="xs" mt="sm" c={onDark.textSecondary} fz="sm">
-                                            <Text>Vendido por <Anchor
-                                                component="a"
-                                                href={outgoingHref('product', bestProduct.id)}
-                                                target="_blank"
-                                                rel="noopener"
-                                                onClick={(e) => handleOfferClick(e, bestProduct)}
-                                                fw={700}
-                                                c={onDark.text}
-                                                underline="hover"
-                                            >{bestProduct.seller.name}</Anchor></Text>
-                                            <Text c={onDark.separator}>•</Text>
-                                        </Group>
-
-                                        <Text fz="xs" c={onDark.textSecondary} mt="2xs" fs="italic">
-                                            &quot;{bestProduct.title}&quot;
-                                        </Text>
-                                    </Box>
-
-                                    <Stack align="stretch" justify="center" gap="sm">
-                                        <Group gap="xs" wrap="nowrap">
-                                            <Button
-                                                component="a"
-                                                href={outgoingHref('product', bestProduct.id)}
-                                                target="_blank"
-                                                rel="noopener"
-                                                onClick={(e) => handleOfferClick(e, bestProduct)}
-                                                color="primaryRed"
-                                                size="lg"
-                                                radius="lg"
-                                                rightSection={<IconExternalLink size={18} />}
-                                                style={{ boxShadow: decorative.primaryButtonShadowStrong, flex: 1 }}
-                                            >
-                                                Ir a la Tienda
-                                            </Button>
-                                            <IssueReportButton targetType="product" targetId={bestProduct.id}
-                                                context={{ displayed_price: bestProduct.current_price, platform: bestProduct.platform.name }} />
-                                        </Group>
-                                        <Text fz="xs" c={onDark.textSecondary} ta="center">
-                                            {/* La fecha del último CAMBIO, no de la última
-                                                revisión (diaria): `PriceHistory` solo
-                                                escribe cuando el precio se mueve. */}
-                                            {priceUpdatedDate
-                                                ? `Último cambio de precio: ${priceUpdatedDate}`
-                                                : 'Sin cambios de precio registrados'}
-                                        </Text>
-                                    </Stack>
-                                </SimpleGrid>
-                            </Box>
-                        )}
-
                         {/* ══════ Historial del precio mínimo de la consola ══════ */}
                         {selectedPlatform && (
-                            <div ref={chartViewport.ref} style={{ minHeight: 300 }}>
+                            /* ~330 px: el alto real de la tarjeta del historial
+                               (cabecera + gráfico de 220), para que no crezca
+                               al entrar en pantalla. */
+                            <div ref={chartViewport.ref} style={{ minHeight: 330 }}>
                             {chartViewport.visible ? <MinPriceChartCard
                                 series={minPriceSeries}
                                 platformLabel={
