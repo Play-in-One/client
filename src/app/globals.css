@@ -77,10 +77,16 @@ body {
    Mantine. Va anclado a la pantalla (`fixed`), así que todos los bloques muestran
    partes de la MISMA franja y una fila se lee como una sola onda. Por eso el
    recorrido va en `vw` y no en porcentajes, y hay que quitar el `transform` de
-   Mantine: un elemento transformado anula el `fixed` y cada bloque tendría la suya. */
+   Mantine: un elemento transformado anula el `fixed` y cada bloque tendría la suya.
+   Sin ese `transform` el esqueleto deja de ser un contexto de apilamiento, y sus
+   capas de Mantine (::before z-index 10, ::after 11) competían con toda la
+   página: pasaban POR ENCIMA del título fijo de la ficha (z-index 5) al hacer
+   scroll durante la carga. `isolation: isolate` las encierra de nuevo sin
+   anular el `fixed` del brillo. */
 .mantine-Skeleton-root {
   transform: none;
   -webkit-transform: none;
+  isolation: isolate;
 }
 
 .mantine-Skeleton-root[data-animate][data-visible]::after {
