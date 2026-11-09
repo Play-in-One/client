@@ -1,13 +1,13 @@
 'use client';
 
+import SearchForm from '@/components/SearchForm';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
     Group,
     Text,
-    TextInput,
     ActionIcon,
     Anchor,
     Box,
@@ -100,7 +100,6 @@ export default function Navbar() {
     const {
         searchQuery, setSearchQuery, condition, setCondition, format, setFormat, digital, setDigital,
     } = useApp();
-    const [localQuery, setLocalQuery] = useState(searchQuery);
     /* `keepTransitions` desactiva un anti-parpadeo de Mantine que aquí estorba:
        por defecto, `setColorScheme` inyecta `*{transition:none!important}` en el
        <head> durante ~10 ms, y esa ventana cae justo en el frame en que el
@@ -131,12 +130,11 @@ export default function Navbar() {
         setOpenedMenu(null);
     }, [pathname, close]);
 
-    const handleSearch = (e: FormEvent) => {
-        e.preventDefault();
-        setSearchQuery(localQuery);
+    const handleSearch = useCallback((query: string) => {
+        setSearchQuery(query);
         const consoleSearch = showConsoles && (pathname?.startsWith('/consola') || new URLSearchParams(window.location.search).get('category') === 'console');
-        router.push(consoleSearch ? `/consolas?search=${encodeURIComponent(localQuery)}` : `/search?q=${encodeURIComponent(localQuery)}`);
-    };
+        router.push(consoleSearch ? `/consolas?search=${encodeURIComponent(query)}` : `/search?q=${encodeURIComponent(query)}`);
+    }, [setSearchQuery, showConsoles, pathname, router]);
 
     return (
         <Box
@@ -284,23 +282,12 @@ export default function Navbar() {
                 {/* Search + actions */}
                 <Group gap="sm" wrap="nowrap">
                     {pathname !== '/' && (
-                        <form onSubmit={handleSearch}>
-                            <TextInput
-                                placeholder={showConsoles && pathname?.startsWith('/consola') ? 'Buscar consolas...' : 'Buscar juegos...'}
-                                leftSection={<IconSearch size={18} />}
-                                value={localQuery}
-                                onChange={(e) => setLocalQuery(e.currentTarget.value)}
-                                radius="xl"
-                                size="sm"
-                                w={{ base: 140, sm: 220, lg: 200 }}
-                                classNames={{ input: 'search-input' }}
-                                styles={{
-                                    input: {
-                                        border: 'none',
-                                    },
-                                }}
-                            />
-                        </form>
+                        <SearchForm query={searchQuery} onSearch={handleSearch} inputProps={{
+                            placeholder: showConsoles && pathname?.startsWith('/consola') ? 'Buscar consolas...' : 'Buscar juegos...',
+                            leftSection: <IconSearch size={18} />, radius: 'xl', size: 'sm',
+                            w: { base: 140, sm: 220, lg: 200 }, classNames: { input: 'search-input' },
+                            styles: { input: { border: 'none' } },
+                        }} />
                     )}
 
                     <ActionIcon

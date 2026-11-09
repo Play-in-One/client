@@ -16,7 +16,7 @@ import PerfTracker from '@/components/PerfTracker';
 import PerfBeacon from '@/components/PerfBeacon';
 import ViewTransition from '@/components/ViewTransition';
 import { CookieBanner } from '@/components/CookieBanner';
-import { SurveyWidget } from '@/components/surveys/SurveyWidget';
+import DeferredSurveyWidget from '@/components/surveys/DeferredSurveyWidget';
 import { SITE_URL, siteConfig, organizationJsonLd, websiteJsonLd } from '@/lib/seo';
 import { ADSENSE_CLIENT } from '@/lib/ads';
 import './globals.css';
@@ -28,7 +28,10 @@ const poppins = Poppins({
     variable: '--font-poppins',
 });
 
+const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api').origin;
+
 const figtree = Figtree({
+    preload: false,
     subsets: ['latin'],
     weight: ['600', '700', '800'],
     display: 'swap',
@@ -84,6 +87,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="es" className={`${poppins.variable} ${figtree.variable}`} suppressHydrationWarning>
             <head>
+                <link rel="preconnect" href={apiOrigin} crossOrigin="anonymous" />
                 <ColorSchemeScript defaultColorScheme="auto" />
                 <StaleChunkReload />
                 <PrefsScript />
@@ -99,13 +103,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <PerfTracker />
                         <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                             <Navbar />
-                            <main style={{ flex: 1 }}>
+                            {/* Keep the footer below the viewport while streamed
+                                pages are still showing their short fallback. */}
+                            <main style={{ flex: 1, minHeight: 'calc(100vh - 72px)' }}>
                                 <ViewTransition>{children}</ViewTransition>
                             </main>
                             <Footer />
                         </div>
                         <CookieBanner />
-                        <SurveyWidget />
+                        <DeferredSurveyWidget />
                         {/* Después de `{children}`: React renderiza los hijos
                             en orden, así que aquí el acumulador del servidor ya
                             contabilizó los fetch de la página. Antes mediría 0. */}

@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import HomeHero from './HomeHero';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 import { getPosts, getTrendingGames, getFeaturedGames, getFeaturedSagas, getDeals } from '@/lib/api';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
@@ -77,16 +79,18 @@ export default async function HomePage() {
 
     return (
         <>
-            <HomeClient
-                initialPosts={posts}
-                initialTrending={packGames(trending)}
-                initialFeatured={packGames(featured)}
-                initialSagas={sagas}
-                deals={deals}
-                consolesAvailable={findConsole}
-                dealsTitle={dealsTitle}
-                dealsAreToday={dealsAreToday}
-            />
+            <HomeHero consolesAvailable={findConsole} />
+            <Suspense fallback={null}>
+                <HomeClient
+                    initialPosts={posts}
+                    initialTrending={packGames(trending)}
+                    initialFeatured={packGames(featured)}
+                    initialSagas={sagas}
+                    deals={deals}
+                    dealsTitle={dealsTitle}
+                    dealsAreToday={dealsAreToday}
+                />
+            </Suspense>
             {/* Va DESPUÉS del contenido a propósito: colocado delante, el
                 carrusel de destacados se descuadraba en mobile y el e2e
                 «la tarjeta destacada cabe en el ancho de la pantalla» fallaba.

@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { gamePath } from '@/lib/seo';
 import { RSC_REQUEST_HEADER } from '@/lib/rscRequest';
-import { fetchGame, parseGameSegment } from './resolve';
+import { fetchGamePreview, parseGameSegment } from './resolve';
 
 /**
  * Decide el STATUS de la ficha antes de que salga el primer byte.
@@ -22,8 +22,8 @@ import { fetchGame, parseGameSegment } from './resolve';
  * juego (0,5-7 s en frío en producción): el clic no cambiaba ni la URL.
  *
  * La metadata no pasa por aquí: Next 15.5 la renderiza en toda respuesta RSC,
- * prefetch incluido, y `generateMetadata` pide el detalle. Por eso los enlaces
- * a una ficha no se precargan (`GAME_LINK_PREFETCH` en `lib/seo.ts`).
+ * prefetch incluido. Tanto ella como este layout usan la lectura ligera;
+ * las ofertas y los históricos se resuelven dentro del boundary de la página.
  *
  * La marca la pone el middleware (`lib/rscRequest.ts`): `headers()` no ve
  * `rsc` ni `next-router-prefetch`, y por eso la comprobación anterior, que
@@ -47,7 +47,7 @@ export default async function GameSegmentLayout({
 
     const isRsc = (await headers()).get(RSC_REQUEST_HEADER) === '1';
     if (!isRsc) {
-        const game = await fetchGame(parsed.id);
+        const game = await fetchGamePreview(parsed.id);
         if (!game) notFound();
         if (parsed.slug !== game.slug) permanentRedirect(gamePath(game));
     }

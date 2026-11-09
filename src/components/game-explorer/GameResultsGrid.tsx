@@ -1,5 +1,7 @@
 'use client';
 
+import { memo } from 'react';
+
 import { Box, Group, Loader, Pagination, SimpleGrid, Stack, Text } from '@mantine/core';
 import { IconSearch } from '@tabler/icons-react';
 import GameCard from '@/components/GameCard';
@@ -32,7 +34,7 @@ interface Props {
     dealCards?: boolean;
 }
 
-export default function GameResultsGrid({
+function GameResultsGrid({
     games,
     previewFilters,
     loading,
@@ -90,7 +92,7 @@ export default function GameResultsGrid({
                     // fusión de admin no sabe nada de ofertas.
                     const deal = selectionMode || !dealCards ? null : dealFromGame(g);
                     return deal ? (
-                        <DealCard key={g.id} deal={deal} previewFilters={previewFilters} priority={i < 4} isToday={dealsIsToday} />
+                        <DealCard key={g.id} deal={deal} previewFilters={previewFilters} priority={i < 2} isToday={dealsIsToday} />
                     ) : (
                         <GameCard
                             key={g.id}
@@ -100,7 +102,7 @@ export default function GameResultsGrid({
                             selectable={selectionMode}
                             selected={selected.some((s) => s.id === g.id)}
                             onToggleSelect={onToggleSelect}
-                            priority={i < 4}
+                            priority={i < 2}
                             dealsIsToday={dealsIsToday}
                         />
                     );
@@ -122,3 +124,5 @@ export default function GameResultsGrid({
         </Box>
     );
 }
+
+export default memo(GameResultsGrid);

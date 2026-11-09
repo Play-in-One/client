@@ -1,5 +1,5 @@
 import { notFound, permanentRedirect } from 'next/navigation';
-import { ApiError, getGame } from '@/lib/api';
+import { ApiError, getGamePreview } from '@/lib/api';
 import { gamePath } from '@/lib/seo';
 
 /**
@@ -23,7 +23,7 @@ export default async function LegacyGameRedirect({
 
     let game;
     try {
-        game = await getGame(id);
+        game = await getGamePreview(id);
     } catch (err) {
         if (err instanceof ApiError && err.status === 404) notFound();
         throw err;

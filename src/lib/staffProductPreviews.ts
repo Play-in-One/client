@@ -1,12 +1,7 @@
 import type { ProductPreview, ProductPreviewFilters } from './types';
 
-export function previewFilterKey(filters: ProductPreviewFilters): string {
-    return JSON.stringify({
-        platforms: [...new Set(filters.platforms ?? [])].sort((a, b) => a - b),
-        platform: filters.platform ?? '', condition: filters.condition ?? '',
-        seller: filters.seller ?? null, seller_locations: filters.seller_locations ?? '',
-    });
-}
+import { previewFilterKey } from './staffPreviewFilters';
+export { previewFilterKey } from './staffPreviewFilters';
 
 type Entry = {
     id: number; filters: ProductPreviewFilters; group: string; revision: object; version: number;

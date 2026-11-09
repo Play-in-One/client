@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
+import SearchForm from '@/components/SearchForm';
 import {
     ActionIcon,
     Box,
@@ -14,7 +15,6 @@ import {
     Slider,
     Stack,
     Text,
-    TextInput,
 } from '@mantine/core';
 import {
     IconAdjustmentsHorizontal,
@@ -127,8 +127,7 @@ const DEALS_ORDERING_GROUP = {
 interface ToolbarProps {
     showSearchInput: boolean;
     searchInput: string;
-    onSearchInputChange: (value: string) => void;
-    onSearchSubmit: () => void;
+    onSearchSubmit: (query: string) => void;
     ordering: string;
     defaultOrdering: string;
     onOrderingChange: (value: string) => void;
@@ -146,7 +145,6 @@ interface ToolbarProps {
 export function FilterToolbar({
     showSearchInput,
     searchInput,
-    onSearchInputChange,
     onSearchSubmit,
     ordering,
     defaultOrdering,
@@ -163,30 +161,15 @@ export function FilterToolbar({
     return (
         <Group mb="xl" gap="md" align="flex-end" wrap="wrap">
             {showSearchInput && (
-                <Group gap={0} style={{ flex: 1, minWidth: 240 }}>
-                    <TextInput
-                        placeholder="Buscar juegos..."
-                        leftSection={<IconSearch size={18} />}
-                        value={searchInput}
-                        onChange={(e) => onSearchInputChange(e.currentTarget.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && onSearchSubmit()}
-                        radius="md"
-                        size="sm"
-                        style={{ flex: 1 }}
-                        styles={{
-                            input: { borderTopRightRadius: 0, borderBottomRightRadius: 0 },
-                        }}
-                    />
-                    <Button
-                        size="sm"
-                        radius="md"
-                        color="primaryRed"
-                        onClick={onSearchSubmit}
-                        style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                    >
+                <SearchForm query={searchInput} onSearch={onSearchSubmit} style={{ flex: 1, minWidth: 240 }}
+                    inputProps={{ placeholder: 'Buscar juegos...', leftSection: <IconSearch size={18} />,
+                        radius: 'md', size: 'sm', style: { flex: 1 },
+                        styles: { input: { borderTopRightRadius: 0, borderBottomRightRadius: 0 } } }}>
+                    <Button type="submit" aria-label="Buscar" size="sm" radius="md" color="primaryRed"
+                        style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>
                         <IconSearch size={16} />
                     </Button>
-                </Group>
+                </SearchForm>
             )}
 
             <Select
@@ -269,7 +252,7 @@ interface Props {
 /** El contenido de filtros del sidebar: precio, plataforma (opcional), género
  *  y "en oferta". El padre decide cómo se envuelve (Paper fijo en desktop,
  *  Collapse en móvil). */
-export default function GameFilterBar({
+function GameFilterBar({
     priceMinInput,
     priceMaxInput,
     onPriceMinInputChange,
@@ -470,3 +453,5 @@ export default function GameFilterBar({
         </Stack>
     );
 }
+
+export default memo(GameFilterBar);

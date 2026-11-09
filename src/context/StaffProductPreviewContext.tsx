@@ -1,26 +1,35 @@
 'use client';
 
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useAdmin } from './AdminContext';
 import { useApp } from './AppContext';
 import { getProductPreviews } from '@/lib/api';
-import { ProductPreviewStore, previewFilterKey } from '@/lib/staffProductPreviews';
+import type { ProductPreviewStore } from '@/lib/staffProductPreviews';
+import { previewFilterKey } from '@/lib/staffPreviewFilters';
 import type { Game, ProductPreviewFilters } from '@/lib/types';
 
-const Context = createContext<{ store: ProductPreviewStore; active: boolean; defaults: ProductPreviewFilters } | null>(null);
+const Context = createContext<{ store: ProductPreviewStore | null; active: boolean; defaults: ProductPreviewFilters } | null>(null);
 const noopSubscribe = () => () => {};
 const emptySnapshot = () => undefined;
 
 export function StaffProductPreviewProvider({ children }: { children: ReactNode }) {
     const { token, isAdmin, showProductImages } = useAdmin();
     const { conditionParam, sellerLocationsParam, ready } = useApp();
-    const [store] = useState(() => new ProductPreviewStore(getProductPreviews));
+    const [store, setStore] = useState<ProductPreviewStore | null>(null);
     const active = isAdmin && showProductImages && ready;
+    useEffect(() => {
+        if (!active || store) return;
+        let cancelled = false;
+        import('@/lib/staffProductPreviews').then(({ ProductPreviewStore }) => {
+            if (!cancelled) setStore(new ProductPreviewStore(getProductPreviews));
+        }).catch(() => { /* Preview failure must not hide the public card. */ });
+        return () => { cancelled = true; };
+    }, [active, store]);
     const defaults = useMemo(() => ({ condition: conditionParam, seller_locations: sellerLocationsParam }), [conditionParam, sellerLocationsParam]);
     const session = token ? `${token}:${previewFilterKey(defaults)}` : null;
     useLayoutEffect(() => {
-        store.configure(active, session);
-        return () => store.configure(false, null);
+        store?.configure(active, session);
+        return () => store?.configure(false, null);
     }, [store, active, session]);
     const value = useMemo(() => ({ store, active, defaults }), [store, active, defaults]);
     return <Context.Provider value={value}>{children}</Context.Provider>;

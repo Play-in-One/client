@@ -544,6 +544,16 @@ export async function getGame(id: number | string, options?: { summary?: boolean
     return fetcher<Game>(`/games/${id}/${options?.summary ? '?view=summary' : ''}`);
 }
 
+export type GamePreview = Pick<Game, 'id' | 'name' | 'slug' | 'image' | 'platforms' | 'description' | 'seo_index' | 'min_price' | 'min_price_shipping' | 'min_price_condition'> & {
+    selected_platform: string | null;
+    canonical_min_price: string | null;
+    min_price_seller: { id: number; name: string } | null;
+};
+
+export function getGamePreview(id: string, filters: { platform?: string; condition?: string; seller_locations?: string } = {}) {
+    return fetcher<GamePreview>(`/games/${id}/preview/${qs(filters)}`, { cache: 'no-store' });
+}
+
 /** Entrada del catálogo indexable: lo mínimo que necesita un `<url>` del sitemap. */
 export interface GameSitemapEntry {
     id: number;

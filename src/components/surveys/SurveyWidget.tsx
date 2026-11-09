@@ -17,7 +17,12 @@ import {
     wasNudged,
 } from '@/lib/surveyStorage';
 import type { Survey } from '@/lib/types';
-import { SurveyModal } from './SurveyModal';
+import dynamic from 'next/dynamic';
+
+const SurveyModal = dynamic(() => import('./SurveyModal').then(module => module.SurveyModal), {
+    ssr: false,
+    loading: () => <Text role="status">Cargando encuesta…</Text>,
+});
 
 const IDLE_MS = 20_000;
 /* En pantallas estrechas o bajas, el aviso de cookies ocupa el espacio de la tarjeta. */
@@ -145,12 +150,12 @@ export function SurveyWidget() {
             </Affix>
             {/* Fuera de la Transition: al responder, el botón se va pero el
                 modal sigue abierto mostrando el agradecimiento. */}
-            <SurveyModal
+            {opened && <SurveyModal
                 survey={pending}
                 opened={opened}
                 onClose={() => setOpened(false)}
                 onDone={() => setAnswered(true)}
-            />
+            />}
         </>
     );
 }

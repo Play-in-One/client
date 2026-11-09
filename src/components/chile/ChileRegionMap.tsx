@@ -1,6 +1,8 @@
 'use client';
 
-import { CHILE_MAP_VIEWBOX, CHILE_REGIONS, type RegionCode } from '@/lib/chile-regions';
+import { CHILE_REGIONS, type RegionCode } from '@/lib/chile-regions';
+
+import { CHILE_MAP_VIEWBOX, REGION_PATHS } from '@/lib/chile-region-paths';
 
 interface Props {
     /** Región elegida; `null` = ninguna. */
@@ -41,7 +43,7 @@ export default function ChileRegionMap({ value, onChange, onHoverChange, height 
                     <path
                         key={region.code}
                         className="chile-map__region"
-                        d={region.d}
+                        d={REGION_PATHS[region.code]}
                         role="button"
                         tabIndex={0}
                         aria-label={region.name}

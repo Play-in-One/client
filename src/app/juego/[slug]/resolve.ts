@@ -1,5 +1,5 @@
 import { cache } from 'react';
-import { ApiError, getGame } from '@/lib/api';
+import { ApiError, getGame, getGamePreview } from '@/lib/api';
 import type { Game } from '@/lib/types';
 
 /** `"dragon-ball-fighterz-13728"` → `{ slug: "dragon-ball-fighterz", id: "13728" }`.
@@ -18,5 +18,15 @@ export const fetchGame = cache(async (id: string): Promise<Game | null> => {
         if (err instanceof ApiError && err.status === 404) return null;
         console.error(`Failed to fetch game ${id}:`, err);
         throw err;
+    }
+});
+
+/** Separate lightweight read for the first streamed frame and HTTP status. */
+export const fetchGamePreview = cache(async (id: string, platform?: string, condition?: string, seller_locations?: string) => {
+    try {
+        return await getGamePreview(id, { platform, condition, seller_locations });
+    } catch (error) {
+        if (error instanceof ApiError && error.status === 404) return null;
+        throw error;
     }
 });

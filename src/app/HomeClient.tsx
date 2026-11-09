@@ -1,32 +1,27 @@
 'use client';
 
-import { startTransition, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { useRouter } from 'next/navigation';
+import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
     Container,
     Box,
     Title,
     Text,
-    TextInput,
     Button,
     Group,
     SimpleGrid,
     Card,
     Anchor,
-    Badge,
     Stack,
 } from '@mantine/core';
 import {
-    IconSearch,
-    IconFlame,
     IconArrowRight,
     IconDeviceGamepad,
 } from '@tabler/icons-react';
 import { unpackGames, type GamesPayload } from '@/lib/gamePayload';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
-import { decorative, elevation, surfaces } from '@/lib/colors';
+import { surfaces } from '@/lib/colors';
 import { getHomeGames, getDeals, trackEvent } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
@@ -40,7 +35,6 @@ import { AD_SLOT_HOME_FOOTER } from '@/lib/ads';
 import { postPath } from '@/lib/seo';
 import { CATEGORY_LABEL, postExcerpt } from '@/lib/postText';
 import FeaturedGamesCarousel from '@/components/FeaturedGamesCarousel';
-import { FindConsoleButton } from '@/components/consoles/FindConsoleButton';
 
 export default function HomeClient({
     initialPosts,
@@ -50,7 +44,6 @@ export default function HomeClient({
     deals: initialDeals,
     dealsTitle,
     dealsAreToday,
-    consolesAvailable = false,
 }: {
     initialPosts: Post[];
     initialTrending: Game[] | GamesPayload;
@@ -62,13 +55,9 @@ export default function HomeClient({
     dealsTitle: string;
     /** Si la tanda es la de hoy (para «Nueva hoy»), resuelto en el servidor. */
     dealsAreToday: boolean;
-    /** El servidor vio una consola publicada: el botón del hero es un enlace público. */
-    consolesAvailable?: boolean;
 }) {
     const initialTrending = useMemo(() => unpackGames(trendingPayload), [trendingPayload]);
     const initialFeatured = useMemo(() => unpackGames(featuredPayload), [featuredPayload]);
-    const router = useRouter();
-    const [query, setQuery] = useState('');
     const posts = initialPosts;
     const { conditionParam, sellerLocationsParam, ready } = useApp();
 
@@ -198,130 +187,8 @@ export default function HomeClient({
         };
     }, [ready, conditionParam, sellerLocationsParam, initialDeals, dealsTitle, dealsAreToday]);
 
-    const handleSearch = (e: FormEvent) => {
-        e.preventDefault();
-        if (query.trim()) router.push(`/search?q=${encodeURIComponent(query)}`);
-    };
-
     return (
         <>
-            {/* ══════ HERO ══════ */}
-            <Box
-                py={{ base: 60, md: 100 }}
-                pos="relative"
-                style={{ overflow: 'hidden' }}
-            >
-                {/* Decorative blobs */}
-                <Box
-                    pos="absolute"
-                    top={-80}
-                    right={-80}
-                    w={380}
-                    h={380}
-                    style={{
-                        borderRadius: '50%',
-                        background: decorative.heroBlobRed,
-                        filter: 'blur(60px)',
-                        pointerEvents: 'none',
-                    }}
-                />
-                <Box
-                    pos="absolute"
-                    bottom={-80}
-                    left={-80}
-                    w={320}
-                    h={320}
-                    style={{
-                        borderRadius: '50%',
-                        background: decorative.heroBlobBlue,
-                        filter: 'blur(60px)',
-                        pointerEvents: 'none',
-                    }}
-                />
-
-                <Container size="lg" pos="relative" style={{ zIndex: 1, textAlign: 'center' }}>
-                    <Badge
-                        color="primaryRed"
-                        variant="light"
-                        size="lg"
-                        leftSection={<IconFlame size={14} />}
-                        mb="lg"
-                    >
-                        Ya estamos aquí!!
-                    </Badge>
-
-                    <Title order={1} fz={{ base: 32, md: 52 }} fw={800} lh={1.15} mb="md">
-                        Encuentra tu próximo juego{' '}
-                        <br style={{ display: 'none' }} className="hiddenMobile" />
-                        <Text component="span" className="gradient-text" inherit>
-                            al mejor precio
-                        </Text>
-                    </Title>
-
-                    <Text fz={{ base: 'md', md: 'xl' }} c="dimmed" maw={600} mx="auto" mb="xl">
-                        Compara precios en tiempo real entre decenas de tiendas chilenas. Ahorra dinero y juega
-                        más.
-                    </Text>
-
-                    {/* Search bar */}
-                    <Box maw={680} mx="auto" pos="relative">
-                        <Box
-                            pos="absolute"
-                            style={{
-                                inset: -4,
-                                borderRadius: 'var(--mantine-radius-xl)',
-                                background: 'linear-gradient(to right, var(--mantine-color-primaryRed-5), var(--mantine-color-orange-5))',
-                                filter: 'blur(16px)',
-                                opacity: 0.2,
-                                transition: 'opacity 0.5s',
-                                pointerEvents: 'none',
-                            }}
-                        />
-                        <form onSubmit={handleSearch}>
-                            <Group
-                                gap={0}
-                                pos="relative"
-                                p="2xs"
-                                style={{
-                                    borderRadius: 'var(--mantine-radius-xl)',
-                                    background: `light-dark(${surfaces.light.heroSearchBar}, ${surfaces.dark.heroSearchBar})`,
-                                    boxShadow: elevation.raised,
-                                    border: '1px solid light-dark(var(--mantine-color-gray-2), var(--mantine-color-dark-4))',
-                                }}
-                            >
-                                <TextInput
-                                    placeholder="Ej: Elden Ring, FIFA 24, Zelda..."
-                                    leftSection={<IconSearch size={22} style={{ color: 'var(--mantine-color-dimmed)' }} />}
-                                    value={query}
-                                    onChange={(e) => setQuery(e.currentTarget.value)}
-                                    size="lg"
-                                    radius="xl"
-                                    styles={{
-                                        input: { border: 'none', background: 'transparent', fontSize: 'var(--mantine-font-size-md)' },
-                                        root: { flex: 1 },
-                                    }}
-                                />
-                                <Button
-                                    type="submit"
-                                    size="lg"
-                                    radius="xl"
-                                    color="primaryRed"
-                                    px="xl"
-                                    style={{ boxShadow: decorative.primaryButtonShadow }}
-                                >
-                                    Buscar
-                                </Button>
-                            </Group>
-                        </form>
-                    </Box>
-
-                    {/* Hardware: from the hero to the console catalog (staff preview: admins only).
-                        No wrapper: a visitor who does not get the button gets no gap either. */}
-                    <FindConsoleButton available={consolesAvailable} align="center" />
-
-                </Container>
-            </Box>
-
             {/* ══════ JUEGOS DESTACADOS ══════ */}
             {(featured.length > 0 || filtering) && (
                 <Box py="section" style={{ background: `light-dark(var(--mantine-color-gray-0), ${surfaces.altSectionTint})` }}>

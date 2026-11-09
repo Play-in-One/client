@@ -16,14 +16,15 @@ import type { Game, Platform } from '@/lib/types';
 import { AD_SLOT_GAME_FOOTER, adsAllowedForCountry } from '@/lib/ads';
 import AdSlot from '@/components/AdSlot';
 import FaqSection from '@/components/FaqSection';
-import { PREFS_COOKIE, parsePrefs } from '@/lib/prefs';
+import { PREFS_COOKIE, parsePrefs, conditionParamFor, sellerLocationsFor, type Prefs } from '@/lib/prefs';
 import { packGame } from '@/lib/gamePayload';
 import GameDetailClient from './GameDetailClient';
 import { GamePlatformProvider } from './GamePlatformContext';
 import PriceSummarySection from './PriceSummarySection';
 import RelatedGamesSection from './RelatedGamesSection';
 import type { RelatedQuery } from './RelatedGamesGrid';
-import { fetchGame, parseGameSegment } from './resolve';
+import GamePreviewShell from './GamePreviewShell';
+import { fetchGame, fetchGamePreview, parseGameSegment } from './resolve';
 
 const RELATED_LIMIT = 8;
 /* Por debajo de esto un criterio no merece sección propia: se prueba el
@@ -164,16 +165,14 @@ function firstParam(value: string | string[] | undefined): string | undefined {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
     const parsed = parseGameSegment((await params).slug);
-    const game = parsed && (await fetchGame(parsed.id));
+    const game = parsed && (await fetchGamePreview(parsed.id));
     if (!game) notFound();
 
     const platforms = game.platforms.map(platformLongName).join(', ');
-    // Las dos primeras frases del resumen visible (la del precio más barato,
-    // que siempre abre, y la del mínimo histórico): la meta description dice
-    // lo mismo que la página, que es lo que un buscador cita. Sin oferta el
-    // resumen sale vacío y se cae a la descripción de siempre.
+    // Metadata uses the same fast read as the first frame. Historical data
+    // remains in the streamed summary and JSON-LD, outside the critical path.
     const description =
-        priceSummarySentences(game).slice(0, 2).join(' ') ||
+        (game.canonical_min_price ? `${game.name} desde ${formatCLP(game.canonical_min_price)}. Compara precios en Play in One.` : '') ||
         game.description?.trim() ||
         `Compara precios de ${game.name}${platforms ? ` para ${platforms}` : ''} entre tiendas chilenas en Play in One.`;
 
@@ -181,8 +180,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     // "X chile"), no solo el nombre: con el nombre a secas se compite contra
     // la wiki y la tienda oficial por una consulta que no es la nuestra. El
     // precio es el efectivo (con envío), la misma cifra que ve la persona.
-    const title = game.min_price
-        ? `${game.name}: precio en Chile desde ${formatCLP(game.min_price)}`
+    const title = game.canonical_min_price
+        ? `${game.name}: precio en Chile desde ${formatCLP(game.canonical_min_price)}`
         : `${game.name}: precios en Chile`;
 
     return buildMetadata({
@@ -206,28 +205,31 @@ export default async function GameDetailPage({
 }) {
     const parsed = parseGameSegment((await params).slug);
     if (!parsed) notFound();
-    const game = await fetchGame(parsed.id);
-    if (!game) notFound();
-
     const platform = firstParam((await searchParams).platform);
-    // Dos URLs con la misma ficha se resuelven con una sola, no con un canonical.
-    if (parsed.slug !== game.slug) permanentRedirect(gamePath(game, platform));
-
-    // La consola de `?platform=` si el juego la tiene, si no la primera. La
-    // usan la miga estructurada, `GameDetailClient` (vía GamePlatformProvider,
-    // más abajo) Y los juegos relacionados: es exactamente "la consola que se
-    // está viendo" en la ficha.
-    const crumbPlatform =
-        (platform ? game.platforms.find((p) => p.slug === platform) : undefined) ?? game.platforms[0];
-
-    /* Los filtros globales se leen de la cookie y viajan como props: así el
-       HTML sale ya filtrado y no hay nada que corregir tras hidratar, que es lo
-       que hacía parpadear las ofertas de tiendas internacionales.
-       `cookies()` deja esta ruta fuera del prerender estático — aquí no cuesta
-       nada porque `getGame` ya se resuelve en cada petición, pero conviene
-       saberlo antes de intentar cachearla. */
     const prefs = parsePrefs((await cookies()).get(PREFS_COOKIE)?.value);
-    const related = await fetchRelated(game, crumbPlatform);
+    const preview = await fetchGamePreview(parsed.id, platform,
+        conditionParamFor(prefs.format, prefs.condition, prefs.digital), sellerLocationsFor(prefs));
+    if (!preview) notFound();
+    if (parsed.slug !== preview.slug) permanentRedirect(gamePath(preview, platform));
+
+    return <Suspense fallback={<GamePreviewShell game={preview} />}>
+        <CompleteGame id={parsed.id} platform={platform} prefs={prefs} preview={preview} />
+    </Suspense>;
+}
+
+async function CompleteGame({ id, platform, prefs, preview }: {
+    id: string; platform?: string; prefs: Prefs;
+    preview: import('@/lib/api').GamePreview;
+}) {
+    let game: Game | null;
+    try {
+        game = await fetchGame(id);
+    } catch (error) {
+        console.error('Failed to load the complete game:', error);
+        return <GamePreviewShell game={preview} failed />;
+    }
+    if (!game) notFound();
+    const crumbPlatform = game.platforms.find(p => p.slug === platform) ?? game.platforms[0];
 
     /* El geo-bloqueo de la publicidad se resuelve AQUÍ y no en el layout raíz:
        `headers()` allí sacaría del render estático a toda la app y se llevaría
@@ -255,7 +257,7 @@ export default async function GameDetailPage({
         <>
             <JsonLd data={jsonLd} />
             <GamePlatformProvider initialPlatform={crumbPlatform?.slug ?? null}>
-                <Suspense fallback={null}>
+                <Suspense fallback={<GamePreviewShell game={preview} />}>
                     <GameDetailClient
                         initialGame={packGame(game)}
                         initialPrefs={prefs}
@@ -277,18 +279,9 @@ export default async function GameDetailPage({
                     size="lg"
                 />
                 {/* Al fondo del todo, en el servidor (ver RelatedGamesSection). */}
-                {related && (
-                    <RelatedGamesSection
-                        games={related.games}
-                        query={related.query}
-                        excludeId={game.id}
-                        limit={RELATED_LIMIT}
-                        title={related.title}
-                        moreHref={related.moreHref}
-                        moreLabel={related.moreLabel}
-                        platformSlug={crumbPlatform?.slug}
-                    />
-                )}
+                <Suspense fallback={null}>
+                    <RelatedContent game={game} platform={crumbPlatform} />
+                </Suspense>
             </GamePlatformProvider>
             {/* Debajo de todo el contenido, nunca junto a la tabla de precios:
                 un anuncio que compita con las ofertas convierte el producto en
@@ -297,4 +290,13 @@ export default async function GameDetailPage({
             <AdSlot slot={AD_SLOT_GAME_FOOTER} allowed={adsAllowed} />
         </>
     );
+}
+
+async function RelatedContent({ game, platform }: { game: Game; platform?: Platform }) {
+    const related = await fetchRelated(game, platform);
+    return related ? <RelatedGamesSection
+        games={related.games} query={related.query} excludeId={game.id} limit={RELATED_LIMIT}
+        title={related.title} moreHref={related.moreHref} moreLabel={related.moreLabel}
+        platformSlug={platform?.slug}
+    /> : null;
 }

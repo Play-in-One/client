@@ -182,7 +182,8 @@ test('la paginación aparece cuando hay más de 50 resultados', async ({ page })
     await page.route(/\/api\/games\/(?!facets)/, (route) =>
         route.fulfill({ json: makeResults(120) })
     );
-    await page.goto('/search');
+    // A query makes this a client request; clean /search uses its real SSR page.
+    await page.goto('/search?q=prueba');
     // Mantine Pagination renders buttons like "1", "2", "3"
     await expect(page.getByRole('button', { name: '2' })).toBeVisible({ timeout: 5000 });
 });

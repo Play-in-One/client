@@ -13,7 +13,11 @@ import {
 } from '@mantine/core';
 import { IconCheck, IconChevronDown } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
-import ChileRegionMap from '@/components/chile/ChileRegionMap';
+import dynamic from 'next/dynamic';
+
+const ChileRegionMap = dynamic(() => import('@/components/chile/ChileRegionMap'), {
+    ssr: false, loading: () => <Box w={91} h={480} aria-busy="true" aria-label="Cargando mapa" />,
+});
 import InfoHint from '@/components/InfoHint';
 import { CHILE_REGIONS, isRegionCode, regionName, type RegionCode } from '@/lib/chile-regions';
 
@@ -135,7 +139,7 @@ export default function LocationFilter({ size = 'xs' }: { size?: 'xs' | 'sm' }) 
                 <Collapse in={regionOpen} id={regionPanelId}>
                     <Box onKeyDown={keepKeysInside} pt="xs">
                         <Group align="flex-start" wrap="nowrap" gap="md">
-                            <ChileRegionMap value={region} onChange={setRegion} onHoverChange={setHovered} />
+                            {regionOpen && <ChileRegionMap value={region} onChange={setRegion} onHoverChange={setHovered} />}
                             <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
                                 <Text fz="sm" fw={600} mih={20} aria-live="polite">
                                     {readout ? regionName(readout) : 'Elige una región'}

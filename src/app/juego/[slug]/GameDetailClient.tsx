@@ -89,7 +89,8 @@ const GameRatingsChart = dynamic(() => import('@/components/GameRatingsChart'), 
 });
 import { useApp } from '@/context/AppContext';
 import { useAdmin } from '@/context/AdminContext';
-import { AdminGameControls, AdminProductEditor } from './AdminControls';
+const AdminGameControls = dynamic(() => import('./AdminControls').then(module => module.AdminGameControls), { ssr: false });
+const AdminProductEditor = dynamic(() => import('./AdminControls').then(module => module.AdminProductEditor), { ssr: false });
 
 const PRICE_TABLE_CONDITION_OPTIONS = [
     { value: 'new', label: 'Nuevo', icon: IconSparkles },
@@ -543,7 +544,7 @@ export default function GameDetailClient({
                         >
                             {/* Game image (base layer) */}
                             <RemoteImage src={coverImage || null} alt={game.name} priority
-                                sizes="(max-width: 1200px) 85vw, 380px" style={{ objectFit: 'cover' }} />
+                                sizes="(max-width: 768px) 30vw, (max-width: 1200px) 85vw, 380px" style={{ objectFit: 'cover' }} />
                             <IssueReportButton targetType="game" targetId={game.id} cover
                                 context={{ image_url: coverImage, platform: selectedPlatform ?? '' }} />
                         </Box>
@@ -691,7 +692,7 @@ export default function GameDetailClient({
 
                         {/* ══════ Best price hero card ══════ */}
                         {bestProduct && (
-                            <Box
+                            <Box className="pio-game-best-price"
                                 p={{ base: 'lg', md: 'xl' }}
                                 style={{
                                     borderRadius: 'var(--mantine-radius-xl)',

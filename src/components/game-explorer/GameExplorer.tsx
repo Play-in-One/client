@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActionIcon,
     Affix,
@@ -178,7 +178,6 @@ export default function GameExplorer({
     const [page, setPage] = useState(initialPage);
     const [resultsError, setResultsError] = useState(false);
     const [loading, setLoading] = useState(initialGames.length === 0);
-    const [searchInput, setSearchInput] = useState(query);
     const [activeQuery, setActiveQuery] = useState(query);
     const [ordering, setOrdering] = useState<string>(defaultOrdering);
 
@@ -211,19 +210,20 @@ export default function GameExplorer({
     const hasParentPlatformOptions = !!onPlatformFilterChange;
     const [internalPlatformIds, setInternalPlatformIds] = useState<number[]>(selectedPlatformIds ?? []);
 
-    const effectivePlatformIds = lockedPlatform
+    const effectivePlatformIds = useMemo(() => lockedPlatform
         ? [lockedPlatform.id]
         : hasParentPlatformOptions
             ? selectedPlatformIds ?? []
-            : internalPlatformIds;
+            : internalPlatformIds, [lockedPlatform, hasParentPlatformOptions, selectedPlatformIds, internalPlatformIds]);
+    const previewFilters = useMemo(() => ({ platforms: effectivePlatformIds }), [effectivePlatformIds]);
 
-    const platformSlugFor = (game: Game) => {
+    const platformSlugFor = useCallback((game: Game) => {
         if (lockedPlatform) return lockedPlatform.slug;
         if (effectivePlatformIds.length === 0) return undefined;
         return game.platforms.find((p) => effectivePlatformIds.includes(p.id))?.slug;
-    };
+    }, [lockedPlatform, effectivePlatformIds]);
 
-    const togglePlatform = (id: number) => {
+    const togglePlatform = useCallback((id: number) => {
         if (lockedPlatform) return;
         const next = effectivePlatformIds.includes(id)
             ? effectivePlatformIds.filter((x) => x !== id)
@@ -232,15 +232,15 @@ export default function GameExplorer({
         else setInternalPlatformIds(next);
         markInteractive();
         setPage(1);
-    };
+    }, [lockedPlatform, effectivePlatformIds, hasParentPlatformOptions, onPlatformFilterChange, markInteractive]);
 
-    const clearPlatforms = () => {
+    const clearPlatforms = useCallback(() => {
         if (lockedPlatform) return;
         if (hasParentPlatformOptions) onPlatformFilterChange?.([]);
         else setInternalPlatformIds([]);
         markInteractive();
         setPage(1);
-    };
+    }, [lockedPlatform, hasParentPlatformOptions, onPlatformFilterChange, markInteractive]);
 
     const toggleSelect = useCallback((id: number) => {
         setMergeError(null);
@@ -310,7 +310,7 @@ export default function GameExplorer({
        manda a /search?q=... mientras ya se está parado ahí, sin remontar).
        El guard evita pisar el `page` recién sembrado desde la URL: este
        efecto también corre en el montaje inicial, y ahí `query` ya coincide
-       con el valor con el que se sembró `activeQuery`/`searchInput` arriba. */
+       con el valor con el que se sembró `activeQuery` arriba. */
     const appliedQueryRef = useRef(query);
     useEffect(() => {
         // Comparar contra el valor ya aplicado (no contra "es la primera vez
@@ -321,7 +321,6 @@ export default function GameExplorer({
         if (appliedQueryRef.current === query) return;
         appliedQueryRef.current = query;
         setActiveQuery(query);
-        setSearchInput(query);
         setPage(1);
     }, [query]);
 
@@ -452,8 +451,10 @@ export default function GameExplorer({
             .then((result) => {
                 if (controller.signal.aborted) return;
                 sendCatalogFilterLoad({ phase: 'facets', surface, duration_ms: performance.now() - started, success: true });
-                setFacets({ ...result, sellers: result.sellers ?? {} });
-                setFacetStatus('ready');
+                startTransition(() => {
+                    setFacets({ ...result, sellers: result.sellers ?? {} });
+                    setFacetStatus('ready');
+                });
             })
             .catch((err) => {
                 if (controller.signal.aborted || err?.name === 'AbortError') return;
@@ -468,14 +469,14 @@ export default function GameExplorer({
 
     const totalPages = Math.ceil(total / pageSize);
 
-    const handleSearchSubmit = () => {
+    const handleSearchSubmit = (text: string) => {
         markInteractive();
-        setActiveQuery(searchInput);
+        setActiveQuery(text);
         setPage(1);
-        onQueryChange?.(searchInput.trim());
+        onQueryChange?.(text);
     };
 
-    const handleClearFilters = () => {
+    const handleClearFilters = useCallback(() => {
         if (!lockedPlatform) {
             if (hasParentPlatformOptions) {
                 if (!onClearFilters) onPlatformFilterChange?.([]);
@@ -497,46 +498,46 @@ export default function GameExplorer({
         // `onPlatformFilterChange` haría dos `router.replace` en el mismo
         // evento y el segundo pisaría al primero.
         onClearFilters?.();
-    };
+    }, [lockedPlatform, hasParentPlatformOptions, onClearFilters, onPlatformFilterChange, markInteractive]);
 
-    const applyPriceMin = () => {
+    const applyPriceMin = useCallback(() => {
         markInteractive();
         const v = typeof priceMinInput === 'number' ? priceMinInput : undefined;
         setPriceMin(v);
         setPage(1);
         onPriceMinChange?.(v);
-    };
+    }, [priceMinInput, markInteractive, onPriceMinChange]);
 
-    const applyPriceMax = () => {
+    const applyPriceMax = useCallback(() => {
         markInteractive();
         const v = typeof priceMaxInput === 'number' ? priceMaxInput : undefined;
         setPriceMax(v);
         setPage(1);
         onPriceMaxChange?.(v);
-    };
+    }, [priceMaxInput, markInteractive, onPriceMaxChange]);
 
-    const handleSelectGenre = (id: number | null) => {
+    const handleSelectGenre = useCallback((id: number | null) => {
         markInteractive();
         setSelectedGenre(id);
         setPage(1);
         onGenreChange?.(id);
-    };
+    }, [markInteractive, onGenreChange]);
 
-    const handleToggleOnSale = () => {
+    const handleToggleOnSale = useCallback(() => {
         markInteractive();
         const next = !onSale;
         setOnSale(next);
         setPage(1);
         onOnSaleChange?.(next);
-    };
+    }, [markInteractive, onOnSaleChange, onSale]);
 
-    const applyRatingMin = (v: number) => {
+    const applyRatingMin = useCallback((v: number) => {
         markInteractive();
         const next = v > 0 ? v : undefined;
         setRatingMin(next);
         setPage(1);
         onRatingMinChange?.(next);
-    };
+    }, [markInteractive, onRatingMinChange]);
 
     const handleOrderingChange = (v: string) => {
         markInteractive();
@@ -545,11 +546,11 @@ export default function GameExplorer({
         onOrderingChange?.(v);
     };
 
-    const handlePageChange = (p: number) => {
+    const handlePageChange = useCallback((p: number) => {
         markInteractive();
         setPage(p);
         onPageChange?.(p);
-    };
+    }, [markInteractive, onPageChange]);
 
     const hasActiveFilters =
         (effectivePlatformIds.length > 0 && !lockedPlatform) ||
@@ -577,8 +578,7 @@ export default function GameExplorer({
 
             <FilterToolbar
                 showSearchInput={showSearchInput}
-                searchInput={searchInput}
-                onSearchInputChange={setSearchInput}
+                searchInput={query}
                 onSearchSubmit={handleSearchSubmit}
                 ordering={ordering}
                 defaultOrdering={defaultOrdering}
@@ -666,7 +666,7 @@ export default function GameExplorer({
                     {isStaticMode && !interactive && !globalFiltersActive ? staticFallback : resultsError && games.length === 0 ? null : (
                         <GameResultsGrid
                             games={games}
-                            previewFilters={{ platforms: effectivePlatformIds }}
+                            previewFilters={previewFilters}
                             loading={loading}
                             page={page}
                             totalPages={totalPages}
