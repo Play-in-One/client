@@ -440,7 +440,7 @@ test('sin filtros el historial diferido pide solo la serie visible publicada', a
     const calls: string[] = [];
     page.on('response', (r) => { if (r.ok() && r.url().includes('/min-price-history/')) calls.push(r.url()); });
     await page.goto(await seededGamePath(page));
-    await expect(page.getByText('Historial de Precio Mínimo')).toBeVisible();
+    await expect(page.getByText('Historial de Precio Mínimo').first()).toBeVisible();
     await page.waitForLoadState('networkidle');
     // El transporte compacto difiere el historial incluso con la API legacy.
     await expect(page.getByRole('radio', { name: '30d' })).toBeAttached();
@@ -463,7 +463,7 @@ test('con una región elegida el historial se calcula solo con las tiendas visib
     const body = await (await response).json();
     const series = body.min_price_history.ps5[''];
     expect(series[0].price).toBe('24990.00');
-    await expect(page.getByText('Historial de Precio Mínimo')).toBeVisible();
+    await expect(page.getByText('Historial de Precio Mínimo').first()).toBeVisible();
     // Ya no es una aproximación: no hay nota de «referencial».
     await expect(page.getByText(/Historial referencial/)).toHaveCount(0);
 });
