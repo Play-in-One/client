@@ -18,6 +18,7 @@ export default function GamePreviewShell({ game, failed = false }: { game: GameP
         data={{
             id: game.id,
             name: game.name,
+            slug: game.slug,
             image: game.image ?? null,
             platforms: game.platforms,
             selectedPlatform: game.selected_platform,

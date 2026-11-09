@@ -10,15 +10,22 @@ import {
 import { IconExternalLink, IconRefresh } from '@tabler/icons-react';
 import { useAdmin } from '@/context/AdminContext';
 import { ApiError, DJANGO_ADMIN_URL, getStaffReports, reviewIssueReport } from '@/lib/api';
-import { REPORT_REASONS } from '@/lib/reportStorage';
+import { CONSOLE_PRODUCT_REASONS, REPORT_REASONS } from '@/lib/reportStorage';
 import type { IssueReport, PaginatedResponse } from '@/lib/types';
 import { formatCLP } from '@/lib/utils';
 
 const DATE = new Intl.DateTimeFormat('es-CL', {
     dateStyle: 'short', timeStyle: 'short', timeZone: 'America/Santiago',
 });
-const reasons = [...REPORT_REASONS.game, ...REPORT_REASONS.product];
-const reasonLabel = (value: string) => reasons.find(reason => reason.value === value)?.label ?? value;
+/* Las ofertas de juego y de consola son ambas `product`: su filtro junta los
+   motivos de las dos, sin repetir. */
+const PRODUCT_REASONS = [...REPORT_REASONS.product,
+    ...CONSOLE_PRODUCT_REASONS.filter(option => !REPORT_REASONS.product.some(known => known.value === option.value))];
+const FILTER_REASONS = { game: REPORT_REASONS.game, product: PRODUCT_REASONS, console: REPORT_REASONS.console };
+const reasons = [...REPORT_REASONS.game, ...PRODUCT_REASONS];
+/** La etiqueta según el tipo: `image_wrong_game` es «Es otra consola» en una consola. */
+const reasonLabel = (value: string, type?: string) =>
+    (type === 'console' ? REPORT_REASONS.console : reasons).find(reason => reason.value === value)?.label ?? value;
 
 function safeExternalUrl(value?: string): string | undefined {
     if (!value) return undefined;
@@ -108,10 +115,10 @@ export default function ReportsStaffClient() {
                     <TextInput label="Buscar" placeholder="Juego, producto o tienda" value={search}
                         onChange={event => { setSearch(event.currentTarget.value); setPage(1); }} />
                     <Select label="Tipo" value={targetType} allowDeselect={false} data={[
-                        { value: '', label: 'Todos' }, { value: 'game', label: 'Juegos' }, { value: 'product', label: 'Productos' },
+                        { value: '', label: 'Todos' }, { value: 'game', label: 'Juegos' }, { value: 'product', label: 'Productos' }, { value: 'console', label: 'Consolas' },
                     ]} onChange={value => { setTargetType(value ?? ''); setReason(''); setPage(1); }} />
                     <Select label="Motivo" value={reason} allowDeselect={false} data={[
-                        { value: '', label: 'Todos' }, ...(targetType === 'game' ? REPORT_REASONS.game : targetType === 'product' ? REPORT_REASONS.product : reasons),
+                        { value: '', label: 'Todos' }, ...(targetType === 'game' || targetType === 'product' || targetType === 'console' ? FILTER_REASONS[targetType] : reasons),
                     ]} onChange={value => { setReason(value ?? ''); setPage(1); }} />
                     <Select label="Estado" value={reviewed} allowDeselect={false} data={[
                         { value: '', label: 'Todos' }, { value: 'false', label: 'Pendientes' }, { value: 'true', label: 'Revisados' },
@@ -132,17 +139,19 @@ export default function ReportsStaffClient() {
                                 return (
                                     <Table.Tr key={report.id}>
                                         <Table.Td><Text size="sm" style={{ whiteSpace: 'nowrap' }}>{DATE.format(new Date(report.created_at))}</Text></Table.Td>
-                                        <Table.Td><Badge variant="light">{report.target_type === 'game' ? 'Juego' : 'Producto'}</Badge></Table.Td>
+                                        <Table.Td><Badge variant="light">{report.target_type === 'game' ? 'Juego' : report.target_type === 'console' ? 'Consola' : 'Producto'}</Badge></Table.Td>
                                         <Table.Td>
                                             <Text fw={600} size="sm">{report.target_name}</Text>
                                             <Text size="xs" c="dimmed">ID {report.target_id}</Text>
                                             {report.game && <Anchor component={Link} href={`/juego/${report.game}`} size="xs">Ver juego</Anchor>}
+                                            {report.console && <Anchor component={Link} href={`/consola/${report.console}`} size="xs">Ver consola</Anchor>}
                                         </Table.Td>
-                                        <Table.Td><Text size="sm">{reasonLabel(report.reason)}</Text></Table.Td>
+                                        <Table.Td><Text size="sm">{reasonLabel(report.reason, report.target_type)}</Text></Table.Td>
                                         <Table.Td>
                                             <Stack gap={2} maw={270}>
                                                 {report.snapshot.seller && <Text size="sm">{report.snapshot.seller}</Text>}
                                                 {report.snapshot.game_name && report.target_type === 'product' && <Text size="xs">{report.snapshot.game_name}</Text>}
+                                                {report.snapshot.configuration && <Text size="xs">{report.snapshot.console_name} · {report.snapshot.configuration}</Text>}
                                                 {(report.context.platform || report.snapshot.platform_label) && <Text size="xs">Consola: {report.context.platform || report.snapshot.platform_label}</Text>}
                                                 {report.snapshot.price && <Text size="xs">Precio registrado: {formatCLP(report.snapshot.price)}</Text>}
                                                 {report.context.displayed_price && <Text size="xs">Precio mostrado: {formatCLP(report.context.displayed_price)}</Text>}

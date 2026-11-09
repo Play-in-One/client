@@ -38,6 +38,7 @@ export interface GameSeed {
     kind: 'game';
     id: number;
     name: string;
+    slug?: string | null;
     image: string | null;
     platforms: Platform[];
     /** La consola con la que abre la ficha (la del precio de la tarjeta). */
@@ -207,6 +208,7 @@ export function gameSeedFrom(game: Game, selectedPlatform?: string | null): Game
         kind: 'game',
         id: game.id,
         name: game.name,
+        slug: game.slug,
         image: game.image ?? null,
         platforms: game.platforms,
         selectedPlatform: platform,

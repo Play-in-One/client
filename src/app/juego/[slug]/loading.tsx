@@ -28,6 +28,7 @@ export default function GameDetailLoading() {
     return <GameHeroFrame data={seed ? {
         id: seed.id,
         name: seed.name,
+        slug: seed.slug,
         image: seed.image,
         placeholderSrc: seed.placeholderSrc,
         platforms: seed.platforms,

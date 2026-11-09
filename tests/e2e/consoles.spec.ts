@@ -327,6 +327,21 @@ test.describe('Staff preview of the console pages', () => {
 });
 
 test.describe('Public console experience', () => {
+    test('the console, its best price and every offer can be reported', async ({ page }) => {
+        test.skip(!CONSOLES_PUBLIC, `Las consolas están en modo ${CONSOLES_VISIBILITY}.`);
+        await page.goto('/consola/ps5-slim-981');
+        await expect(page.locator('[data-report-target-type="console"][data-report-target-id="981"]')).toBeVisible();
+        const offerReports = page.locator('[data-console-offer] [data-report-target-type="product"]');
+        await expect(offerReports.first()).toBeVisible();
+        expect(await offerReports.count()).toBe(await page.locator('[data-console-offer]').count());
+        // Offer reasons fit a console: no "game", but edition or capacity.
+        await offerReports.first().click();
+        await expect(page.getByRole('radio', { name: 'Edición o capacidad incorrecta' })).toBeVisible();
+        await expect(page.getByRole('radio', { name: 'Juego Incorrecto' })).toHaveCount(0);
+        // Its click opens the report, not the store.
+        await expect(page).toHaveURL(/\/consola\/ps5-slim-981/);
+    });
+
     test('a console card paints its detail on click, before the server answers', async ({ page }) => {
         test.skip(!CONSOLES_PUBLIC, `Las consolas están en modo ${CONSOLES_VISIBILITY}.`);
         await page.goto('/consolas');

@@ -6,6 +6,8 @@ import { Anchor, Badge, Button, Group, HoverCard, Skeleton, Stack, Text } from '
 import { IconExternalLink } from '@tabler/icons-react';
 import AffiliateMark from '@/components/AffiliateMark';
 import PriceInfo from '@/components/PriceInfo';
+import IssueReportButton from '@/components/IssueReportButton';
+import { CONSOLE_PRODUCT_REASONS } from '@/lib/reportStorage';
 import ProductImagePreview, { PRODUCT_PREVIEW_HOVER } from '@/components/ProductImagePreview';
 import SellerLogo from '@/components/SellerLogo';
 import SellerScopeBadge from '@/components/SellerScopeBadge';
@@ -76,6 +78,9 @@ export function ConsoleOfferRow({ product, configuration, index, best, href, onO
                         {priced ? formatCLP(product.current_price!) : 'Sin precio'}
                     </Text>
                     {priced && <PriceInfo basePrice={product.base_price} shippingCost={product.shipping_cost} seller={product.seller} />}
+                    {/* Su clic no abre la tienda: el botón corta la propagación. */}
+                    <IssueReportButton targetType="product" targetId={product.id} reasons={CONSOLE_PRODUCT_REASONS}
+                        context={{ displayed_price: product.current_price, platform: product.platform.name }} />
                 </Group>
                 {live ? (
                     <Button component="a" href={href} target="_blank" rel="noopener noreferrer sponsored" size="sm"

@@ -13,7 +13,23 @@ export const REPORT_REASONS: Record<ReportTargetType, { value: ReportReason; lab
         { value: 'out_of_stock', label: 'Producto sin stock' },
         { value: 'console_incorrect', label: 'Consola incorrecta' },
     ],
+    console: [
+        { value: 'image_not_official', label: 'No es la oficial' },
+        { value: 'image_wrong_game', label: 'Es otra consola' },
+        { value: 'image_not_loading', label: 'No carga' },
+        { value: 'image_low_quality', label: 'Es de mala calidad' },
+    ],
 };
+
+/** Una oferta de consola es un producto, pero sin juego: en vez de «Juego
+ *  incorrecto» se reporta la edición o la capacidad. El backend rechaza el
+ *  motivo que no corresponde a cada tipo de oferta. */
+export const CONSOLE_PRODUCT_REASONS: { value: ReportReason; label: string }[] = [
+    { value: 'price_incorrect', label: 'Precio Incorrecto' },
+    { value: 'configuration_incorrect', label: 'Edición o capacidad incorrecta' },
+    { value: 'out_of_stock', label: 'Producto sin stock' },
+    { value: 'console_incorrect', label: 'Modelo de consola incorrecto' },
+];
 
 const PREFIX = 'pio:report:';
 const memory = new Map<string, string>();

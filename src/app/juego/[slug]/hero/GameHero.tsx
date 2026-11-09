@@ -17,6 +17,7 @@ import { PLATFORM_ICONS, PLATFORM_SHORT_LABELS, FALLBACK_PLATFORM_ICON } from '@
 import { platformLongName, type Platform } from '@/lib/types';
 import { formatCLP, PLATFORM_COLORS } from '@/lib/utils';
 import { useSeed } from '@/lib/navigationSeed';
+import GameActions from './GameActions';
 
 /*
  * La cabecera de la ficha de juego, en piezas que comparten TODAS sus fases:
@@ -263,6 +264,8 @@ export function GameOffersSkeleton({ platformLabel }: { platformLabel?: string |
 export interface GameHeroData {
     id?: number;
     name?: string | null;
+    /** Para el enlace de «compartir» (ver `GameActions`). */
+    slug?: string | null;
     image?: string | null;
     /** La portada que la tarjeta ya tenía decodificada (ver `SeedImage`). */
     placeholderSrc?: string;
@@ -315,10 +318,7 @@ export function GameHeroFrame({ data, status }: { data: GameHeroData; status?: R
                 <div className="pio-game-content">
                     <Stack gap="xl" className="pio-game-stack">
                         <GameTitleFrame
-                            actions={<>
-                                <Skeleton h={34} w={34} circle />
-                                <Skeleton h={34} w={34} circle />
-                            </>}
+                            actions={<GameActions game={data.id && data.name ? { id: data.id, name: data.name, slug: data.slug } : null} />}
                             name={data.name ?? <SkeletonLine width="70%" />}
                             selector={platforms.length > 0 ? (
                                 <PlatformSelectorFrame>

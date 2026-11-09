@@ -4,7 +4,7 @@ import { useRef, useState, useSyncExternalStore } from 'react';
 import { ActionIcon, Alert, Box, Button, Group, Popover, Radio, Stack, Text, Tooltip } from '@mantine/core';
 import {
     IconAlertTriangle, IconPhotoCheck, IconPhotoX, IconPhotoOff, IconPhoto,
-    IconCurrencyDollar, IconDeviceGamepad, IconPackageOff, IconDevices,
+    IconCurrencyDollar, IconDeviceGamepad, IconPackageOff, IconDevices, IconAdjustments,
 } from '@tabler/icons-react';
 import { submitIssueReport } from '@/lib/api';
 import { finishReport, getReportState, REPORT_REASONS, runReport, subscribeReports } from '@/lib/reportStorage';
@@ -17,6 +17,7 @@ const ICONS = {
     image_not_loading: IconPhotoOff, image_low_quality: IconPhoto,
     price_incorrect: IconCurrencyDollar, game_incorrect: IconDeviceGamepad,
     out_of_stock: IconPackageOff, console_incorrect: IconDevices,
+    configuration_incorrect: IconAdjustments,
 };
 
 interface Props {
@@ -24,9 +25,11 @@ interface Props {
     targetId: number;
     context?: ReportDisplayContext;
     cover?: boolean;
+    /** Motivos a ofrecer, si no son los del tipo (las ofertas de consola). */
+    reasons?: { value: ReportReason; label: string }[];
 }
 
-export default function IssueReportButton({ targetType, targetId, context = {}, cover = false }: Props) {
+export default function IssueReportButton({ targetType, targetId, context = {}, cover = false, reasons }: Props) {
     const [opened, setOpened] = useState(false);
     const [reason, setReason] = useState<ReportReason | null>(null);
     const [error, setError] = useState(false);
@@ -36,7 +39,8 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
     const state = useSyncExternalStore(
         subscribeReports, () => getReportState(targetType, targetId), () => 'ready' as const,
     );
-    const label = targetType === 'game' ? 'Reportar imagen' : 'Reportar producto';
+    const label = targetType === 'product' ? 'Reportar producto' : 'Reportar imagen';
+    const options = reasons ?? REPORT_REASONS[targetType];
     const blocked = state === 'blocked';
 
     const submit = async () => {
@@ -125,7 +129,7 @@ export default function IssueReportButton({ targetType, targetId, context = {}, 
                             <>
                                 <Radio.Group value={reason ?? ''} onChange={value => setReason(value as ReportReason)} aria-label="Motivo del reporte">
                                     <Stack gap="xs">
-                                        {REPORT_REASONS[targetType].map(option => {
+                                        {options.map(option => {
                                             const Icon = ICONS[option.value];
                                             return (
                                                 <Radio

@@ -23,7 +23,9 @@ import './globals.css';
 
 const poppins = Poppins({
     subsets: ['latin'],
-    weight: ['300', '400', '500', '600', '700', '800'],
+    // Sin 300: ningún componente lo usa, y `next/font` precarga un archivo
+    // por peso en cada primera visita.
+    weight: ['400', '500', '600', '700', '800'],
     display: 'swap',
     variable: '--font-poppins',
 });

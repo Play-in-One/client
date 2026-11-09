@@ -61,6 +61,7 @@ export default function InstantDetailOverlay({ pending }: { pending: PendingNavi
                 <GameHeroFrame data={{
                     id: seed.id,
                     name: seed.name,
+                    slug: seed.slug,
                     image: seed.image,
                     placeholderSrc: seed.placeholderSrc,
                     platforms: seed.platforms,

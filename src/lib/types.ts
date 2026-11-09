@@ -115,10 +115,13 @@ export interface MinPricePoint {
  *  más antiguo, igual que PriceHistory. */
 export type MinPriceHistory = Record<string, Record<string, MinPricePoint[]>>;
 
-export type ReportTargetType = 'game' | 'product';
+/** `console` es el modelo de consola (se reporta su imagen); sus ofertas son
+ *  productos y viajan como `product`. */
+export type ReportTargetType = 'game' | 'product' | 'console';
 export type ReportReason =
     | 'image_not_official' | 'image_wrong_game' | 'image_not_loading' | 'image_low_quality'
-    | 'price_incorrect' | 'game_incorrect' | 'out_of_stock' | 'console_incorrect';
+    | 'price_incorrect' | 'game_incorrect' | 'out_of_stock' | 'console_incorrect'
+    | 'configuration_incorrect';
 
 export interface ReportDisplayContext {
     image_url?: string;
@@ -134,8 +137,11 @@ export interface IssueReport {
     reason: ReportReason;
     game: number | null;
     product: number | null;
+    console?: number | null;
     snapshot: {
         game_name?: string;
+        console_name?: string;
+        configuration?: string;
         image_url?: string;
         title?: string;
         seller?: string;

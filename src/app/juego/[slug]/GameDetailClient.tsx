@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useOutboundHref } from '@/hooks/useOutboundHref';
-import { gamePath, formatDate } from '@/lib/seo';
+import { formatDate } from '@/lib/seo';
 import {
     Container,
     Title,
@@ -24,10 +24,6 @@ import {
     Tooltip as MantineTooltip,
 } from '@mantine/core';
 import {
-    IconBookmark,
-    IconBookmarkFilled,
-    IconShare,
-    IconLink,
     IconExternalLink,
     IconTag,
     IconTableColumn,
@@ -46,6 +42,7 @@ import { trackEvent, getGameClickStats } from '@/lib/api';
 import { useNearViewport } from '@/hooks/useNearViewport';
 import { useMinPriceHistory } from '@/hooks/useMinPriceHistory';
 import { useGamePlatform } from './GamePlatformContext';
+import GameActions from './hero/GameActions';
 import { MinPriceChartLoading } from '@/components/MinPriceChartFrame';
 import {
     BestPriceFrame, GAME_COVER_SIZES, GameBreadcrumbs, GameCoverFrame, GameInfoCardFrame, GameTitleFrame,
@@ -278,7 +275,7 @@ export default function GameDetailClient({
     summarySlot?: ReactNode;
 }) {
     const initialGame = useMemo(() => unpackGame(initialPayload), [initialPayload]);
-    const { condition, format, digital, includeInternational, includeNational, region, ready, isSaved, toggleSaved } = useApp();
+    const { condition, format, digital, includeInternational, includeNational, region, ready } = useApp();
     const { isAdmin } = useAdmin();
     const router = useRouter();
     const [deletedProductIds, setDeletedProductIds] = useState<number[]>([]);
@@ -348,15 +345,10 @@ export default function GameDetailClient({
     // Edición admin: toggles independientes para el panel del juego y por producto.
     const [editingGame, setEditingGame] = useState(false);
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
-    const [copied, setCopied] = useState(false);
     // Sólo para rotar el chevron de la tarjeta de información en mobile: el
     // `<details>` nativo ya guarda su propio estado abierto/cerrado, esto es
     // puramente decorativo (mismo patrón que el chevron de GameFilterBar).
     const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
-    const [canNativeShare, setCanNativeShare] = useState(false);
-    useEffect(() => {
-        setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
-    }, []);
 
     /* Tiendas con convenio interceptan la salida: en vez de navegar directo,
        se guarda la oferta pendiente y se muestra el cupón en un modal. Sin
@@ -490,33 +482,6 @@ export default function GameDetailClient({
             ? game.image
             : sorted.find((p) => p.image)?.image ?? game.image) || '/placeholder-game.png';
 
-    const handleToggleSave = () => {
-        const willSave = !isSaved(game.id);
-        toggleSaved(game.id);
-        // Track only the save action (not un-saving) — popularity of saved games.
-        if (willSave) trackEvent({ event_type: 'game_save', game: game.id });
-    };
-
-    const handleShare = async () => {
-        const shareUrl = `${window.location.origin}${gamePath(game)}`;
-        const shareData = { title: game.name, text: `Mira el precio de ${game.name} en PlayInOne`, url: shareUrl };
-        if (navigator.share) {
-            try {
-                await navigator.share(shareData);
-            } catch {
-                // user cancelled the share sheet
-            }
-        } else if (navigator.clipboard) {
-            try {
-                await navigator.clipboard.writeText(shareUrl);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            } catch {
-                // clipboard write blocked
-            }
-        }
-    };
-
     const breadcrumbPlatform = game.platforms.find((p) => p.slug === selectedPlatform) ?? game.platforms[0];
 
 
@@ -550,31 +515,7 @@ export default function GameDetailClient({
                     <Stack gap="xl" className="pio-game-stack">
                         {/* Title + platform tabs */}
                         <GameTitleFrame
-                            actions={<>
-                                <ActionIcon
-                                    variant={isSaved(game.id) ? 'filled' : 'default'}
-                                    color={isSaved(game.id) ? 'primaryRed' : undefined}
-                                    size="lg"
-                                    radius="xl"
-                                    onClick={handleToggleSave}
-                                    aria-label={isSaved(game.id) ? 'Quitar de guardados' : 'Guardar juego'}
-                                >
-                                    {isSaved(game.id) ? <IconBookmarkFilled size={18} /> : <IconBookmark size={18} />}
-                                </ActionIcon>
-                                <MantineTooltip
-                                    label={copied ? '¡Enlace copiado!' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                >
-                                    <ActionIcon
-                                        variant="default"
-                                        size="lg"
-                                        radius="xl"
-                                        onClick={handleShare}
-                                        aria-label={copied ? 'Enlace copiado' : canNativeShare ? 'Compartir' : 'Copiar enlace'}
-                                    >
-                                        {copied ? <IconCheck size={18} /> : canNativeShare ? <IconShare size={18} /> : <IconLink size={18} />}
-                                    </ActionIcon>
-                                </MantineTooltip>
-                            </>}
+                            actions={<GameActions game={game} />}
                             genres={game.genres?.map((genre) => (
                                 <Badge
                                     key={genre.id}

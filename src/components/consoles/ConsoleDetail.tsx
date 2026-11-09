@@ -11,6 +11,8 @@ import { IconBuildingStore, IconCheck, IconChevronRight, IconExternalLink, IconH
 import { useApp } from '@/context/AppContext';
 import { useOutboundHref } from '@/hooks/useOutboundHref';
 import CouponModal, { type PendingOffer } from '@/components/CouponModal';
+import IssueReportButton from '@/components/IssueReportButton';
+import { CONSOLE_PRODUCT_REASONS } from '@/lib/reportStorage';
 import NotFoundBody from '@/components/NotFoundBody';
 import PlatformBadge from '@/components/PlatformBadge';
 import PriceInfo from '@/components/PriceInfo';
@@ -201,11 +203,15 @@ function BestPriceCard({ model, best, description, editionKey, filtered, href, o
                     </Text>}
                 </Box>
                 {href && (
-                    <Button component="a" href={href} target="_blank" rel="noopener noreferrer sponsored" color="primaryRed" size="lg" radius="lg"
-                        rightSection={<IconExternalLink size={18} />} style={{ boxShadow: decorative.primaryButtonShadowStrong }}
-                        onClick={(event: MouseEvent) => onOffer(event, best)}>
-                        Ir a la tienda
-                    </Button>
+                    <Group gap="xs" wrap="nowrap">
+                        <Button component="a" href={href} target="_blank" rel="noopener noreferrer sponsored" color="primaryRed" size="lg" radius="lg"
+                            rightSection={<IconExternalLink size={18} />} style={{ boxShadow: decorative.primaryButtonShadowStrong }}
+                            onClick={(event: MouseEvent) => onOffer(event, best)}>
+                            Ir a la tienda
+                        </Button>
+                        <IssueReportButton targetType="product" targetId={best.id} reasons={CONSOLE_PRODUCT_REASONS}
+                            context={{ displayed_price: best.current_price, platform: best.platform.name }} />
+                    </Group>
                 )}
             </Group>
         </Box>
@@ -317,6 +323,9 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                             <div className={styles.heroMedia} style={{ boxShadow: elevation.cover }}>
                                 <ConsoleImage image={image} name={model.name} platform={model.platform.slug} priority
                                     sizes="(max-width: 62em) 90vw, 420px" />
+                                {/* Como la portada de un juego: la imagen del modelo. */}
+                                <IssueReportButton targetType="console" targetId={model.id} cover
+                                    context={{ image_url: image ?? '', platform: model.platform.name }} />
                             </div>
                             <PlatformGamesLink platform={model.platform} initialCount={initialGameCount} />
                         </Stack>
