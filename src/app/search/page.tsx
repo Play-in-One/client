@@ -3,8 +3,6 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { CONSOLES_PUBLIC } from '@/lib/features';
 import { getConsoles, getGames, getPlatforms } from '@/lib/api';
-import Link from 'next/link';
-import { Anchor, Container, Group, Text } from '@mantine/core';
 import { ConsoleCatalog, ConsoleCatalogSkeleton } from '@/components/consoles/ConsoleCatalog';
 import { consoleQuery } from '@/lib/consoles';
 import type { Game, Platform } from '@/lib/types';
@@ -131,7 +129,6 @@ export default async function SearchPage({
 
     return (
         <>
-            {CONSOLES_PUBLIC && <Container size="lg" pt="lg"><Group gap="lg"><Text fw={700}>Juegos</Text><Anchor component={Link} href={`/search?category=console${typeof sp.q === 'string' ? `&q=${encodeURIComponent(sp.q)}` : ''}`}>Consolas</Anchor></Group></Container>}
             {jsonLd.length > 0 && <JsonLd data={jsonLd} />}
             <SearchClient initialGames={packGames(games)} initialTotal={total}
                 initialPlatforms={platformList} initialResultsMatchFilters={isCleanEntry && games.length > 0}
