@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Anchor, Group, Text } from '@mantine/core';
+import { IconChevronLeft, IconChevronRight, IconDots } from '@tabler/icons-react';
+import styles from './CrawlablePagination.module.css';
 
 /**
  * Paginación navegable por un crawler.
@@ -10,26 +11,24 @@ import { Anchor, Group, Text } from '@mantine/core';
  * que hay más allá de la primera página es inalcanzable — así el 96% del
  * catálogo quedaba huérfano aunque estuviera listado en el sitemap.
  *
+ * Se VE igual que el de Mantine (mismas cajas, color, flechas y ventana de
+ * páginas; ver el `.module.css`), para que todas las paginaciones del sitio
+ * sean una sola: antes esta eran enlaces de texto rojo.
+ *
  * Es un Server Component a propósito: sin estado, sin hooks y sin
  * `useSearchParams()`, que sacaría su subárbol del render del servidor y
  * devolvería el problema al punto de partida.
  */
 
-/** Primera, última y una ventana alrededor de la actual; el resto, elipsis. */
-function pageWindow(current: number, total: number): (number | 'gap')[] {
-    const shown = new Set<number>([1, total, current]);
-    for (let d = 1; d <= 2; d++) {
-        if (current - d >= 1) shown.add(current - d);
-        if (current + d <= total) shown.add(current + d);
-    }
-    const out: (number | 'gap')[] = [];
-    let prev = 0;
-    for (const page of [...shown].sort((a, b) => a - b)) {
-        if (prev && page - prev > 1) out.push('gap');
-        out.push(page);
-        prev = page;
-    }
-    return out;
+/** La misma ventana que `usePagination` de Mantine (1 hermana a cada lado y
+ *  1 página de borde): siempre 7 huecos, p. ej. `1 2 3 4 5 … 384`,
+ *  `1 … 9 10 11 … 384` o `1 … 380 381 382 383 384`. */
+export function pageWindow(current: number, total: number): (number | 'gap')[] {
+    const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    if (total <= 7) return range(1, total);
+    if (current <= 4) return [...range(1, 5), 'gap', total];
+    if (current >= total - 3) return [1, 'gap', ...range(total - 4, total)];
+    return [1, 'gap', current - 1, current, current + 1, 'gap', total];
 }
 
 export default function CrawlablePagination({
@@ -44,41 +43,30 @@ export default function CrawlablePagination({
 }) {
     if (total <= 1) return null;
 
+    const arrow = (page: number, label: string, icon: React.ReactNode) =>
+        page < 1 || page > total ? (
+            <span className={styles.control} data-disabled aria-disabled="true" aria-label={label}>{icon}</span>
+        ) : (
+            <Link className={styles.control} href={hrefFor(page)} aria-label={label} rel={page < current ? 'prev' : 'next'}>
+                {icon}
+            </Link>
+        );
+
     return (
-        <Group component="nav" aria-label="Paginación" justify="center" gap="xs" mt="xl">
-            {current > 1 && (
-                <Anchor component={Link} href={hrefFor(current - 1)} fz="sm" c="primaryRed" underline="hover">
-                    ← Anterior
-                </Anchor>
-            )}
+        <nav aria-label="Paginación" className={styles.root}>
+            {arrow(current - 1, 'Página anterior', <IconChevronLeft size={16} stroke={1.75} aria-hidden />)}
             {pageWindow(current, total).map((page, i) =>
                 page === 'gap' ? (
-                    <Text key={`gap-${i}`} c="dimmed" px="2xs" aria-hidden>
-                        …
-                    </Text>
+                    <span key={`gap-${i}`} className={styles.dots} aria-hidden><IconDots size={16} /></span>
                 ) : page === current ? (
-                    <Text key={page} fw={700} px="2xs" aria-current="page">
-                        {page}
-                    </Text>
+                    <span key={page} className={styles.control} data-active aria-current="page">{page}</span>
                 ) : (
-                    <Anchor
-                        key={page}
-                        component={Link}
-                        href={hrefFor(page)}
-                        px="2xs"
-                        fz="sm"
-                        c="primaryRed"
-                        underline="hover"
-                    >
+                    <Link key={page} className={styles.control} href={hrefFor(page)} aria-label={`Página ${page}`}>
                         {page}
-                    </Anchor>
+                    </Link>
                 ),
             )}
-            {current < total && (
-                <Anchor component={Link} href={hrefFor(current + 1)} fz="sm" c="primaryRed" underline="hover">
-                    Siguiente →
-                </Anchor>
-            )}
-        </Group>
+            {arrow(current + 1, 'Página siguiente', <IconChevronRight size={16} stroke={1.75} aria-hidden />)}
+        </nav>
     );
 }

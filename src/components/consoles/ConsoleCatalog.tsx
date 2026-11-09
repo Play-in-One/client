@@ -9,6 +9,7 @@ import {
 import { IconChevronRight, IconHome, IconSearch } from '@tabler/icons-react';
 import { useApp } from '@/context/AppContext';
 import InfoHeading from '@/components/InfoHeading';
+import CrawlablePagination from '@/components/CrawlablePagination';
 import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import { getConsoles } from '@/lib/api';
 import { CONSOLE_FAMILIES, CONSOLE_PLATFORMS, consoleQueryString, type ConsoleModel, type ConsoleQuery } from '@/lib/consoles';
@@ -242,10 +243,9 @@ export function ConsoleCatalog({ initialData, initialQuery = {}, preview = false
                             {results.map(model => <ConsoleCard key={model.id} model={model} showDraft={preview} headingOrder={2} />)}
                         </SimpleGrid>
                     )}
-                    <Group mt="xl" justify="center">
-                        {page > 1 && <Button component={Link} variant="default" href={`/consolas${consoleQueryString({ ...query, page: page - 1 })}`}>Anterior</Button>}
-                        {data.count > page * pageSize && <Button component={Link} variant="default" href={`/consolas${consoleQueryString({ ...query, page: page + 1 })}`}>Siguiente</Button>}
-                    </Group>
+                    {/* La paginación del sitio, con enlaces reales a cada página. */}
+                    <CrawlablePagination current={page} total={Math.ceil(data.count / pageSize)}
+                        hrefFor={(n) => `/consolas${consoleQueryString({ ...query, page: n > 1 ? n : undefined })}`} />
                 </Box>
             ) : !busy && !error && (
                 <Stack align="center" gap="sm" py={60} ta="center">

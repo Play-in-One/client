@@ -168,7 +168,7 @@ export default function ReportsStaffClient() {
                     </ScrollArea>
                 )}
                 {data && <Group justify="space-between"><Text size="sm" c="dimmed">{data.count} reportes</Text>
-                    <Pagination total={Math.max(1, Math.ceil(data.count / 24))} value={page} onChange={setPage} /></Group>}
+                    <Pagination total={Math.max(1, Math.ceil(data.count / 24))} value={page} onChange={setPage} color="primaryRed" radius="md" /></Group>}
             </Stack>
         </Container>
     );

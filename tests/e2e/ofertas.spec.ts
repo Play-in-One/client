@@ -831,13 +831,13 @@ test.describe('Paginación de ofertas', () => {
             const page = await context.newPage();
             await page.goto('/ofertas');
             await expect(page.locator('[data-deal-card]')).toHaveCount(24);
-            await page.getByRole('navigation', { name: 'Paginación', exact: true }).getByRole('link', { name: 'Siguiente →' }).click();
+            await page.getByRole('navigation', { name: 'Paginación', exact: true }).getByRole('link', { name: 'Página siguiente' }).click();
             await expect(page).toHaveURL(/\/ofertas\/pagina\/2$/);
             await expect(page.locator('[data-deals-range]')).toContainText('25–48');
             await page.reload();
             await expect(page.locator('[data-deal-card]')).toHaveCount(24);
             await expect(page.locator('[data-deals-range]')).toContainText('25–48');
-            await page.getByRole('navigation', { name: 'Paginación', exact: true }).getByRole('link', { name: '← Anterior' }).click();
+            await page.getByRole('navigation', { name: 'Paginación', exact: true }).getByRole('link', { name: 'Página anterior' }).click();
             await expect(page).toHaveURL(/\/ofertas$/);
         } finally {
             await context.close();
