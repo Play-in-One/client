@@ -1,0 +1,105 @@
+.root {
+    --history-source: var(--mantine-color-gray-2);
+    --history-ink: var(--mantine-color-gray-5);
+    --history-tint: var(--mantine-color-primaryRed-0);
+    --history-play-state: paused;
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+:global([data-mantine-color-scheme='dark']) .root {
+    --history-source: var(--mantine-color-dark-4);
+    --history-ink: var(--mantine-color-dark-3);
+    --history-tint: color-mix(in srgb, var(--mantine-color-primaryRed-5) 16%, var(--mantine-color-dark-6));
+}
+
+.root[data-running='true'] {
+    --history-play-state: running;
+}
+
+.illustration {
+    display: block;
+    width: min(280px, 100%);
+    height: auto;
+    color: var(--mantine-color-primaryRed-5);
+}
+
+.root .illustration * {
+    animation-play-state: var(--history-play-state);
+}
+
+.connections, .store {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.connections { stroke: var(--history-source); stroke-width: 3; }
+.store { stroke: var(--history-ink); stroke-width: 2; }
+.sourceTile { fill: var(--history-source); }
+.hubTile { fill: var(--history-tint); }
+.bar, .packet { fill: currentColor; }
+.packet { opacity: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+    .source { animation: source-light 4.5s ease infinite; }
+    .sourceTwo { animation-delay: 0.35s; }
+    .sourceThree { animation-delay: 0.7s; }
+    .packetOne { animation: packet-one 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+    .packetTwo { animation: packet-two 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+    .packetThree { animation: packet-three 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+    .hub {
+        animation: process 4.5s ease-in-out infinite;
+        transform-origin: 160px 112px;
+    }
+    .bar {
+        animation: calculate 4.5s ease-in-out infinite;
+        transform-box: fill-box;
+        transform-origin: center bottom;
+    }
+    .barTwo { animation-delay: 0.12s; }
+    .barThree { animation-delay: 0.24s; }
+}
+
+@keyframes packet-one {
+    0%, 5%, 100% { transform: translate(0, 0); opacity: 0; }
+    12% { transform: translate(0, 0); opacity: 1; }
+    40% { transform: translate(86px, 51px); opacity: 1; }
+    44%, 92% { transform: translate(86px, 51px); opacity: 0; }
+}
+
+@keyframes packet-two {
+    0%, 12%, 100% { transform: translate(0, 0); opacity: 0; }
+    19% { transform: translate(0, 0); opacity: 1; }
+    47% { transform: translate(-86px, 51px); opacity: 1; }
+    51%, 92% { transform: translate(-86px, 51px); opacity: 0; }
+}
+
+@keyframes packet-three {
+    0%, 19%, 100% { transform: translate(0, 0); opacity: 0; }
+    26% { transform: translate(0, 0); opacity: 1; }
+    54% { transform: translate(0, -58px); opacity: 1; }
+    58%, 92% { transform: translate(0, -58px); opacity: 0; }
+}
+
+@keyframes process {
+    0%, 24%, 100% { transform: scale(1); }
+    40% { transform: scale(1.07); }
+    54% { transform: scale(0.97); }
+    66%, 82% { transform: scale(1); }
+}
+
+@keyframes calculate {
+    0%, 24%, 100% { transform: scaleY(0.35); opacity: 0.4; }
+    48% { transform: scaleY(0.7); opacity: 1; }
+    65%, 82% { transform: scaleY(1); opacity: 1; }
+    94% { transform: scaleY(0.35); opacity: 0.4; }
+}
+
+@keyframes source-light {
+    0%, 100% { opacity: 0.45; }
+    14%, 36% { opacity: 1; }
+    62%, 90% { opacity: 0.45; }
+}

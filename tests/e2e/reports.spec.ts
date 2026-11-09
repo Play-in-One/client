@@ -40,7 +40,7 @@ test('portada: elegir un motivo no envía hasta confirmar y guarda el contexto m
     await page.screenshot({ path: testInfo.outputPath('game-report.png') });
     expect(submissions).toHaveLength(0);
     await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Reporte enviado');
+    await expect(page.getByRole('status').filter({ hasText: 'Reporte enviado' })).toBeVisible();
     expect(submissions).toHaveLength(1);
     expect(submissions[0]).toMatchObject({ target_type: 'game', target_id: 999001, reason: 'image_not_loading' });
     expect(submissions[0].context).toHaveProperty('image_url');
@@ -148,7 +148,7 @@ test('modal de cupón: permite reportar sin confirmar la salida', async ({ page,
     await modal.getByRole('button', { name: 'Reportar producto', exact: true }).click();
     await page.getByRole('radio', { name: 'Precio Incorrecto', exact: true }).check();
     await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Reporte enviado');
+    await expect(page.getByRole('status').filter({ hasText: 'Reporte enviado' })).toBeVisible();
     expect(submissions).toHaveLength(1);
     expect(submissions[0].context).toHaveProperty('platform');
     expect(submissions[0].context).toHaveProperty('displayed_price');
@@ -175,7 +175,7 @@ test.describe('móvil', () => {
         expect(box!.y + box!.height).toBeLessThanOrEqual(667);
         await page.screenshot({ path: testInfo.outputPath('product-report-mobile.png') });
         await send.tap();
-        await expect(page.getByRole('status')).toContainText('Reporte enviado');
+        await expect(page.getByRole('status').filter({ hasText: 'Reporte enviado' })).toBeVisible();
         expect(shops).toHaveLength(0);
         await expect(page.getByRole('dialog', { name: '¡Esta tienda tiene cupón!' })).not.toBeVisible();
     });
@@ -236,7 +236,7 @@ test('una escritura local fallida conserva el bloqueo aunque exista un reporte d
     await report.click();
     await page.getByRole('radio', { name: 'No carga', exact: true }).check();
     await page.getByRole('button', { name: 'Enviar', exact: true }).click();
-    await expect(page.getByRole('status')).toContainText('Reporte enviado');
+    await expect(page.getByRole('status').filter({ hasText: 'Reporte enviado' })).toBeVisible();
     await expect(report).toBeDisabled();
 });
 
@@ -324,7 +324,7 @@ test('el formulario público guarda un reporte real en el backend', async ({ pag
     const response = await submitted;
     expect(response.status()).toBe(201);
     expect(await response.json()).toMatchObject({ id: expect.any(Number), date: expect.any(String) });
-    await expect(page.getByRole('status')).toContainText('Reporte enviado');
+    await expect(page.getByRole('status').filter({ hasText: 'Reporte enviado' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Reportar imagen', exact: true })).toBeDisabled();
 });
 

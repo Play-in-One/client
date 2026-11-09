@@ -1,15 +1,16 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Badge, Box, Card, Center, Group, Loader, Title } from '@mantine/core';
+import { Badge, Box, Card, Group, Title } from '@mantine/core';
 import { IconChartLine } from '@tabler/icons-react';
+import PriceHistoryLoading from '@/components/PriceHistoryLoading';
 
 /**
  * El marco de la tarjeta del historial de precios: cabecera (título, consola,
  * condición y el selector de rango) y cuerpo. Vive aparte de
  * `MinPriceChartCard` a propósito: esa tarjeta trae recharts y se carga sola
  * cuando el gráfico se acerca a la pantalla, mientras que este marco va en el
- * bundle de la ficha y se pinta desde el primer momento con su icono de carga.
+ * bundle de la ficha y se pinta desde el primer momento con su animación de carga.
  * Esqueleto, espera y tarjeta final usan el mismo marco, así que nada se mueve
  * cuando llegan los datos.
  */
@@ -49,14 +50,10 @@ export function MinPriceChartFrame({ platformLabel, conditionLabel, controls, ch
     );
 }
 
-/** El cuerpo mientras llegan los datos: el icono de carga en el alto del
+/** El cuerpo mientras llegan los datos: búsqueda animada en el alto del
  *  gráfico (220 px). */
 export function MinPriceChartSpinner() {
-    return (
-        <Center mih={220} role="status">
-            <Loader size="sm" color="primaryRed" aria-label="Cargando historial de precios" />
-        </Center>
-    );
+    return <PriceHistoryLoading />;
 }
 
 /** La tarjeta entera esperando sus datos. */
