@@ -133,7 +133,24 @@ function selectValueFor(format: FormatFilter, condition: ConditionFilter, digita
 function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: ReactNode }) {
     // Solo las secciones con dato, en orden; cada una lleva el separador
     // inferior salvo la última, sea cual sea.
-    const sections: { key: string; node: ReactNode }[] = [];
+    const sections: { key: string; node: ReactNode; className?: string }[] = [];
+    // Solo en un teléfono (`.pio-game-info-genres`): allí los géneros salen de
+    // la fila del título, donde empujaban todo al llegar (ver GameTitleFrame).
+    if ((game.genres?.length ?? 0) > 0) {
+        sections.push({
+            key: 'genres',
+            className: 'pio-game-info-genres',
+            node: (
+                <Group gap="xs">
+                    {game.genres!.map((genre) => (
+                        <Badge key={genre.id} component={Link} href={genreHref(genre)} variant="light" color="gray" size="sm">
+                            {genre.name}
+                        </Badge>
+                    ))}
+                </Group>
+            ),
+        });
+    }
     if ((game.ratings?.length ?? 0) > 0) {
         sections.push({
             key: 'ratings',
@@ -248,11 +265,12 @@ function GameInfoCardBody({ game, summarySlot }: { game: Game; summarySlot?: Rea
 
     return (
         <Stack gap="md">
-            {sections.map(({ key, node }, i) => {
+            {sections.map(({ key, node, className }, i) => {
                 const last = i === sections.length - 1;
                 return (
                     <Box
                         key={key}
+                        className={className}
                         pb={last ? 0 : 'sm'}
                         style={last ? undefined : { borderBottom: '1px solid var(--mantine-color-default-border)' }}
                     >

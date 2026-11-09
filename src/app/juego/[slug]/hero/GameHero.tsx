@@ -124,7 +124,12 @@ export function GameTitleFrame({ actions, genres, name, selector, extra }: {
         >
             <Group gap="sm" mb="2xs" wrap="wrap">
                 <Group gap="xs" wrap="nowrap">{actions}</Group>
-                {genres}
+                {/* En un teléfono los géneros van en la tarjeta de información
+                    (`.pio-game-genres`, ver globals.css): en la columna del
+                    título, de ~230 px, pasaban a una segunda fila al llegar la
+                    ficha completa (ni la tarjeta ni el preview los conocen) y
+                    empujaban el nombre, las consolas y el precio. */}
+                {genres && <span className="pio-game-genres">{genres}</span>}
             </Group>
             <Title order={1} fz={{ base: 28, md: 36 }} fw={800} mb="sm">{name}</Title>
             {selector}

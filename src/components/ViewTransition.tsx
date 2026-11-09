@@ -95,7 +95,11 @@ export default function ViewTransition({ children }: { children: React.ReactNode
         // página nueva quedó fuera de la pantalla: con la galería apenas
         // bajada, la ficha aparecía unos píxeles más arriba que el overlay.
         if (seeded && !samePath(pathname, seeded.fromPathname) && seedMatches(seeded.seed, pathname)) {
-            window.scrollTo(0, 0);
+            // `instant`: el sitio tiene `scroll-behavior: smooth` en <html>, y
+            // un `scrollTo(0, 0)` a secas se animaba (~600 ms bajando la ficha
+            // por la pantalla desde donde estaba la galería). Next desactiva el
+            // smooth para su propio scroll; este no pasaba por ahí.
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         }
         settleSeededNavigation(pathname);
     }, [pathname]);

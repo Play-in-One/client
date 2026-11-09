@@ -1,13 +1,47 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styles from './PriceHistoryLoading.module.css';
 
-/** Shared SVG + CSS: shipped with the detail bundle and cached by Next's
- * versioned static assets, rather than fetched or generated for each game. */
+/** Duración de un ciclo; tiene que coincidir con la de las animaciones del CSS. */
+const CYCLE_MS = 4500;
+
+/* useLayoutEffect avisa en el servidor; allí no hay nada que medir. */
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
+const STORE_ICON = (
+    <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+        <path className={styles.store} d="M12 19h24l-3-8H15l-3 8v16h24V19M19 35V25h10v10" />
+        <path className={styles.store} d="M12 19c0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0" />
+    </svg>
+);
+
+/**
+ * Tres tiendas que mandan datos a un gráfico central, mientras llega el
+ * historial de precios. Lo comparten el preview, la espera y la tarjeta final
+ * (`MinPriceChartFrame`); va con el bundle de la ficha (SVG + CSS), sin pedir
+ * nada aparte.
+ *
+ * Dos decisiones para que no se vea a saltos:
+ *
+ * 1. Lo que se MUEVE son capas HTML animadas solo con `transform` y `opacity`,
+ *    que el navegador compone fuera del hilo principal. La primera versión
+ *    animaba elementos SVG, y eso corre en el hilo principal: justo al cargar
+ *    la ficha (hidratación, el chunk del gráfico) ese hilo está ocupado y la
+ *    animación saltaba cuadros. El SVG queda solo para el fondo estático.
+ * 2. Un reloj común. La tarjeta se monta hasta tres veces mientras espera
+ *    (preview, espera, tarjeta final) y cada montaje reiniciaba la animación
+ *    desde cero. Al montar se adelanta a la fase del reloj del documento
+ *    (`performance.now()`), así que un remontaje continúa donde iba.
+ */
 export default function PriceHistoryLoading() {
     const ref = useRef<HTMLDivElement>(null);
-    const [running, setRunning] = useState(false);
+    const [running, setRunning] = useState(true);
+
+    useIsomorphicLayoutEffect(() => {
+        // Antes de pintar: el primer cuadro ya está en la fase correcta.
+        ref.current?.style.setProperty('--history-offset', `${-(performance.now() % CYCLE_MS)}ms`);
+    }, []);
 
     useEffect(() => {
         let inView = !('IntersectionObserver' in window);
@@ -21,7 +55,6 @@ export default function PriceHistoryLoading() {
 
         if (ref.current) observer?.observe(ref.current);
         document.addEventListener('visibilitychange', update);
-        update();
         return () => {
             observer?.disconnect();
             document.removeEventListener('visibilitychange', update);
@@ -30,33 +63,23 @@ export default function PriceHistoryLoading() {
 
     return (
         <div ref={ref} className={styles.root} data-running={running} role="status" aria-live="polite" aria-label="Buscando y calculando el historial de precios">
-            <svg className={styles.illustration} viewBox="0 0 320 240" aria-hidden="true" focusable="false">
-                <path className={styles.connections} d="m74 61 86 51 86-51M160 170v-58" />
-                <g className={styles.source}>
-                    <rect className={styles.sourceTile} x="46" y="35" width="48" height="48" rx="14" />
-                    <path className={styles.store} d="M58 54h24l-3-8H61l-3 8v16h24V54M65 70V60h10v10" />
-                    <path className={styles.store} d="M58 54c0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0" />
-                </g>
-                <g className={`${styles.source} ${styles.sourceTwo}`}>
-                    <rect className={styles.sourceTile} x="226" y="35" width="48" height="48" rx="14" />
-                    <path className={styles.store} d="M238 54h24l-3-8h-18l-3 8v16h24V54M245 70V60h10v10" />
-                    <path className={styles.store} d="M238 54c0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0" />
-                </g>
-                <g className={`${styles.source} ${styles.sourceThree}`}>
-                    <rect className={styles.sourceTile} x="136" y="168" width="48" height="48" rx="14" />
-                    <path className={styles.store} d="M148 187h24l-3-8h-18l-3 8v16h24v-16M155 203v-10h10v10" />
-                    <path className={styles.store} d="M148 187c0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0 0 5 6 5 6 0" />
-                </g>
-                <circle className={`${styles.packet} ${styles.packetOne}`} cx="74" cy="61" r="4" />
-                <circle className={`${styles.packet} ${styles.packetTwo}`} cx="246" cy="61" r="4" />
-                <circle className={`${styles.packet} ${styles.packetThree}`} cx="160" cy="170" r="4" />
-                <g className={styles.hub}>
-                    <rect className={styles.hubTile} x="125" y="77" width="70" height="70" rx="21" />
-                    <rect className={styles.bar} x="140" y="110" width="8" height="20" rx="3" />
-                    <rect className={`${styles.bar} ${styles.barTwo}`} x="156" y="101" width="8" height="29" rx="3" />
-                    <rect className={`${styles.bar} ${styles.barThree}`} x="172" y="92" width="8" height="38" rx="3" />
-                </g>
-            </svg>
+            <div className={styles.illustration} aria-hidden="true">
+                {/* Fondo estático: las conexiones entre las tiendas y el gráfico. */}
+                <svg className={styles.backdrop} viewBox="0 0 320 240" focusable="false">
+                    <path className={styles.connections} d="m74 61 86 51 86-51M160 170v-58" />
+                </svg>
+                <div className={`${styles.source} ${styles.sourceOne}`}>{STORE_ICON}</div>
+                <div className={`${styles.source} ${styles.sourceTwo}`}>{STORE_ICON}</div>
+                <div className={`${styles.source} ${styles.sourceThree}`}>{STORE_ICON}</div>
+                <span className={`${styles.packet} ${styles.packetOne}`} />
+                <span className={`${styles.packet} ${styles.packetTwo}`} />
+                <span className={`${styles.packet} ${styles.packetThree}`} />
+                <div className={styles.hub}>
+                    <span className={`${styles.bar} ${styles.barOne}`} />
+                    <span className={`${styles.bar} ${styles.barTwo}`} />
+                    <span className={`${styles.bar} ${styles.barThree}`} />
+                </div>
+            </div>
         </div>
     );
 }

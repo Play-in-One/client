@@ -1074,6 +1074,15 @@ a.saga-banner-link:focus-visible {
   .game-offer-row > .pio-offer-mobile-condition { grid-column: 2; grid-row: 1 / 3; }
 }
 
+/* Géneros de la ficha: junto al título desde 48em; en un teléfono, dentro de
+   la tarjeta de información (ver GameTitleFrame). */
+.pio-game-genres { display: contents; }
+.pio-game-info-genres { display: none; }
+@media (max-width: 47.99em) {
+  .pio-game-genres { display: none; }
+  .pio-game-info-genres { display: block; }
+}
+
 .pio-game-card { overflow: hidden; display: flex; flex-direction: column; height: 100%; cursor: pointer; }
 .pio-card-info { padding: var(--mantine-spacing-xs); flex: 1; display: flex; flex-direction: column; }
 .pio-card-title { font-weight: 700; font-size: var(--mantine-font-size-sm); margin-bottom: 2px; }

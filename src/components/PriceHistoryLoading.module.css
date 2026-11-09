@@ -1,3 +1,7 @@
+/* Las medidas salen del dibujo original, un lienzo de 320 × 240: posiciones en
+   % del contenedor y desplazamientos en `cqw` (1 unidad del lienzo =
+   100cqw / 320 = 0,3125cqw), para que todo escale junto con el ancho. */
+
 .root {
     --history-source: var(--mantine-color-gray-2);
     --history-ink: var(--mantine-color-gray-5);
@@ -20,14 +24,22 @@
 }
 
 .illustration {
-    display: block;
+    position: relative;
     width: min(280px, 100%);
-    height: auto;
+    aspect-ratio: 4 / 3;
+    container-type: inline-size;
     color: var(--mantine-color-primaryRed-5);
 }
 
 .root .illustration * {
     animation-play-state: var(--history-play-state);
+}
+
+.backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .connections, .store {
@@ -38,50 +50,102 @@
 
 .connections { stroke: var(--history-source); stroke-width: 3; }
 .store { stroke: var(--history-ink); stroke-width: 2; }
-.sourceTile { fill: var(--history-source); }
-.hubTile { fill: var(--history-tint); }
-.bar, .packet { fill: currentColor; }
-.packet { opacity: 0; }
 
+/* Tiendas: baldosas de 48 × 48 con el icono encima. */
+.source {
+    position: absolute;
+    width: 15%;
+    aspect-ratio: 1;
+    border-radius: 29%;
+    background: var(--history-source);
+}
+.source svg { display: block; width: 100%; height: 100%; }
+.sourceOne { left: 14.375%; top: 14.583%; }
+.sourceTwo { left: 70.625%; top: 14.583%; }
+.sourceThree { left: 42.5%; top: 70%; }
+
+/* Los datos que viajan de cada tienda al gráfico. */
+.packet {
+    position: absolute;
+    width: 2.5%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0;
+}
+.packetOne { left: 21.875%; top: 23.75%; }
+.packetTwo { left: 75.625%; top: 23.75%; }
+.packetThree { left: 48.75%; top: 69.167%; }
+
+/* El gráfico central: una baldosa de 70 × 70 con tres barras. */
+.hub {
+    position: absolute;
+    left: 39.0625%;
+    top: 32.083%;
+    width: 21.875%;
+    aspect-ratio: 1;
+    border-radius: 30%;
+    background: var(--history-tint);
+}
+.bar {
+    position: absolute;
+    bottom: 24.29%;
+    width: 11.43%;
+    border-radius: 0.94cqw;
+    background: currentColor;
+    transform-origin: center bottom;
+}
+.barOne { left: 21.43%; height: 28.57%; }
+.barTwo { left: 44.29%; height: 41.43%; }
+.barThree { left: 67.14%; height: 54.29%; }
+
+/* Solo `transform` y `opacity`, sobre capas HTML: el navegador las compone
+   fuera del hilo principal y no saltan mientras la ficha hidrata. Cada
+   retraso se suma a `--history-offset`, la fase del reloj del documento que
+   fija el componente al montarse. */
 @media (prefers-reduced-motion: no-preference) {
-    .source { animation: source-light 4.5s ease infinite; }
-    .sourceTwo { animation-delay: 0.35s; }
-    .sourceThree { animation-delay: 0.7s; }
+    .source, .packet, .hub, .bar { will-change: transform, opacity; }
+    .source {
+        animation: source-light 4.5s ease infinite;
+        animation-delay: var(--history-offset, 0s);
+    }
+    .sourceTwo { animation-delay: calc(var(--history-offset, 0s) + 0.35s); }
+    .sourceThree { animation-delay: calc(var(--history-offset, 0s) + 0.7s); }
     .packetOne { animation: packet-one 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
     .packetTwo { animation: packet-two 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
     .packetThree { animation: packet-three 4.5s cubic-bezier(0.45, 0, 0.2, 1) infinite; }
+    .packet { animation-delay: var(--history-offset, 0s); }
     .hub {
         animation: process 4.5s ease-in-out infinite;
-        transform-origin: 160px 112px;
+        animation-delay: var(--history-offset, 0s);
     }
     .bar {
         animation: calculate 4.5s ease-in-out infinite;
-        transform-box: fill-box;
-        transform-origin: center bottom;
+        animation-delay: var(--history-offset, 0s);
     }
-    .barTwo { animation-delay: 0.12s; }
-    .barThree { animation-delay: 0.24s; }
+    .barTwo { animation-delay: calc(var(--history-offset, 0s) + 0.12s); }
+    .barThree { animation-delay: calc(var(--history-offset, 0s) + 0.24s); }
 }
 
 @keyframes packet-one {
     0%, 5%, 100% { transform: translate(0, 0); opacity: 0; }
     12% { transform: translate(0, 0); opacity: 1; }
-    40% { transform: translate(86px, 51px); opacity: 1; }
-    44%, 92% { transform: translate(86px, 51px); opacity: 0; }
+    40% { transform: translate(26.875cqw, 15.9375cqw); opacity: 1; }
+    44%, 92% { transform: translate(26.875cqw, 15.9375cqw); opacity: 0; }
 }
 
 @keyframes packet-two {
     0%, 12%, 100% { transform: translate(0, 0); opacity: 0; }
     19% { transform: translate(0, 0); opacity: 1; }
-    47% { transform: translate(-86px, 51px); opacity: 1; }
-    51%, 92% { transform: translate(-86px, 51px); opacity: 0; }
+    47% { transform: translate(-26.875cqw, 15.9375cqw); opacity: 1; }
+    51%, 92% { transform: translate(-26.875cqw, 15.9375cqw); opacity: 0; }
 }
 
 @keyframes packet-three {
     0%, 19%, 100% { transform: translate(0, 0); opacity: 0; }
     26% { transform: translate(0, 0); opacity: 1; }
-    54% { transform: translate(0, -58px); opacity: 1; }
-    58%, 92% { transform: translate(0, -58px); opacity: 0; }
+    54% { transform: translate(0, -18.125cqw); opacity: 1; }
+    58%, 92% { transform: translate(0, -18.125cqw); opacity: 0; }
 }
 
 @keyframes process {
