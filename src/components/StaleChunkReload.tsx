@@ -10,11 +10,21 @@
  * chunk. El error de carga de un <script> o <link> no burbujea, así que se
  * escucha en captura. `sessionStorage` evita un bucle si el archivo de verdad
  * no existe: como máximo una recarga por minuto en la pestaña.
+ *
+ * Antes de ese límite deja en `window` el instante del fallo
+ * (`ASSET_FAILED_KEY`). Lo mismo pasa cuando la persona DETIENE la carga (la X
+ * que ocupa el botón de recargar mientras carga, o Escape): los chunks en
+ * vuelo se abortan y el render revienta con errores que no hablan de la red,
+ * como el #130 de React. `app/error.tsx` usa esa marca para tratarlos como una
+ * carga cortada y no como un fallo de la página.
  */
+import { ASSET_FAILED_KEY } from '@/lib/interruptedStream';
+
 const SCRIPT = `(function(){addEventListener('error',function(e){try{
 var t=e.target,u=t&&(t.src||t.href);
 if(!u||(t.tagName!=='SCRIPT'&&t.tagName!=='LINK')||u.indexOf('/_next/static/')<0)return;
-var k='pio-stale-chunk-reload',n=Date.now(),l=+sessionStorage.getItem(k)||0;
+var n=Date.now();window['${ASSET_FAILED_KEY}']=n;
+var k='pio-stale-chunk-reload',l=+sessionStorage.getItem(k)||0;
 if(n-l<60000)return;sessionStorage.setItem(k,String(n));location.reload();
 }catch(_){}},true)})()`;
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SEEDED } from './helpers';
 
 // Dedicated production server behind docs/performance/detail_proxy.py. Browser
 // routing cannot delay SSR fetches, so ordinary page.route mocks cannot prove it.
@@ -63,4 +64,53 @@ test('a failed full read preserves the preview and offers retry', async ({ page,
         await expect(page.getByRole('link', { name: 'Reintentar' })).toBeVisible();
         await expect(page.locator('[data-game-preview] [data-best-price]')).toBeVisible();
     } finally { await request.post(`${fixture}/__fixture/error`, { data: 'false' }); }
+});
+
+// Mientras la página carga, el botón de recargar de la barra es la X de
+// "detener": pulsarlo en el hueco entre el preview y la ficha completa corta
+// la respuesta RSC. La página tiene que decirlo como una carga interrumpida y
+// su "Reintentar" tiene que pedir un documento nuevo; `reset()` volvía a leer
+// el mismo stream cortado y el botón no hacía nada.
+test('stopping a client navigation mid-stream offers a retry that recovers', async ({ page }) => {
+    test.setTimeout(45_000);
+    await page.goto('/juegos/ps5');
+    const card = page.locator(`a[href*="-${SEEDED.gameId}"]`).first();
+    await expect(card).toBeVisible();
+    await card.click();
+    // Con el preview ya pintado el router aceptó la respuesta y sigue leyendo
+    // el stream: cortar antes hace que Next caiga solo a una carga completa.
+    await expect(page.locator('[data-game-preview]')).toBeAttached();
+    await page.evaluate(() => window.stop());
+
+    await expect(page.getByLabel('Cargando la página')).toBeVisible();
+    await expect(page.getByText('La carga se interrumpió antes de terminar.')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Inténtalo nuevamente en unos momentos.')).toHaveCount(0);
+
+    const reloaded = page.waitForEvent('framenavigated');
+    await page.getByRole('button', { name: 'Reintentar' }).click();
+    await reloaded;
+    await expect(page.locator('.pio-game-best-price')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('No pudimos cargar esta página')).toHaveCount(0);
+});
+
+// Cortar la carga también aborta los chunks de la ruta que estaban en vuelo.
+// El error ya no habla de la red (un chunk que no cargó, o el #130 de React con
+// el módulo sin definir) y caía en "Inténtalo nuevamente", cuyo `reset()` no
+// podía traer el archivo que faltaba.
+test('a route chunk that never loaded is an interrupted load and retry recovers it', async ({ page }) => {
+    test.setTimeout(45_000);
+    // Sin esto `StaleChunkReload` recarga sola la pestaña (una vez por minuto).
+    await page.addInitScript(() => sessionStorage.setItem('pio-stale-chunk-reload', String(Date.now())));
+    await page.goto('/juegos/ps5');
+    await page.route(/\/_next\/static\/chunks\/app\/juego\/.*page-[^/]*\.js/, route => route.abort('aborted'));
+    await page.locator(`a[href*="-${SEEDED.gameId}"]`).first().click();
+
+    await expect(page.getByText('La carga se interrumpió antes de terminar.')).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText('Inténtalo nuevamente en unos momentos.')).toHaveCount(0);
+
+    await page.unrouteAll({ behavior: 'ignoreErrors' });
+    const reloaded = page.waitForEvent('framenavigated');
+    await page.getByRole('button', { name: 'Reintentar' }).click();
+    await reloaded;
+    await expect(page.locator('.pio-game-best-price')).toBeVisible({ timeout: 15_000 });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { isInterruptedStream, reloadOnceAfterInterruption } from '@/lib/interruptedStream';
+import { isInterruptedLoad, reloadOnceAfterInterruption } from '@/lib/interruptedStream';
 
 /**
  * El último límite de errores: lo que revienta por encima de `app/error.tsx`
@@ -22,7 +22,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
     const [reloading, setReloading] = useState(false);
 
     useEffect(() => {
-        if (isInterruptedStream(error) && reloadOnceAfterInterruption()) setReloading(true);
+        if (isInterruptedLoad(error) && reloadOnceAfterInterruption()) setReloading(true);
     }, [error]);
 
     return (
