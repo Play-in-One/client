@@ -628,7 +628,7 @@ export async function getDeals(params?: {
     condition?: string;
     seller_locations?: string;
     signal?: AbortSignal;
-    /** Portada: solo precios que llevan como máximo tres días sin cambiar. */
+    /** Portada: hasta ocho juegos, con un máximo de tres días seguidos por juego. */
     homepage?: 1;
     /** Segundos de Data Cache de Next. Solo tiene efecto en SSR. */
     revalidate?: number;
@@ -636,7 +636,8 @@ export async function getDeals(params?: {
     const { revalidate, signal, ...qsParams } = params ?? {};
     return fetcher<DealsResponse>(`/deals/${qs(qsParams)}`, {
         signal,
-        ...(revalidate !== undefined ? { next: { revalidate } } : {}),
+        ...(revalidate !== undefined || params?.homepage
+            ? { next: { revalidate: revalidate ?? 300 } } : {}),
     });
 }
 

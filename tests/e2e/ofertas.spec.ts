@@ -441,6 +441,30 @@ test.describe('/ofertas en el navegador: GameExplorer acotado a ofertas', () => 
 });
 
 test.describe('enlaces hacia /ofertas', () => {
+    test('la portada renueva su selección y caché de preferencias al cambiar el día', async ({ page, request }) => {
+        const source = await apiDeals(request);
+        const start = new Date();
+        await page.clock.install({ time: start });
+        let calls = 0;
+        await page.route('**/api/deals/**', async (route) => {
+            calls += 1;
+            await route.fulfill({ json: {
+                ...source, count: 1,
+                results: [{ ...source.results[0], game: { ...source.results[0].game, name: `Selección diaria ${calls}` } }],
+            } });
+        });
+        await page.goto('/');
+        const section = page.locator('[data-home-deals]');
+        await page.getByRole('radiogroup', { name: 'Formato' }).first().getByText('Físico', { exact: true }).click();
+        await expect(section).toContainText('Selección diaria 1');
+        await page.clock.setSystemTime(new Date(start.getTime() + 86_400_000));
+        await page.clock.fastForward(60_001);
+        await expect(section).toContainText('Selección diaria 2');
+        await page.getByRole('radiogroup', { name: 'Formato' }).first().getByText('Todo', { exact: true }).click();
+        await expect(section).toContainText('Selección diaria 3');
+        expect(calls).toBe(3);
+    });
+
     test('Ofertas de hoy responde al formato, estado y ubicación de la página', async ({ page }) => {
         await page.goto('/');
         const section = page.locator('[data-home-deals]');

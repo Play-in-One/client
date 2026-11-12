@@ -5,7 +5,7 @@ import { getPosts, getTrendingGames, getFeaturedGames, getFeaturedSagas, getDeal
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { itemListJsonLd } from '@/lib/seo';
-import { dealsSectionTitle, isTodayDeals } from '@/lib/deals';
+import { dealsSectionTitle, isTodayDeals, santiagoDate } from '@/lib/deals';
 import { consolesAvailable } from '@/lib/consoleAvailability';
 import { packGames } from '@/lib/gamePayload';
 import HomeClient from './HomeClient';
@@ -89,6 +89,7 @@ export default async function HomePage() {
                     deals={deals}
                     dealsTitle={dealsTitle}
                     dealsAreToday={dealsAreToday}
+                    dealsSelectionDay={santiagoDate(now)}
                 />
             </Suspense>
             {/* Va DESPUÉS del contenido a propósito: colocado delante, el

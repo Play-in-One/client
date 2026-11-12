@@ -23,7 +23,7 @@ import { getHomeGames, getDeals } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
-import { DEALS_TYPICAL_NOTE, dealsSectionTitle, isTodayDeals } from '@/lib/deals';
+import { DEALS_TYPICAL_NOTE, dealsSectionTitle, isTodayDeals, santiagoDate } from '@/lib/deals';
 import PostCard from '@/components/PostCard';
 import GameGridSkeleton from '@/components/GameGridSkeleton';
 import { SHELF_DEALS_GRID, SHELF_GRID } from '@/lib/gridLayout';
@@ -40,6 +40,7 @@ export default function HomeClient({
     deals: initialDeals,
     dealsTitle,
     dealsAreToday,
+    dealsSelectionDay,
 }: {
     initialPosts: Post[];
     initialTrending: Game[] | GamesPayload;
@@ -51,6 +52,8 @@ export default function HomeClient({
     dealsTitle: string;
     /** Si la tanda es la de hoy (para «Nueva hoy»), resuelto en el servidor. */
     dealsAreToday: boolean;
+    /** Día local de la selección SSR, independiente de la fecha de los precios. */
+    dealsSelectionDay: string;
 }) {
     const initialTrending = useMemo(() => unpackGames(trendingPayload), [trendingPayload]);
     const initialFeatured = useMemo(() => unpackGames(featuredPayload), [featuredPayload]);
@@ -144,15 +147,26 @@ export default function HomeClient({
     const [dealsLoading, setDealsLoading] = useState(false);
     const [dealsError, setDealsError] = useState(false);
     const dealsCache = useRef(new Map<string, typeof offers>());
+    const [selectionDay, setSelectionDay] = useState(dealsSelectionDay);
+    useEffect(() => {
+        const updateDay = () => setSelectionDay(santiagoDate());
+        updateDay();
+        const timer = window.setInterval(updateDay, 60_000);
+        window.addEventListener('focus', updateDay);
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('focus', updateDay);
+        };
+    }, []);
     useEffect(() => {
         if (!ready) return;
         setDealsError(false);
-        if (!conditionParam && !sellerLocationsParam) {
+        if (!conditionParam && !sellerLocationsParam && selectionDay === dealsSelectionDay) {
             setOffers({ results: initialDeals, title: dealsTitle, isToday: dealsAreToday });
             setDealsLoading(false);
             return;
         }
-        const key = `${conditionParam ?? 'all'}:${sellerLocationsParam ?? 'all'}`;
+        const key = `${selectionDay}:${conditionParam ?? 'all'}:${sellerLocationsParam ?? 'all'}`;
         const cached = dealsCache.current.get(key);
         if (cached) {
             setOffers(cached);
@@ -181,7 +195,7 @@ export default function HomeClient({
             superseded = true;
             controller.abort();
         };
-    }, [ready, conditionParam, sellerLocationsParam, initialDeals, dealsTitle, dealsAreToday]);
+    }, [ready, conditionParam, sellerLocationsParam, initialDeals, dealsTitle, dealsAreToday, selectionDay, dealsSelectionDay]);
 
     return (
         <>
