@@ -45,10 +45,11 @@ import { useGamePlatform } from './GamePlatformContext';
 import GameActions from './hero/GameActions';
 import { MinPriceChartLoading } from '@/components/MinPriceChartFrame';
 import {
-    BestPriceFrame, GAME_COVER_SIZES, GameBreadcrumbs, GameCoverFrame, GameInfoCardFrame, GameTitleFrame,
+    BestPriceFrame, GAME_COVER_HIRES_SIZES, GAME_COVER_SIZES, GameBreadcrumbs, GameCoverFrame, GameInfoCardFrame, GameTitleFrame,
     PlatformOption, PlatformSelectorFrame,
 } from './hero/GameHero';
 import SeedImage from '@/components/skeleton/SeedImage';
+import HiResCover from '@/components/HiResCover';
 import { useSeed } from '@/lib/navigationSeed';
 import { useConsent } from '@/context/ConsentContext';
 import type { Game, Product, GameClickStats } from '@/lib/types';
@@ -448,7 +449,7 @@ export default function GameDetailClient({
         if (a.in_stock !== b.in_stock) return a.in_stock ? -1 : 1;
         const pa = parseFloat(a.current_price ?? '999999');
         const pb = parseFloat(b.current_price ?? '999999');
-        return pa - pb;
+        return pa - pb || Number(isAffiliateOffer(b)) - Number(isAffiliateOffer(a));
     });
 
     const inStockOffers = sorted.filter((p) => p.in_stock);
@@ -519,6 +520,8 @@ export default function GameDetailClient({
                         <SeedImage src={seed?.placeholderSrc} />
                         <RemoteImage src={coverImage || null} alt={game.name} priority
                             sizes={GAME_COVER_SIZES} style={{ objectFit: 'cover' }} />
+                        {/* Ya cargada la página, la portada de buena calidad. */}
+                        <HiResCover src={coverImage} sizes={GAME_COVER_HIRES_SIZES} />
                         <IssueReportButton targetType="game" targetId={game.id} cover
                             context={{ image_url: coverImage, platform: selectedPlatform ?? '' }} />
                     </GameCoverFrame>

@@ -24,6 +24,7 @@ import { FALLBACK_PLATFORM_ICON, PLATFORM_ICONS } from '@/lib/platformIcons';
 import { PLATFORM_COLORS, formatCLP } from '@/lib/utils';
 import SkeletonLine from '@/components/skeleton/SkeletonLine';
 import SeedImage from '@/components/skeleton/SeedImage';
+import HiResCover from '@/components/HiResCover';
 import { activeCoupon, platformLongName, type Product } from '@/lib/types';
 import { ConsoleImage, plural } from './ConsoleCard';
 import { EditionMark, hasEditionMark } from './EditionMark';
@@ -323,6 +324,10 @@ export function ConsoleDetailView({ consoleId, initialData, initialGameCount, in
                             <div className={styles.heroMedia} style={{ boxShadow: elevation.cover }}>
                                 <ConsoleImage image={image} name={model.name} platform={model.platform.slug} priority
                                     sizes="(max-width: 62em) 90vw, 420px" />
+                                {/* Ya cargada la página, la imagen de buena calidad. */}
+                                {image && <HiResCover src={image} fit="contain"
+                                    padding="var(--mantine-spacing-lg)" background="var(--mantine-color-white)"
+                                    sizes="(max-width: 62em) 90vw, 640px" />}
                                 {/* Como la portada de un juego: la imagen del modelo. */}
                                 <IssueReportButton targetType="console" targetId={model.id} cover
                                     context={{ image_url: image ?? '', platform: model.platform.name }} />

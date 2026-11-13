@@ -37,6 +37,8 @@ import GameActions from './GameActions';
  */
 
 export const GAME_COVER_SIZES = '(max-width: 768px) 30vw, (max-width: 1200px) 85vw, 380px';
+/** La misma portada, más ancha, para `HiResCover` (se pide tras la carga). */
+export const GAME_COVER_HIRES_SIZES = '(max-width: 768px) 50vw, (max-width: 1200px) 85vw, 540px';
 
 const BEST_PRICE_BACKGROUND = `linear-gradient(135deg, light-dark(${decorative.bestPriceCardGradient.light.from}, ${decorative.bestPriceCardGradient.dark.from}), light-dark(${decorative.bestPriceCardGradient.light.to}, ${decorative.bestPriceCardGradient.dark.to}))`;
 
