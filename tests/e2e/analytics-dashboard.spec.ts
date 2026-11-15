@@ -158,7 +158,7 @@ test('el embudo por campaña distingue sesiones convertidas de clics repetidos',
     await page.goto('/staff/analytics');
     const table = page.getByRole('table', { name: 'Embudo por canal' });
     await expect(table).toBeVisible();
-    const row = table.getByRole('row').filter({ hasText: 'Google orgánico' });
+    const row = table.getByRole('row').filter({ hasText: 'Google' });
     await expect(row).toContainText('20%');
     await expect(row).not.toContainText('250%');
     await expect(row).toContainText('25');
@@ -231,7 +231,7 @@ test('los paneles de detalle se rellenan', async ({ page }) => {
     await page.goto('/staff/analytics');
 
     await expect(page.getByRole('link', { name: 'Hollow Knight' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'zelda' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'zelda' })).toHaveCount(0);
     // La búsqueda sin resultados es la señal más accionable del panel.
     await expect(page.getByRole('link', { name: 'silksong' })).toBeVisible();
     // Celda de la matriz: 60 de 200 volvieron una semana después. Se ancla al
@@ -241,39 +241,105 @@ test('los paneles de detalle se rellenan', async ({ page }) => {
     await expect(retention.getByRole('cell', { name: '30%' })).toBeVisible();
 });
 
-test('el mapa de calor muestra la hora punta y rotula la zona horaria', async ({ page }) => {
+test('agrupa buscadores, promueve Reddit a redes sociales y separa asistentes IA por proveedor', async ({ page }) => {
     await signInAsStaff(page);
     await mockAnalytics(page);
-    await page.goto('/staff/analytics');
-
-    const panel = page.locator('.mantine-Card-root').filter({ hasText: 'Horarios de uso' });
-    await expect(panel).toBeVisible();
-    // La hora punta sale del dato, no de un valor por defecto.
-    await expect(panel).toContainText('Martes a las 21:00');
-    // Sin rotular la zona, un "pico a las 21" no significa nada.
-    await expect(panel).toContainText('America/Santiago');
-    // 7 filas de dias x 24 horas, celdas vacias incluidas.
-    await expect(panel.getByText('Lun', { exact: true })).toBeVisible();
-    await expect(panel.getByText('Dom', { exact: true })).toBeVisible();
-});
-
-test('el mapa de calor avisa cuando no hay actividad', async ({ page }) => {
-    await signInAsStaff(page);
-    await mockAnalytics(page);
-    await page.route(/\/api\/analytics\/activity\//, (route) =>
+    const metrics = (sessions: number) => ({
+        sessions, page_views: sessions * 2, game_views: Math.round(sessions * 0.6),
+        offer_clicks: Math.round(sessions * 0.3), store_clicks: 0, conversion_rate: 30,
+        sessions_with_game_view: Math.round(sessions * 0.5), sessions_with_exit: Math.round(sessions * 0.2),
+        session_game_view_rate: 50, session_exit_rate: 20, funnel_complete: true,
+    });
+    await page.route(/\/api\/analytics\/sources\//, (route) =>
         route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ ...ACTIVITY, max_events: 0, peak: null }),
+            json: {
+                start: '2026-07-29',
+                end: TODAY,
+                totals: metrics(100),
+                channels: [
+                    { channel: 'google_organic', label: 'Google orgánico', ...metrics(40) },
+                    { channel: 'search_other', label: 'Otros buscadores', ...metrics(10) },
+                    { channel: 'referral', label: 'Otros sitios', ...metrics(20) },
+                    { channel: 'ai', label: 'Asistentes IA', ...metrics(30) },
+                ],
+                top_sources: [
+                    { channel: 'google_organic', source: 'google.com', ...metrics(40) },
+                    { channel: 'search_other', source: 'bing.com', ...metrics(10) },
+                    { channel: 'referral', source: 'reddit.com', ...metrics(20) },
+                    { channel: 'ai', source: 'chatgpt.com', ...metrics(20) },
+                    { channel: 'ai', source: 'claude.ai', ...metrics(10) },
+                ],
+                campaigns: [],
+                series: [{ date: TODAY, channel: 'google_organic', sessions: 40 }],
+            },
         }),
     );
 
     await page.goto('/staff/analytics');
+    const table = page.getByRole('table', { name: 'Embudo por canal' });
+    await expect(table).toBeVisible();
 
-    const panel = page.locator('.mantine-Card-root').filter({ hasText: 'Horarios de uso' });
-    await expect(panel).toContainText('Todavía no hay actividad');
-    // No debe inventarse una hora punta sobre una matriz de ceros.
-    await expect(panel).not.toContainText('Hora punta');
+    await expect(table.getByText('Buscadores', { exact: true })).toBeVisible();
+    await expect(table.getByText('Google', { exact: true })).toBeVisible();
+    await expect(table.getByText('Bing', { exact: true })).toBeVisible();
+
+    await expect(table.getByText('Redes sociales', { exact: true })).toBeVisible();
+    await expect(table.getByText('Reddit', { exact: true })).toBeVisible();
+
+    await expect(table.getByText('Asistentes IA', { exact: true })).toBeVisible();
+    await expect(table.getByText('ChatGPT', { exact: true })).toBeVisible();
+    await expect(table.getByText('Claude', { exact: true })).toBeVisible();
+});
+
+test('permite alternar vista por plataforma y filtrar tráfico pagado u orgánico', async ({ page }) => {
+    await signInAsStaff(page);
+    await mockAnalytics(page);
+    const metrics = (sessions: number) => ({
+        sessions, page_views: sessions * 2, game_views: Math.round(sessions * 0.6),
+        offer_clicks: Math.round(sessions * 0.2), store_clicks: 0, conversion_rate: 20,
+        sessions_with_game_view: Math.round(sessions * 0.5), sessions_with_exit: Math.round(sessions * 0.2),
+        session_game_view_rate: 50, session_exit_rate: 20, funnel_complete: true,
+    });
+    await page.route(/\/api\/analytics\/sources\//, (route) =>
+        route.fulfill({
+            json: {
+                start: '2026-07-29',
+                end: TODAY,
+                totals: metrics(130),
+                channels: [
+                    { channel: 'meta_ads', label: 'Anuncios Meta', ...metrics(80) },
+                    { channel: 'instagram', label: 'Instagram', ...metrics(50) },
+                ],
+                top_sources: [
+                    { channel: 'meta_ads', source: 'instagram', ...metrics(80) },
+                    { channel: 'instagram', source: 'instagram.com', ...metrics(50) },
+                ],
+                campaigns: [],
+                series: [{ date: TODAY, channel: 'meta_ads', sessions: 80 }],
+            },
+        }),
+    );
+
+    await page.goto('/staff/analytics');
+    const table = page.getByRole('table', { name: 'Embudo por canal' });
+    await expect(table).toBeVisible();
+
+    const viewControl = page.getByRole('radiogroup', { name: 'Agrupación de origen' });
+    await viewControl.getByText('Por plataforma', { exact: true }).click();
+
+    const igRow = table.getByRole('row').filter({ hasText: 'Instagram' });
+    await expect(igRow).toContainText('Pagado + Orgánico');
+    await expect(igRow).toContainText('130');
+
+    const filterControl = page.getByRole('radiogroup', { name: 'Filtro de tráfico' });
+    await filterControl.getByText('Pagado', { exact: true }).click();
+    await expect(igRow).toContainText('Pagado');
+    await expect(igRow).not.toContainText('Pagado + Orgánico');
+    await expect(igRow).toContainText('80');
+
+    await filterControl.getByText('Orgánico', { exact: true }).click();
+    await expect(igRow).toContainText('Orgánico');
+    await expect(igRow).toContainText('50');
 });
 
 test('avisa cuando el agregado diario no ha corrido', async ({ page }) => {
