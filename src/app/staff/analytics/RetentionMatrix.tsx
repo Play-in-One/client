@@ -42,15 +42,19 @@ export function RetentionMatrix({ cohorts }: { cohorts: RetentionCohortRow[] }) 
     const byKey = new Map(cohorts.map((row) => [`${row.cohort_week}:${row.week_offset}`, row]));
 
     return (
-        <Table.ScrollContainer minWidth={Math.max(420, 160 + offsets.length * 64)}>
-            <Table withTableBorder verticalSpacing="xs" fz="sm">
+        <Table.ScrollContainer minWidth={Math.max(380, 144 + offsets.length * 50)}>
+            <Table withTableBorder verticalSpacing="xs" horizontalSpacing={6} fz="xs">
                 <Table.Thead>
                     <Table.Tr>
-                        <Table.Th>Semana de llegada</Table.Th>
-                        <Table.Th ta="right">Visitantes</Table.Th>
+                        <Table.Th w={76} miw={72} maw={80} style={{ lineHeight: 1.15 }}>
+                            Semana de llegada
+                        </Table.Th>
+                        <Table.Th ta="right" w={68} miw={60} maw={72}>
+                            Visitantes
+                        </Table.Th>
                         {offsets.map((offset) => (
-                            <Table.Th key={offset} ta="center">
-                                {offset === 0 ? 'Semana 0' : `+${offset}`}
+                            <Table.Th key={offset} ta="center" miw={44} style={{ whiteSpace: 'nowrap' }}>
+                                {offset === 0 ? 'Sem 0' : `+${offset}`}
                             </Table.Th>
                         ))}
                     </Table.Tr>
@@ -60,8 +64,12 @@ export function RetentionMatrix({ cohorts }: { cohorts: RetentionCohortRow[] }) 
                         const size = byKey.get(`${week}:0`)?.cohort_size ?? 0;
                         return (
                             <Table.Tr key={week}>
-                                <Table.Td fw={600}>{weekLabel(week)}</Table.Td>
-                                <Table.Td ta="right" c="dimmed">{size}</Table.Td>
+                                <Table.Td fw={600} w={76} style={{ whiteSpace: 'nowrap' }}>
+                                    {weekLabel(week)}
+                                </Table.Td>
+                                <Table.Td ta="right" c="dimmed" w={68} style={{ whiteSpace: 'nowrap' }}>
+                                    {size}
+                                </Table.Td>
                                 {offsets.map((offset) => {
                                     const row = byKey.get(`${week}:${offset}`);
                                     if (!row) {
@@ -70,7 +78,7 @@ export function RetentionMatrix({ cohorts }: { cohorts: RetentionCohortRow[] }) 
                                         return <Table.Td key={offset} />;
                                     }
                                     return (
-                                        <Table.Td key={offset} ta="center" style={cellStyle(row.rate)}>
+                                        <Table.Td key={offset} ta="center" style={{ whiteSpace: 'nowrap', ...cellStyle(row.rate) }}>
                                             <Tooltip label={`${row.visitors} de ${row.cohort_size}`}>
                                                 <Box component="span">{row.rate}%</Box>
                                             </Tooltip>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useComputedColorScheme } from '@mantine/core';
 import {
     Area,
@@ -11,15 +12,17 @@ import {
     Legend,
     Line,
     LineChart,
+    Pie,
+    PieChart,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from 'recharts';
 
-import { chart } from '@/lib/colors';
-import type { DailyFunnel, DailyTraffic, PagePerfRow, SellerStat, SourcesReport } from '@/lib/types';
-import { CHANNEL_GROUPS, channelGroup, type ChannelGroup } from './channels';
+import { chart, social } from '@/lib/colors';
+import type { DailyFunnel, DailyTraffic, PagePerfRow, SellerStat, SocialStat, SourcesReport } from '@/lib/types';
+import { CHANNEL_GROUPS, CHANNEL_GROUP_COLORS, channelGroup, type ChannelGroup } from './channels';
 
 /* Gráficos del dashboard interno.
  *
@@ -41,6 +44,34 @@ const COLORS = {
     ttfb: series.cyan,
     server: series.amber,
 };
+
+/** Nombres legibles para redes sociales (la clave `twitter` se muestra como `X`). */
+const SOCIAL_LABELS: Record<string, string> = {
+    instagram: 'Instagram',
+    linkedin: 'LinkedIn',
+    facebook: 'Facebook',
+    twitter: 'X',
+    youtube: 'YouTube',
+    reddit: 'Reddit',
+    tiktok: 'TikTok',
+    pinterest: 'Pinterest',
+    gmail: 'Correo',
+    discord: 'Discord',
+    spotify: 'Spotify',
+    whatsapp: 'WhatsApp',
+    threads: 'Threads',
+    tumblr: 'Tumblr',
+    telegram: 'Telegram',
+    mastodon: 'Mastodon',
+    bluesky: 'Bluesky',
+};
+
+const SOCIAL_COLORS: Record<string, string> = social;
+
+export interface SellerIconInfo {
+    favicon?: string;
+    logo?: string | null;
+}
 
 /** Etiqueta corta para el eje X: '2026-08-27' → '27/08'. */
 function shortDate(value: string): string {
@@ -113,7 +144,97 @@ export function FunnelChart({ series }: { series: DailyFunnel[] }) {
     );
 }
 
-export function SellersChart({ sellers }: { sellers: SellerStat[] }) {
+function SellerFavicon({
+    primarySrc,
+    fallbackSrc,
+    alt,
+}: {
+    primarySrc: string;
+    fallbackSrc?: string | null;
+    alt: string;
+}) {
+    const [src, setSrc] = useState(primarySrc);
+    const [hidden, setHidden] = useState(false);
+
+    if (hidden || !src) return null;
+
+    return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            src={src}
+            alt={alt}
+            style={{ width: 14, height: 14, objectFit: 'contain', borderRadius: 2, flexShrink: 0 }}
+            onError={() => {
+                if (fallbackSrc && src !== fallbackSrc) {
+                    setSrc(fallbackSrc);
+                } else {
+                    setHidden(true);
+                }
+            }}
+        />
+    );
+}
+
+interface SellerTickProps {
+    x?: number;
+    y?: number;
+    index?: number;
+    payload?: { value?: string; index?: number };
+    sellers: SellerStat[];
+    icons?: Record<number, SellerIconInfo>;
+    axisColor: string;
+}
+
+function SellerYAxisTick({ x = 0, y = 0, index, payload, sellers, icons, axisColor }: SellerTickProps) {
+    const label = payload?.value ?? '';
+    const rowIndex = index ?? payload?.index ?? -1;
+    const seller = (rowIndex >= 0 ? sellers[rowIndex] : undefined) ?? sellers.find((s) => s.name === label);
+    const iconInfo = seller?.seller != null ? icons?.[seller.seller] : undefined;
+    const primarySrc = iconInfo?.favicon || iconInfo?.logo || '';
+    const fallbackSrc = iconInfo?.favicon && iconInfo?.logo ? iconInfo.logo : undefined;
+    const boxWidth = Math.max(0, Math.min(150, x));
+    const boxX = Math.max(0, x - boxWidth);
+
+    return (
+        <foreignObject x={boxX} y={y - 11} width={boxWidth} height={22}>
+            <div
+                title={label}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'flex-end',
+                    gap: 6,
+                    width: '100%',
+                    height: '100%',
+                    paddingRight: 2,
+                    color: axisColor,
+                    fontSize: 11,
+                    lineHeight: 1.2,
+                }}
+            >
+                {primarySrc && (
+                    <SellerFavicon
+                        key={primarySrc}
+                        primarySrc={primarySrc}
+                        fallbackSrc={fallbackSrc}
+                        alt={label}
+                    />
+                )}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                    {label}
+                </span>
+            </div>
+        </foreignObject>
+    );
+}
+
+export function SellersChart({
+    sellers,
+    icons,
+}: {
+    sellers: SellerStat[];
+    icons?: Record<number, SellerIconInfo>;
+}) {
     const axis = useAxisColor();
     const palette = chart.sequence;
     return (
@@ -121,7 +242,22 @@ export function SellersChart({ sellers }: { sellers: SellerStat[] }) {
             <BarChart data={sellers} layout="vertical" margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={axis} opacity={0.15} horizontal={false} />
                 <XAxis type="number" stroke={axis} fontSize={11} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" stroke={axis} fontSize={11} width={130} />
+                <YAxis
+                    type="category"
+                    dataKey="name"
+                    stroke={axis}
+                    fontSize={11}
+                    width={156}
+                    interval={0}
+                    tick={(tickProps) => (
+                        <SellerYAxisTick
+                            {...tickProps}
+                            sellers={sellers}
+                            icons={icons}
+                            axisColor={axis}
+                        />
+                    )}
+                />
                 <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
                 <Bar dataKey="offer_clicks" name="Clics a tienda" radius={[0, 4, 4, 0]}>
                     {sellers.map((seller, index) => (
@@ -129,6 +265,69 @@ export function SellersChart({ sellers }: { sellers: SellerStat[] }) {
                     ))}
                 </Bar>
             </BarChart>
+        </ResponsiveContainer>
+    );
+}
+
+export function SocialsPieChart({ rows }: { rows: SocialStat[] }) {
+    const scheme = useComputedColorScheme('light', { getInitialValueInEffect: true });
+    const active = rows.filter((row) => row.clicks > 0);
+    const total = active.reduce((sum, row) => sum + row.clicks, 0);
+
+    const data = active.map((row, index) => {
+        // En modo oscuro, el negro puro de Threads se fundiría con la tarjeta.
+        const rawColor = row.network === 'threads' && scheme === 'dark'
+            ? chart.series.gray
+            : SOCIAL_COLORS[row.network];
+        return {
+            network: row.network,
+            name: SOCIAL_LABELS[row.network] ?? row.network,
+            clicks: row.clicks,
+            percent: total ? Math.round((row.clicks / total) * 1000) / 10 : 0,
+            color: rawColor ?? chart.sequence[index % chart.sequence.length],
+        };
+    });
+
+    return (
+        <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+                <Pie
+                    data={data}
+                    dataKey="clicks"
+                    nameKey="name"
+                    cx="50%"
+                    cy="44%"
+                    outerRadius={84}
+                    paddingAngle={1}
+                    stroke="var(--mantine-color-body)"
+                    strokeWidth={2}
+                >
+                    {data.map((entry) => (
+                        <Cell key={entry.network} fill={entry.color} />
+                    ))}
+                </Pie>
+                <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    itemStyle={{ color: 'var(--mantine-color-text)' }}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    formatter={(value: number, name: string, item) => [
+                        `${value.toLocaleString('es-CL')} clics (${item?.payload?.percent ?? 0}%)`,
+                        name,
+                    ]}
+                />
+                <Legend
+                    wrapperStyle={{ fontSize: 12 }}
+                    formatter={(value: string, entry) => {
+                        const payload = entry?.payload as { clicks?: number; percent?: number } | undefined;
+                        return (
+                            <span style={{ color: 'var(--mantine-color-text)' }}>
+                                {value}
+                                {payload?.clicks != null ? ` (${payload.clicks} · ${payload.percent}%)` : ''}
+                            </span>
+                        );
+                    }}
+                />
+            </PieChart>
         </ResponsiveContainer>
     );
 }
@@ -155,7 +354,7 @@ export function DevicesChart({ series }: { series: DailyTraffic[] }) {
    tonos distinguibles como mucho, y el color tiene que seguir al grupo aunque
    cambie el ranking del periodo. El detalle por canal está en la tabla de al
    lado. La paleta vive en `lib/colors.ts` (`chart.channels`). */
-const GROUP_COLORS: Record<ChannelGroup, { light: string; dark: string }> = chart.channels;
+const GROUP_COLORS: Record<ChannelGroup, { light: string; dark: string }> = CHANNEL_GROUP_COLORS;
 
 /** Sesiones por día, apiladas por grupo de canal. */
 export function SourcesChart({ series }: { series: SourcesReport['series'] }) {

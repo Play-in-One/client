@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
@@ -23,16 +23,15 @@ import {
 import { IconAlertTriangle, IconArrowDownRight, IconArrowUpRight, IconMinus } from '@tabler/icons-react';
 
 import {
-    getAnalyticsActivity,
     getAnalyticsFunnel,
     getAnalyticsRetention,
     getAnalyticsSearch,
     getAnalyticsSources,
     getAnalyticsSummary,
     getAnalyticsTraffic,
+    getSeller,
 } from '@/lib/api';
 import type {
-    ActivityReport,
     AnalyticsPeriod,
     AnalyticsSummary,
     FunnelReport,
@@ -42,8 +41,8 @@ import type {
     TrafficReport,
 } from '@/lib/types';
 import { useAdmin } from '@/context/AdminContext';
+import type { SellerIconInfo } from './charts';
 import { RetentionLegend, RetentionMatrix } from './RetentionMatrix';
-import { ActivityHeatmap } from './ActivityHeatmap';
 import { PerformancePanel } from './PerformancePanel';
 import { SourcesPanel } from './SourcesPanel';
 
@@ -53,6 +52,7 @@ const VisitorsChart = dynamic(() => import('./charts').then((m) => m.VisitorsCha
 const FunnelChart = dynamic(() => import('./charts').then((m) => m.FunnelChart), { ssr: false });
 const SellersChart = dynamic(() => import('./charts').then((m) => m.SellersChart), { ssr: false });
 const DevicesChart = dynamic(() => import('./charts').then((m) => m.DevicesChart), { ssr: false });
+const SocialsPieChart = dynamic(() => import('./charts').then((m) => m.SocialsPieChart), { ssr: false });
 
 const RANGES = [
     { label: '7 días', value: '7' },
@@ -126,7 +126,6 @@ interface Reports {
     funnel: FunnelReport;
     search: SearchReport;
     retention: RetentionReport;
-    activity: ActivityReport;
     sources: SourcesReport;
 }
 
@@ -134,6 +133,8 @@ export function AnalyticsClient() {
     const { isAdmin } = useAdmin();
     const [days, setDays] = useState('30');
     const [reports, setReports] = useState<Reports | null>(null);
+    const [sellerIcons, setSellerIcons] = useState<Record<number, SellerIconInfo>>({});
+    const fetchedSellerIds = useRef<Set<number>>(new Set());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -141,16 +142,15 @@ export function AnalyticsClient() {
         setLoading(true);
         setError(null);
         try {
-            const [summary, traffic, funnel, search, retention, activity, sources] = await Promise.all([
+            const [summary, traffic, funnel, search, retention, sources] = await Promise.all([
                 getAnalyticsSummary(range),
                 getAnalyticsTraffic(range),
                 getAnalyticsFunnel(range),
-                getAnalyticsSearch(range),
+                getAnalyticsSearch(range, 10),
                 getAnalyticsRetention(12),
-                getAnalyticsActivity(range),
-                getAnalyticsSources(range),
+                getAnalyticsSources(range, 100),
             ]);
-            setReports({ summary, traffic, funnel, search, retention, activity, sources });
+            setReports({ summary, traffic, funnel, search, retention, sources });
         } catch {
             setError('No se pudieron cargar las métricas. Revisa que la sesión siga activa.');
         } finally {
@@ -161,6 +161,37 @@ export function AnalyticsClient() {
     useEffect(() => {
         if (isAdmin) load(Number(days));
     }, [isAdmin, days, load]);
+
+    useEffect(() => {
+        if (!reports) return;
+        const missing = [...new Set(
+            reports.funnel.top_sellers
+                .map((s) => s.seller)
+                .filter((id): id is number => id != null && !fetchedSellerIds.current.has(id)),
+        )];
+        if (missing.length === 0) return;
+        for (const id of missing) fetchedSellerIds.current.add(id);
+
+        let cancelled = false;
+        Promise.allSettled(missing.map((id) => getSeller(id))).then((results) => {
+            if (cancelled) return;
+            const updates: Record<number, SellerIconInfo> = {};
+            results.forEach((res, idx) => {
+                if (res.status === 'fulfilled') {
+                    updates[missing[idx]] = {
+                        favicon: res.value.favicon,
+                        logo: res.value.logo,
+                    };
+                }
+            });
+            if (Object.keys(updates).length > 0) {
+                setSellerIcons((prev) => ({ ...prev, ...updates }));
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [reports]);
 
     if (!isAdmin) {
         return (
@@ -175,6 +206,7 @@ export function AnalyticsClient() {
 
     const current: AnalyticsPeriod | undefined = reports?.summary.current;
     const previous: AnalyticsPeriod | undefined = reports?.summary.previous;
+    const hasSocialClicks = (reports?.funnel.socials.some((row) => row.clicks > 0)) ?? false;
 
     return (
         <Container size="xl" py="xl">
@@ -279,13 +311,6 @@ export function AnalyticsClient() {
                         <SourcesPanel report={reports.sources} />
                     </Panel>
 
-                    <Panel
-                        title="Horarios de uso"
-                        subtitle="Cuándo se usa la plataforma, por día de la semana y hora. Útil para elegir cuándo publicar, cuándo lanzar una oferta y a qué hora conviene desplegar."
-                    >
-                        <ActivityHeatmap report={reports.activity} />
-                    </Panel>
-
                     <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
                         <Panel
                             title="Embudo hacia la tienda"
@@ -342,32 +367,29 @@ export function AnalyticsClient() {
                             {reports.funnel.top_sellers.length === 0 ? (
                                 <Text c="dimmed" fz="sm">Sin datos en este periodo.</Text>
                             ) : (
-                                <SellersChart sellers={reports.funnel.top_sellers} />
+                                <SellersChart sellers={reports.funnel.top_sellers} icons={sellerIcons} />
                             )}
                         </Panel>
                     </SimpleGrid>
 
-                    <Panel
-                        title="Salidas a redes sociales"
-                        subtitle="Los enlaces compiten por el mismo rincón del footer. Esto dice cuáles se ganan el sitio."
-                    >
-                        {reports.funnel.socials.length === 0 ? (
-                            <Text c="dimmed" fz="sm">Nadie ha salido a una red en este periodo.</Text>
-                        ) : (
-                            <SocialTable rows={reports.funnel.socials} />
-                        )}
-                    </Panel>
-
                     <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
-                        <Panel title="Búsquedas más frecuentes">
-                            <SearchTable rows={reports.search.top_queries} emptyLabel="Nadie ha buscado todavía." />
+                        <Panel
+                            title="Salidas a redes sociales"
+                            subtitle="Los enlaces compiten por el mismo rincón del footer. Esto dice cuáles se ganan el sitio."
+                        >
+                            {!hasSocialClicks ? (
+                                <Text c="dimmed" fz="sm">Nadie ha salido a una red en este periodo.</Text>
+                            ) : (
+                                <SocialsPieChart rows={reports.funnel.socials} />
+                            )}
                         </Panel>
+
                         <Panel
                             title="Búsquedas sin resultados"
-                            subtitle="Lo que la gente buscó y no encontró: el hueco del catálogo, en sus propias palabras."
+                            subtitle="Top 10 de lo que la gente buscó y no encontró: el hueco del catálogo, en sus propias palabras."
                         >
                             <SearchTable
-                                rows={reports.search.zero_results}
+                                rows={reports.search.zero_results.slice(0, 10)}
                                 emptyLabel="Ninguna búsqueda se quedó sin resultados."
                                 highlight
                             />
@@ -391,44 +413,6 @@ export function AnalyticsClient() {
     );
 }
 
-/** Nombres tal como se leen, no como se guardan: la clave `twitter` es
-    historia del modelo, no algo que nadie deba reconocer en un panel. */
-const SOCIAL_LABELS: Record<string, string> = {
-    instagram: 'Instagram', linkedin: 'LinkedIn', facebook: 'Facebook',
-    twitter: 'X', youtube: 'YouTube', reddit: 'Reddit', tiktok: 'TikTok',
-    pinterest: 'Pinterest', gmail: 'Correo', discord: 'Discord',
-    spotify: 'Spotify', whatsapp: 'WhatsApp', threads: 'Threads',
-    tumblr: 'Tumblr', telegram: 'Telegram', mastodon: 'Mastodon', bluesky: 'Bluesky',
-};
-
-function SocialTable({ rows }: { rows: FunnelReport['socials'] }) {
-    const total = rows.reduce((sum, row) => sum + row.clicks, 0);
-    return (
-        <Table.ScrollContainer minWidth={320}>
-            <Table striped verticalSpacing="xs" fz="sm">
-                <Table.Thead>
-                    <Table.Tr>
-                        <Table.Th>Red</Table.Th>
-                        <Table.Th ta="right">Clics</Table.Th>
-                        <Table.Th ta="right">Del total</Table.Th>
-                    </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                    {rows.map((row) => (
-                        <Table.Tr key={row.network}>
-                            <Table.Td>{SOCIAL_LABELS[row.network] ?? row.network}</Table.Td>
-                            <Table.Td ta="right" fw={600}>{row.clicks}</Table.Td>
-                            <Table.Td ta="right" c="dimmed">
-                                {total ? `${Math.round((row.clicks / total) * 100)}%` : '—'}
-                            </Table.Td>
-                        </Table.Tr>
-                    ))}
-                </Table.Tbody>
-            </Table>
-        </Table.ScrollContainer>
-    );
-}
-
 function SearchTable({
     rows,
     emptyLabel,
@@ -441,7 +425,7 @@ function SearchTable({
     if (rows.length === 0) return <Text c="dimmed" fz="sm">{emptyLabel}</Text>;
 
     return (
-        <Table.ScrollContainer minWidth={380}>
+        <Table.ScrollContainer minWidth={340}>
             <Table striped verticalSpacing="xs" fz="sm">
                 <Table.Thead>
                     <Table.Tr>

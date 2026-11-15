@@ -327,13 +327,13 @@ export function PerformancePanel() {
 
                     <Panel
                         title="Las cargas más lentas"
-                        subtitle="Casos concretos, con el reparto del tiempo entre red, render y backend."
+                        subtitle="Top 20 de cargas individuales más lentas para diagnosticar si el cuello de botella fue red, render (Next) o una consulta de Django."
                     >
                         <Group mb="md">
                             <Text fz="xs" c="dimmed">Ordenar por</Text>
                             <SegmentedControl data={METRICS} value={metric} onChange={setMetric} size="xs" />
                         </Group>
-                        <SlowestTable rows={slowest?.results ?? []} />
+                        <SlowestTable rows={(slowest?.results ?? []).slice(0, 20)} />
                     </Panel>
                 </>
             )}

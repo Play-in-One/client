@@ -1,20 +1,27 @@
+import { chart } from '@/lib/colors';
 import type { TrafficChannel } from '@/lib/types';
 
 /* Grupos de canales para el gráfico diario. El detalle por canal va en la
    tabla; el gráfico solo necesita la forma grande: buscadores, anuncios, redes,
-   directo y el resto. */
+   asistentes IA, directo y el resto. */
 
-export type ChannelGroup = 'search' | 'paid' | 'social' | 'direct' | 'other' | 'unknown';
+export type ChannelGroup = 'search' | 'paid' | 'social' | 'ai' | 'direct' | 'other' | 'unknown';
 
 /** En el orden en que se apilan y se asignan los colores. */
 export const CHANNEL_GROUPS: { key: ChannelGroup; label: string }[] = [
     { key: 'search', label: 'Buscadores' },
     { key: 'paid', label: 'Anuncios' },
     { key: 'social', label: 'Redes sociales' },
+    { key: 'ai', label: 'Asistentes IA' },
     { key: 'direct', label: 'Directo' },
     { key: 'other', label: 'Otros sitios' },
     { key: 'unknown', label: 'Sin dato' },
 ];
+
+export const CHANNEL_GROUP_COLORS: Record<ChannelGroup, { light: string; dark: string }> = {
+    ...chart.channels,
+    ai: { light: chart.series.violet, dark: chart.series.purple },
+};
 
 const GROUP_OF: Record<TrafficChannel, ChannelGroup> = {
     google_organic: 'search',
@@ -30,7 +37,7 @@ const GROUP_OF: Record<TrafficChannel, ChannelGroup> = {
     x: 'social',
     whatsapp: 'social',
     direct: 'direct',
-    ai: 'other',
+    ai: 'ai',
     email: 'other',
     referral: 'other',
     '': 'unknown',
