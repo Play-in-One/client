@@ -98,7 +98,7 @@ export function PrivacyContent() {
 
                 <Title order={2} fz="lg" mb="xs">Lo esencial en cuatro puntos</Title>
                 <List spacing="xs" mb="lg" c="dimmed">
-                    <List.Item>No guardamos tu dirección IP en ninguna parte.</List.Item>
+                    <List.Item>La analítica de visitas descarta tu IP. Seguridad la conserva hasta 30 días cuando detecta un patrón de extracción masiva del catálogo.</List.Item>
                     <List.Item>
                         Nuestra analítica principal es propia. Solo si aceptas la cookie de
                         analítica se carga además Google Analytics; sin aceptar, el único tercero
@@ -123,14 +123,25 @@ export function PrivacyContent() {
                 <Box mb="lg">
                     <DataTable rows={DATA_ROWS} />
                 </Box>
+                <Title order={3} fz="md" mb="xs">Seguridad del catálogo</Title>
+                <Text fz="md" c="dimmed" mb="lg">
+                    Contamos peticiones en ventanas cortas con un código derivado de la IP.
+                    Si se supera un umbral de extracción masiva, el equipo puede consultar la IP de
+                    salida y su país aproximado, el navegador declarado, las horas, una muestra de rutas sin parámetros,
+                    el identificador de Cloudflare y el dominio de procedencia que envíe el navegador.
+                    Eliminamos el incidente y sus muestras a los 30 días. Una cookie de seguridad
+                    firmada nos permite reconocer el mismo navegador durante 30 minutos desde la
+                    última vez que se superó el umbral. Si se comparte un enlace de ese incidente,
+                    registramos su apertura y el dominio de procedencia cuando está disponible.
+                    Una apertura por sí sola no guarda la IP de quien recibió el enlace.
+                </Text>
 
                 <Title order={2} fz="lg" mb="xs">3. Cómo contamos visitas sin identificarte</Title>
                 <Text fz="md" c="dimmed" mb="md">
                     Si no aceptas la cookie de analítica, seguimos necesitando saber cuánta gente
                     entró — pero no quién. Para eso el servidor calcula un código a partir de tu
                     conexión y tu navegador, mezclado con una clave que cambia cada día. Ese código
-                    es lo único que se guarda: la dirección IP y el navegador se descartan en el
-                    acto y nunca llegan a la base de datos.
+                    permite contar la visita. La analítica descarta en el acto la dirección IP y el navegador.
                 </Text>
                 <Text fz="md" c="dimmed" mb="lg">
                     Como la clave cambia a medianoche, el código de hoy no se parece al de mañana.

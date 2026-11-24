@@ -16,7 +16,7 @@ export default function CookiesPage() {
         <Container size="md" py="section">
             <Title order={1} mb="xs" ta="center">Cookies y preferencias</Title>
             <Text fz="sm" c="dimmed" ta="center" mb="xl">
-                Dos cookies, ninguna de terceros, ninguna publicitaria.
+                Consulta cuánto dura cada cookie y elige tus preferencias.
             </Text>
             <CookiePreferences />
         </Container>

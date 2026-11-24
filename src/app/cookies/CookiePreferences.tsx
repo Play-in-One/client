@@ -23,6 +23,13 @@ import { CONSENT_MAX_AGE_SECONDS } from '@/lib/consent';
 
 const COOKIES = [
     {
+        name: 'pio_rastreo',
+        origin: 'Propia',
+        purpose: 'Vincula las peticiones de un navegador a un incidente de extracción masiva del catálogo.',
+        duration: '30 minutos desde la última detección',
+        needed: 'Seguridad, solo cuando se detecta el patrón',
+    },
+    {
         name: 'pio_consent',
         origin: 'Propia',
         purpose: 'Recuerda qué decidiste en este panel, para no volver a preguntártelo en cada visita.',

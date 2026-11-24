@@ -17,7 +17,7 @@ import {
     Title,
 } from '@mantine/core';
 import { useAdmin } from '@/context/AdminContext';
-import { ApiError } from '@/lib/api';
+import { ApiError, DJANGO_ADMIN_URL } from '@/lib/api';
 
 // Ruta secreta sin enlace: no aparece en navbar, footer ni sitemap. La barrera
 // real es el login (usuario is_staff); la ruta solo oculta el punto de entrada.
@@ -89,6 +89,9 @@ export default function StaffLoginClient() {
                         </Button>
                         <Button component={Link} href="/staff/reportes" variant="light" leftSection={<IconAlertTriangle size={18} />}>
                             Ver reportes
+                        </Button>
+                        <Button component="a" href={`${DJANGO_ADMIN_URL}crawls/incident/`} variant="light">
+                            Ver rastreos del catálogo
                         </Button>
                         <Button component={Link} href="/staff/diseno" variant="light" leftSection={<IconPalette size={18} />}>
                             Sistema de diseño
