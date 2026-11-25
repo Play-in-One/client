@@ -11,7 +11,7 @@ async function openGame(page: Page, staff = true) {
         value: encodeURIComponent(JSON.stringify({
             v: POLICY_VERSION, analytics: false, measure: false, ads: false,
         })),
-        url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3001',
+        url: process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${process.env.FRONTEND_PORT ?? '3001'}`,
     }]);
     if (staff) {
         await page.addInitScript(() => {
