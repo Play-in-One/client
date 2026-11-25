@@ -10,7 +10,7 @@ import type {
 } from './types';
 import { appendAttribution } from './attribution';
 import { tryServerPerf } from './serverPerf';
-import type { ConsoleDetail, ConsoleModel, ConsoleQuery } from './consoles';
+import type { ConsoleDealsResponse, ConsoleDetail, ConsoleModel, ConsoleQuery } from './consoles';
 
 const API_BASE = typeof window === 'undefined'
     ? (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api')
@@ -638,6 +638,21 @@ export async function getDeals(params?: {
         signal,
         ...(revalidate !== undefined || params?.homepage
             ? { next: { revalidate: revalidate ?? 300 } } : {}),
+    });
+}
+
+/** Consolas en oferta para la portada: casi siempre vacío fuera de Black
+ *  Friday o Cyber. Acepta los mismos filtros globales que `getDeals`. */
+export async function getConsoleDeals(params?: {
+    condition?: string;
+    seller_locations?: string;
+    limit?: number;
+    signal?: AbortSignal;
+}) {
+    const { signal, ...qsParams } = params ?? {};
+    return fetcher<ConsoleDealsResponse>(`/consoles/deals/${qs(qsParams)}`, {
+        signal,
+        ...(typeof window === 'undefined' ? { next: { revalidate: 300 } } : {}),
     });
 }
 

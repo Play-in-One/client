@@ -211,3 +211,34 @@ test('«Ofertas de hoy» muestra las primeras ofertas y enlaza a /ofertas', asyn
     await expect(section.getByText(dealBadgeLine(results[0])).first()).toBeVisible();
     await expect(section.getByRole('link', { name: /Ver todas las ofertas/ })).toHaveAttribute('href', '/ofertas');
 });
+
+test('la fila «Consolas en oferta» sigue el formato global y desaparece en digital', async ({ page }) => {
+    // Solo el refetch del navegador se puede simular: sin filtros, la fila sale
+    // del servidor, y en los datos sembrados ninguna consola está en oferta.
+    const consoleDeal = {
+        console: {
+            id: 9001, name: 'PlayStation 5 Slim', slug: 'playstation-5-slim', image: '', description: '',
+            platform: MOCK_PLATFORMS[0], min_price: '450000.00', seller_count: 3, in_stock: true,
+        },
+        deal: { current_price: '450000.00', typical_price: '500000.00', discount_pct: 10, savings: '50000.00', is_all_time_low: true },
+    };
+    const conditions: string[] = [];
+    await page.route(/\/api\/consoles\/deals\//, (route) => {
+        const condition = new URL(route.request().url()).searchParams.get('condition') ?? '';
+        conditions.push(condition);
+        return route.fulfill({ json: { date: '2026-11-25', results: condition === 'digital' ? [] : [consoleDeal] } });
+    });
+    await page.goto('/');
+    const formats = page.getByRole('radiogroup', { name: 'Formato' });
+    const row = page.locator('[data-home-console-deals]');
+
+    await formats.getByText('Físico', { exact: true }).click();
+    await expect(row.getByRole('heading', { name: 'Consolas en oferta' })).toBeVisible();
+    await expect(row.locator('[data-console-card]')).toHaveCount(1);
+    await expect(row.locator('[data-console-deal-label]')).toContainText('10%');
+    await expect(row.locator('[data-console-card]')).toContainText('$450.000');
+
+    await formats.getByText('Digital', { exact: true }).click();
+    await expect(row).toHaveCount(0);
+    expect(conditions).toEqual(['physical', 'digital']);
+});

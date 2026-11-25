@@ -1,6 +1,6 @@
 'use client';
 
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import Link from 'next/link';
 import { seedFromClick } from '@/lib/navigationSeed';
 import { Badge, Card, Group, Skeleton, Stack, Text, Title } from '@mantine/core';
@@ -30,8 +30,10 @@ export function plural(count: number, one: string, many: string) {
     return `${count} ${count === 1 ? one : many}`;
 }
 
-export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
+export function ConsoleCard({ model, showDraft = false, headingOrder = 3, priceAddon }: {
     model: ConsoleModel; showDraft?: boolean; headingOrder?: 2 | 3;
+    /** Al lado del precio: la rebaja de `ConsoleDealLabel` en la portada. */
+    priceAddon?: ReactNode;
 }) {
     const priced = model.min_price != null;
     return (
@@ -58,6 +60,7 @@ export function ConsoleCard({ model, showDraft = false, headingOrder = 3 }: {
                         <Text lh={1.2}>
                             <Text span fz="xs" c="dimmed">Desde </Text>
                             <Text span fz="xl" fw={800} className={styles.price}>{formatCLP(model.min_price!)}</Text>
+                            {priceAddon && <>{' '}{priceAddon}</>}
                         </Text>
                     ) : (
                         <Badge color="gray" variant="light">Sin stock</Badge>

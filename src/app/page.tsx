@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
 import HomeHero from './HomeHero';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
-import { getPosts, getTrendingGames, getFeaturedGames, getFeaturedSagas, getDeals } from '@/lib/api';
+import { getPosts, getTrendingGames, getFeaturedGames, getFeaturedSagas, getDeals, getConsoleDeals } from '@/lib/api';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
+import type { ConsoleDeal } from '@/lib/consoles';
 import { JsonLd } from '@/components/JsonLd';
 import { itemListJsonLd } from '@/lib/seo';
 import { dealsSectionTitle, isTodayDeals, santiagoDate } from '@/lib/deals';
@@ -18,13 +19,16 @@ export default async function HomePage() {
     // Las tres secciones son independientes: se piden en paralelo (cada
     // regeneración ISR paga 1 RTT al backend en vez de 3 encadenados) y
     // cada una degrada a vacío por separado si el API falla.
-    const [postsResult, trendingResult, featuredResult, sagasResult, dealsResult] = await Promise.allSettled([
+    const [postsResult, trendingResult, featuredResult, sagasResult, dealsResult, consoleDealsResult] = await Promise.allSettled([
         getPosts({ page: 1, ordering: '-published_date' }),
         getTrendingGames(),
         getFeaturedGames(),
         getFeaturedSagas(),
         // «Ofertas de hoy». NO entra en la regla de abajo (ver `failed`).
         getDeals({ homepage: 1 }),
+        // Las dos consolas con mayor rebaja, en su propia fila. Tampoco entra
+        // en la regla: sin ellas, la fila simplemente no se pinta.
+        getConsoleDeals({ limit: 2 }),
     ]);
     // «Encuentra tu próxima consola» in the hero: a public link only when a model is published.
     // Outside the rule above too: it never fails, it only hides the button.
@@ -56,6 +60,7 @@ export default async function HomePage() {
     const sagas: Saga[] = sagasResult.status === 'fulfilled' ? sagasResult.value.results : [];
     // Solo las 8 que se pintan: el resto viajaría en el payload de hidratación.
     const deals: Deal[] = dealsResult.status === 'fulfilled' ? dealsResult.value.results.slice(0, 8) : [];
+    const consoleDeals: ConsoleDeal[] = consoleDealsResult.status === 'fulfilled' ? consoleDealsResult.value.results.slice(0, 2) : [];
     // «Ofertas de hoy» o «Ofertas del <fecha>» si el cálculo de la noche no
     // corrió. Se resuelve AQUÍ, en el servidor, y baja ya escrito: `HomeClient`
     // se hidrata en el navegador, y leer allí el reloj podría dar otro día.
@@ -87,6 +92,7 @@ export default async function HomePage() {
                     initialFeatured={packGames(featured)}
                     initialSagas={sagas}
                     deals={deals}
+                    consoleDeals={consoleDeals}
                     dealsTitle={dealsTitle}
                     dealsAreToday={dealsAreToday}
                     dealsSelectionDay={santiagoDate(now)}

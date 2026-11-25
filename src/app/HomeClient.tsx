@@ -19,7 +19,10 @@ import { unpackGames, type GamesPayload } from '@/lib/gamePayload';
 import type { Post, Game, Saga, Deal } from '@/lib/types';
 import { PLATFORM_GROUPS } from '@/lib/platformGroups';
 import { surfaces } from '@/lib/colors';
-import { getHomeGames, getDeals } from '@/lib/api';
+import { getHomeGames, getDeals, getConsoleDeals } from '@/lib/api';
+import type { ConsoleDeal } from '@/lib/consoles';
+import { ConsoleCard } from '@/components/consoles/ConsoleCard';
+import ConsoleDealLabel from '@/components/consoles/ConsoleDealLabel';
 import { useApp } from '@/context/AppContext';
 import GameCard from '@/components/GameCard';
 import DealCard from '@/components/DealCard';
@@ -38,6 +41,7 @@ export default function HomeClient({
     initialFeatured: featuredPayload,
     initialSagas,
     deals: initialDeals,
+    consoleDeals: initialConsoleDeals,
     dealsTitle,
     dealsAreToday,
     dealsSelectionDay,
@@ -48,6 +52,9 @@ export default function HomeClient({
     initialSagas: Saga[];
     /** Primeras 8 ofertas sin filtros, para el HTML inicial. */
     deals: Deal[];
+    /** Hasta 2 consolas en oferta sin filtros. Casi siempre vacío: la fila
+     *  solo aparece cuando una consola baja de verdad (Black Friday, Cyber). */
+    consoleDeals: ConsoleDeal[];
     /** «Ofertas de hoy» o «Ofertas del <fecha>», resuelto en el servidor. */
     dealsTitle: string;
     /** Si la tanda es la de hoy (para «Nueva hoy»), resuelto en el servidor. */
@@ -197,6 +204,41 @@ export default function HomeClient({
         };
     }, [ready, conditionParam, sellerLocationsParam, initialDeals, dealsTitle, dealsAreToday, selectionDay, dealsSelectionDay]);
 
+    /* Las consolas en oferta siguen los mismos filtros globales que las de
+       juegos. Sin filtros se usan las del servidor; con filtros se piden de
+       nuevo, y un error solo oculta la fila: es opcional, como la sección. */
+    const [consoleOffers, setConsoleOffers] = useState<ConsoleDeal[]>(initialConsoleDeals);
+    const consoleDealsCache = useRef(new Map<string, ConsoleDeal[]>());
+    useEffect(() => {
+        if (!ready) return;
+        if (!conditionParam && !sellerLocationsParam) {
+            setConsoleOffers(initialConsoleDeals);
+            return;
+        }
+        const key = `${conditionParam ?? 'all'}:${sellerLocationsParam ?? 'all'}`;
+        const cached = consoleDealsCache.current.get(key);
+        if (cached) {
+            setConsoleOffers(cached);
+            return;
+        }
+        const controller = new AbortController();
+        let superseded = false;
+        getConsoleDeals({ condition: conditionParam, seller_locations: sellerLocationsParam, limit: 2, signal: controller.signal })
+            .then((response) => {
+                if (superseded) return;
+                const next = response.results.slice(0, 2);
+                consoleDealsCache.current.set(key, next);
+                setConsoleOffers(next);
+            })
+            .catch(() => {
+                if (!superseded) setConsoleOffers([]);
+            });
+        return () => {
+            superseded = true;
+            controller.abort();
+        };
+    }, [ready, conditionParam, sellerLocationsParam, initialConsoleDeals]);
+
     return (
         <>
             {/* ══════ JUEGOS DESTACADOS ══════ */}
@@ -220,7 +262,7 @@ export default function HomeClient({
             )}
 
             {/* ══════ OFERTAS DE HOY ══════ */}
-            {(initialDeals.length > 0 || offers.results.length > 0 || dealsLoading || conditionParam || sellerLocationsParam) && (
+            {(initialDeals.length > 0 || offers.results.length > 0 || initialConsoleDeals.length > 0 || consoleOffers.length > 0 || dealsLoading || conditionParam || sellerLocationsParam) && (
                 <Box data-home-deals pt="section" pb={initialSagas.length > 0 ? 60 : 0}>
                     <Container size="lg">
                         <Group justify="space-between" align="flex-end" mb="xl">
@@ -251,10 +293,25 @@ export default function HomeClient({
                                         <DealCard key={`${deal.game.id}-${deal.platform}`} deal={deal} isToday={offers.isToday} />
                                     ))}
                                 </SimpleGrid>
-                            ) : (
+                            ) : consoleOffers.length > 0 ? null : (
                                 <Text c="dimmed">{dealsError ? 'No se pudieron cargar las ofertas.' : 'No hay ofertas con los filtros seleccionados.'}</Text>
                             )}
                         </Box>
+
+                        {/* Fila propia de consolas, bajo los juegos. Solo existe
+                            cuando alguna consola está bajo su precio típico. */}
+                        {consoleOffers.length > 0 && (
+                            <Box data-home-console-deals data-prefs-dependent mt="section">
+                                <Title order={3} fz={{ base: 20, md: 24 }} fw={700} mb="md">
+                                    Consolas en oferta
+                                </Title>
+                                <SimpleGrid {...SHELF_DEALS_GRID}>
+                                    {consoleOffers.map(({ console: model, deal }) => (
+                                        <ConsoleCard key={model.id} model={model} priceAddon={<ConsoleDealLabel deal={deal} />} />
+                                    ))}
+                                </SimpleGrid>
+                            </Box>
+                        )}
                     </Container>
                 </Box>
             )}

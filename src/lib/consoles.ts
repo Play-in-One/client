@@ -38,6 +38,26 @@ export interface ConsoleModel {
     is_published?: boolean;
 }
 
+/** Rebaja de una consola frente a su precio típico (`backend/games/console_deals.py`).
+ *  Importes en pesos con envío y cupón, como `min_price`. */
+export interface ConsoleDealInfo {
+    current_price: string;
+    typical_price: string;
+    discount_pct: number;
+    savings: string;
+    is_all_time_low: boolean;
+}
+
+export interface ConsoleDeal {
+    console: ConsoleModel;
+    deal: ConsoleDealInfo;
+}
+
+export interface ConsoleDealsResponse {
+    date: string;
+    results: ConsoleDeal[];
+}
+
 export interface ConsoleDetail extends ConsoleModel {
     configurations: ConsoleConfiguration[];
     products: Product[];
