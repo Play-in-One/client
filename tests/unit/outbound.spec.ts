@@ -37,14 +37,51 @@ function upstream(eventStatus = 201) {
     };
 }
 
-function request(path = '/go/product/42', choice?: 'accept' | 'essential' | 'reject-all') {
+function request(path = '/go/product/42', choice?: 'accept' | 'essential' | 'reject-all', extra: Record<string, string> = {}) {
     return new NextRequest(`https://playinone.cl${path}`, { headers: {
         'user-agent': 'Browser WebKit Mobile',
         'x-forwarded-for': '192.0.2.1',
         'cf-ipcountry': 'CL',
         ...(choice ? { cookie: `pio_consent=${encodeURIComponent(JSON.stringify(buildConsent(choice)))}; pio_vid=signed-token` } : {}),
+        ...extra,
     } });
 }
+
+function recordedEvent() {
+    const events = calls.filter(call => call.url.endsWith('/events/'));
+    expect(events).toHaveLength(1);
+    return JSON.parse(events[0].options!.body as string);
+}
+
+test('a direct hit with no sign of the site is recorded as an opening without origin', async () => {
+    upstream();
+    const lines: string[] = [];
+    const info = console.info;
+    console.info = (line: string) => { lines.push(line); };
+    try {
+        const response = await handleOutbound(request('/go/product/42', undefined, { 'x-pio-asn': '64512' }), 'product', '42');
+        expect(response.status).toBe(302);
+    } finally {
+        console.info = info;
+    }
+    expect(recordedEvent()).toMatchObject({ event_type: 'offer_click', outbound_origin: 'none' });
+    // The log carries the origin, the country and the ASN, never the IP.
+    const logged = JSON.parse(lines.find(line => line.includes('"event":"outbound"'))!);
+    expect(logged).toMatchObject({ origin: 'none', country: 'CL', asn: 64512, result: 'recorded' });
+    expect(lines.join('')).not.toContain('192.0.2.1');
+});
+
+test('a click from a page of the site, or with our cookies, has an origin', async () => {
+    upstream();
+    await handleOutbound(request('/go/product/42', undefined, { referer: 'https://playinone.cl/juego/zelda-7' }), 'product', '42');
+    expect(recordedEvent()).toMatchObject({ outbound_origin: 'site' });
+    calls = [];
+    await handleOutbound(request('/go/product/42', undefined, { referer: 'https://copia.example/juego/zelda-7' }), 'product', '42');
+    expect(recordedEvent()).toMatchObject({ outbound_origin: 'none' });
+    calls = [];
+    await handleOutbound(request('/go/product/42', 'essential'), 'product', '42');
+    expect(recordedEvent()).toMatchObject({ outbound_origin: 'cookie' });
+});
 
 test('redirects to the catalog affiliate URL and records one attributed event', async () => {
     upstream();
@@ -58,6 +95,7 @@ test('redirects to the catalog affiliate URL and records one attributed event', 
     expect(JSON.parse(events[0].options!.body as string)).toMatchObject({
         event_type: 'offer_click', product: 42, game: 7, platform: 3,
         attr_utm_source: 'tiktok', attr_utm_medium: 'paid', attr_utm_campaign: 'launch',
+        outbound_origin: 'attr',
     });
     expect(events[0].options!.headers).toMatchObject({
         'User-Agent': 'Browser WebKit Mobile', 'X-Forwarded-For': '192.0.2.1',

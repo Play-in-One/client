@@ -3,6 +3,7 @@ import { brand, darkScale, foregrounds, onDark, surfaces } from '@/lib/colors';
 import { CONSENT_COOKIE, VISITOR_COOKIE, parseConsent } from '@/lib/consent';
 
 type OutboundKind = 'product' | 'store';
+export type OutboundOrigin = 'attr' | 'site' | 'cookie' | 'none';
 const CLICK_TYPES = ['gclid', 'gbraid', 'wbraid', 'ttclid', 'fbclid', 'msclkid'];
 const ATTR_KEYS = ['ref', 'utm_source', 'utm_medium', 'utm_campaign', 'click'];
 const RESPONSE_HEADERS = { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex, nofollow' };
@@ -46,6 +47,22 @@ function attribution(request: NextRequest): Record<string, string> {
     }
     if (result.attr_click && !CLICK_TYPES.includes(result.attr_click)) delete result.attr_click;
     return result;
+}
+
+/**
+ * Whether this opening shows any sign of having passed through the site.
+ * A click inside PIO always carries a same-origin Referer (no global
+ * Referrer-Policy, so the browser default applies) and, once hydrated, the
+ * `attr_*` params; a returning visitor also has our cookies. `none` is a
+ * direct hit on `/go/<kind>/<id>`: since November 2026, mostly a pool of
+ * rotating proxies. The backend stores it but leaves it out of analytics and
+ * rankings. `backend/crawls/detection.py:outbound_origin` mirrors this rule.
+ */
+export function outboundOrigin(request: NextRequest): OutboundOrigin {
+    if (ATTR_KEYS.some(key => request.nextUrl.searchParams.get(`attr_${key}`)?.trim())) return 'attr';
+    if (siteReferer(request)) return 'site';
+    if (request.cookies.has(VISITOR_COOKIE) || request.cookies.has(CONSENT_COOKIE)) return 'cookie';
+    return 'none';
 }
 
 /* Página suelta, servida sin Mantine: los colores salen de los mismos tokens
@@ -127,8 +144,15 @@ export async function handleOutbound(request: NextRequest, kind: OutboundKind, i
     if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return errorResponse(request, 404);
     const apiBase = (process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8001/api').replace(/\/$/, '');
     const started = Date.now();
+    const origin = outboundOrigin(request);
+    // Country and ASN come from Cloudflare (`X-Pio-Asn` is a Transform Rule);
+    // Caddy strips both when a request does not come through it. No IP.
+    const country = request.headers.get('cf-ipcountry') ?? '';
+    const asn = request.headers.get('x-pio-asn') ?? '';
     const log = (result: string, status?: number) => console.info(JSON.stringify({
-        event: 'outbound', kind, id: Number(id), result, status, duration_ms: Date.now() - started,
+        event: 'outbound', kind, id: Number(id), result, status, duration_ms: Date.now() - started, origin,
+        country: /^[A-Z]{2}$/.test(country) ? country : undefined,
+        asn: /^\d{1,10}$/.test(asn) ? Number(asn) : undefined,
     }));
     const cacheKey = `${kind}:${id}`;
     let catalog = cachedCatalog(cacheKey);
@@ -178,6 +202,7 @@ export async function handleOutbound(request: NextRequest, kind: OutboundKind, i
             ...(kind === 'product'
                 ? { event_type: 'offer_click', product: Number(id), game: catalog.game, platform: catalog.platform?.id }
                 : { event_type: 'store_click', seller: Number(id) }),
+            outbound_origin: origin,
             ...(consent?.analytics ? { visitor_id: request.cookies.get(VISITOR_COOKIE)?.value } : {}),
             ...attribution(request),
         };
